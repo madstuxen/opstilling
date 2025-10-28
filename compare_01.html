@@ -1,0 +1,4017 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forskelle og Ligheder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .comparison-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .controls-bar {
+            background: #e5e7eb;
+            padding: 15px;
+            border-bottom: 2px solid #d1d5db;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .dropdown-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .dropdown-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            white-space: nowrap;
+        }
+        
+        .participant-dropdown {
+            padding: 8px 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            min-width: 160px;
+            color: #374151;
+        }
+        
+        .controls-divider {
+            width: 2px;
+            height: 30px;
+            background: #d1d5db;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .clear-btn { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+        .save-btn { background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; }
+        .random-btn { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; }
+        .back-btn { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+        
+        .btn:disabled { 
+            background: #9ca3af !important; 
+            cursor: not-allowed; 
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-1px); }
+        
+        .participants-section {
+            background: #f8fafc;
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            height: 315px;
+            flex-shrink: 0;
+            overflow: visible;
+            position: relative;
+        }
+        
+        .info-left, .info-right {
+            position: absolute;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+        }
+        
+        .info-left { left: 20px; }
+        .info-right { right: 20px; }
+        
+        .info-input {
+            width: 140px;
+            padding: 6px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: inherit;
+            background: white;
+        }
+        
+        .info-label {
+            font-size: 10px;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 2px;
+        }
+        
+        .participants-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 700px;
+            margin: 0 auto;
+            gap: 30px;
+            height: 100%;
+            overflow: visible;
+        }
+
+        
+        
+        .participant {
+            flex: 1;
+            margin-top: -160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            overflow: visible;
+        }
+        
+        .participant-circle {
+		width: 72px;
+		height: 72px;
+		border-radius: 50%;
+		background: transparent;
+		border: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: white;
+		font-weight: bold;
+		font-size: 10px;
+		text-align: center;
+		position: relative;
+		padding: 5px;
+		line-height: 1.1;
+		z-index: 10;
+		pointer-events: none;
+	}
+	.head {
+		position: absolute;
+		top: -74px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 72px;
+		height: 72px;
+		border-radius: 50%;
+		background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: white;
+		font-weight: bold;
+		font-size: 10px;
+		text-align: center;
+		box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+		padding: 10px;
+		line-height: 1.2;
+		z-index: 5;
+		pointer-events: auto;
+		opacity: 1;
+	}
+
+.head span {
+    cursor: text;
+    font-size: 10px;
+}
+
+
+        /* New Advanced Figure Structure */
+	.participant-body {
+		position: absolute;
+		top: 76px;
+		
+		transform-origin: 50px -40px;
+		z-index: 5;
+		pointer-events: none;
+		width: 100px;
+		height: 200px;
+	}
+
+	/* Torso */
+	/* Torso */
+.participant-torso {
+    position: absolute;
+    width: 54px;
+    height: 72px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 22px 22px 15px 15px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+    top: -2px;
+	
+
+    z-index: 8;
+}
+
+	/* Højre arm hierarki */
+.skulder_translate_right {
+    position: absolute;
+    top: 0px;
+    left: 62px;
+    width: 15px;
+    height: 15px;
+    background: rgba(59, 130, 246, 0.0);
+    z-index: 3;
+}
+
+.skulder_translate_right.front-arm {
+    z-index: 15;
+}
+
+.skulder_rotate_right {
+    width: 100%;
+    height: 100%;
+    background: rgba(239, 68, 68, 0.0);
+    transform-origin: center center;
+}
+
+.arm_geo_right {
+    width: 50px;
+    height: 18px;
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+    left: -1px;
+}
+
+.albue_rotate_right {
+    position: relative;
+    top: 1px;
+    left: 34px;
+    width: 15px;
+    height: 15px;
+    background: rgba(16, 185, 129, 0.0);
+    transform-origin: center center;
+}
+
+.albue_geo_right {
+    position: relative;
+    top: -1px;
+    left: 1px;
+    width: 50px;
+    height: 18px;
+    background: #f59e0b;
+    border-radius: 9px;
+    z-index: 4;
+}
+
+.albue_geo_right.front {
+    z-index: 20 !important;
+    position: relative;
+}
+
+	/* Venstre arm hierarki */
+.skulder_translate_left {
+    position: absolute;
+    top: 0px;
+    left: 22px;
+    width: 15px;
+    height: 15px;
+    background: rgba(59, 130, 246, 0.0);
+    z-index: 3;
+}
+
+.skulder_translate_left.front-arm {
+    z-index: 15;
+}
+
+.skulder_rotate_left {
+    width: 100%;
+    height: 100%;
+    background: rgba(239, 68, 68, 0.0);
+    transform-origin: center center;
+}
+
+.arm_geo_left {
+    width: 50px;
+    height: 18px;
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+    left: -34px;
+}
+
+.albue_rotate_left {
+    position: relative;
+    top: 1px;
+    left: 0px;
+    width: 15px;
+    height: 15px;
+    background: rgba(16, 185, 129, 0.0);
+    transform-origin: center center;
+}
+
+.albue_geo_left {
+    position: relative;
+    top: -1px;
+    left: -33px;
+    width: 50px;
+    height: 18px;
+    background: #f59e0b;
+    border-radius: 9px;
+    z-index: 4;
+}
+
+.albue_geo_left.front {
+    z-index: 20 !important;
+    position: relative;
+}
+
+	/* Højre ben hierarki */
+.hofte_translate_right {
+    position: absolute;
+    top: 68px;
+    left: 58px;
+    width: 15px;
+    height: 15px;
+    background: rgba(59, 130, 246, 0.0);
+}
+
+.hofte_rotate_right {
+    width: 100%;
+    height: 100%;
+    background: rgba(239, 68, 68, 0.0);
+    transform-origin: center center;
+}
+
+.laar_geo_right {
+    width: 18px;
+    height: 55px;
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+    left: -1px;
+}
+
+.knae_rotate_right {
+    position: relative;
+    top: 38px;
+    left: 1px;
+    width: 15px;
+    height: 15px;
+    background: rgba(16, 185, 129, 0.0);
+    transform-origin: center center;
+}
+
+.skinneben_geo_right {
+    position: relative;
+    top: -1px;
+    left: -1px;
+    width: 18px;
+    height: 50px;
+    background: #f59e0b;
+    border-radius: 9px;
+}
+
+/* Venstre ben hierarki */
+.hofte_translate_left {
+    position: absolute;
+    top: 68px;
+    left: 26px;
+    width: 15px;
+    height: 15px;
+    background: rgba(59, 130, 246, 0.0);
+}
+
+.hofte_rotate_left {
+    width: 100%;
+    height: 100%;
+    background: rgba(239, 68, 68, 0.0);
+    transform-origin: center center;
+}
+
+.laar_geo_left {
+    width: 18px;
+    height: 55px;
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+    left: -1px;
+}
+
+.knae_rotate_left {
+    position: relative;
+    top: 38px;
+    left: 1px;
+    width: 15px;
+    height: 15px;
+    background: rgba(16, 185, 129, 0.0);
+    transform-origin: center center;
+}
+
+.skinneben_geo_left {
+    position: relative;
+    top: -1px;
+    left: -1px;
+    width: 18px;
+    height: 50px;
+    background: #f59e0b;
+    border-radius: 9px;
+}
+
+	
+
+        .participant-torso {
+            width: 55px;
+            height: 80px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            margin: 0 auto;
+            border-radius: 30px 30px 20px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            position: relative;
+            z-index: 5;
+        }
+
+        .participant-arms {
+            position: absolute;
+            top: 0px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 30px;
+            z-index: 0;
+        }
+
+        .participant-arm-left, .participant-arm-right {
+            position: absolute;
+            width: 75px;
+            height: 20px;
+            background: #f59e0b;
+            border-radius: 10px;
+            transform-origin: right center;
+        }
+
+        .participant-arm-left {
+            left: -22px;
+            top: -5px;
+            transform: rotate(-50deg);
+        }
+
+        .participant-arm-right {
+            right: -22px;
+            top: -5px;
+            transform: rotate(55deg);
+            transform-origin: left center;
+        }
+
+        .participant-legs {
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 35px;
+            z-index: 0;
+        }
+
+        .participant-leg-left, .participant-leg-right {
+            position: absolute;
+            width: 20px;
+            height: 100px;
+            background: #f59e0b;
+            border-radius: 10px;
+            transform-origin: top center;
+        }
+
+        .participant-leg-left {
+            left: 27px;
+            transform: rotate(-10deg);
+        }
+
+        .participant-leg-right {
+            right: 27px;
+            transform: rotate(10deg);
+        }
+        
+        .participant-circle span[contenteditable] {
+            outline: none;
+            border-radius: 4px;
+            padding: 2px;
+            transition: all 0.2s ease;
+            cursor: text;
+        }
+        
+        .participant-circle span[contenteditable]:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .participant-circle span[contenteditable]:focus {
+            background-color: white;
+            color: black;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5);
+        }
+
+        .color-circle-btn {
+            position: absolute;
+            bottom: 0px;
+            right: 0px;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #a855f7;
+            border: 2px solid white;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 150;
+            opacity: 0;
+			pointer-events: auto;
+        }
+        
+        .color-circle-btn:hover {
+            transform: scale(1.1);
+            background: #9333ea;
+        }
+        
+		
+		#leftPoseBtn, #rightPoseBtn {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #06b6d4;
+    border: 2px solid white;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: bold;
+    color: white;
+    transition: all 0.3s ease;
+    z-index: 150;
+    opacity: 0;
+    transform: translate(0px, -25px);
+	pointer-events: auto;  
+}
+
+#leftPoseBtn:hover, #rightPoseBtn:hover {
+    transform: translate(0px, -25px) scale(1.1);
+    background: #0891b2;
+}
+
+.participant-circle:hover #leftPoseBtn,
+.participant-circle:hover #rightPoseBtn {
+    display: flex !important;
+    opacity: 1;
+}
+		
+		
+		
+		
+        .participant-circle:hover .color-circle-btn {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .status {
+            text-align: center;
+            color: #6b7280;
+            font-size: 12px;
+            padding: 5px;
+        }
+
+        /* Color Picker Styles */
+        .color-picker-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        
+        .color-picker-modal.show {
+            display: flex;
+        }
+        
+        .picker {
+            width: 224px;
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .swatch {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+            border: 1px solid rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .swatch:hover {
+            transform: scale(1.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 15px);
+            grid-template-rows: repeat(14, 15px);
+            gap: 2px;
+            background: transparent;
+        }
+		
+		
+		/* Pose Picker Styles */
+.pose-picker-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+
+.pose-picker-modal.show {
+    display: flex;
+}
+
+.pose-picker {
+    width: 280px;
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border: 1px solid #e2e8f0;
+}
+
+.pose-mirror-section {
+    text-align: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.pose-mirror-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+}
+
+.pose-mirror-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    transform: scale(1.2);
+}
+
+.pose-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.pose-button {
+    padding: 8px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.pose-button:hover {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+    color: #1d4ed8;
+}
+
+.pose-button.active {
+    border-color: #3b82f6;
+    background: #3b82f6;
+    color: white;
+}
+		
+		
+		
+		
+		
+        
+        /* Comparison Section Styles */
+        .comparison-section {
+            flex: 1;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .comparison-header {
+            background: #f1f5f9;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .comparison-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fafafa;
+            min-height: 400px;
+        }
+        
+        .step-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .step-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #374151;
+        }
+        
+        .step-nav {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .step-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .step-btn.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+        
+        .step-btn:not(.active) {
+            background: #e5e7eb;
+            color: #6b7280;
+        }
+        
+        .step-btn:hover:not(.active) {
+            background: #d1d5db;
+        }
+        
+        .step-content {
+            display: none;
+        }
+        
+        .step-content.active {
+            display: block;
+        }
+        
+        .single-side-traits {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .single-trait-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+        
+  #leftTraits .single-trait-item {
+    justify-content: flex-start;
+}
+
+#leftTraits .single-slider-container {
+    flex: 0 0 auto;
+}
+
+#rightTraits .single-trait-item {
+    justify-content: flex-end;
+}
+
+#rightTraits .single-slider-container {
+    flex: 0 0 auto;
+}
+
+#comparisonResults > div {
+    justify-content: center;
+}
+
+#leftTraits .single-trait-item {
+    justify-content: flex-start;
+}
+
+#leftTraits .single-slider-container {
+    flex: 0 0 auto;
+}
+
+#rightTraits .single-trait-item {
+    justify-content: flex-end;
+}
+
+#rightTraits .single-slider-container {
+    flex: 0 0 auto;
+}
+
+#comparisonResults > div > div {
+    justify-content: center;
+    margin: 0 auto;
+    width: fit-content;
+}
+
+.comparison-labels {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin: 0 auto;
+    width: fit-content;
+}    
+        
+        .single-slider-container {
+    
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.trait-left-label {
+    min-width: 120px;
+    text-align: left;
+    font-size: 16px;
+    color: #4b5563;
+    font-weight: 500;
+}
+
+.trait-right-label {
+    min-width: 120px;
+    text-align: right;
+    font-size: 16px;
+    color: #4b5563;
+    font-weight: 500;
+}
+        
+        .single-slider {
+    flex: 0 0 400px;
+    height: 6px;
+    border-radius: 3px;
+    background: #e2e8f0;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+}
+        
+        .single-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .single-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        
+        .single-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .single-slider.left-color::-webkit-slider-thumb {
+            background: var(--left-color, #3b82f6);
+        }
+        
+        .single-slider.right-color::-webkit-slider-thumb {
+            background: var(--right-color, #3b82f6);
+        }
+        
+        .single-slider.left-color::-moz-range-thumb {
+            background: var(--left-color, #3b82f6);
+        }
+        
+        .single-slider.right-color::-moz-range-thumb {
+            background: var(--right-color, #3b82f6);
+        }
+        
+        .slider-value {
+            min-width: 60px;
+            text-align: center;
+            font-weight: 500;
+            color: #4b5563;
+        }
+        
+        .speedometer-section {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            gap: 30px;
+        }
+        
+        .speedometer-container {
+            text-align: center;
+        }
+        
+        .speedometer {
+            width: 150px;
+            height: 150px;
+            position: relative;
+            margin: 0 auto 10px;
+        }
+        
+        .speedometer svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+        
+        .speedometer-bg {
+            fill: none;
+            stroke: #e5e7eb;
+            stroke-width: 12;
+        }
+        
+        .speedometer-fill {
+            fill: none;
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        
+        .speedometer-similarity .speedometer-fill {
+            stroke: #10b981;
+        }
+        
+        .speedometer-difference .speedometer-fill {
+            stroke: #ef4444;
+        }
+        
+        .speedometer-label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+        
+        .speedometer-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .speedometer-similarity .speedometer-value {
+            color: #10b981;
+        }
+        
+        .speedometer-difference .speedometer-value {
+            color: #ef4444;
+        }
+        
+        .comparison-slider-container {
+    position: relative;
+    width: 400px;
+    height: 20px;
+    flex: 0 0 400px;
+}
+
+.compare-color-btn {
+    min-width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 2px solid white;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+
+.compare-color-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+
+.comparison-labels {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.comparison-left-label {
+    min-width: 120px;
+    text-align: left;
+    font-size: 16px;
+    color: #4b5563;
+    font-weight: 500;
+}
+
+.comparison-right-label {
+    min-width: 120px;
+    text-align: right;
+    font-size: 16px;
+    color: #4b5563;
+    font-weight: 500;
+}
+        
+        .comparison-slider {
+            position: absolute;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            outline: none;
+            cursor: default;
+            -webkit-appearance: none;
+            pointer-events: none;
+        }
+        
+        .comparison-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            pointer-events: none;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .comparison-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            pointer-events: none;
+        }
+        
+        .comparison-slider.left-color::-webkit-slider-thumb {
+            background: var(--left-color, #3b82f6);
+        }
+        
+        .comparison-slider.right-color::-webkit-slider-thumb {
+            background: var(--right-color, #ef4444);
+        }
+        
+        .comparison-slider.left-color::-moz-range-thumb {
+            background: var(--left-color, #3b82f6);
+        }
+        
+        .comparison-slider.right-color::-moz-range-thumb {
+            background: var(--right-color, #ef4444);
+        }
+        
+        .progress-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .progress-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #d1d5db;
+            transition: all 0.2s ease;
+        }
+        
+        .progress-dot.active {
+            background: #3b82f6;
+            transform: scale(1.2);
+        }
+        
+        .progress-dot.completed {
+            background: #10b981;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #9ca3af;
+            font-style: italic;
+            padding: 40px;
+        }
+		
+		
+/* distance knapper */
+.distance-controls-wrapper {
+    position: relative;
+    height: 0;
+    z-index: 200;
+	
+	
+}
+
+.distance-controls {
+    position: absolute;
+	top: -26px; 
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.distance-controls-wrapper:hover .distance-controls,
+.participants-section:hover ~ .distance-controls-wrapper .distance-controls {
+    opacity: 1;
+}
+
+
+.distance-label {
+    font-size: 10px;
+    color: #6b7280;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+
+.distance-btn {
+    width: 30px;
+    height: 15px;
+    border-radius: 25%;
+	background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
+    border: 1px solid white;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+
+.distance-btn:hover {
+    transform: scale(1.1);
+    background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);  
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.distance-btn:active {
+    transform: scale(0.95);
+}
+		
+		
+		
+		
+    </style>
+</head>
+<body>
+    <div class="comparison-container">
+        <div class="header">
+            <h1 style="font-size: 1.5em; margin-bottom: 5px;">Forskelle og Ligheder</h1>
+            <p style="font-size: 0.9em;">Sammenligning mellem indre dele</p>
+        </div>
+        
+        <div class="controls-bar">
+            <div class="controls-divider"></div>
+            
+            <div class="dropdown-group">
+                <span class="dropdown-label">Venstre del:</span>
+                <select class="participant-dropdown" id="leftDropdown"></select>
+            </div>
+            
+            <div class="dropdown-group">
+                <span class="dropdown-label">Højre del:</span>
+                <select class="participant-dropdown" id="rightDropdown"></select>
+            </div>
+            
+            <div class="controls-divider"></div>
+            
+            <button class="btn save-btn" id="saveBtn" disabled>Gem Sammenligning</button>
+            <button class="btn" id="loadComparisonBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs Sammenligning</button>
+            <button class="btn random-btn" id="randomBtn" disabled>Random</button>
+            <button class="btn clear-btn">Ryd Alt</button>
+            <button class="btn back-btn" onclick="confirmBackToOpstilling()">Tilbage til Opstilling</button>
+        </div>
+        
+        <div class="status" id="status">Vælg to dele for at begynde sammenligning</div>
+        
+        <div class="participants-section">
+            <div class="info-left">
+                
+				<input type="text" class="info-input" id="leftStikord1" placeholder="Alder">
+				<input type="text" class="info-input" id="leftStikord2" placeholder="Relation">
+				<input type="text" class="info-input" id="leftStikord3" placeholder="Køn">
+				<input type="text" class="info-input" id="leftStikord4" placeholder="Stikord 4">
+				<input type="text" class="info-input" id="leftStikord5" placeholder="Stikord 5">
+				<input type="text" class="info-input" id="leftStikord6" placeholder="Stikord 6">
+				<div style="display: flex; align-items: center; justify-content: space-between;">
+				<div class="info-label">Pose:</div>
+				<div style="display: flex; align-items: center; gap: 4px;">
+					<input type="checkbox" id="leftMirror" onchange="toggleMirror('left')" style="width: 12px; height: 12px;">
+					<label for="leftMirror" style="font-size: 10px; color: #6b7280;">Spejl</label>
+				</div>
+			</div>
+			<select class="info-input" id="leftPose" onchange="applyPose('left', this.value)">
+				<option value="">Standard pose</option>
+			</select>
+            </div>
+            
+            <div class="info-right">
+                
+				<input type="text" class="info-input" id="rightStikord1" placeholder="Alder">
+				<input type="text" class="info-input" id="rightStikord2" placeholder="Relation">
+				<input type="text" class="info-input" id="rightStikord3" placeholder="Køn">
+				<input type="text" class="info-input" id="rightStikord4" placeholder="Stikord 4">
+				<input type="text" class="info-input" id="rightStikord5" placeholder="Stikord 5">
+				<input type="text" class="info-input" id="rightStikord6" placeholder="Stikord 6">
+				<div style="display: flex; align-items: center; justify-content: space-between;">
+				<div class="info-label">Pose:</div>
+				<div style="display: flex; align-items: center; gap: 4px;">
+					<input type="checkbox" id="rightMirror" onchange="toggleMirror('right')" style="width: 12px; height: 12px;">
+					<label for="rightMirror" style="font-size: 10px; color: #6b7280;">Spejl</label>
+				</div>
+			</div>
+			<select class="info-input" id="rightPose" onchange="applyPose('right', this.value)">
+				<option value="">Standard pose</option>
+			</select>
+            </div>
+			
+			
+            
+            <div class="participants-container" id="compareParticipants">
+               
+			   <div class="participant">
+					<div class="participant-circle" id="leftCircle" style="display: none;">
+						<button class="color-circle-btn" id="leftPoseBtn" title="Skift pose">P</button>
+						<button class="color-circle-btn" id="leftColorBtn" title="Skift farve">C</button>
+						
+						<div class="participant-body">
+							<div class="head">
+								<span id="leftName"></span>
+							</div>
+							
+							<div class="participant-torso"></div>
+							
+							<!-- Venstre arm hierarki -->
+							<div class="skulder_translate_left">
+								<div class="skulder_rotate_left">
+									<div class="arm_geo_left">
+										<div class="albue_rotate_left">
+											<div class="albue_geo_left"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Højre arm hierarki -->
+							<div class="skulder_translate_right">
+								<div class="skulder_rotate_right">
+									<div class="arm_geo_right">
+										<div class="albue_rotate_right">
+											<div class="albue_geo_right"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Venstre ben hierarki -->
+							<div class="hofte_translate_left">
+								<div class="hofte_rotate_left">
+									<div class="laar_geo_left">
+										<div class="knae_rotate_left">
+											<div class="skinneben_geo_left"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Højre ben hierarki -->
+							<div class="hofte_translate_right">
+								<div class="hofte_rotate_right">
+									<div class="laar_geo_right">
+										<div class="knae_rotate_right">
+											<div class="skinneben_geo_right"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+                
+                <div class="participant">
+					<div class="participant-circle" id="rightCircle" style="display: none;">
+						<button class="color-circle-btn" id="rightColorBtn" title="Skift farve">C</button>
+						<button class="color-circle-btn" id="rightPoseBtn" title="Skift pose">P</button>
+						
+						<div class="participant-body">
+							<div class="head">
+								<span id="rightName"></span>
+							</div>
+							
+							<div class="participant-torso"></div>
+							
+							<!-- Venstre arm hierarki -->
+							<div class="skulder_translate_left">
+								<div class="skulder_rotate_left">
+									<div class="arm_geo_left">
+										<div class="albue_rotate_left">
+											<div class="albue_geo_left"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Højre arm hierarki -->
+							<div class="skulder_translate_right">
+								<div class="skulder_rotate_right">
+									<div class="arm_geo_right">
+										<div class="albue_rotate_right">
+											<div class="albue_geo_right"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Venstre ben hierarki -->
+							<div class="hofte_translate_left">
+								<div class="hofte_rotate_left">
+									<div class="laar_geo_left">
+										<div class="knae_rotate_left">
+											<div class="skinneben_geo_left"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Højre ben hierarki -->
+							<div class="hofte_translate_right">
+								<div class="hofte_rotate_right">
+									<div class="laar_geo_right">
+										<div class="knae_rotate_right">
+											<div class="skinneben_geo_right"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						
+                    </div>
+                </div>
+				
+				
+				
+				
+            </div>
+        </div>
+		
+		<div class="distance-controls-wrapper">
+            <div class="distance-controls">
+                <button class="distance-btn" id="increaseDistance" title="Øg afstand">< ></button>
+				 <span class="distance-label">Juster afstand</span>
+                <button class="distance-btn" id="decreaseDistance" title="Mindsk afstand">> <</button>
+            </div>
+        </div>
+        
+        <div class="comparison-section">
+            <div class="comparison-header">
+                <h3 style="color: #475569; font-size: 16px;">Sammenligning og Analyse</h3>
+            </div>
+            <div class="comparison-content" id="comparisonContent">
+                <div class="empty-state">
+                    <h4 style="margin-bottom: 15px; color: #374151;">Sådan bruger du Sammenlignings-værktøjet:</h4>
+                    <p style="margin-bottom: 12px; text-align: left;"><strong>1. Vælg dele:</strong> Brug dropdown-menuerne til at vælge to indre dele du vil sammenligne.</p>
+                    <p style="margin-bottom: 12px; text-align: left;"><strong>2. Udfyld fakta:</strong> Indtast grundlæggende information om hver del.</p>
+                    <p style="margin-bottom: 12px; text-align: left;"><strong>3. Score egenskaber:</strong> Vurder hvor hver del placerer sig på forskellige skalaer.</p>
+                    <p style="margin-bottom: 12px; text-align: left;"><strong>4. Fokuser på ligheder:</strong> Se hvor delene minder om hinanden i stedet for kun at fokusere på forskelle.</p>
+                    <p style="margin-top: 15px; font-style: italic; color: #6b7280;">Dette værktøj hjælper med at reducere indre konflikt ved at se nuancer og ligheder mellem dele af dig selv.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Picker Modal -->
+    <div class="color-picker-modal" id="colorPickerModal">
+        <div class="picker">
+            <div class="color-grid" id="colorGrid"></div>
+        </div>
+    </div>
+	
+	
+	
+	<!-- Pose Picker Modal -->
+<div class="pose-picker-modal" id="posePickerModal">
+    <div class="pose-picker">
+        <div class="pose-mirror-section">
+            <label class="pose-mirror-label">
+                <input type="checkbox" id="posePickerMirror" onchange="togglePosePickerMirror()">
+                <span>Spejl</span>
+            </label>
+        </div>
+        <div class="pose-grid" id="poseGrid"></div>
+    </div>
+</div>
+
+    <script src="coaching_engine.js"></script>
+    <script src="coaching_overlay_complete.js"></script>
+    <script>
+        // Wait for script to load and then check
+        window.addEventListener('load', function() {
+            console.log('Page loaded, checking coaching functions...');
+            console.log('openCoachingOverlayFromFile type:', typeof window.openCoachingOverlayFromFile);
+            console.log('CoachEngine type:', typeof window.CoachEngine);
+            console.log('CoachEngine class:', typeof CoachEngine);
+            
+            if (typeof openCoachingOverlayFromFile === 'undefined') {
+                console.log('Coaching functions not loaded, adding fallback...');
+                // Simple fallback function
+                window.openCoachingOverlayFromFile = function(filename) {
+                    console.log('Fallback: Opening coaching overlay from file:', filename);
+                    if (typeof openCoachingOverlay !== 'undefined') {
+                        openCoachingOverlay('myCoachingProject');
+                    } else {
+                        alert('Coaching overlay system ikke tilgængeligt');
+                    }
+                };
+            } else {
+                console.log('Coaching functions loaded successfully!');
+            }
+        });
+    </script>
+    <script>
+        let leftColor = null;
+        let rightColor = null;
+        let leftLightColor = null;
+        let rightLightColor = null;
+        let currentColorTarget = null;
+        let currentColorSide = null;
+        let currentStep = 1;
+        let leftScores = {};
+        let rightScores = {};
+		let currentPosePart = null;
+		let currentDistance = 675; // Start distance
+
+        
+const partsData = {
+    lav_ny_left: { 
+        name: "Lav Ny Del", 
+        keywords: ["", "", "", "", "", ""], 
+        color: "#10b981",
+        pose: "",
+        mirror: false
+    },
+    lav_ny_right: { 
+        name: "Lav Ny Del", 
+        keywords: ["", "", "", "", "", ""], 
+        color: "#3b82f6",
+        pose: "",
+        mirror: false
+    },
+    beskytter: { 
+        name: "Beskytteren", 
+        keywords: ["Sikkerhed", "Kontrol", "Forsigtig", "Ansvarlig", "", ""], 
+        color: "#fbbf24",
+        pose: "stærk",
+        mirror: false
+    },
+    kritiker: { 
+        name: "Den Kritiske", 
+        keywords: ["Perfektionisme", "Standards", "Aldrig godt nok", "Selvkritik", "", ""], 
+        color: "#ef4444",
+        pose: "vred",
+        mirror: false
+    },
+    manager: { 
+        name: "Manager-delen", 
+        keywords: ["Produktivitet", "Mål", "Effektivitet", "Præstation", "", ""], 
+        color: "#3b82f6",
+        pose: "tænke",
+        mirror: false
+    },
+    perfektionist: { 
+        name: "Den Perfektionistiske", 
+        keywords: ["Fejlfri", "Detaljer", "Aldrig færdig", "Høje krav", "", ""], 
+        color: "#8b5cf6",
+        pose: "lukket",
+        mirror: false
+    },
+    barn: { 
+        name: "Det Indre Barn", 
+        keywords: ["Leg", "Spontanitet", "Nysgerrig", "Kreativ", "", ""], 
+        color: "#10b981",
+        pose: "Leg",
+        mirror: false
+    },
+    saaret: { 
+        name: "Det Sårede Barn", 
+        keywords: ["Sorg", "Ensomhed", "Har brug for trøst", "Bange", "", ""], 
+        color: "#06b6d4",
+        pose: "trist",
+        mirror: false
+    },
+    kreativ: { 
+        name: "Den Kreative", 
+        keywords: ["Fantasi", "Inspiration", "Fri udtryk", "Innovation", "", ""], 
+        color: "#f97316",
+        pose: "flyver",
+        mirror: false
+    },
+    glade: { 
+        name: "Den Glade", 
+        keywords: ["Optimisme", "Humor", "Positivitet", "Smil", "", ""], 
+        color: "#84cc16",
+        pose: "hej",
+        mirror: false
+    }
+};
+
+        const defaultTraits = [
+            { left: "Leder", right: "Følger" },
+            { left: "Planlægger", right: "Improviserer" },
+            { left: "Struktureret", right: "Kreativ" },
+            { left: "Aktiv", right: "Passiv" },
+            { left: "Tænkende", right: "Følende" },
+            { left: "Kritisk", right: "Accepterende" },
+            { left: "Talende", right: "Lyttende" },
+            { left: "Hurtig", right: "Langsom" },
+            { left: "Ansvarsfuld", right: "Sorgløs" },
+            { left: "Alvorlig", right: "Legende" },
+            { left: "Konservativ", right: "Revolutionerende" },
+            { left: "Empirisk", right: "Intuitiv" },
+			{ left: "Dominerende", right: "Vigende" },
+			{ left: "Larmende", right: "Stille" },
+			{ left: "Indadvendt", right: "Udadvende" },
+			{ left: "Gruppe", right: "Individ" },
+			{ left: "Forsigtig", right: "Tager chancer" }
+			
+			
+			
+        ];
+		
+		
+		
+		
+	///// animations bibliotek
+		
+		const animations =  {
+    vinke: {
+        slides: [
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": 70,
+                    "albue_rot": 0,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.35
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": -56,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.3
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": 3,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.15
+          },
+          
+		  {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": -56,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.1
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": 3,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.1
+          },
+		  {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": -56,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.1
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": 3,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.1
+          },
+		  {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": -56,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.15
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": 3,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.2
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": 70,
+                    "albue_rot": 0,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.5
+          }
+]
+    } // slut for denne anim hvis flere lav et, komma
+		
+}	// slut for den kanstant der deffineres			
+		
+		
+		
+// animations bibliotek slut		
+// Pose Library - loaded from external JSON file
+let poseLibrary = [];
+
+// Load pose library from external JSON file
+async function loadPoseLibrary() {
+    try {
+        const response = await fetch('Standard_new_poses.json');
+        if (response.ok) {
+            poseLibrary = await response.json();
+            console.log('Loaded pose library with', poseLibrary.length, 'poses');
+        } else {
+            console.error('Failed to load pose library');
+            // Fallback to basic poses
+            poseLibrary = [
+                {
+                    "name": "standard",
+                    "pose": {
+                        "translate_x_left": -3,
+                        "translate_y_left": 0,
+                        "skulder_rot_left": -70,
+                        "albue_rot_left": 0,
+                        "translate_x": 3,
+                        "translate_y": 0,
+                        "skulder_rot": 70,
+                        "albue_rot": 0,
+                        "translate_x_left_leg": 0,
+                        "translate_y_left_leg": 0,
+                        "hofte_rot_left": 6,
+                        "knae_rot_left": 0,
+                        "translate_x_right_leg": 0,
+                        "translate_y_right_leg": 0,
+                        "hofte_rot_right": -6,
+                        "knae_rot_right": 0,
+                        "left_arm_front": false,
+                        "right_arm_front": false,
+                        "duration": 0.3
+                    }
+                }
+            ];
+        }
+    } catch (error) {
+        console.error('Error loading pose library:', error);
+        // Fallback to basic poses
+        poseLibrary = [
+            {
+                "name": "standard",
+                "pose": {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": 70,
+                    "albue_rot": 0,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.3
+                }
+            }
+        ];
+    }
+}
+
+//// anim funktioner
+function runAnimation(side, animName) {
+    const animation = animations[animName];
+    if (!animation || !animation.slides) {
+        console.log(`Animation "${animName}" not found`);
+        return;
+    }
+    
+    // Add smooth transitions to all animated elements
+    const circle = document.getElementById(side + 'Circle');
+    const animatedElements = circle.querySelectorAll(
+        '.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+        '.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+        '.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+        '.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+    );
+    
+    let slideIndex = 0;
+    
+    function playNextSlide() {
+        if (slideIndex < animation.slides.length) {
+            const slide = animation.slides[slideIndex];
+            
+            // Set transition duration for this slide
+            animatedElements.forEach(element => {
+                element.style.transition = `transform ${slide.duration}s cubic-bezier(0.25, 0.1, 0.25, 1)`;
+            });
+            
+            applyDirectSlideData(side, slide);
+            slideIndex++;
+            setTimeout(playNextSlide, slide.duration * 1000);
+        } else {
+            // Remove transitions when animation is done
+            animatedElements.forEach(element => {
+                element.style.transition = '';
+            });
+        }
+    }
+    
+    playNextSlide();
+}
+
+function applyDirectSlideData(side, slideData) {
+    const circle = document.getElementById(side + 'Circle');
+    const skulderLeft = circle.querySelector('.skulder_translate_left');
+    const skulderRight = circle.querySelector('.skulder_translate_right');
+    const hofteLeft = circle.querySelector('.hofte_translate_left');
+    const hofteRight = circle.querySelector('.hofte_translate_right');
+    
+    if (skulderLeft) {
+        skulderLeft.style.transform = `translate(${slideData.translate_x_left || 0}px, ${slideData.translate_y_left || 0}px)`;
+        const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+        if (skulderRotLeft) {
+            skulderRotLeft.style.transform = `rotate(${slideData.skulder_rot_left || 0}deg)`;
+            const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+            if (albueRotLeft) {
+                albueRotLeft.style.transform = `rotate(${slideData.albue_rot_left || 0}deg)`;
+            }
+        }
+    }
+    
+    if (skulderRight) {
+        skulderRight.style.transform = `translate(${slideData.translate_x || 0}px, ${slideData.translate_y || 0}px)`;
+        const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+        if (skulderRotRight) {
+            skulderRotRight.style.transform = `rotate(${slideData.skulder_rot || 0}deg)`;
+            const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+            if (albueRotRight) {
+                albueRotRight.style.transform = `rotate(${slideData.albue_rot || 0}deg)`;
+            }
+        }
+    }
+    
+    if (hofteLeft) {
+        hofteLeft.style.transform = `translate(${slideData.translate_x_left_leg || 0}px, ${slideData.translate_y_left_leg || 0}px)`;
+        const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+        if (hofteRotLeft) {
+            hofteRotLeft.style.transform = `rotate(${slideData.hofte_rot_left || 0}deg)`;
+            const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+            if (knaeRotLeft) {
+                knaeRotLeft.style.transform = `rotate(${slideData.knae_rot_left || 0}deg)`;
+            }
+        }
+    }
+    
+    if (hofteRight) {
+        hofteRight.style.transform = `translate(${slideData.translate_x_right_leg || 0}px, ${slideData.translate_y_right_leg || 0}px)`;
+        const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+        if (hofteRotRight) {
+            hofteRotRight.style.transform = `rotate(${slideData.hofte_rot_right || 0}deg)`;
+            const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+            if (knaeRotRight) {
+                knaeRotRight.style.transform = `rotate(${slideData.knae_rot_right || 0}deg)`;
+            }
+        }
+    }
+    
+    // Handle arm layering
+    if (slideData.left_arm_front) {
+        skulderLeft?.classList.add('front-arm');
+    } else {
+        skulderLeft?.classList.remove('front-arm');
+    }
+    
+    if (slideData.right_arm_front) {
+        skulderRight?.classList.add('front-arm');
+    } else {
+        skulderRight?.classList.remove('front-arm');
+    }
+}
+
+
+
+
+/// pose functions
+function openPosePicker(btn) {
+    // Find the participant container (not just the circle)
+    const participantCircle = btn.closest('.participant-circle');
+    currentPosePart = participantCircle.parentElement; // This is the .participant div
+    
+    const modal = document.getElementById('posePickerModal');
+    const picker = modal.querySelector('.pose-picker');
+    
+    // Get current pose and mirror from the participant element
+    const currentPose = currentPosePart.getAttribute('data-pose') || '';
+    const currentMirror = currentPosePart.getAttribute('data-mirror') === 'true';
+    
+    // Set mirror checkbox in picker
+    document.getElementById('posePickerMirror').checked = currentMirror;
+    
+    // Populate pose grid (this will highlight the current pose)
+    populatePoseGrid();
+    
+    // Show modal and position it
+    const btnRect = btn.getBoundingClientRect();
+    modal.classList.add('show');
+    
+    picker.style.position = 'absolute';
+    picker.style.left = (btnRect.right + 10) + 'px';
+    picker.style.top = (btnRect.top - 20) + 'px';
+    
+    // Adjust if goes off screen
+    const pickerRect = picker.getBoundingClientRect();
+    if (pickerRect.right > window.innerWidth) {
+        picker.style.left = (btnRect.left - pickerRect.width - 10) + 'px';
+    }
+    if (pickerRect.bottom > window.innerHeight) {
+        picker.style.top = (btnRect.bottom - pickerRect.height - 10) + 'px';
+    }
+}
+
+function populatePoseGrid() {
+    const grid = document.getElementById('poseGrid');
+    grid.innerHTML = '';
+    
+    // Get current pose from the DOM element
+    const currentPose = currentPosePart.getAttribute('data-pose') || '';
+    const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+    
+    // Add all poses from library (including "standard")
+    poseLibrary.forEach((pose, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'pose-button';
+        btn.textContent = pose.name;
+        btn.onclick = () => selectPose(index);
+        
+        if (currentPose === index.toString() || (currentPose === '' && index === standardIndex)) {
+            btn.classList.add('active');
+        }
+        
+        grid.appendChild(btn);
+    });
+}
+
+function selectPose(poseIndex) {
+    if (!currentPosePart) return;
+    
+    const mirror = document.getElementById('posePickerMirror').checked;
+    
+    // Find out which side by checking if it contains leftCircle or rightCircle
+    const hasLeftCircle = currentPosePart.querySelector('#leftCircle');
+    const side = hasLeftCircle ? 'left' : 'right';
+    
+    // Update the regular dropdowns to match
+    const poseDropdown = document.getElementById(side + 'Pose');
+    const mirrorCheckbox = document.getElementById(side + 'Mirror');
+    
+    // Map empty selection to standard index if available
+    if (poseIndex === '') {
+        const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+        if (standardIndex !== -1) {
+            poseIndex = standardIndex;
+        }
+    }
+
+    if (poseDropdown) poseDropdown.value = poseIndex;
+    if (mirrorCheckbox) mirrorCheckbox.checked = mirror;
+    
+    // Use the existing applyPose function
+    applyPose(side, poseIndex);
+    
+    // Update active button
+    populatePoseGrid();
+}
+
+function togglePosePickerMirror() {
+    if (!currentPosePart) return;
+    
+    // Find out which side
+    const hasLeftCircle = currentPosePart.querySelector('#leftCircle');
+    const side = hasLeftCircle ? 'left' : 'right';
+    
+    // Update the regular mirror checkbox to match
+    const regularMirrorCheckbox = document.getElementById(side + 'Mirror');
+    const posePickerMirrorCheckbox = document.getElementById('posePickerMirror');
+    
+    if (regularMirrorCheckbox) {
+        regularMirrorCheckbox.checked = posePickerMirrorCheckbox.checked;
+    }
+    
+    // Use the existing toggleMirror function
+    toggleMirror(side);
+}
+
+function closePosePicker() {
+    document.getElementById('posePickerModal').classList.remove('show');
+    currentPosePart = null;
+}
+
+
+
+// end pose functions
+
+
+
+		
+		
+
+        
+
+        function hslToHex(h,s,l){
+            s /= 100; l /= 100;
+            const k = n => (n + h/30) % 12;
+            const a = s * Math.min(l, 1 - l);
+            const f = n => {
+                const color = l - a * Math.max(Math.min(k(n) - 3, 9 - k(n), 1), -1);
+                return Math.round(255 * color).toString(16).padStart(2, '0');
+            };
+            return `#${f(0)}${f(8)}${f(4)}`;
+        }
+
+        function lightenColor(color, factor) {
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            
+            const newR = Math.round(r + (255 - r) * factor);
+            const newG = Math.round(g + (255 - g) * factor);
+            const newB = Math.round(b + (255 - b) * factor);
+            
+            return `rgb(${newR}, ${newG}, ${newB})`;
+        }
+
+        function updateBodyColors(side, color) {
+    const circle = document.getElementById(side + 'Circle');
+    if (!circle) return;
+    
+    // Convert hex to RGB to darken it
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+    
+    function darkenColor(hex, factor = 0.8) {
+        const rgb = hexToRgb(hex);
+        if (!rgb) return hex;
+        
+        const r = Math.round(rgb.r * factor);
+        const g = Math.round(rgb.g * factor);
+        const b = Math.round(rgb.b * factor);
+        
+        return `rgb(${r}, ${g}, ${b})`;
+    }
+    
+    const darkerColor = darkenColor(color, 0.92); // 15% mørkere
+    
+    const torso = circle.querySelector('.participant-torso');
+    const armParts = circle.querySelectorAll('.arm_geo_left, .arm_geo_right, .albue_geo_left, .albue_geo_right');
+    const legParts = circle.querySelectorAll('.laar_geo_left, .laar_geo_right, .skinneben_geo_left, .skinneben_geo_right');
+    
+    // Torso og hoved beholder original farve
+		const head = circle.querySelector('.head');
+		if (head) head.style.background = color;
+		if (torso) torso.style.background = color;
+    
+    // Arme og ben får mørkere farve
+    armParts.forEach(part => part.style.background = darkerColor);
+    legParts.forEach(part => part.style.background = darkerColor);
+}
+
+        function updateSliderColors() {
+            const root = document.documentElement;
+            
+            if (leftColor) {
+                root.style.setProperty('--left-color', leftColor);
+            }
+            
+            if (rightColor) {
+                root.style.setProperty('--right-color', rightColor);
+            }
+        }
+
+        function updateParticipant(side) {
+            const dropdown = document.getElementById(side + 'Dropdown');
+            const circle = document.getElementById(side + 'Circle');
+            const name = document.getElementById(side + 'Name');
+            const colorBtn = document.getElementById(side + 'ColorBtn');
+            const selectedValue = dropdown.value;
+            
+            if (selectedValue && partsData[selectedValue]) {
+                const partData = partsData[selectedValue];
+                circle.style.display = 'flex';
+                
+                if (side === 'left') {
+                    leftColor = partData.color;
+                    leftLightColor = lightenColor(partData.color, 0.6);
+                } else {
+                    rightColor = partData.color;
+                    rightLightColor = lightenColor(partData.color, 0.6);
+                }
+                
+                if (!name.hasAttribute('data-edited')) {
+                    name.textContent = partData.name;
+                }
+                
+                name.contentEditable = true;
+                name.style.cursor = 'text';
+                
+                name.onclick = function() { name.focus(); };
+                name.onkeydown = function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        name.blur();
+                        name.setAttribute('data-edited', 'true');
+                    }
+                };
+                name.onblur = function() {
+                    name.setAttribute('data-edited', 'true');
+                };
+				
+				
+                
+                const head = circle.querySelector('.head');
+				if (head) {
+					head.style.background = `linear-gradient(135deg, ${partData.color}, ${partData.color}dd)`;
+					
+				}
+                
+				colorBtn.style.display = 'flex';
+                updateBodyColors(side, partData.color);
+				updateSliderColors();
+				
+				// Populate stikord from parts data
+				if (partData.keywords && Array.isArray(partData.keywords)) {
+					for (let i = 1; i <= 6; i++) {
+						const stikordField = document.getElementById(side + 'Stikord' + i);
+						if (stikordField) {
+							stikordField.value = partData.keywords[i-1] || '';
+						}
+					}
+				}
+
+				// Play welcome animation first, then reset to default pose
+				// Play welcome animation first, then apply saved pose or reset to default
+				setTimeout(() => {
+					runAnimation(side, 'vinke');
+					
+					const animationDuration = animations.vinke.slides.reduce((total, slide) => total + slide.duration, 0);
+					setTimeout(() => {
+							// Get partData again inside this scope and re-apply pose after animation
+						const dropdown = document.getElementById(side + 'Dropdown');
+						const selectedValue = dropdown.value;
+						const currentPartData = partsData[selectedValue];
+						
+						const poseDropdown = document.getElementById(side + 'Pose');
+						const mirrorCheckbox = document.getElementById(side + 'Mirror');
+						
+							if (currentPartData && currentPartData.pose) {
+								// Find pose index by name (case-insensitive, trimmed)
+								const targetName = (currentPartData.pose || '').toLowerCase().trim();
+								const poseIndex = poseLibrary.findIndex(pose => (pose.name || '').toLowerCase().trim() === targetName);
+							if (poseIndex !== -1 && poseDropdown) {
+								poseDropdown.value = poseIndex;
+								if (mirrorCheckbox) {
+									mirrorCheckbox.checked = currentPartData.mirror || false;
+								}
+								applyPose(side, poseIndex);
+							} else {
+								resetPose(side);
+								if (poseDropdown) poseDropdown.value = '';
+								if (mirrorCheckbox) mirrorCheckbox.checked = false;
+							}
+						} else {
+							resetPose(side);
+							if (poseDropdown) poseDropdown.value = '';
+							if (mirrorCheckbox) mirrorCheckbox.checked = false;
+						}
+					}, animationDuration * 1000 + 100);
+				}, 200);
+							
+            } else {
+                circle.style.display = 'none';
+                
+                if (side === 'left') {
+                    leftColor = null;
+                    leftLightColor = null;
+                } else {
+                    rightColor = null;
+                    rightLightColor = null;
+                }
+                
+                colorBtn.style.display = 'none';
+            }
+            updateButtonStates();
+            updateComparisonView();
+			
+			
+			
+        }
+		
+		
+		
+
+		
+		function updatePartsData(newPartsData) {
+            Object.keys(partsData).forEach(key => {
+                if (key !== 'lav_ny_left' && key !== 'lav_ny_right') {
+                    delete partsData[key];
+                }
+            });
+            
+            Object.assign(partsData, newPartsData);
+            // Rebuild dropdowns after data update
+            buildDropdownMenus();
+        }
+		
+        function buildDropdownMenus() {
+            const leftDropdown = document.getElementById('leftDropdown');
+            const rightDropdown = document.getElementById('rightDropdown');
+            
+            const leftSelected = leftDropdown.value;
+            const rightSelected = rightDropdown.value;
+            
+            leftDropdown.innerHTML = '';
+            rightDropdown.innerHTML = '';
+            
+            [leftDropdown, rightDropdown].forEach(dropdown => {
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Vælg del...';
+                dropdown.appendChild(defaultOption);
+            });
+            
+            const leftNewOption = document.createElement('option');
+            leftNewOption.value = 'lav_ny_left';
+            leftNewOption.textContent = 'Lav Ny Del';
+            leftDropdown.appendChild(leftNewOption);
+            
+            const rightNewOption = document.createElement('option');
+            rightNewOption.value = 'lav_ny_right';
+            rightNewOption.textContent = 'Lav Ny Del';
+            rightDropdown.appendChild(rightNewOption);
+            
+            // partsData already may include shared items injected at init
+            Object.keys(partsData).forEach(key => {
+                if (key === 'lav_ny_left' || key === 'lav_ny_right') return;
+                
+                const partData = partsData[key];
+                
+                [leftDropdown, rightDropdown].forEach(dropdown => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = partData.name;
+                    dropdown.appendChild(option);
+                });
+            });
+            
+            if (leftSelected && (leftSelected === 'lav_ny_left' || partsData[leftSelected])) {
+                leftDropdown.value = leftSelected;
+            }
+            if (rightSelected && (rightSelected === 'lav_ny_right' || partsData[rightSelected])) {
+                rightDropdown.value = rightSelected;
+            }
+        }
+        
+        function initializeDropdowns() {
+            // Inject shared characters from localStorage into partsData once
+            try {
+                const raw = localStorage.getItem('relationsSetupData');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && Array.isArray(parsed.characters) && parsed.characters.length > 0) {
+                        const sharedParts = {};
+                        parsed.characters.forEach((c, idx) => {
+                            if (!c || !c.name) return;
+                            sharedParts['shared_' + idx] = {
+                                name: c.name,
+                                keywords: Array.isArray(c.keywords) ? c.keywords.slice(0,6) : ["","","","","",""],
+                                color: c.color || '#10b981',
+                                pose: c.pose || '',
+                                mirror: !!c.mirror
+                            };
+                        });
+                        if (Object.keys(sharedParts).length > 0) {
+                            updatePartsData(sharedParts);
+                        }
+                    }
+                }
+            } catch(_) {}
+            buildDropdownMenus();
+        }
+        
+        function handleStorageUpdate() {
+            console.log('Handling storage update in comparison tool...');
+            
+            // Store current selections
+            const leftDropdown = document.getElementById('leftDropdown');
+            const rightDropdown = document.getElementById('rightDropdown');
+            const currentLeftSelected = leftDropdown.value;
+            const currentRightSelected = rightDropdown.value;
+            
+            // Reinitialize dropdowns with new data
+            initializeDropdowns();
+            
+            // Check if current selections still exist and are valid
+            const leftStillValid = currentLeftSelected && (currentLeftSelected === 'lav_ny_left' || partsData[currentLeftSelected]);
+            const rightStillValid = currentRightSelected && (currentRightSelected === 'lav_ny_right' || partsData[currentRightSelected]);
+            
+            // Restore selections if they're still valid, otherwise clear them
+            if (leftStillValid) {
+                leftDropdown.value = currentLeftSelected;
+            } else {
+                leftDropdown.value = '';
+                // Hide left participant if it was selected but no longer exists
+                if (currentLeftSelected && currentLeftSelected !== 'lav_ny_left') {
+                    document.getElementById('leftCircle').style.display = 'none';
+                    document.getElementById('leftColorBtn').style.display = 'none';
+                }
+            }
+            
+            if (rightStillValid) {
+                rightDropdown.value = currentRightSelected;
+            } else {
+                rightDropdown.value = '';
+                // Hide right participant if it was selected but no longer exists
+                if (currentRightSelected && currentRightSelected !== 'lav_ny_right') {
+                    document.getElementById('rightCircle').style.display = 'none';
+                    document.getElementById('rightColorBtn').style.display = 'none';
+                }
+            }
+            
+            // Update participant displays if they're still valid
+            if (leftStillValid) {
+                updateParticipant('left');
+            }
+            if (rightStillValid) {
+                updateParticipant('right');
+            }
+            
+            // Update button states and comparison view
+            updateButtonStates();
+            updateComparisonView();
+            
+            // Show status message
+            const updatedCount = Object.keys(partsData).length - 2; // Subtract the two "lav_ny" entries
+            setStatus(`Dropdowns opdateret - ${updatedCount} karakterer tilgængelige`);
+            
+            // Log what happened for debugging
+            console.log('Comparison storage update handled:', {
+                leftWasValid: leftStillValid,
+                rightWasValid: rightStillValid,
+                leftSelected: leftDropdown.value,
+                rightSelected: rightDropdown.value,
+                availableCharacters: updatedCount
+            });
+        }
+		
+		
+		
+		
+		
+		
+		
+		function initializePoseDropdowns() {
+    const leftDropdown = document.getElementById('leftPose');
+    const rightDropdown = document.getElementById('rightPose');
+    
+    // Clear existing options; if standard exists, we won't add a placeholder
+    const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+    if (standardIndex !== -1) {
+        leftDropdown.innerHTML = '';
+        rightDropdown.innerHTML = '';
+    } else {
+        leftDropdown.innerHTML = '<option value="">Standard pose</option>';
+        rightDropdown.innerHTML = '<option value="">Standard pose</option>';
+    }
+    
+    // Add poses to dropdowns
+    poseLibrary.forEach((pose, index) => {
+        const leftOption = document.createElement('option');
+        leftOption.value = index;
+        leftOption.textContent = pose.name;
+        leftDropdown.appendChild(leftOption);
+        
+        const rightOption = document.createElement('option');
+        rightOption.value = index;
+        rightOption.textContent = pose.name;
+        rightDropdown.appendChild(rightOption);
+    });
+}
+
+function applyPose(side, poseIndex) {
+    const circle = document.getElementById(side + 'Circle');
+    const mirrorCheckbox = document.getElementById(side + 'Mirror');
+    
+    if (!circle) {
+        return;
+    }
+    // Map empty to standard index if available
+    if (poseIndex === '') {
+        const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+        if (standardIndex !== -1) {
+            poseIndex = standardIndex;
+        } else {
+            resetPose(side);
+            return;
+        }
+    }
+    
+    // Add smooth transitions to all animated elements
+    const animatedElements = circle.querySelectorAll(
+        '.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+        '.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+        '.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+        '.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+    );
+    
+    animatedElements.forEach(element => {
+        element.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
+    });
+    
+    const pose = poseLibrary[poseIndex];
+    if (!pose) return;
+    
+    let poseData = pose.pose;
+    
+    // If mirror is checked, create mirrored version
+    if (mirrorCheckbox && mirrorCheckbox.checked) {
+        poseData = {
+            translate_x_left: -(pose.pose.translate_x || 0),
+            translate_x: -(pose.pose.translate_x_left || 0),
+            translate_y_left: pose.pose.translate_y || 0,
+            translate_y: pose.pose.translate_y_left || 0,
+            skulder_rot_left: -(pose.pose.skulder_rot || 0),
+            skulder_rot: -(pose.pose.skulder_rot_left || 0),
+            albue_rot_left: -(pose.pose.albue_rot || 0),
+            albue_rot: -(pose.pose.albue_rot_left || 0),
+            translate_x_left_leg: -(pose.pose.translate_x_right_leg || 0),
+            translate_x_right_leg: -(pose.pose.translate_x_left_leg || 0),
+            translate_y_left_leg: pose.pose.translate_y_right_leg || 0,
+            translate_y_right_leg: pose.pose.translate_y_left_leg || 0,
+            hofte_rot_left: -(pose.pose.hofte_rot_right || 0),
+            hofte_rot_right: -(pose.pose.hofte_rot_left || 0),
+            knae_rot_left: -(pose.pose.knae_rot_right || 0),
+            knae_rot_right: -(pose.pose.knae_rot_left || 0),
+            left_arm_front: pose.pose.right_arm_front || false,
+            right_arm_front: pose.pose.left_arm_front || false
+        };
+    }
+    
+    // Apply transforms to figure parts
+    const skulderLeft = circle.querySelector('.skulder_translate_left');
+    const skulderRight = circle.querySelector('.skulder_translate_right');
+    const hofteLeft = circle.querySelector('.hofte_translate_left');
+    const hofteRight = circle.querySelector('.hofte_translate_right');
+    
+    if (skulderLeft) {
+        skulderLeft.style.transform = `translate(${poseData.translate_x_left || 0}px, ${poseData.translate_y_left || 0}px)`;
+        const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+        if (skulderRotLeft) {
+            skulderRotLeft.style.transform = `rotate(${poseData.skulder_rot_left || 0}deg)`;
+            const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+            if (albueRotLeft) {
+                albueRotLeft.style.transform = `rotate(${poseData.albue_rot_left || 0}deg)`;
+            }
+        }
+    }
+    
+    if (skulderRight) {
+        skulderRight.style.transform = `translate(${poseData.translate_x || 0}px, ${poseData.translate_y || 0}px)`;
+        const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+        if (skulderRotRight) {
+            skulderRotRight.style.transform = `rotate(${poseData.skulder_rot || 0}deg)`;
+            const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+            if (albueRotRight) {
+                albueRotRight.style.transform = `rotate(${poseData.albue_rot || 0}deg)`;
+            }
+        }
+    }
+    
+    if (hofteLeft) {
+        hofteLeft.style.transform = `translate(${poseData.translate_x_left_leg || 0}px, ${poseData.translate_y_left_leg || 0}px)`;
+        const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+        if (hofteRotLeft) {
+            hofteRotLeft.style.transform = `rotate(${poseData.hofte_rot_left || 0}deg)`;
+            const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+            if (knaeRotLeft) {
+                knaeRotLeft.style.transform = `rotate(${poseData.knae_rot_left || 0}deg)`;
+            }
+        }
+    }
+    
+    if (hofteRight) {
+        hofteRight.style.transform = `translate(${poseData.translate_x_right_leg || 0}px, ${poseData.translate_y_right_leg || 0}px)`;
+        const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+        if (hofteRotRight) {
+            hofteRotRight.style.transform = `rotate(${poseData.hofte_rot_right || 0}deg)`;
+            const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+            if (knaeRotRight) {
+                knaeRotRight.style.transform = `rotate(${poseData.knae_rot_right || 0}deg)`;
+            }
+        }
+    }
+    
+    // Handle arm layering
+    if (poseData.left_arm_front) {
+        skulderLeft.classList.add('front-arm');
+    } else {
+        skulderLeft.classList.remove('front-arm');
+    }
+    
+    if (poseData.right_arm_front) {
+        skulderRight.classList.add('front-arm');
+    } else {
+        skulderRight.classList.remove('front-arm');
+    }
+	
+	// Store pose state on DOM element
+    const participant = circle.parentElement;
+    if (participant) {
+        participant.setAttribute('data-pose', poseIndex);
+        participant.setAttribute('data-mirror', mirrorCheckbox ? mirrorCheckbox.checked : false);
+    }
+	
+	
+}
+
+function toggleMirror(side) {
+    const poseDropdown = document.getElementById(side + 'Pose');
+    if (poseDropdown) {
+        applyPose(side, poseDropdown.value);
+    }
+    // Persist mirror on participant
+    const circle = document.getElementById(side + 'Circle');
+    const mirrorCheckbox = document.getElementById(side + 'Mirror');
+    const participant = circle ? circle.parentElement : null;
+    if (participant) {
+        participant.setAttribute('data-mirror', mirrorCheckbox ? String(mirrorCheckbox.checked) : 'false');
+    }
+}
+
+
+
+
+
+
+function resetPose(side) {
+    // Apply the relaxed pose using existing applyPose logic
+    const circle = document.getElementById(side + 'Circle');
+    if (!circle) return;
+    // If standard exists, apply that index and persist state
+    const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+    if (standardIndex !== -1) {
+        const participant = circle.parentElement;
+        if (participant) {
+            participant.setAttribute('data-pose', standardIndex.toString());
+            participant.setAttribute('data-mirror', 'false');
+        }
+        applyPose(side, standardIndex);
+        return;
+    }
+    
+    // Fallback relaxed default pose
+    const relaxedPose = {
+        translate_x_left: -3,
+        translate_y_left: 0,
+        skulder_rot_left: -70,
+        albue_rot_left: 0,
+        translate_x: 3,
+        translate_y: 0,
+        skulder_rot: 70,
+        albue_rot: 0,
+        translate_x_left_leg: 0,
+        translate_y_left_leg: 0,
+        hofte_rot_left: 6,
+        knae_rot_left: 0,
+        translate_x_right_leg: 0,
+        translate_y_right_leg: 0,
+        hofte_rot_right: -6,
+        knae_rot_right: 0,
+        left_arm_front: false,
+        right_arm_front: false
+    };
+	// Add smooth transitions
+		const animatedElements = circle.querySelectorAll(
+			'.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+			'.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+			'.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+			'.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+		);
+
+		animatedElements.forEach(element => {
+			element.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
+		});
+    
+    const poseData = relaxedPose;
+    
+    // Apply transforms (samme logik som i applyPose)
+    const skulderLeft = circle.querySelector('.skulder_translate_left');
+    const skulderRight = circle.querySelector('.skulder_translate_right');
+    const hofteLeft = circle.querySelector('.hofte_translate_left');
+    const hofteRight = circle.querySelector('.hofte_translate_right');
+    
+    if (skulderLeft) {
+        skulderLeft.style.transform = `translate(${poseData.translate_x_left}px, ${poseData.translate_y_left}px)`;
+        const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+        if (skulderRotLeft) {
+            skulderRotLeft.style.transform = `rotate(${poseData.skulder_rot_left}deg)`;
+            const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+            if (albueRotLeft) {
+                albueRotLeft.style.transform = `rotate(${poseData.albue_rot_left}deg)`;
+            }
+        }
+    }
+    
+    if (skulderRight) {
+        skulderRight.style.transform = `translate(${poseData.translate_x}px, ${poseData.translate_y}px)`;
+        const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+        if (skulderRotRight) {
+            skulderRotRight.style.transform = `rotate(${poseData.skulder_rot}deg)`;
+            const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+            if (albueRotRight) {
+                albueRotRight.style.transform = `rotate(${poseData.albue_rot}deg)`;
+            }
+        }
+    }
+    
+    if (hofteLeft) {
+        hofteLeft.style.transform = `translate(${poseData.translate_x_left_leg}px, ${poseData.translate_y_left_leg}px)`;
+        const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+        if (hofteRotLeft) {
+            hofteRotLeft.style.transform = `rotate(${poseData.hofte_rot_left}deg)`;
+            const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+            if (knaeRotLeft) {
+                knaeRotLeft.style.transform = `rotate(${poseData.knae_rot_left}deg)`;
+            }
+        }
+    }
+    
+    if (hofteRight) {
+        hofteRight.style.transform = `translate(${poseData.translate_x_right_leg}px, ${poseData.translate_y_right_leg}px)`;
+        const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+        if (hofteRotRight) {
+            hofteRotRight.style.transform = `rotate(${poseData.hofte_rot_right}deg)`;
+            const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+            if (knaeRotRight) {
+                knaeRotRight.style.transform = `rotate(${poseData.knae_rot_right}deg)`;
+            }
+        }
+    }
+    
+    // Reset arm layering
+    skulderLeft?.classList.remove('front-arm');
+    skulderRight?.classList.remove('front-arm');
+}
+		
+		
+
+        function updateButtonStates() {
+            const leftSelected = document.getElementById('leftDropdown').value;
+            const rightSelected = document.getElementById('rightDropdown').value;
+            const bothSelected = leftSelected && rightSelected;
+            
+            document.getElementById('saveBtn').disabled = !bothSelected;
+            
+            // Load comparison button is always enabled (can load into empty state)
+            document.getElementById('loadComparisonBtn').disabled = false;
+            
+            // Random button is enabled only on steps 1 and 2 when both participants are selected
+            document.getElementById('randomBtn').disabled = !bothSelected || (currentStep !== 1 && currentStep !== 2);
+        }
+
+        function setStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
+
+        function openColorPicker(btn, side) {
+            currentColorTarget = btn;
+            currentColorSide = side;
+            
+            const modal = document.getElementById('colorPickerModal');
+            const picker = modal.querySelector('.picker');
+            const btnRect = btn.getBoundingClientRect();
+            
+            modal.classList.add('show');
+            picker.style.position = 'absolute';
+            picker.style.left = (btnRect.right + 10) + 'px';
+            picker.style.top = (btnRect.top - 20) + 'px';
+
+            const pickerRect = picker.getBoundingClientRect();
+            if (pickerRect.right > window.innerWidth) {
+                picker.style.left = (btnRect.left - pickerRect.width - 10) + 'px';
+            }
+            if (pickerRect.bottom > window.innerHeight) {
+                picker.style.top = (btnRect.bottom - pickerRect.height - 10) + 'px';
+            }
+        }
+        
+        function closeColorPicker() {
+            document.getElementById('colorPickerModal').classList.remove('show');
+            currentColorTarget = null;
+            currentColorSide = null;
+        }
+        
+        function selectColor(hex) {
+            if (currentColorSide) {
+                if (currentColorSide === 'left') {
+                    leftColor = hex;
+                    leftLightColor = lightenColor(hex, 0.6);
+                } else {
+                    rightColor = hex;
+                    rightLightColor = lightenColor(hex, 0.6);
+                }
+                
+                const circle = document.getElementById(currentColorSide + 'Circle');
+				const head = circle.querySelector('.head');
+				if (head) {
+					head.style.background = `linear-gradient(135deg, ${hex}, ${hex}dd)`;
+					
+				}
+                
+                updateBodyColors(currentColorSide, hex);
+                
+                const dropdown = document.getElementById(currentColorSide + 'Dropdown');
+                if (dropdown.value === 'lav_ny_' + currentColorSide) {
+                    partsData['lav_ny_' + currentColorSide].color = hex;
+                }
+                
+                updateSliderColors();
+            }
+            
+            setTimeout(() => closeColorPicker(), 100);
+        }
+
+        function updateComparisonView() {
+            const leftSelected = document.getElementById('leftDropdown').value;
+            const rightSelected = document.getElementById('rightDropdown').value;
+            const content = document.getElementById('comparisonContent');
+            
+            if (!leftSelected || !rightSelected) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <h4 style="margin-bottom: 15px; color: #374151;">Sådan bruger du Sammenlignings-værktøjet:</h4>
+                        <p style="margin-bottom: 12px; text-align: left;"><strong>1. Vælg dele:</strong> Brug dropdown-menuerne til at vælge to indre dele du vil sammenligne.</p>
+                        <p style="margin-bottom: 12px; text-align: left;"><strong>2. Udfyld fakta:</strong> Indtast grundlæggende information om hver del.</p>
+                        <p style="margin-bottom: 12px; text-align: left;"><strong>3. Score egenskaber:</strong> Vurder hvor hver del placerer sig på forskellige skalaer.</p>
+                        <p style="margin-bottom: 12px; text-align: left;"><strong>4. Fokuser på ligheder:</strong> Se hvor delene minder om hinanden i stedet for kun at fokusere på forskelle.</p>
+                        <p style="margin-top: 15px; font-style: italic; color: #6b7280;">Dette værktøj hjælper med at reducere indre konflikt ved at se nuancer og ligheder mellem dele af dig selv.</p>
+                    </div>
+                `;
+                setStatus('Vælg to dele for at begynde sammenligning');
+                return;
+            }
+
+            const leftName = document.getElementById('leftName').textContent || 'Venstre del';
+            const rightName = document.getElementById('rightName').textContent || 'Højre del';
+            
+            content.innerHTML = `
+                <div class="step-container">
+                    <div class="progress-indicators">
+                        <div class="progress-dot ${currentStep === 1 ? 'active' : (currentStep > 1 ? 'completed' : '')}"></div>
+                        <div class="progress-dot ${currentStep === 2 ? 'active' : (currentStep > 2 ? 'completed' : '')}"></div>
+                        <div class="progress-dot ${currentStep === 3 ? 'active' : ''}"></div>
+                    </div>
+                    
+                    <div class="step-header">
+                        <div class="step-title" id="stepTitle">Trin 1: Udfyld for ${leftName}</div>
+                        <div class="step-nav">
+                            <button class="step-btn ${currentStep === 1 ? 'active' : ''}" onclick="switchToStep(1)">1. ${leftName}</button>
+                            <button class="step-btn ${currentStep === 2 ? 'active' : ''}" onclick="switchToStep(2)">2. ${rightName}</button>
+                            <button class="step-btn ${currentStep === 3 ? 'active' : ''}" onclick="switchToStep(3)">3. Sammenlign</button>
+                        </div>
+                    </div>
+                    
+                    <div class="step-content ${currentStep === 1 ? 'active' : ''}" id="step1">
+                        <p style="margin-bottom: 20px; color: #6b7280; font-style: italic;">Vurder hvor meget ${leftName} har af hver egenskab. Fokuser kun på denne del.</p>
+                        <div class="single-side-traits" id="leftTraits">
+                            ${defaultTraits.map((trait, index) => createSingleTraitHTML(trait, index, 'left', leftName)).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="step-content ${currentStep === 2 ? 'active' : ''}" id="step2">
+                        <p style="margin-bottom: 20px; color: #6b7280; font-style: italic;">Vurder hvor meget ${rightName} har af hver egenskab. Fokuser kun på denne del.</p>
+                        <div class="single-side-traits" id="rightTraits">
+                            ${defaultTraits.map((trait, index) => createSingleTraitHTML(trait, index, 'right', rightName)).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="step-content ${currentStep === 3 ? 'active' : ''}" id="step3">
+                        <p style="margin-bottom: 20px; color: #6b7280; font-style: italic;">Se ligheder og forskelle mellem dine to dele.</p>
+                        <div id="comparisonResults">
+                            ${createComparisonResultsHTML(leftName, rightName)}
+                        </div>
+                        <div class="speedometer-section">
+                            <div class="speedometer-container speedometer-similarity">
+                                <div class="speedometer-label">Ligheder</div>
+                                <div class="speedometer">
+                                    <svg viewBox="0 0 100 100">
+                                        <circle cx="50" cy="50" r="40" class="speedometer-bg"/>
+                                        <circle cx="50" cy="50" r="40" class="speedometer-fill" id="similarityFill" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+                                    </svg>
+                                </div>
+                                <div class="speedometer-value" id="similarityValue">0%</div>
+                                <div style="font-size: 12px; color: #6b7280;">Hvor ens er de?</div>
+                            </div>
+                            
+                            <div class="speedometer-container speedometer-difference">
+                                <div class="speedometer-label">Forskelle</div>
+                                <div class="speedometer">
+                                    <svg viewBox="0 0 100 100">
+                                        <circle cx="50" cy="50" r="40" class="speedometer-bg"/>
+                                        <circle cx="50" cy="50" r="40" class="speedometer-fill" id="differenceFill" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+                                    </svg>
+                                </div>
+                                <div class="speedometer-value" id="differenceValue">0%</div>
+                                <div style="font-size: 12px; color: #6b7280;">Hvor forskellige er de?</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            updateSliderColors();
+            if (currentStep === 3) {
+                calculateAndDisplayScores();
+            }
+            setStatus(`Sammenligner ${leftName} og ${rightName} - Trin ${currentStep} af 3`);
+        }
+
+        function createSingleTraitHTML(trait, index, side, name) {
+			const isLeft = side === 'left';
+			const currentScore = (isLeft ? leftScores : rightScores)[index] || 0; // Ændret fra 50 til 0
+			
+			return `
+				<div class="single-trait-item">
+					<div class="single-slider-container">
+						<span class="trait-left-label">${trait.left}</span>
+						<input type="range" min="-50" max="50" value="${currentScore}" 
+							   class="single-slider ${side}-color" 
+							   data-trait-id="${index}" 
+							   data-side="${side}"
+							   oninput="setSingleTraitScore(${index}, '${side}', this.value)">
+						<span class="trait-right-label">${trait.right}</span>
+					</div>
+				</div>
+			`;
+		}
+
+       function createComparisonResultsHTML(leftName, rightName) {
+				const traitsWithSimilarity = [];
+				
+				for (let i = 0; i < defaultTraits.length; i++) {
+					const trait = defaultTraits[i];
+					const leftScore = leftScores[i] || 0;
+					const rightScore = rightScores[i] || 0;
+					const similarity = 100 - Math.abs(leftScore - rightScore);
+					
+					traitsWithSimilarity.push({
+						index: i,
+						trait: trait,
+						leftScore: leftScore,
+						rightScore: rightScore,
+						similarity: similarity
+					});
+				}
+				
+				traitsWithSimilarity.sort((a, b) => b.similarity - a.similarity);
+				
+				let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+				
+				traitsWithSimilarity.forEach(item => {
+					const { trait, leftScore, rightScore, similarity } = item;
+					
+					let percentColor;
+					if (similarity >= 80) {
+						percentColor = '#10b981';
+					} else if (similarity >= 60) {
+						percentColor = '#f59e0b';
+					} else {
+						percentColor = '#ef4444';
+					}
+					
+					// Behold værdierne i -50:50 range
+					let displayLeft = trait.left;
+					let displayRight = trait.right;
+					let leftPosition = leftScore;
+					let rightPosition = rightScore;
+					
+					if (leftScore > rightScore) {
+						displayLeft = trait.right;
+						displayRight = trait.left;
+						leftPosition = -leftScore;
+						rightPosition = -rightScore;
+					}
+					
+                    html += `
+                        <div style="display: flex; align-items: center; padding: 12px; background: #f8fafc; border-radius: 6px; gap: 10px;">
+                            <div class="comparison-labels">
+                                <span class="comparison-left-label">${displayLeft}</span>
+                                <div class="comparison-slider-container">
+                                    <input type="range" min="-50" max="50" value="${leftPosition}" class="comparison-slider left-color" disabled>
+                                    <input type="range" min="-50" max="50" value="${rightPosition}" class="comparison-slider right-color" disabled>
+                                </div>
+                                <span class="comparison-right-label">${displayRight}</span>
+                            </div>
+                            <div style="flex: 0 0 60px; text-align: right; font-weight: bold; color: ${percentColor};">
+                                ${Math.round(similarity)}%
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-left: 6px;">
+                                <button class="compare-color-btn" style="background: ${leftColor || '#3b82f6'}" onclick="writeComparisonDataLeft(${item.index})">C</button>
+                                <button class="compare-color-btn" style="background: ${rightColor || '#ef4444'}" onclick="writeComparisonDataRight(${item.index})">C</button>
+                            </div>
+                        </div>
+                    `;
+				});
+				
+				html += '</div>';
+				return html;
+			}
+
+        function writeComparisonDataLeft(traitIndex) {
+            try {
+                var leftNameEl = document.getElementById('leftName');
+                var rightNameEl = document.getElementById('rightName');
+                var youName = leftNameEl ? leftNameEl.textContent : '';
+                var otherName = rightNameEl ? rightNameEl.textContent : '';
+
+                var leftVal = (typeof leftScores[traitIndex] === 'number') ? leftScores[traitIndex] : 0;
+                var rightVal = (typeof rightScores[traitIndex] === 'number') ? rightScores[traitIndex] : 0;
+
+                // Determine labels for this trait in current display orientation
+                var trait = defaultTraits[traitIndex];
+                var leftLabel = trait.left;
+                var rightLabel = trait.right;
+                if ((leftScores[traitIndex] || 0) > (rightScores[traitIndex] || 0)) {
+                    // We flipped labels in the UI for visualization; reflect that here too
+                    leftLabel = trait.right;
+                    rightLabel = trait.left;
+                }
+                
+                // Convert to all lowercase
+                leftLabel = leftLabel.toLowerCase();
+                rightLabel = rightLabel.toLowerCase();
+
+                // Get left participant's color, pose and flip status
+                var leftColorValue = leftColor || '#3b82f6';
+                var leftPoseIndex = 0; // Default to standard pose
+                var leftPoseFlipped = false;
+                
+                var leftPoseDropdown = document.getElementById('leftPose');
+                var leftMirror = document.getElementById('leftMirror');
+                
+                if (leftPoseDropdown && leftPoseDropdown.value !== '') {
+                    leftPoseIndex = Number(leftPoseDropdown.value);
+                }
+                if (leftMirror) {
+                    leftPoseFlipped = leftMirror.checked;
+                }
+
+                var payload = {
+                    "You": youName,
+                    "Other": otherName,
+                    "You_slider": String(leftVal),
+                    "Other_slider": String(rightVal),
+                    "left_label": leftLabel,
+                    "right_label": rightLabel,
+                    "You_color": leftColorValue,
+                    "You_pose": leftPoseIndex,
+                    "You_pose_flipped": leftPoseFlipped
+                };
+
+                localStorage.setItem('comparisonData', JSON.stringify(payload));
+                setStatus('Skrev comparisonData for trait #' + traitIndex);
+                
+                // Open coaching overlay with compare_coaching.json
+                openCoachingOverlayFromFile('compare_coaching.json');
+            } catch (e) {
+                console.error('writeComparisonDataLeft error:', e);
+            }
+        }
+
+        function writeComparisonDataRight(traitIndex) {
+            try {
+                var leftNameEl = document.getElementById('leftName');
+                var rightNameEl = document.getElementById('rightName');
+                var youName = rightNameEl ? rightNameEl.textContent : '';
+                var otherName = leftNameEl ? leftNameEl.textContent : '';
+
+                var leftVal = (typeof leftScores[traitIndex] === 'number') ? leftScores[traitIndex] : 0;
+                var rightVal = (typeof rightScores[traitIndex] === 'number') ? rightScores[traitIndex] : 0;
+
+                // use same label orientation as left click
+                var trait = defaultTraits[traitIndex];
+                var leftLabel = trait.left;
+                var rightLabel = trait.right;
+                if ((leftScores[traitIndex] || 0) > (rightScores[traitIndex] || 0)) {
+                    leftLabel = trait.right;
+                    rightLabel = trait.left;
+                }
+                
+                // Convert to all lowercase
+                leftLabel = leftLabel.toLowerCase();
+                rightLabel = rightLabel.toLowerCase();
+
+                // Get right participant's color, pose and flip status
+                var rightColorValue = rightColor || '#ef4444';
+                var rightPoseIndex = 0; // Default to standard pose
+                var rightPoseFlipped = false;
+                
+                var rightPoseDropdown = document.getElementById('rightPose');
+                var rightMirror = document.getElementById('rightMirror');
+                
+                if (rightPoseDropdown && rightPoseDropdown.value !== '') {
+                    rightPoseIndex = Number(rightPoseDropdown.value);
+                }
+                if (rightMirror) {
+                    rightPoseFlipped = rightMirror.checked;
+                }
+
+                var payload = {
+                    "You": youName,
+                    "Other": otherName,
+                    "You_slider": String(rightVal),
+                    "Other_slider": String(leftVal),
+                    "left_label": leftLabel,
+                    "right_label": rightLabel,
+                    "You_color": rightColorValue,
+                    "You_pose": rightPoseIndex,
+                    "You_pose_flipped": rightPoseFlipped
+                };
+
+                localStorage.setItem('comparisonData', JSON.stringify(payload));
+                setStatus('Skrev comparisonData (højre) for trait #' + traitIndex);
+                
+                // Open coaching overlay with compare_coaching.json
+                openCoachingOverlayFromFile('compare_coaching.json');
+            } catch (e) {
+                console.error('writeComparisonDataRight error:', e);
+            }
+        }
+
+
+        function setSingleTraitScore(traitId, side, value) {
+            if (side === 'left') {
+                leftScores[traitId] = parseInt(value);
+            } else {
+                rightScores[traitId] = parseInt(value);
+            }
+            
+           
+            
+            if (currentStep === 3) {
+                updateComparisonResults();
+                calculateAndDisplayScores();
+            }
+        }
+
+        function switchToStep(step) {
+            currentStep = step;
+            
+            // Update step content visibility
+            document.querySelectorAll('.step-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            // Update step buttons
+            document.querySelectorAll('.step-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.step-btn')[step - 1].classList.add('active');
+            
+            // Update progress dots
+            document.querySelectorAll('.progress-dot').forEach((dot, index) => {
+                dot.classList.remove('active', 'completed');
+                if (index + 1 === step) {
+                    dot.classList.add('active');
+                } else if (index + 1 < step) {
+                    dot.classList.add('completed');
+                }
+            });
+            
+            // Update title
+            const leftName = document.getElementById('leftName').textContent || 'Venstre del';
+            const rightName = document.getElementById('rightName').textContent || 'Højre del';
+            const titles = [
+                `Trin 1: Udfyld for ${leftName}`,
+                `Trin 2: Udfyld for ${rightName}`,
+                `Trin 3: Sammenlign resultaterne`
+            ];
+            document.getElementById('stepTitle').textContent = titles[step - 1];
+            
+            if (step === 3) {
+                updateComparisonResults();
+                calculateAndDisplayScores();
+            }
+            
+            // Update button states when switching steps
+            updateButtonStates();
+        }
+
+        function updateComparisonResults() {
+            const leftName = document.getElementById('leftName').textContent || 'Venstre del';
+            const rightName = document.getElementById('rightName').textContent || 'Højre del';
+            const resultsContainer = document.getElementById('comparisonResults');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = createComparisonResultsHTML(leftName, rightName);
+            }
+        }
+
+        function calculateAndDisplayScores() {
+            let totalSimilarity = 0;
+            let totalDifference = 0;
+            let count = 0;
+            
+            defaultTraits.forEach((trait, index) => {
+                const leftScore = leftScores[index];
+                const rightScore = rightScores[index];
+                
+                if (leftScore !== undefined && rightScore !== undefined) {
+                    const difference = Math.abs(leftScore - rightScore);
+                    const similarity = 100 - difference;
+                    
+                    totalSimilarity += similarity;
+                    totalDifference += difference;
+                    count++;
+                }
+            });
+            
+            if (count > 0) {
+                const avgSimilarity = totalSimilarity / count;
+                const avgDifference = totalDifference / count;
+                
+                updateSpeedometer('similarity', avgSimilarity);
+                updateSpeedometer('difference', avgDifference);
+            }
+        }
+
+        function updateSpeedometer(type, percentage) {
+            const circumference = 2 * Math.PI * 40; // radius = 40
+            const offset = circumference - (percentage / 100) * circumference;
+            
+            const fillElement = document.getElementById(`${type}Fill`);
+            const valueElement = document.getElementById(`${type}Value`);
+            
+            if (fillElement && valueElement) {
+                fillElement.style.strokeDashoffset = offset;
+                valueElement.textContent = Math.round(percentage) + '%';
+            }
+        }
+
+        function randomizeCurrentStep() {
+            // Only work on steps 1 and 2
+            if (currentStep !== 1 && currentStep !== 2) return;
+            
+            const side = currentStep === 1 ? 'left' : 'right';
+            
+            // Generate random values for all traits (-50 to 50)
+            for (let i = 0; i < defaultTraits.length; i++) {
+                const randomValue = Math.floor(Math.random() * 101) - 50; // -50 to 50
+                
+                if (side === 'left') {
+                    leftScores[i] = randomValue;
+                } else {
+                    rightScores[i] = randomValue;
+                }
+                
+                // Update the slider visually
+                const slider = document.querySelector(`input[data-trait-id="${i}"][data-side="${side}"]`);
+                if (slider) {
+                    slider.value = randomValue;
+                }
+            }
+            
+            // Update comparison view if we're on step 3
+            if (currentStep === 3) {
+                updateComparisonResults();
+                calculateAndDisplayScores();
+            }
+            
+            // Show feedback
+            const sideName = side === 'left' ? 'venstre' : 'højre';
+            setStatus(`Tilfældige værdier sat for ${sideName} del`);
+        }
+
+        function saveComparison() {
+            console.log('saveComparison kaldt');
+            
+            const leftSelected = document.getElementById('leftDropdown').value;
+            const rightSelected = document.getElementById('rightDropdown').value;
+            
+            if (!leftSelected || !rightSelected) {
+                alert('Vælg to dele før du gemmer sammenligning!');
+                return;
+            }
+
+            const leftName = document.getElementById('leftName').textContent || 'Venstre del';
+            const rightName = document.getElementById('rightName').textContent || 'Højre del';
+            
+            console.log('Gemmer sammenligning for:', leftName, rightName);
+            
+            // Collect stikord data
+            const leftStikord = [];
+            const rightStikord = [];
+            for (let i = 1; i <= 6; i++) {
+                const leftField = document.getElementById('leftStikord' + i);
+                const rightField = document.getElementById('rightStikord' + i);
+                leftStikord.push(leftField ? leftField.value.trim() : "");
+                rightStikord.push(rightField ? rightField.value.trim() : "");
+            }
+            
+            // Get colors
+            const leftExportColor = leftColor || "#10b981";
+            const rightExportColor = rightColor || "#3b82f6";
+            
+            // Get pose data
+            const leftPoseDropdown = document.getElementById('leftPose');
+            const rightPoseDropdown = document.getElementById('rightPose');
+            const leftMirror = document.getElementById('leftMirror');
+            const rightMirror = document.getElementById('rightMirror');
+
+            const leftPose = leftPoseDropdown && leftPoseDropdown.value ? (poseLibrary[leftPoseDropdown.value]?.name || '') : '';
+            const rightPose = rightPoseDropdown && rightPoseDropdown.value ? (poseLibrary[rightPoseDropdown.value]?.name || '') : '';
+            const leftSpejl = leftMirror ? leftMirror.checked : false;
+            const rightSpejl = rightMirror ? rightMirror.checked : false;
+            
+            const now = new Date();
+            const timestamp = now.toISOString();
+            const defaultFileName = 'Sammenligning_' + now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0');
+            
+            console.log('Forbereder CSV data...');
+            
+            const csvData = [];
+            csvData.push(['#metadata']);
+            csvData.push(['timestamp', timestamp]);
+            csvData.push(['distance', String(currentDistance)]);
+            csvData.push(['']);
+            
+            csvData.push(['#cirkler']);
+            csvData.push(['navn', 'farve', 'pose', 'spejl', 'stikord1', 'stikord2', 'stikord3', 'stikord4', 'stikord5', 'stikord6']);
+            csvData.push([leftName, leftExportColor, leftPose, leftSpejl, ...leftStikord]);
+            csvData.push([rightName, rightExportColor, rightPose, rightSpejl, ...rightStikord]);
+            csvData.push(['']);
+            
+            csvData.push(['#del1_scores']);
+            csvData.push(['trait_index', 'trait_left', 'trait_right', 'score']);
+            
+            // Export left scores (unsorted)
+            for (let i = 0; i < defaultTraits.length; i++) {
+                const trait = defaultTraits[i];
+                const score = leftScores[i] || 0;
+                csvData.push([i, trait.left, trait.right, score]);
+            }
+            csvData.push(['']);
+            
+            csvData.push(['#del2_scores']);
+            csvData.push(['trait_index', 'trait_left', 'trait_right', 'score']);
+            
+            // Export right scores (unsorted)
+            for (let i = 0; i < defaultTraits.length; i++) {
+                const trait = defaultTraits[i];
+                const score = rightScores[i] || 0;
+                csvData.push([i, trait.left, trait.right, score]);
+            }
+            
+            const csvContent = csvData.map(function(row) {
+                return row.map(function(field) {
+                    const fieldStr = (field == null) ? '' : String(field);
+                    if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n') || fieldStr.includes('\r')) {
+                        return '"' + fieldStr.replace(/"/g, '""') + '"';
+                    }
+                    return fieldStr;
+                }).join(',');
+            }).join('\r\n');
+            
+            console.log('CSV content genereret, starter download...');
+            
+            try {
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const fileName = prompt('Gem som:', defaultFileName) || defaultFileName;
+                
+                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                    // IE/Edge
+                    console.log('Bruger IE/Edge download');
+                    window.navigator.msSaveOrOpenBlob(blob, fileName + '.csv');
+                    setStatus('Sammenligning gemt som ' + fileName + '.csv');
+                } else {
+                    // Moderne browsere
+                    console.log('Bruger moderne browser download');
+                    
+                    const link = document.createElement('a');
+                    if (link.download !== undefined) {
+                        const url = URL.createObjectURL(blob);
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', fileName + '.csv');
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        setTimeout(() => {
+                            URL.revokeObjectURL(url);
+                            console.log('Cleanup udført');
+                        }, 100);
+                        
+                        setStatus('Sammenligning gemt som ' + fileName + '.csv');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Fejl ved download:', error);
+                alert('Fejl ved download: ' + error.message + '\n\nPrøv en anden browser eller kontakt support.');
+            }
+        }
+
+        function loadComparison() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.csv';
+            fileInput.style.display = 'none';
+            
+            fileInput.onchange = function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        try {
+                            let content = e.target.result;
+                            if (content.charCodeAt(0) === 0xFEFF) {
+                                content = content.slice(1);
+                            }
+                            content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+                            
+                            parseComparisonCSV(content);
+                        } catch (error) {
+                            alert('Fejl ved indlæsning: ' + error.message);
+                        }
+                    };
+                    
+                    reader.readAsText(file, 'UTF-8');
+                }
+            };
+            
+            document.body.appendChild(fileInput);
+            fileInput.click();
+            setTimeout(() => {
+                if (fileInput.parentNode) {
+                    document.body.removeChild(fileInput);
+                }
+            }, 1000);
+        }
+
+        function parseComparisonCSV(csvContent) {
+            const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line !== '');
+            
+            let currentSection = null;
+            let cirkelData = [];
+            let del1Scores = [];
+            let del2Scores = [];
+            let metaDistance = null;
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                if (line === '#metadata') {
+                    currentSection = 'metadata';
+                    continue;
+                } else if (line === '#cirkler') {
+                    currentSection = 'cirkler';
+                    continue;
+                } else if (line === '#del1_scores') {
+                    currentSection = 'del1_scores';
+                    continue;
+                } else if (line === '#del2_scores') {
+                    currentSection = 'del2_scores';
+                    continue;
+                }
+                
+                if (currentSection === 'metadata') {
+                    const parts = parseComparisonCSVLine(line);
+                    if (parts.length >= 2) {
+                        const key = (parts[0] || '').toLowerCase();
+                        const value = parts[1];
+                        if (key === 'distance') {
+                            const num = parseInt(value, 10);
+                            if (!isNaN(num)) metaDistance = num;
+                        }
+                    }
+                } else if (currentSection === 'cirkler') {
+                    const parts = parseComparisonCSVLine(line);
+                    if (parts[0] === 'navn') continue;
+                    
+                    if (parts.length >= 2) {
+                        const cirkel = {
+                            name: parts[0] || '',
+                            color: parts[1] || '#10b981',
+                            pose: parts[2] || '',
+                            mirror: parts[3] === 'true',
+                            keywords: []
+                        };
+                        for (let j = 4; j < Math.min(parts.length, 10); j++) {
+                            cirkel.keywords.push(parts[j] || '');
+                        }
+                        while (cirkel.keywords.length < 6) {
+                            cirkel.keywords.push('');
+                        }
+                        
+                        cirkelData.push(cirkel);
+                    }
+                } else if (currentSection === 'del1_scores') {
+                    const parts = parseComparisonCSVLine(line);
+                    if (parts[0] === 'trait_index') continue;
+                    
+                    if (parts.length >= 4) {
+                        const traitIndex = parseInt(parts[0]);
+                        const score = parseInt(parts[3]);
+                        if (!isNaN(traitIndex) && !isNaN(score)) {
+                            del1Scores[traitIndex] = score;
+                        }
+                    }
+                } else if (currentSection === 'del2_scores') {
+                    const parts = parseComparisonCSVLine(line);
+                    if (parts[0] === 'trait_index') continue;
+                    
+                    if (parts.length >= 4) {
+                        const traitIndex = parseInt(parts[0]);
+                        const score = parseInt(parts[3]);
+                        if (!isNaN(traitIndex) && !isNaN(score)) {
+                            del2Scores[traitIndex] = score;
+                        }
+                    }
+                }
+            }
+            
+            if (cirkelData.length < 2) {
+                throw new Error('Ikke nok deltager-data fundet');
+            }
+            
+            applyLoadedComparison(cirkelData[0], cirkelData[1], del1Scores, del2Scores);
+
+            if (metaDistance !== null) {
+                currentDistance = metaDistance;
+                const container = document.querySelector('.participants-container');
+                if (container) container.style.maxWidth = currentDistance + 'px';
+            }
+        }
+
+        function parseComparisonCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current.trim());
+            return result;
+        }
+
+        function applyLoadedComparison(leftPart, rightPart, leftScoresData, rightScoresData) {
+            // Clear current state first
+            clearAll();
+            
+            // Set colors
+            leftColor = leftPart.color;
+            rightColor = rightPart.color;
+            leftLightColor = lightenColor(leftPart.color, 0.6);
+            rightLightColor = lightenColor(rightPart.color, 0.6);
+            
+            // Update dropdowns to "Lav Ny Del" since we're loading custom data
+            document.getElementById('leftDropdown').value = 'lav_ny_left';
+            document.getElementById('rightDropdown').value = 'lav_ny_right';
+            
+            // Show circles and set names
+            const leftCircle = document.getElementById('leftCircle');
+            const rightCircle = document.getElementById('rightCircle');
+            const leftName = document.getElementById('leftName');
+            const rightName = document.getElementById('rightName');
+            
+            leftCircle.style.display = 'flex';
+            rightCircle.style.display = 'flex';
+            
+            leftName.textContent = leftPart.name;
+            rightName.textContent = rightPart.name;
+            leftName.setAttribute('data-edited', 'true');
+            rightName.setAttribute('data-edited', 'true');
+            
+            // Set colors
+            const leftHead = leftCircle.querySelector('.head');
+            const rightHead = rightCircle.querySelector('.head');
+            
+            if (leftHead) {
+                leftHead.style.background = `linear-gradient(135deg, ${leftPart.color}, ${leftPart.color}dd)`;
+            }
+            if (rightHead) {
+                rightHead.style.background = `linear-gradient(135deg, ${rightPart.color}, ${rightPart.color}dd)`;
+            }
+            
+            document.getElementById('leftColorBtn').style.display = 'flex';
+            document.getElementById('rightColorBtn').style.display = 'flex';
+            
+            updateBodyColors('left', leftPart.color);
+            updateBodyColors('right', rightPart.color);
+            updateSliderColors();
+            
+            // Set stikord
+            for (let i = 1; i <= 6; i++) {
+                const leftField = document.getElementById('leftStikord' + i);
+                const rightField = document.getElementById('rightStikord' + i);
+                if (leftField) leftField.value = leftPart.keywords[i-1] || '';
+                if (rightField) rightField.value = rightPart.keywords[i-1] || '';
+            }
+            
+            // Set poses
+            const leftPoseDropdown = document.getElementById('leftPose');
+            const rightPoseDropdown = document.getElementById('rightPose');
+            const leftMirror = document.getElementById('leftMirror');
+            const rightMirror = document.getElementById('rightMirror');
+            
+            if (leftMirror) leftMirror.checked = leftPart.mirror || false;
+            if (rightMirror) rightMirror.checked = rightPart.mirror || false;
+            
+            if (leftPoseDropdown && leftPart.pose) {
+                const poseIndex = poseLibrary.findIndex(pose => pose.name === leftPart.pose);
+                if (poseIndex !== -1) {
+                    leftPoseDropdown.value = poseIndex;
+                    applyPose('left', poseIndex);
+                }
+            }
+            if (rightPoseDropdown && rightPart.pose) {
+                const poseIndex = poseLibrary.findIndex(pose => pose.name === rightPart.pose);
+                if (poseIndex !== -1) {
+                    rightPoseDropdown.value = poseIndex;
+                    applyPose('right', poseIndex);
+                }
+            }
+            
+            // Set scores
+            leftScores = leftScoresData || {};
+            rightScores = rightScoresData || {};
+            
+            // Switch to step 3 to show comparison
+            currentStep = 3;
+            
+            updateComparisonView();
+            updateButtonStates();
+            setStatus('Sammenligning indlæst med ' + Object.keys(leftScores).length + ' venstre scores og ' + Object.keys(rightScores).length + ' højre scores');
+        }
+
+        function clearAll() {
+		currentDistance = 675;
+		const container = document.querySelector('.participants-container');
+		if (container) container.style.maxWidth = '675px';
+		
+		
+		
+		
+		
+    leftColor = null;
+    rightColor = null;
+    leftLightColor = null;
+    rightLightColor = null;
+    leftScores = {};
+    rightScores = {};
+    currentStep = 1;
+    
+    document.getElementById('leftCircle').style.display = 'none';
+    document.getElementById('rightCircle').style.display = 'none';
+    document.getElementById('leftDropdown').value = '';
+    document.getElementById('rightDropdown').value = '';
+    
+    // Clear stikord fields
+	for (let i = 1; i <= 6; i++) {
+		['left', 'right'].forEach(side => {
+			const field = document.getElementById(side + 'Stikord' + i);
+			if (field) field.value = '';
+		});
+	}
+    
+    // Reset pose dropdowns and mirror checkboxes
+    const leftPose = document.getElementById('leftPose');
+    const rightPose = document.getElementById('rightPose');
+    const leftMirror = document.getElementById('leftMirror');
+    const rightMirror = document.getElementById('rightMirror');
+    
+    if (leftPose) leftPose.value = '';
+    if (rightPose) rightPose.value = '';
+    if (leftMirror) leftMirror.checked = false;
+    if (rightMirror) rightMirror.checked = false;
+    
+    ['leftName', 'rightName'].forEach(id => {
+        const element = document.getElementById(id);
+        element.textContent = '';
+        element.removeAttribute('data-edited');
+    });
+    
+    updateComparisonView();
+    updateButtonStates();
+}
+
+        // --- comparisonData persistence (no calls wired yet) ---
+        function buildComparisonData() {
+            var leftNameEl = document.getElementById('leftName');
+            var rightNameEl = document.getElementById('rightName');
+            var leftDropdown = document.getElementById('leftDropdown');
+            var rightDropdown = document.getElementById('rightDropdown');
+            var leftPoseDropdown = document.getElementById('leftPose');
+            var rightPoseDropdown = document.getElementById('rightPose');
+            var leftMirror = document.getElementById('leftMirror');
+            var rightMirror = document.getElementById('rightMirror');
+
+            var leftKeywords = [];
+            var rightKeywords = [];
+            for (var i = 1; i <= 6; i++) {
+                var lk = document.getElementById('leftStikord' + i);
+                var rk = document.getElementById('rightStikord' + i);
+                leftKeywords.push(lk ? lk.value : '');
+                rightKeywords.push(rk ? rk.value : '');
+            }
+
+            return {
+                version: 1,
+                currentStep: currentStep,
+                distance: currentDistance,
+                left: {
+                    selectedKey: leftDropdown ? leftDropdown.value : '',
+                    name: leftNameEl ? leftNameEl.textContent : '',
+                    color: leftColor,
+                    poseIndex: (leftPoseDropdown && leftPoseDropdown.value !== '') ? Number(leftPoseDropdown.value) : null,
+                    mirror: !!(leftMirror && leftMirror.checked),
+                    keywords: leftKeywords
+                },
+                right: {
+                    selectedKey: rightDropdown ? rightDropdown.value : '',
+                    name: rightNameEl ? rightNameEl.textContent : '',
+                    color: rightColor,
+                    poseIndex: (rightPoseDropdown && rightPoseDropdown.value !== '') ? Number(rightPoseDropdown.value) : null,
+                    mirror: !!(rightMirror && rightMirror.checked),
+                    keywords: rightKeywords
+                },
+                scores: {
+                    left: leftScores,
+                    right: rightScores
+                }
+            };
+        }
+
+        function saveComparisonData() {
+            try {
+                var data = buildComparisonData();
+                localStorage.setItem('comparisonData', JSON.stringify(data));
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        function loadComparisonData() {
+            try {
+                var raw = localStorage.getItem('comparisonData');
+                if (!raw) return;
+                var data = JSON.parse(raw);
+                if (!data || typeof data !== 'object') return;
+
+                var leftPoseName = '';
+                if (data.left && typeof data.left.poseIndex === 'number' && poseLibrary[data.left.poseIndex]) {
+                    leftPoseName = poseLibrary[data.left.poseIndex].name || '';
+                }
+                var rightPoseName = '';
+                if (data.right && typeof data.right.poseIndex === 'number' && poseLibrary[data.right.poseIndex]) {
+                    rightPoseName = poseLibrary[data.right.poseIndex].name || '';
+                }
+
+                var leftPart = {
+                    name: (data.left && data.left.name) ? data.left.name : '',
+                    color: (data.left && data.left.color) ? data.left.color : '#10b981',
+                    pose: leftPoseName,
+                    mirror: !!(data.left && data.left.mirror),
+                    keywords: (data.left && Array.isArray(data.left.keywords)) ? data.left.keywords.slice(0,6) : ["","","","","",""]
+                };
+                var rightPart = {
+                    name: (data.right && data.right.name) ? data.right.name : '',
+                    color: (data.right && data.right.color) ? data.right.color : '#3b82f6',
+                    pose: rightPoseName,
+                    mirror: !!(data.right && data.right.mirror),
+                    keywords: (data.right && Array.isArray(data.right.keywords)) ? data.right.keywords.slice(0,6) : ["","","","","",""]
+                };
+
+                applyLoadedComparison(leftPart, rightPart, (data.scores && data.scores.left) ? data.scores.left : {}, (data.scores && data.scores.right) ? data.scores.right : {});
+
+                if (typeof data.currentStep === 'number') {
+                    switchToStep(Math.max(1, Math.min(3, data.currentStep)));
+                }
+                if (typeof data.distance === 'number') {
+                    currentDistance = data.distance;
+                    var container = document.querySelector('.participants-container');
+                    if (container) container.style.maxWidth = currentDistance + 'px';
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+
+function adjustDistance(direction) {
+    const container = document.querySelector('.participants-container');
+    if (!container) return;
+    
+    if (direction === 'increase' && currentDistance < 700) {
+        currentDistance += 100;
+    } else if (direction === 'decrease' && currentDistance > 175) {
+        currentDistance -= 100;
+    }
+    
+    container.style.maxWidth = currentDistance + 'px';
+    container.style.transition = 'max-width 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)';
+}
+
+
+
+        function confirmBackToOpstilling() {
+            if (confirm('Brug "Gem Sammenligning" hvis du vil beholde dit arbejde.\n\nVil du fortsætte til Relations Opstilling?')) {
+                window.location.href = 'opstilling_01.html';
+            }
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Load pose library first
+            await loadPoseLibrary();
+            // Initialize color picker grid
+            const grid = document.getElementById('colorGrid');
+            
+            for(let row = 0; row < 14; row++) {
+                for(let col = 0; col < 12; col++) {
+                    let hex;
+                    
+                    if(row === 0) {
+                        const hue = Math.round(col * 360/12);
+                        hex = hslToHex(hue, 95, 50);
+                    } else if(row === 1) {
+                        const light = Math.round(100 - (col * (100/11)));
+                        hex = hslToHex(0, 0, light);
+                    } else {
+                        const gridRow = row - 2;
+                        const hue = Math.round(col * 360/12);
+                        const light = Math.round(92 - (gridRow * (84/11)));
+                        const satBase = 86;
+                        const sat = Math.round(satBase - Math.abs((col - 6)/ 6) * 20);
+                        hex = hslToHex(hue, sat, light);
+                    }
+                    
+                    const swatch = document.createElement('button');
+                    swatch.className = 'swatch';
+                    swatch.style.background = hex;
+                    swatch.dataset.hex = hex;
+                    swatch.title = hex;
+                    swatch.setAttribute('aria-label', `Farve ${hex}`);
+                    swatch.tabIndex = 0;
+                    
+                    swatch.addEventListener('click', () => selectColor(hex));
+                    
+                    grid.appendChild(swatch);
+                }
+            }
+            
+            // Event listeners
+            document.getElementById('colorPickerModal').addEventListener('click', function(e) {
+                if (e.target === this) closeColorPicker();
+            });
+
+            // Load shared characters first (inject into partsData), then build dropdowns
+            initializeDropdowns();
+			initializePoseDropdowns();  
+            
+            // Listen for localStorage changes (cross-tab synchronization)
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'relationsSetupData') {
+                    console.log('localStorage relationsSetupData updated, refreshing comparison dropdowns...');
+                    handleStorageUpdate();
+                }
+            });
+            
+            document.getElementById('leftDropdown').addEventListener('change', () => updateParticipant('left'));
+            document.getElementById('rightDropdown').addEventListener('change', () => updateParticipant('right'));
+            
+            document.getElementById('leftColorBtn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                openColorPicker(this, 'left');
+            });
+            document.getElementById('rightColorBtn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                openColorPicker(this, 'right');
+            });
+			
+			// Pose picker modal close on outside click
+			document.getElementById('posePickerModal').addEventListener('click', function(e) {
+				if (e.target === this) {
+					closePosePicker();
+				}
+			});
+
+			// Pose buttons
+			document.getElementById('leftPoseBtn').addEventListener('click', function(e) {
+				e.stopPropagation();
+				openPosePicker(this);
+			});
+			document.getElementById('rightPoseBtn').addEventListener('click', function(e) {
+				e.stopPropagation();
+				openPosePicker(this);
+			});
+            
+            document.querySelector('.clear-btn').addEventListener('click', clearAll);
+            document.getElementById('randomBtn').addEventListener('click', randomizeCurrentStep);
+            document.getElementById('saveBtn').addEventListener('click', saveComparison);
+            document.getElementById('loadComparisonBtn').addEventListener('click', loadComparison);
+			
+			document.getElementById('increaseDistance').addEventListener('click', () => adjustDistance('increase'));
+			document.getElementById('decreaseDistance').addEventListener('click', () => adjustDistance('decrease'));
+            
+            updateButtonStates();
+        });
+    </script>
+</body>
+</html>

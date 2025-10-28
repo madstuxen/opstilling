@@ -1,0 +1,3724 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dialog - V</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            padding: 20px;
+        }
+        
+        .dialog-container {
+            width: 100%;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .controls-bar {
+            background: #e5e7eb;
+            padding: 15px;
+            border-bottom: 2px solid #d1d5db;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .dropdown-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .dropdown-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            white-space: nowrap;
+        }
+        
+        .participant-dropdown {
+            padding: 8px 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            min-width: 160px;
+            color: #374151;
+        }
+        
+        .participant-dropdown:disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .controls-divider {
+            width: 2px;
+            height: 30px;
+            background: #d1d5db;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .start-btn { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+        .continue-btn { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; }
+        .play-btn { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+        .pause-btn { background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; }
+        .step-btn { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; }
+        .clear-btn { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+        .back-btn { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+        
+        .btn:disabled { 
+            background: #9ca3af !important; 
+            cursor: not-allowed; 
+            transform: none !important;
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-1px); }
+        
+        .participants-section {
+            background: #f8fafc;
+            padding: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            height: 250px;
+            flex-shrink: 0;
+            overflow: visible;
+            position: relative;
+        }
+        
+        .stikord-left, .stikord-right {
+            position: absolute;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            z-index: 100;
+        }
+        
+        .stikord-left {
+            left: 20px;
+        }
+        
+        .stikord-right {
+            right: 20px;
+        }
+        
+        .stikord-input {
+            width: 140px;
+            padding: 5px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: inherit;
+            background: white;
+        }
+        
+        .stikord-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .participants-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 700px;
+            margin: 0 auto;
+            gap: 30px;
+            height: 100%;
+            overflow: visible;
+        }
+
+        /* Prevent external scripts/overlays from shrinking dialog participants */
+        .dialog-container .participants-container {
+            max-width: 700px !important;
+        }
+        
+        .participant {
+            flex: 1;
+			margin-top: -160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            overflow: visible;
+			transform-origin: center center;
+        }
+        
+        .participant-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: transparent;  
+    border: none;  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+    text-align: center;
+    
+    position: relative;
+    padding: 5px;
+    line-height: 1.1;
+    z-index: 10;
+}
+
+/* New Advanced Figure Structure */
+.participant-body {
+    position: absolute;
+    top: 76px;
+    
+    transform-origin: 50px -40px;
+    z-index: 5;
+    pointer-events: none;
+    width: 100px;
+    height: 200px;
+}
+/* Head */
+.head {
+    position: absolute;
+    top: -78px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 10px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    padding: 10px;
+    line-height: 1.2;
+    z-index: 5;
+    pointer-events: auto;
+	opacity: 1 !important;
+}
+
+.head span {
+    cursor: text;
+    font-size: 10px;
+}
+
+/* Torso */
+.participant-torso {
+    position: absolute;
+    width: 55px;
+    height: 80px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 22px 22px 15px 15px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+    top: -2px;
+	left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+}
+
+/* Højre arm hierarki */
+.skulder_translate_right {
+    position: absolute;
+    top: 0px;
+    left: 62px;
+    width: 15px;
+    height: 15px;
+    background: rgba(59, 130, 246, 0.0);
+    z-index: 3;
+}
+
+.skulder_translate_right.front-arm {
+    z-index: 15;
+}
+
+.skulder_rotate_right {
+    width: 100%;
+    height: 100%;
+    background: rgba(239, 68, 68, 0.0);
+    transform-origin: center center;
+}
+
+.arm_geo_right {
+    width: 50px;
+    height: 18px;
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+    left: -1px;
+}
+
+.albue_rotate_right {
+    position: relative;
+    top: 1px;
+    left: 34px;
+    width: 15px;
+    height: 15px;
+    background: rgba(16, 185, 129, 0.0);
+    transform-origin: center center;
+}
+
+.albue_geo_right {
+    position: relative;
+    top: -1px;
+    left: 1px;
+    width: 50px;
+    height: 18px;
+    background: #f59e0b;
+    border-radius: 9px;
+    z-index: 4;
+}
+
+.albue_geo_right.front {
+    z-index: 20 !important;
+    position: relative;
+}
+
+/* Venstre arm hierarki */
+.skulder_translate_left {
+    position: absolute;
+    top: 0px;
+    left: 22px;
+    width: 15px;
+    height: 15px;
+    background: rgba(59, 130, 246, 0.0);
+    z-index: 3;
+}
+
+.skulder_translate_left.front-arm {
+    z-index: 15;
+}
+
+.skulder_rotate_left {
+    width: 100%;
+    height: 100%;
+    background: rgba(239, 68, 68, 0.0);
+    transform-origin: center center;
+}
+
+.arm_geo_left {
+    width: 50px;
+    height: 18px;
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+    left: -34px;
+}
+
+.albue_rotate_left {
+    position: relative;
+    top: 1px;
+    left: 0px;
+    width: 15px;
+    height: 15px;
+    background: rgba(16, 185, 129, 0.0);
+    transform-origin: center center;
+}
+
+.albue_geo_left {
+    position: relative;
+    top: -1px;
+    left: -33px;
+    width: 50px;
+    height: 18px;
+    background: #f59e0b;
+    border-radius: 9px;
+    z-index: 4;
+}
+
+.albue_geo_left.front {
+    z-index: 20 !important;
+    position: relative;
+}
+
+/* Højre ben hierarki */
+.hofte_translate_right {
+    position: absolute;
+    top: 68px;
+    left: 58px;
+    width: 15px;
+    height: 15px;
+    background: rgba(59, 130, 246, 0.0);
+}
+
+.hofte_rotate_right {
+    width: 100%;
+    height: 100%;
+    background: rgba(239, 68, 68, 0.0);
+    transform-origin: center center;
+}
+
+.laar_geo_right {
+    width: 18px;
+    height: 55px;
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+    left: -1px;
+}
+
+.knae_rotate_right {
+    position: relative;
+    top: 38px;
+    left: 1px;
+    width: 15px;
+    height: 15px;
+    background: rgba(16, 185, 129, 0.0);
+    transform-origin: center center;
+}
+
+.skinneben_geo_right {
+    position: relative;
+    top: -1px;
+    left: -1px;
+    width: 18px;
+    height: 50px;
+    background: #f59e0b;
+    border-radius: 9px;
+}
+
+/* Venstre ben hierarki */
+.hofte_translate_left {
+    position: absolute;
+    top: 68px;
+    left: 26px;
+    width: 15px;
+    height: 15px;
+    background: rgba(59, 130, 246, 0.0);
+}
+
+.hofte_rotate_left {
+    width: 100%;
+    height: 100%;
+    background: rgba(239, 68, 68, 0.0);
+    transform-origin: center center;
+}
+
+.laar_geo_left {
+    width: 18px;
+    height: 55px;
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+    left: -1px;
+}
+
+.knae_rotate_left {
+    position: relative;
+    top: 38px;
+    left: 1px;
+    width: 15px;
+    height: 15px;
+    background: rgba(16, 185, 129, 0.0);
+    transform-origin: center center;
+}
+
+.skinneben_geo_left {
+    position: relative;
+    top: -1px;
+    left: -1px;
+    width: 18px;
+    height: 50px;
+    background: #f59e0b;
+    border-radius: 9px;
+}
+
+
+
+
+
+        
+        .participant-circle span[contenteditable] {
+            outline: none;
+            border-radius: 4px;
+            padding: 2px;
+            transition: all 0.2s ease;
+            cursor: text;
+			display: inline-block;  
+			max-width: 100%;  
+        }
+        
+        .participant-circle span[contenteditable]:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .participant-circle span[contenteditable]:focus {
+            background-color: white;
+            color: black;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5);
+        }
+
+        .color-circle-btn {
+            position: absolute;
+            bottom: 0px;
+            right: 0px;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #a855f7;
+            border: 2px solid white;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 150;
+            opacity: 0;
+        }
+        
+        .color-circle-btn:hover {
+            transform: scale(1.1);
+            background: #9333ea;
+        }
+        
+        .participant-circle:hover .color-circle-btn {
+            display: flex;
+            opacity: 1;
+        }
+        
+.speech-bubble {
+    position: absolute;
+    background: #93c5fd;
+    border-radius: 15px;
+    padding: 15px;
+    min-width: 180px;
+    max-width: 300px;
+    max-height: 1000px;
+    overflow: visible;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    display: none;
+    opacity: 0.0;
+    transform: scale(0.85);
+    /* transition: transform 0.25s ease-out, opacity 0.25s ease-out; */
+	transition: all 0.35s cubic-bezier(0.4, 1.3, 0.7, 1);
+    z-index: 9999;
+	pointer-events: none; 
+}
+
+        
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+		
+		.speech-bubble.visible {
+			opacity: 1;
+			transform: scale(1);
+			
+		}
+
+        
+       .speech-bubble.left {
+			background: #93c5fd;
+			transform-origin: left center;
+		}
+        
+        .speech-bubble.left::after {
+            left: -15px;
+            border-width: 15px 15px 15px 0;
+            border-color: transparent #93c5fd transparent transparent;
+        }
+        
+        .speech-bubble.right {
+			background: #86efac;
+			transform-origin: right center;
+		}
+        
+        .speech-bubble.right::after {
+            right: -15px;
+            border-width: 15px 0 15px 15px;
+            border-color: transparent transparent transparent #86efac;
+        }
+        
+        .speech-textarea {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 14px;
+            font-family: inherit;
+            color: #1f2937;
+            font-weight: 500;
+            resize: none;
+            overflow: visible;
+            min-height: 20px;
+            max-height: 1000px;
+            line-height: 1.4;
+			pointer-events: auto;  
+        }
+        
+        .speech-textarea::placeholder {
+            color: #6b7280;
+        }
+        
+        .blinking-dots {
+            display: inline-block;
+            animation: blink 1.5s infinite;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        
+        .transcript-section {
+            height: 500px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .transcript-header {
+            background: #f1f5f9;
+            padding: 10px 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .transcript-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px 20px;
+            background: #fafafa;
+			min-height: 400px;
+        }
+        
+        .message-left {
+            background: #e3f2fd;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 15px;
+            position: relative;
+            max-width: 60%;
+            margin-right: auto;
+        }
+        
+        .message-right {
+            background: #e8f5e8;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 15px;
+            position: relative;
+            max-width: 60%;
+            margin-left: auto;
+        }
+        
+        .speaker {
+            font-weight: bold;
+            font-size: 12px;
+            color: #374151;
+            margin-bottom: 4px;
+            position: relative;
+        }
+        
+        .timestamp {
+            position: absolute;
+            right: 0;
+            top: 0;
+            font-size: 10px;
+            color: #9ca3af;
+            font-weight: normal;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        .speaker:hover .timestamp {
+            opacity: 1;
+        }
+        
+        .text {
+            color: #4b5563;
+            font-size: 14px;
+            line-height: 1.4;
+            cursor: text;
+            padding: 4px;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .text:hover {
+            background: white;
+            border-color: #d1d5db;
+        }
+        
+        .text:focus {
+            outline: none;
+            background: white;
+            border-color: #3b82f6;
+        }
+        
+        .delete-circle {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .delete-circle:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+        
+        .message-left:hover .delete-circle,
+        .message-right:hover .delete-circle {
+            display: flex;
+        }
+        
+        .empty {
+            text-align: center;
+            color: #9ca3af;
+            font-style: italic;
+            padding: 30px;
+        }
+        
+        .status {
+            text-align: center;
+            color: #6b7280;
+            font-size: 12px;
+            padding: 5px;
+        }
+
+
+        /* Color Picker Styles */
+        .color-picker-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        
+        .color-picker-modal.show {
+            display: flex;
+        }
+        
+        .picker {
+            width: 224px;
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .swatch {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+            border: 1px solid rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .swatch:hover {
+            transform: scale(1.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 15px);
+            grid-template-rows: repeat(14, 15px);
+            gap: 2px;
+            background: transparent;
+        }
+        
+        .swatch:focus {
+            outline: 2px solid #4f46e5;
+            outline-offset: 1px;
+        }
+        
+        @media (max-width: 768px) {
+            .controls-bar {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .dropdown-group {
+                order: -1;
+            }
+            
+            .controls-divider {
+                display: none;
+            }
+        }
+		
+		/* Pose Picker Styles */
+.pose-picker-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+
+.pose-picker-modal.show {
+    display: flex;
+}
+
+.pose-picker {
+    width: 280px;
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border: 1px solid #e2e8f0;
+}
+
+.pose-mirror-section {
+    text-align: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.pose-mirror-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+}
+
+.pose-mirror-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    transform: scale(1.2);
+}
+
+.pose-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.pose-button {
+    padding: 8px 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.pose-button:hover {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+    color: #1d4ed8;
+}
+
+.pose-button.active {
+    border-color: #3b82f6;
+    background: #3b82f6;
+    color: white;
+}
+		
+#leftPoseBtn, #rightPoseBtn {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #06b6d4;
+    border: 2px solid white;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: bold;
+    color: white;
+    transition: all 0.3s ease;
+    z-index: 150;
+    opacity: 0;
+    transform: translate(0px, -25px);
+}
+
+#leftPoseBtn:hover, #rightPoseBtn:hover {
+    transform: translate(0px, -25px) scale(1.1);
+    background: #0891b2;
+}	
+		
+.participant-circle:hover #leftPoseBtn,
+.participant-circle:hover #rightPoseBtn {
+    display: flex !important;
+    opacity: 1;
+}		
+
+/* Mini action controls (two small C buttons) */
+.mini-controls-wrapper {
+    position: relative;
+    height: 0;
+    z-index: 200;
+}
+
+.mini-controls {
+    position: absolute;
+    top: -41px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mini-c-btn {
+    min-width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 2px solid white;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+
+.mini-c-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+		
+		
+    </style>
+</head>
+<body>
+    <div class="dialog-container">
+        <div class="header">
+            <h1 style="font-size: 1.5em; margin-bottom: 5px;">Dialog - Værktøj</h1>
+            <p style="font-size: 0.9em;">Samtale mellem dele med chat-visning</p>
+        </div>
+        
+        
+        <div class="controls-bar">
+            <div class="controls-divider"></div>
+            
+            <div class="dropdown-group">
+                <span class="dropdown-label">Venstre del:</span>
+                <select class="participant-dropdown" id="leftDropdown"></select>
+            </div>
+            
+            <div class="dropdown-group">
+                <span class="dropdown-label">Højre del:</span>
+                <select class="participant-dropdown" id="rightDropdown"></select>
+            </div>
+            
+            <div class="controls-divider"></div>
+            
+            <button class="btn start-btn" id="startBtn" disabled>Start Dialog</button>
+            <button class="btn" id="loadBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs Dialog</button>
+            <button class="btn continue-btn" id="continueBtn" disabled>Fortsæt Dialog</button>
+            <button class="btn play-btn" id="playBtn" disabled>Afspil</button>
+            <button class="btn pause-btn" id="pauseBtn" disabled style="display: none;">Pause</button>
+            <button class="btn step-btn" id="nextBtn" disabled>Næste</button>
+            <button class="btn" id="copyBtn" disabled style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white;">Kopier Dialog</button>
+			<button class="btn" id="saveBtn" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white;">Gem Dialog</button>
+            <button class="btn clear-btn">Ryd Alt</button>
+            <button class="btn back-btn" onclick="confirmBackToOpstilling()">Tilbage til Opstilling</button>
+			
+        </div>
+        
+        <div class="status" id="status">Vælg to dele og start dialog</div>
+        
+        <div class="participants-section">
+            <div class="stikord-left">
+                <input type="text" class="stikord-input" id="leftStikord1" placeholder="Stikord 1">
+                <input type="text" class="stikord-input" id="leftStikord2" placeholder="Stikord 2">
+                <input type="text" class="stikord-input" id="leftStikord3" placeholder="Stikord 3">
+                <input type="text" class="stikord-input" id="leftStikord4" placeholder="Stikord 4">
+                <input type="text" class="stikord-input" id="leftStikord5" placeholder="Stikord 5">
+                <input type="text" class="stikord-input" id="leftStikord6" placeholder="Stikord 6">
+				<div style="display: flex; align-items: center; justify-content: space-between;">
+				<div style="font-size: 10px; font-weight: 500; color: #6b7280;">Pose:</div>
+				<div style="display: flex; align-items: center; gap: 4px;">
+					<input type="checkbox" id="leftMirror" onchange="toggleMirror('left')" style="width: 12px; height: 12px;">
+					<label for="leftMirror" style="font-size: 10px; color: #6b7280;">Spejl</label>
+				</div>
+				</div>
+				<select class="stikord-input" id="leftPose" onchange="applyPose('left', this.value)">
+					<option value="">Standard pose</option>
+				</select>
+            </div>
+            
+            <div class="stikord-right">
+                <input type="text" class="stikord-input" id="rightStikord1" placeholder="Stikord 1">
+                <input type="text" class="stikord-input" id="rightStikord2" placeholder="Stikord 2">
+                <input type="text" class="stikord-input" id="rightStikord3" placeholder="Stikord 3">
+                <input type="text" class="stikord-input" id="rightStikord4" placeholder="Stikord 4">
+                <input type="text" class="stikord-input" id="rightStikord5" placeholder="Stikord 5">
+                <input type="text" class="stikord-input" id="rightStikord6" placeholder="Stikord 6">
+				<div style="display: flex; align-items: center; justify-content: space-between;">
+				<div style="font-size: 10px; font-weight: 500; color: #6b7280;">Pose:</div>
+				<div style="display: flex; align-items: center; gap: 4px;">
+					<input type="checkbox" id="rightMirror" onchange="toggleMirror('right')" style="width: 12px; height: 12px;">
+					<label for="rightMirror" style="font-size: 10px; color: #6b7280;">Spejl</label>
+				</div>
+				</div>
+				<select class="stikord-input" id="rightPose" onchange="applyPose('right', this.value)">
+					<option value="">Standard pose</option>
+				</select>
+				
+            </div>
+            
+            <div class="participants-container">
+			
+                <div class="participant">
+                    <div class="participant-circle" id="leftCircle" style="display: none;">
+					<button class="color-circle-btn" id="leftPoseBtn" title="Skift pose">P</button>
+					<button class="color-circle-btn" id="leftColorBtn" title="Skift farve">C</button>
+					
+					<div class="participant-body">
+						<div class="head">
+							<span id="leftName"></span>
+						</div>
+							<div class="participant-torso"></div>
+							
+							<!-- Venstre arm hierarki -->
+							<div class="skulder_translate_left">
+								<div class="skulder_rotate_left">
+									<div class="arm_geo_left">
+										<div class="albue_rotate_left">
+											<div class="albue_geo_left"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Højre arm hierarki -->
+							<div class="skulder_translate_right">
+								<div class="skulder_rotate_right">
+									<div class="arm_geo_right">
+										<div class="albue_rotate_right">
+											<div class="albue_geo_right"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Venstre ben hierarki -->
+							<div class="hofte_translate_left">
+								<div class="hofte_rotate_left">
+									<div class="laar_geo_left">
+										<div class="knae_rotate_left">
+											<div class="skinneben_geo_left"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Højre ben hierarki -->
+							<div class="hofte_translate_right">
+								<div class="hofte_rotate_right">
+									<div class="laar_geo_right">
+										<div class="knae_rotate_right">
+											<div class="skinneben_geo_right"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						
+						
+					</div>
+					<div class="speech-bubble left" id="leftBubble">
+							<textarea class="speech-textarea" id="leftTextarea" placeholder="Skriv besked..."></textarea>
+							<span class="blinking-dots" id="leftDots">...</span>
+						</div>
+                </div>
+                
+                <div class="participant">
+                    <div class="participant-circle" id="rightCircle" style="display: none;">
+						<button class="color-circle-btn" id="rightPoseBtn" title="Skift pose">P</button>
+						<button class="color-circle-btn" id="rightColorBtn" title="Skift farve">C</button>
+						
+						<div class="participant-body">
+							<div class="head">
+								<span id="rightName"></span>
+							</div>
+							<div class="participant-torso"></div>
+							
+							<!-- Venstre arm hierarki -->
+							<div class="skulder_translate_left">
+								<div class="skulder_rotate_left">
+									<div class="arm_geo_left">
+										<div class="albue_rotate_left">
+											<div class="albue_geo_left"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Højre arm hierarki -->
+							<div class="skulder_translate_right">
+								<div class="skulder_rotate_right">
+									<div class="arm_geo_right">
+										<div class="albue_rotate_right">
+											<div class="albue_geo_right"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Venstre ben hierarki -->
+							<div class="hofte_translate_left">
+								<div class="hofte_rotate_left">
+									<div class="laar_geo_left">
+										<div class="knae_rotate_left">
+											<div class="skinneben_geo_left"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Højre ben hierarki -->
+							<div class="hofte_translate_right">
+								<div class="hofte_rotate_right">
+									<div class="laar_geo_right">
+										<div class="knae_rotate_right">
+											<div class="skinneben_geo_right"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						
+					</div>
+					<div class="speech-bubble right" id="rightBubble">
+							<textarea class="speech-textarea" id="rightTextarea" placeholder="Skriv besked..."></textarea>
+							<span class="blinking-dots" id="rightDots">...</span>
+						</div>
+                </div>
+            </div>
+            
+            <div class="mini-controls-wrapper" id="miniControlsWrapper" style="display: none;">
+                <div class="mini-controls">
+                    <button class="mini-c-btn" id="leftMiniC">C</button>
+                    <button class="mini-c-btn" id="rightMiniC">C</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="transcript-section">
+            <div class="transcript-header">
+                <h3 style="color: #475569; font-size: 16px;">Dialog transskript</h3>
+            </div>
+            <div class="transcript-content" id="transcriptContent">
+                <div class="empty">
+                    <h4 style="margin-bottom: 15px; color: #374151;">Sådan bruger du Dialog systemet:</h4>
+                    <p style="margin-bottom: 12px; text-align: left;"><strong>1. Vælg dele:</strong> Brug dropdown-menuerne til at vælge to indre dele der skal tale sammen.</p>
+                    <p style="margin-bottom: 12px; text-align: left;"><strong>2. Start dialog:</strong> Klik "Start Dialog" for at begynde samtalen.</p>
+                    <p style="margin-bottom: 12px; text-align: left;"><strong>3. Skriv beskeder:</strong> En speech bubble vises ved den aktive del. Skriv din besked og tryk Enter for at skifte til den anden del.</p>
+                    <p style="margin-bottom: 12px; text-align: left;"><strong>4. Afspil dialog:</strong> Brug "Afspil" for automatisk gennemgang eller "Næste" for manuel kontrol.</p>
+                    <p style="margin-bottom: 12px; text-align: left;"><strong>5. Fortsæt dialog:</strong> Efter pause eller afspilning kan du fortsætte med at tilføje nye beskeder via "Fortsæt Dialog".</p>
+                    <p style="margin-bottom: 12px; text-align: left;"><strong>6. Rediger beskeder:</strong> Beskeder kan redigeres i transskriptet ved at klikke på dem.</p>
+                    <p style="margin-top: 15px; font-style: italic; color: #6b7280;">Du kan bruge det til en samtale med en indre del eller til at øve dig på en svær samtale.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Color Picker Modal -->
+    <div class="color-picker-modal" id="colorPickerModal">
+        <div class="picker">
+            <div class="color-grid" id="colorGrid"></div>
+        </div>
+    </div>
+	
+	<!-- Pose Picker Modal -->
+	<div class="pose-picker-modal" id="posePickerModal">
+		<div class="pose-picker">
+			<div class="pose-mirror-section">
+				<label class="pose-mirror-label">
+					<input type="checkbox" id="posePickerMirror" onchange="togglePosePickerMirror()">
+					<span>Spejl</span>
+				</label>
+			</div>
+			<div class="pose-grid" id="poseGrid"></div>
+		</div>
+	</div>
+	
+	
+	
+
+    <script src="coaching_engine.js"></script>
+    <script src="coaching_overlay_complete.js"></script>
+    <script>
+		let currentPosePart = null;
+        let dialogActive = false;
+        let currentSpeaker = 'left';
+        let transcript = [];
+        let lastSpeaker = null;
+        let currentIndex = 0;
+        let isAutoPlaying = false;
+        let autoTimeout = null;
+        let leftColor = null;
+        let rightColor = null;
+        let leftLightColor = null;
+        let rightLightColor = null;
+        
+        let currentColorTarget = null;
+        let currentColorSide = null;
+		
+		let isLoadingDialog = false;
+        
+        const partsData = {
+    lav_ny_left: { 
+        name: "Lav Ny Del", 
+        keywords: ["", "", "", "", "", ""], 
+        color: "#10b981",
+        pose: "",
+        mirror: false
+    },
+    lav_ny_right: { 
+        name: "Lav Ny Del", 
+        keywords: ["", "", "", "", "", ""], 
+        color: "#3b82f6",
+        pose: "",
+        mirror: false
+    },
+    beskytter: { 
+        name: "Beskytteren", 
+        keywords: ["Sikkerhed", "Kontrol", "Forsigtig", "Ansvarlig", "", ""], 
+        color: "#fbbf24",
+        pose: "stærk",
+        mirror: false
+    },
+    kritiker: { 
+        name: "Den Kritiske", 
+        keywords: ["Perfektionisme", "Standards", "Aldrig godt nok", "Selvkritik", "", ""], 
+        color: "#ef4444",
+        pose: "vred",
+        mirror: false
+    },
+    manager: { 
+        name: "Manager-delen", 
+        keywords: ["Produktivitet", "Mål", "Effektivitet", "Præstation", "", ""], 
+        color: "#3b82f6",
+        pose: "tænke",
+        mirror: false
+    },
+    perfektionist: { 
+        name: "Den Perfektionistiske", 
+        keywords: ["Fejlfri", "Detaljer", "Aldrig færdig", "Høje krav", "", ""], 
+        color: "#8b5cf6",
+        pose: "lukket",
+        mirror: false
+    },
+    barn: { 
+        name: "Det Indre Barn", 
+        keywords: ["Leg", "Spontanitet", "Nysgerrig", "Kreativ", "", ""], 
+        color: "#10b981",
+        pose: "Leg",
+        mirror: false
+    },
+    saaret: { 
+        name: "Det Sårede Barn", 
+        keywords: ["Sorg", "Ensomhed", "Har brug for trøst", "Bange", "", ""], 
+        color: "#06b6d4",
+        pose: "trist",
+        mirror: false
+    },
+    kreativ: { 
+        name: "Den Kreative", 
+        keywords: ["Fantasi", "Inspiration", "Fri udtryk", "Innovation", "", ""], 
+        color: "#f97316",
+        pose: "flyver",
+        mirror: false
+    },
+    glade: { 
+        name: "Den Glade", 
+        keywords: ["Optimisme", "Humor", "Positivitet", "Smil", "", ""], 
+        color: "#84cc16",
+        pose: "hej",
+        mirror: false
+    }
+};
+		
+		///// animations bibliotek
+		
+		const animations =  {
+    vinke: {
+        slides: [
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": 70,
+                    "albue_rot": 0,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.35
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": -56,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.3
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": 3,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.15
+          },
+          
+		  {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": -56,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.1
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": 3,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.1
+          },
+		  {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": -56,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.1
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": 3,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.1
+          },
+		  {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": -56,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.15
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": -46,
+                    "albue_rot": 3,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.2
+          },
+          {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": 70,
+                    "albue_rot": 0,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.5
+          }
+]
+    } // slut for denne anim hvis flere lav et, komma
+		
+}	// slut for den kanstant der deffineres	
+		
+		
+		
+		
+		
+// Pose Library - loaded from external JSON file
+let poseLibrary = [];
+
+// Load pose library from external JSON file
+async function loadPoseLibrary() {
+    try {
+        const response = await fetch('Standard_new_poses.json');
+        if (response.ok) {
+            poseLibrary = await response.json();
+            console.log('Loaded pose library with', poseLibrary.length, 'poses');
+        } else {
+            console.error('Failed to load pose library');
+            // Fallback to basic poses
+            poseLibrary = [
+                {
+                    "name": "standard",
+                    "pose": {
+                        "translate_x_left": -3,
+                        "translate_y_left": 0,
+                        "skulder_rot_left": -70,
+                        "albue_rot_left": 0,
+                        "translate_x": 3,
+                        "translate_y": 0,
+                        "skulder_rot": 70,
+                        "albue_rot": 0,
+                        "translate_x_left_leg": 0,
+                        "translate_y_left_leg": 0,
+                        "hofte_rot_left": 6,
+                        "knae_rot_left": 0,
+                        "translate_x_right_leg": 0,
+                        "translate_y_right_leg": 0,
+                        "hofte_rot_right": -6,
+                        "knae_rot_right": 0,
+                        "left_arm_front": false,
+                        "right_arm_front": false,
+                        "duration": 0.3
+                    }
+                }
+            ];
+        }
+    } catch (error) {
+        console.error('Error loading pose library:', error);
+        // Fallback to basic poses
+        poseLibrary = [
+            {
+                "name": "standard",
+                "pose": {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": 70,
+                    "albue_rot": 0,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.3
+                }
+            }
+        ];
+    }
+}	
+
+function openPosePicker(btn) {
+    // Find the participant container (not just the circle)
+    const participantCircle = btn.closest('.participant-circle');
+    currentPosePart = participantCircle.parentElement; // Dette er .participant div'en
+    
+    const modal = document.getElementById('posePickerModal');
+    const picker = modal.querySelector('.pose-picker');
+    
+    // Get current pose and mirror from the participant element
+    const currentPose = currentPosePart.getAttribute('data-pose') || '';
+	const currentMirror = currentPosePart.getAttribute('data-mirror') === 'true';
+    
+    // Set mirror checkbox in picker
+    document.getElementById('posePickerMirror').checked = currentMirror;
+    
+    // Populate pose grid (this will highlight the current pose)
+    populatePoseGrid();
+    
+    // Show modal and position it
+    const btnRect = btn.getBoundingClientRect();
+    modal.classList.add('show');
+    
+    picker.style.position = 'absolute';
+    picker.style.left = (btnRect.right + 10) + 'px';
+    picker.style.top = (btnRect.top - 20) + 'px';
+    
+    // Adjust if goes off screen
+    const pickerRect = picker.getBoundingClientRect();
+    if (pickerRect.right > window.innerWidth) {
+        picker.style.left = (btnRect.left - pickerRect.width - 10) + 'px';
+    }
+    if (pickerRect.bottom > window.innerHeight) {
+        picker.style.top = (btnRect.bottom - pickerRect.height - 10) + 'px';
+    }
+}
+
+function populatePoseGrid() {
+    const grid = document.getElementById('poseGrid');
+    grid.innerHTML = '';
+    
+    // Get current pose from the DOM element
+    const currentPose = currentPosePart.getAttribute('data-pose') || '';
+    const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+    
+    // Add all poses from library (including "standard")
+    poseLibrary.forEach((pose, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'pose-button';
+        btn.textContent = pose.name;
+        btn.onclick = () => selectPose(index);
+        
+        if (currentPose === index.toString() || (currentPose === '' && index === standardIndex)) {
+            btn.classList.add('active');
+        }
+        
+        grid.appendChild(btn);
+    });
+}
+
+function selectPose(poseIndex) {
+    if (!currentPosePart) return;
+    
+    const mirror = document.getElementById('posePickerMirror').checked;
+    
+    // Find out which side by checking if it contains leftCircle or rightCircle
+    const hasLeftCircle = currentPosePart.querySelector('#leftCircle');
+    const side = hasLeftCircle ? 'left' : 'right';
+    
+    // Update the regular dropdowns to match
+    const poseDropdown = document.getElementById(side + 'Pose');
+    const mirrorCheckbox = document.getElementById(side + 'Mirror');
+    
+    // Map empty selection to standard index if available
+    if (poseIndex === '') {
+        const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+        if (standardIndex !== -1) {
+            poseIndex = standardIndex;
+        }
+    }
+
+    if (poseDropdown) poseDropdown.value = poseIndex;
+    if (mirrorCheckbox) mirrorCheckbox.checked = mirror;
+    
+    // Use the existing applyPose function from dialog system
+    applyPose(side, poseIndex);
+    
+    // Update active button
+    populatePoseGrid();
+}
+
+function togglePosePickerMirror() {
+    if (!currentPosePart) return;
+    
+    // Find out which side by checking if it contains leftCircle or rightCircle
+    const hasLeftCircle = currentPosePart.querySelector('#leftCircle');
+    const side = hasLeftCircle ? 'left' : 'right';
+    
+    // Update the regular mirror checkbox to match
+    const regularMirrorCheckbox = document.getElementById(side + 'Mirror');
+    const posePickerMirrorCheckbox = document.getElementById('posePickerMirror');
+    
+    if (regularMirrorCheckbox) {
+        regularMirrorCheckbox.checked = posePickerMirrorCheckbox.checked;
+    }
+    
+    // Use the existing toggleMirror function
+    toggleMirror(side);
+}
+
+function closePosePicker() {
+    document.getElementById('posePickerModal').classList.remove('show');
+    currentPosePart = null;
+}
+	
+	
+	function runAnimation(side, animName) {
+		const animation = animations[animName];
+		if (!animation || !animation.slides) {
+			console.log(`Animation "${animName}" not found`);
+			return;
+		}
+		
+		// Add smooth transitions to all animated elements
+		const circle = document.getElementById(side + 'Circle');
+		const animatedElements = circle.querySelectorAll(
+			'.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+			'.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+			'.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+			'.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+		);
+		
+		let slideIndex = 0;
+		
+		function playNextSlide() {
+			if (slideIndex < animation.slides.length) {
+				const slide = animation.slides[slideIndex];
+				
+				// Set transition duration for this slide
+				animatedElements.forEach(element => {
+					element.style.transition = `transform ${slide.duration}s cubic-bezier(0.25, 0.1, 0.25, 1)`;
+				});
+				
+				applyDirectSlideData(side, slide);
+				slideIndex++;
+				setTimeout(playNextSlide, slide.duration * 1000);
+			} else {
+				// Remove transitions when animation is done
+				animatedElements.forEach(element => {
+					element.style.transition = '';
+				});
+			}
+		}
+		
+		playNextSlide();
+	}
+
+function applyDirectSlideData(side, slideData) {
+    // Temporarily set pose dropdowns to empty and apply data directly
+    const poseDropdown = document.getElementById(side + 'Pose');
+    const currentValue = poseDropdown.value;
+    poseDropdown.value = '';
+    
+    // Apply the transform directly like your applyPose function does
+    const fakeEvent = { target: { value: '' } };
+    applyPose(side, ''); // Reset first
+    
+    // Then manually apply all the transforms from slideData
+    const circle = document.getElementById(side + 'Circle');
+    const skulderLeft = circle.querySelector('.skulder_translate_left');
+    const skulderRight = circle.querySelector('.skulder_translate_right');
+    const hofteLeft = circle.querySelector('.hofte_translate_left');
+    const hofteRight = circle.querySelector('.hofte_translate_right');
+    
+    if (skulderLeft) {
+        skulderLeft.style.transform = `translate(${slideData.translate_x_left || 0}px, ${slideData.translate_y_left || 0}px)`;
+        const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+        if (skulderRotLeft) {
+            skulderRotLeft.style.transform = `rotate(${slideData.skulder_rot_left || 0}deg)`;
+            const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+            if (albueRotLeft) {
+                albueRotLeft.style.transform = `rotate(${slideData.albue_rot_left || 0}deg)`;
+            }
+        }
+    }
+    
+    if (skulderRight) {
+        skulderRight.style.transform = `translate(${slideData.translate_x || 0}px, ${slideData.translate_y || 0}px)`;
+        const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+        if (skulderRotRight) {
+            skulderRotRight.style.transform = `rotate(${slideData.skulder_rot || 0}deg)`;
+            const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+            if (albueRotRight) {
+                albueRotRight.style.transform = `rotate(${slideData.albue_rot || 0}deg)`;
+            }
+        }
+    }
+    
+    if (hofteLeft) {
+        hofteLeft.style.transform = `translate(${slideData.translate_x_left_leg || 0}px, ${slideData.translate_y_left_leg || 0}px)`;
+        const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+        if (hofteRotLeft) {
+            hofteRotLeft.style.transform = `rotate(${slideData.hofte_rot_left || 0}deg)`;
+            const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+            if (knaeRotLeft) {
+                knaeRotLeft.style.transform = `rotate(${slideData.knae_rot_left || 0}deg)`;
+            }
+        }
+    }
+    
+    if (hofteRight) {
+        hofteRight.style.transform = `translate(${slideData.translate_x_right_leg || 0}px, ${slideData.translate_y_right_leg || 0}px)`;
+        const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+        if (hofteRotRight) {
+            hofteRotRight.style.transform = `rotate(${slideData.hofte_rot_right || 0}deg)`;
+            const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+            if (knaeRotRight) {
+                knaeRotRight.style.transform = `rotate(${slideData.knae_rot_right || 0}deg)`;
+            }
+        }
+    }
+    
+    // Handle arm layering
+    if (slideData.left_arm_front) {
+        skulderLeft?.classList.add('front-arm');
+    } else {
+        skulderLeft?.classList.remove('front-arm');
+    }
+    
+    if (slideData.right_arm_front) {
+        skulderRight?.classList.add('front-arm');
+    } else {
+        skulderRight?.classList.remove('front-arm');
+    }
+}
+	
+	
+		
+		
+		
+				function initializePoseDropdowns() {
+			const leftDropdown = document.getElementById('leftPose');
+			const rightDropdown = document.getElementById('rightPose');
+			
+    // Clear existing options; if standard exists, we won't add a placeholder
+    const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+    if (standardIndex !== -1) {
+        leftDropdown.innerHTML = '';
+        rightDropdown.innerHTML = '';
+    } else {
+        leftDropdown.innerHTML = '<option value="">Standard pose</option>';
+        rightDropdown.innerHTML = '<option value="">Standard pose</option>';
+    }
+			
+			// Add poses to dropdowns
+			poseLibrary.forEach((pose, index) => {
+				const leftOption = document.createElement('option');
+				leftOption.value = index;
+				leftOption.textContent = pose.name;
+				leftDropdown.appendChild(leftOption);
+				
+				const rightOption = document.createElement('option');
+				rightOption.value = index;
+				rightOption.textContent = pose.name;
+				rightDropdown.appendChild(rightOption);
+			});
+		}
+		
+		
+		function applyPose(side, poseIndex) {
+    const circle = document.getElementById(side + 'Circle');
+    const mirrorCheckbox = document.getElementById(side + 'Mirror');
+    
+    if (!circle) {
+        return;
+    }
+    // Map empty to standard index if available
+    if (poseIndex === '') {
+        const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+        if (standardIndex !== -1) {
+            poseIndex = standardIndex;
+        } else {
+            resetPose(side);
+            return;
+        }
+    }
+    // Add smooth transitions to all animated elements
+    const animatedElements = circle.querySelectorAll(
+        '.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+        '.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+        '.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+        '.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+    );
+    
+    animatedElements.forEach(element => {
+        element.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
+    });
+	
+    const pose = poseLibrary[poseIndex];
+    if (!pose) return;
+    
+    let poseData = pose.pose;
+    
+    // If mirror is checked, create mirrored version
+    if (mirrorCheckbox && mirrorCheckbox.checked) {
+        poseData = {
+            translate_x_left: -(pose.pose.translate_x || 0),
+            translate_x: -(pose.pose.translate_x_left || 0),
+            translate_y_left: pose.pose.translate_y || 0,
+            translate_y: pose.pose.translate_y_left || 0,
+            skulder_rot_left: -(pose.pose.skulder_rot || 0),
+            skulder_rot: -(pose.pose.skulder_rot_left || 0),
+            albue_rot_left: -(pose.pose.albue_rot || 0),
+            albue_rot: -(pose.pose.albue_rot_left || 0),
+            translate_x_left_leg: -(pose.pose.translate_x_right_leg || 0),
+            translate_x_right_leg: -(pose.pose.translate_x_left_leg || 0),
+            translate_y_left_leg: pose.pose.translate_y_right_leg || 0,
+            translate_y_right_leg: pose.pose.translate_y_left_leg || 0,
+            hofte_rot_left: -(pose.pose.hofte_rot_right || 0),
+            hofte_rot_right: -(pose.pose.hofte_rot_left || 0),
+            knae_rot_left: -(pose.pose.knae_rot_right || 0),
+            knae_rot_right: -(pose.pose.knae_rot_left || 0),
+            left_arm_front: pose.pose.right_arm_front || false,
+            right_arm_front: pose.pose.left_arm_front || false
+        };
+    }
+    
+    // Apply transforms to figure parts
+    const skulderLeft = circle.querySelector('.skulder_translate_left');
+    const skulderRight = circle.querySelector('.skulder_translate_right');
+    const hofteLeft = circle.querySelector('.hofte_translate_left');
+    const hofteRight = circle.querySelector('.hofte_translate_right');
+    
+    if (skulderLeft) {
+        skulderLeft.style.transform = `translate(${poseData.translate_x_left || 0}px, ${poseData.translate_y_left || 0}px)`;
+        const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+        if (skulderRotLeft) {
+            skulderRotLeft.style.transform = `rotate(${poseData.skulder_rot_left || 0}deg)`;
+            const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+            if (albueRotLeft) {
+                albueRotLeft.style.transform = `rotate(${poseData.albue_rot_left || 0}deg)`;
+            }
+        }
+    }
+    
+    if (skulderRight) {
+        skulderRight.style.transform = `translate(${poseData.translate_x || 0}px, ${poseData.translate_y || 0}px)`;
+        const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+        if (skulderRotRight) {
+            skulderRotRight.style.transform = `rotate(${poseData.skulder_rot || 0}deg)`;
+            const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+            if (albueRotRight) {
+                albueRotRight.style.transform = `rotate(${poseData.albue_rot || 0}deg)`;
+            }
+        }
+    }
+    
+    if (hofteLeft) {
+        hofteLeft.style.transform = `translate(${poseData.translate_x_left_leg || 0}px, ${poseData.translate_y_left_leg || 0}px)`;
+        const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+        if (hofteRotLeft) {
+            hofteRotLeft.style.transform = `rotate(${poseData.hofte_rot_left || 0}deg)`;
+            const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+            if (knaeRotLeft) {
+                knaeRotLeft.style.transform = `rotate(${poseData.knae_rot_left || 0}deg)`;
+            }
+        }
+    }
+    
+    if (hofteRight) {
+        hofteRight.style.transform = `translate(${poseData.translate_x_right_leg || 0}px, ${poseData.translate_y_right_leg || 0}px)`;
+        const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+        if (hofteRotRight) {
+            hofteRotRight.style.transform = `rotate(${poseData.hofte_rot_right || 0}deg)`;
+            const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+            if (knaeRotRight) {
+                knaeRotRight.style.transform = `rotate(${poseData.knae_rot_right || 0}deg)`;
+            }
+        }
+    }
+    
+    // Handle arm layering
+    if (poseData.left_arm_front) {
+        skulderLeft.classList.add('front-arm');
+    } else {
+        skulderLeft.classList.remove('front-arm');
+    }
+    
+    if (poseData.right_arm_front) {
+        skulderRight.classList.add('front-arm');
+    } else {
+        skulderRight.classList.remove('front-arm');
+    }
+	
+	
+	const participant = circle.parentElement;
+	if (participant) {
+		participant.setAttribute('data-pose', poseIndex);
+		participant.setAttribute('data-mirror', mirrorCheckbox ? mirrorCheckbox.checked : false);
+	}
+	
+	
+	
+}
+
+
+function toggleMirror(side) {
+    const poseDropdown = document.getElementById(side + 'Pose');
+    if (poseDropdown) {
+        applyPose(side, poseDropdown.value);
+    }
+	
+    // Gem mirror state på DOM-elementet
+    const circle = document.getElementById(side + 'Circle');
+    const mirrorCheckbox = document.getElementById(side + 'Mirror');
+    const participant = circle ? circle.parentElement : null;
+    if (participant) {
+        participant.setAttribute('data-mirror', mirrorCheckbox ? String(mirrorCheckbox.checked) : 'false');
+    }
+}
+
+function resetPose(side) {
+    const circle = document.getElementById(side + 'Circle');
+    if (!circle) return;
+    // If standard exists, apply that index and persist state on participant
+    const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+    if (standardIndex !== -1) {
+        const participant = circle.parentElement;
+        if (participant) {
+            participant.setAttribute('data-pose', standardIndex.toString());
+            participant.setAttribute('data-mirror', 'false');
+        }
+        applyPose(side, standardIndex);
+        return;
+    }
+    
+    // Fallback relaxed default pose
+    const relaxedPose = {
+        translate_x_left: -3,
+        translate_y_left: 0,
+        skulder_rot_left: -70,
+        albue_rot_left: 0,
+        translate_x: 3,
+        translate_y: 0,
+        skulder_rot: 70,
+        albue_rot: 0,
+        translate_x_left_leg: 0,
+        translate_y_left_leg: 0,
+        hofte_rot_left: 6,
+        knae_rot_left: 0,
+        translate_x_right_leg: 0,
+        translate_y_right_leg: 0,
+        hofte_rot_right: -6,
+        knae_rot_right: 0,
+        left_arm_front: false,
+        right_arm_front: false
+    };
+	// Add smooth transitions
+    const animatedElements = circle.querySelectorAll(
+        '.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+        '.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+        '.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+        '.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+    );
+    
+    const poseData = relaxedPose;
+    
+    // Apply the relaxed pose using same logic as applyPose
+    const skulderLeft = circle.querySelector('.skulder_translate_left');
+    const skulderRight = circle.querySelector('.skulder_translate_right');
+    const hofteLeft = circle.querySelector('.hofte_translate_left');
+    const hofteRight = circle.querySelector('.hofte_translate_right');
+    
+    if (skulderLeft) {
+        skulderLeft.style.transform = `translate(${poseData.translate_x_left}px, ${poseData.translate_y_left}px)`;
+        const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+        if (skulderRotLeft) {
+            skulderRotLeft.style.transform = `rotate(${poseData.skulder_rot_left}deg)`;
+            const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+            if (albueRotLeft) {
+                albueRotLeft.style.transform = `rotate(${poseData.albue_rot_left}deg)`;
+            }
+        }
+    }
+    
+    if (skulderRight) {
+        skulderRight.style.transform = `translate(${poseData.translate_x}px, ${poseData.translate_y}px)`;
+        const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+        if (skulderRotRight) {
+            skulderRotRight.style.transform = `rotate(${poseData.skulder_rot}deg)`;
+            const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+            if (albueRotRight) {
+                albueRotRight.style.transform = `rotate(${poseData.albue_rot}deg)`;
+            }
+        }
+    }
+    
+    if (hofteLeft) {
+        hofteLeft.style.transform = `translate(${poseData.translate_x_left_leg}px, ${poseData.translate_y_left_leg}px)`;
+        const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+        if (hofteRotLeft) {
+            hofteRotLeft.style.transform = `rotate(${poseData.hofte_rot_left}deg)`;
+            const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+            if (knaeRotLeft) {
+                knaeRotLeft.style.transform = `rotate(${poseData.knae_rot_left}deg)`;
+            }
+        }
+    }
+    
+    if (hofteRight) {
+        hofteRight.style.transform = `translate(${poseData.translate_x_right_leg}px, ${poseData.translate_y_right_leg}px)`;
+        const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+        if (hofteRotRight) {
+            hofteRotRight.style.transform = `rotate(${poseData.hofte_rot_right}deg)`;
+            const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+            if (knaeRotRight) {
+                knaeRotRight.style.transform = `rotate(${poseData.knae_rot_right}deg)`;
+            }
+        }
+    }
+    
+    // Reset arm layering
+    skulderLeft?.classList.remove('front-arm');
+    skulderRight?.classList.remove('front-arm');
+}
+		
+		
+		
+		function autoResizeTextarea(textarea) {
+		textarea.style.height = 'auto';
+		textarea.style.height = textarea.scrollHeight + 'px';
+		}
+
+		
+
+		function updateBodyColors(side, color) {
+			const circle = document.getElementById(side + 'Circle');
+			if (!circle) return;
+			
+			// Convert hex to RGB to darken it
+			function hexToRgb(hex) {
+				const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+				return result ? {
+					r: parseInt(result[1], 16),
+					g: parseInt(result[2], 16),
+					b: parseInt(result[3], 16)
+				} : null;
+			}
+			
+			function darkenColor(hex, factor = 0.8) {
+				const rgb = hexToRgb(hex);
+				if (!rgb) return hex;
+				
+				const r = Math.round(rgb.r * factor);
+				const g = Math.round(rgb.g * factor);
+				const b = Math.round(rgb.b * factor);
+				
+				return `rgb(${r}, ${g}, ${b})`;
+			}
+			
+			const darkerColor = darkenColor(color, 0.92); // 15% mørkere
+			
+			const torso = circle.querySelector('.participant-torso');
+			const armParts = circle.querySelectorAll('.arm_geo_left, .arm_geo_right, .albue_geo_left, .albue_geo_right');
+			const legParts = circle.querySelectorAll('.laar_geo_left, .laar_geo_right, .skinneben_geo_left, .skinneben_geo_right');
+			
+			// Torso og hoved beholder original farve
+			if (torso) torso.style.background = color;
+			
+			// Arme og ben får mørkere farve
+			armParts.forEach(part => part.style.background = darkerColor);
+			legParts.forEach(part => part.style.background = darkerColor);
+		}
+
+
+        function hslToHex(h,s,l){
+            s /= 100; l /= 100;
+            const k = n => (n + h/30) % 12;
+            const a = s * Math.min(l, 1 - l);
+            const f = n => {
+                const color = l - a * Math.max(Math.min(k(n) - 3, 9 - k(n), 1), -1);
+                return Math.round(255 * color).toString(16).padStart(2, '0');
+            };
+            return `#${f(0)}${f(8)}${f(4)}`;
+        }
+        
+        function openColorPicker(btn, side) {
+            currentColorTarget = btn;
+            currentColorSide = side;
+            
+            const modal = document.getElementById('colorPickerModal');
+            const picker = modal.querySelector('.picker');
+            const btnRect = btn.getBoundingClientRect();
+            
+            modal.classList.add('show');
+            picker.style.position = 'absolute';
+            picker.style.left = (btnRect.right + 10) + 'px';
+            picker.style.top = (btnRect.top - 20) + 'px';
+
+            const pickerRect = picker.getBoundingClientRect();
+            if (pickerRect.right > window.innerWidth) {
+                picker.style.left = (btnRect.left - pickerRect.width - 10) + 'px';
+            }
+            if (pickerRect.bottom > window.innerHeight) {
+                picker.style.top = (btnRect.bottom - pickerRect.height - 10) + 'px';
+            }
+        }
+        
+        function closeColorPicker() {
+            document.getElementById('colorPickerModal').classList.remove('show');
+            currentColorTarget = null;
+            currentColorSide = null;
+        }
+        
+        function selectColor(hex) {
+			if (currentColorSide) {
+				if (currentColorSide === 'left') {
+					leftColor = hex;
+					leftLightColor = lightenColor(hex, 0.6);
+				} else {
+					rightColor = hex;
+					rightLightColor = lightenColor(hex, 0.6);
+				}
+				
+				const circle = document.getElementById(currentColorSide + 'Circle');
+				const head = circle.querySelector('.head');
+				if (head) {
+					head.style.background = `linear-gradient(135deg, ${hex}, ${hex})`;
+					
+				}
+				
+				// Update body colors
+				updateBodyColors(currentColorSide, hex);
+				
+				const dropdown = document.getElementById(currentColorSide + 'Dropdown');
+				if (dropdown.value === 'lav_ny_' + currentColorSide) {
+					partsData['lav_ny_' + currentColorSide].color = hex;
+				}
+
+				// Refresh mini C button colors immediately
+				const leftBtn = document.getElementById('leftMiniC');
+				const rightBtn = document.getElementById('rightMiniC');
+				if (leftBtn) leftBtn.style.background = leftColor || '#3b82f6';
+				if (rightBtn) rightBtn.style.background = rightColor || '#ef4444';
+			}
+			
+			setTimeout(() => closeColorPicker(), 100);
+		}
+
+        function initializeDropdowns() {
+            // If shared characters exist, map them into partsData first
+            try {
+                const raw = localStorage.getItem('relationsSetupData');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && Array.isArray(parsed.characters) && parsed.characters.length > 0) {
+                        const sharedParts = {};
+                        parsed.characters.forEach((c, idx) => {
+                            if (!c || !c.name) return;
+                            sharedParts['shared_' + idx] = {
+                                name: c.name,
+                                keywords: Array.isArray(c.keywords) ? c.keywords.slice(0,6) : ["","","","","",""],
+                                color: c.color || '#10b981',
+                                pose: c.pose || '',
+                                mirror: !!c.mirror
+                            };
+                        });
+                        if (Object.keys(sharedParts).length > 0) {
+                            updatePartsData(sharedParts);
+                        }
+                    }
+                }
+            } catch(_) {}
+            buildDropdownMenus();
+        }
+        
+        function handleStorageUpdate() {
+            console.log('Handling storage update...');
+            
+            // Store current selections
+            const leftDropdown = document.getElementById('leftDropdown');
+            const rightDropdown = document.getElementById('rightDropdown');
+            const currentLeftSelected = leftDropdown.value;
+            const currentRightSelected = rightDropdown.value;
+            
+            // Reinitialize dropdowns with new data
+            initializeDropdowns();
+            
+            // Check if current selections still exist and are valid
+            const leftStillValid = currentLeftSelected && (currentLeftSelected === 'lav_ny_left' || partsData[currentLeftSelected]);
+            const rightStillValid = currentRightSelected && (currentRightSelected === 'lav_ny_right' || partsData[currentRightSelected]);
+            
+            // Restore selections if they're still valid, otherwise clear them
+            if (leftStillValid) {
+                leftDropdown.value = currentLeftSelected;
+            } else {
+                leftDropdown.value = '';
+                // Hide left participant if it was selected but no longer exists
+                if (currentLeftSelected && currentLeftSelected !== 'lav_ny_left') {
+                    document.getElementById('leftCircle').style.display = 'none';
+                    document.getElementById('leftColorBtn').style.display = 'none';
+                }
+            }
+            
+            if (rightStillValid) {
+                rightDropdown.value = currentRightSelected;
+            } else {
+                rightDropdown.value = '';
+                // Hide right participant if it was selected but no longer exists
+                if (currentRightSelected && currentRightSelected !== 'lav_ny_right') {
+                    document.getElementById('rightCircle').style.display = 'none';
+                    document.getElementById('rightColorBtn').style.display = 'none';
+                }
+            }
+            
+            // Update participant displays if they're still valid
+            if (leftStillValid) {
+                updateParticipant('left');
+            }
+            if (rightStillValid) {
+                updateParticipant('right');
+            }
+            
+            // Update button states
+            updateAllButtons();
+            
+            // Show status message
+            const updatedCount = Object.keys(partsData).length - 2; // Subtract the two "lav_ny" entries
+            setStatus(`Dropdowns opdateret - ${updatedCount} karakterer tilgængelige`);
+            
+            // Log what happened for debugging
+            console.log('Storage update handled:', {
+                leftWasValid: leftStillValid,
+                rightWasValid: rightStillValid,
+                leftSelected: leftDropdown.value,
+                rightSelected: rightDropdown.value,
+                availableCharacters: updatedCount
+            });
+        }
+
+        
+
+        function buildDropdownMenus() {
+            const leftDropdown = document.getElementById('leftDropdown');
+            const rightDropdown = document.getElementById('rightDropdown');
+            
+            const leftSelected = leftDropdown.value;
+            const rightSelected = rightDropdown.value;
+            
+            console.log('Building dropdown menus, current selections:', leftSelected, rightSelected);
+            
+            leftDropdown.innerHTML = '';
+            rightDropdown.innerHTML = '';
+            
+            [leftDropdown, rightDropdown].forEach(dropdown => {
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Vælg del...';
+                dropdown.appendChild(defaultOption);
+            });
+            
+            const leftNewOption = document.createElement('option');
+            leftNewOption.value = 'lav_ny_left';
+            leftNewOption.textContent = 'Lav Ny Del';
+            leftDropdown.appendChild(leftNewOption);
+            
+            const rightNewOption = document.createElement('option');
+            rightNewOption.value = 'lav_ny_right';
+            rightNewOption.textContent = 'Lav Ny Del';
+            rightDropdown.appendChild(rightNewOption);
+            
+            Object.keys(partsData).forEach(key => {
+                if (key === 'lav_ny_left' || key === 'lav_ny_right') return;
+                
+                const partData = partsData[key];
+                
+                [leftDropdown, rightDropdown].forEach(dropdown => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = partData.name;
+                    dropdown.appendChild(option);
+                });
+            });
+            
+            if (leftSelected && (leftSelected === 'lav_ny_left' || partsData[leftSelected])) {
+                leftDropdown.value = leftSelected;
+            }
+            if (rightSelected && (rightSelected === 'lav_ny_right' || partsData[rightSelected])) {
+                rightDropdown.value = rightSelected;
+            }
+        }
+
+        function updatePartsData(newPartsData) {
+            Object.keys(partsData).forEach(key => {
+                if (key !== 'lav_ny_left' && key !== 'lav_ny_right') {
+                    delete partsData[key];
+                }
+            });
+            
+            Object.assign(partsData, newPartsData);
+            buildDropdownMenus();
+        }
+
+        function lightenColor(color, factor) {
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            
+            const newR = Math.round(r + (255 - r) * factor);
+            const newG = Math.round(g + (255 - g) * factor);
+            const newB = Math.round(b + (255 - b) * factor);
+            
+            return `rgb(${newR}, ${newG}, ${newB})`;
+        }
+        
+        function updateParticipant(side) {
+    const dropdown = document.getElementById(side + 'Dropdown');
+    const circle = document.getElementById(side + 'Circle');
+    const name = document.getElementById(side + 'Name');
+    const colorBtn = document.getElementById(side + 'ColorBtn');
+    const selectedValue = dropdown.value;
+    
+    if (selectedValue && partsData[selectedValue]) {
+        const partData = partsData[selectedValue];
+        circle.style.display = 'flex';
+        
+        if (side === 'left') {
+            leftColor = partData.color;
+            leftLightColor = lightenColor(partData.color, 0.6);
+        } else {
+            rightColor = partData.color;
+            rightLightColor = lightenColor(partData.color, 0.6);
+        }
+        
+        if (!name.hasAttribute('data-edited')) {
+            name.textContent = partData.name;
+        }
+        
+        if (partData.keywords && Array.isArray(partData.keywords)) {
+            for (let i = 1; i <= 6; i++) {
+                const stikordField = document.getElementById(side + 'Stikord' + i);
+                if (stikordField) {
+                    stikordField.value = partData.keywords[i-1] || '';
+                }
+            }
+        }
+        
+        name.contentEditable = true;
+        name.style.cursor = 'text';
+        
+        name.onclick = function() { name.focus(); };
+        name.onkeydown = function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                name.blur();
+                name.setAttribute('data-edited', 'true');
+            }
+        };
+        name.onblur = function() {
+            name.setAttribute('data-edited', 'true');
+        };
+        
+        const head = circle.querySelector('.head');
+		if (head) {
+			head.style.background = `linear-gradient(135deg, ${partData.color}, ${partData.color})`;
+			
+		}
+        colorBtn.style.display = 'flex';
+        updateBodyColors(side, partData.color);
+        // Keep mini C button colors in sync when selecting parts
+        const leftBtn = document.getElementById('leftMiniC');
+        const rightBtn = document.getElementById('rightMiniC');
+        if (leftBtn) leftBtn.style.background = leftColor || '#3b82f6';
+        if (rightBtn) rightBtn.style.background = rightColor || '#ef4444';
+        
+        // Play welcome animation first, then apply saved pose or reset to default
+        setTimeout(() => {
+            runAnimation(side, 'vinke');
+            
+            const animationDuration = animations.vinke.slides.reduce((total, slide) => total + slide.duration, 0);
+            setTimeout(() => {
+                // Get partData again inside this scope
+                const dropdown = document.getElementById(side + 'Dropdown');
+                const selectedValue = dropdown.value;
+                const currentPartData = partsData[selectedValue];
+                
+                const poseDropdown = document.getElementById(side + 'Pose');
+                const mirrorCheckbox = document.getElementById(side + 'Mirror');
+                
+                if (currentPartData && currentPartData.pose) {
+                    // Find pose index by name
+                    const poseIndex = poseLibrary.findIndex(pose => pose.name === currentPartData.pose);
+                    if (poseIndex !== -1 && poseDropdown) {
+                        poseDropdown.value = poseIndex;
+                        if (mirrorCheckbox) {
+                            mirrorCheckbox.checked = currentPartData.mirror || false;
+                        }
+                        applyPose(side, poseIndex);
+                    } else {
+                        resetPose(side);
+                        if (poseDropdown) poseDropdown.value = '';
+                        if (mirrorCheckbox) mirrorCheckbox.checked = false;
+                    }
+                } else {
+                    resetPose(side);
+                    if (poseDropdown) poseDropdown.value = '';
+                    if (mirrorCheckbox) mirrorCheckbox.checked = false;
+                }
+            }, animationDuration * 1000 + 100);
+        }, 200);
+        
+        const bubble = document.getElementById(side + 'Bubble');
+        if (!dialogActive) {
+            bubble.style.display = 'none';
+        }
+    } else {
+        circle.style.display = 'none';
+        
+        if (side === 'left') {
+            leftColor = null;
+            leftLightColor = null;
+        } else {
+            rightColor = null;
+            rightLightColor = null;
+        }
+        
+        for (let i = 1; i <= 6; i++) {
+            const stikordField = document.getElementById(side + 'Stikord' + i);
+            if (stikordField) stikordField.value = '';
+        }
+        
+        colorBtn.style.display = 'none';
+        
+        const bubble = document.getElementById(side + 'Bubble');
+        bubble.style.display = 'none';
+    }
+    updateAllButtons();
+}
+        
+        function startDialog() {
+            const leftSelected = document.getElementById('leftDropdown').value;
+            const rightSelected = document.getElementById('rightDropdown').value;
+            
+            if (!leftSelected || !rightSelected) return;
+            
+            dialogActive = true;
+            currentSpeaker = 'left';
+            transcript = [];
+            currentIndex = 0;
+            lastSpeaker = null;
+            
+            document.getElementById('transcriptContent').innerHTML = '';
+            showSpeechBubble('left');
+            updateAllButtons();
+            setStatus('Dialog startet - skriv beskeder');
+        }
+
+        // Save mini C button payload to localStorage as "dialogData"
+        function writeDialogData(side) {
+            try {
+                const youSide = side;
+                const otherSide = side === 'left' ? 'right' : 'left';
+                const youNameEl = document.getElementById(youSide + 'Name');
+                const otherNameEl = document.getElementById(otherSide + 'Name');
+                const youName = youNameEl ? youNameEl.textContent : '';
+                const otherName = otherNameEl ? otherNameEl.textContent : '';
+                
+                // Color
+                const youColor = (youSide === 'left') ? (leftColor || '#3b82f6') : (rightColor || '#ef4444');
+                
+                // Pose and mirror
+                let youPoseIndex = 0;
+                let youPoseFlipped = false;
+                const poseDropdown = document.getElementById(youSide + 'Pose');
+                const mirrorCheckbox = document.getElementById(youSide + 'Mirror');
+                if (poseDropdown) {
+                    const selectedValue = poseDropdown.value;
+                    if (selectedValue !== '') {
+                        youPoseIndex = Number(selectedValue);
+                    } else {
+                        // If empty, find standard pose index
+                        const standardIndex = Array.isArray(poseLibrary) ? poseLibrary.findIndex(p => p && p.name === 'standard') : -1;
+                        youPoseIndex = standardIndex !== -1 ? standardIndex : 0;
+                    }
+                }
+                if (mirrorCheckbox) youPoseFlipped = !!mirrorCheckbox.checked;
+                
+                const payload = {
+                    "Other": otherName,
+                    "You": youName,
+                    "You_color": youColor,
+                    "You_pose": youPoseIndex,
+                    "You_pose_flipped": youPoseFlipped
+                };
+                localStorage.setItem('dialogData', JSON.stringify(payload));
+                setStatus('dialogData skrevet for ' + youName);
+                
+                // Open coaching overlay with dialog_coaching.json
+                openCoachingOverlayFromFile('dialog_coaching.json');
+            } catch(e) {
+                console.error('writeDialogData error:', e);
+            }
+        }
+
+        function continueDialog() {
+            const leftSelected = document.getElementById('leftDropdown').value;
+            const rightSelected = document.getElementById('rightDropdown').value;
+            
+            if (!leftSelected || !rightSelected) return;
+            
+            dialogActive = true;
+            
+            if (lastSpeaker === 'left') {
+                currentSpeaker = 'right';
+            } else if (lastSpeaker === 'right') {
+                currentSpeaker = 'left';
+            } else {
+                currentSpeaker = 'left';
+            }
+            
+            currentIndex = transcript.length;
+            showSpeechBubble(currentSpeaker);
+            updateAllButtons();
+            setStatus('Dialog fortsat - skriv nye beskeder');
+        }
+
+        function showSpeechBubble(side) {
+    hideAllSpeechBubbles();
+	// Scale den talende part op
+    const activeParticipant = document.getElementById(side + 'Circle').parentElement;
+    activeParticipant.style.transform = 'scale(1.035)';
+    activeParticipant.style.transition = 'transform 0.45s ease';
+    
+    // Scale den anden part ned til normal
+    const otherSide = side === 'left' ? 'right' : 'left';
+    const otherParticipant = document.getElementById(otherSide + 'Circle').parentElement;
+    otherParticipant.style.transform = 'scale(1.0)';
+    otherParticipant.style.transition = 'transform 0.45s ease';
+	
+    
+    const bubble = document.getElementById(side + 'Bubble');
+    const textarea = document.getElementById(side + 'Textarea');
+    const dots = document.getElementById(side + 'Dots');
+    
+    const lightColor = side === 'left' ? leftLightColor : rightLightColor;
+    
+    if (lightColor) {
+        bubble.style.backgroundColor = lightColor;
+        
+        const style = document.createElement('style');
+        if (side === 'left') {
+            style.textContent = '.speech-bubble.left::after { border-color: transparent ' + lightColor + ' transparent transparent !important; }';
+        } else {
+            style.textContent = '.speech-bubble.right::after { border-color: transparent transparent transparent ' + lightColor + ' !important; }';
+        }
+        document.head.appendChild(style);
+    }
+    
+    if (side === 'left') {
+        bubble.style.left = '230px';
+        bubble.style.right = 'auto';
+        bubble.style.transformOrigin = 'left center';
+    } else {
+        bubble.style.right = '230px';
+        bubble.style.left = 'auto';
+        bubble.style.transformOrigin = 'right center';
+    }
+    bubble.style.top = '50%';
+    bubble.style.transform = 'translateY(-50%) scale(0.85)';
+    
+    textarea.style.display = 'inline';
+    dots.style.display = 'inline';
+    textarea.value = '';
+    
+    // Vis boblen og start animationen
+    bubble.style.display = 'block';
+	
+	setTimeout(() => {
+    bubble.style.transform = bubble.style.transform.replace('scale(0.85)', 'scale(1)');
+    bubble.style.opacity = '1';
+	}, 10);
+    
+    // Force reflow og start animation
+    bubble.offsetHeight;
+    bubble.classList.add('visible');
+	
+    
+    textarea.focus();
+    autoResizeTextarea(textarea);
+}
+
+        function handleInput(event, side) {
+            if (event.key === 'Enter' && !event.shiftKey && event.target.value.trim()) {
+                event.preventDefault();
+                const message = event.target.value.trim();
+                const dropdown = document.getElementById(side + 'Dropdown');
+                const partData = partsData[dropdown.value];
+                
+                if (partData) {
+                    const nameElement = document.getElementById(side + 'Name');
+                    const customName = nameElement.textContent.trim() || partData.name;
+                    
+                    addToTranscript(customName, message, side);
+                    lastSpeaker = side;
+                    currentSpeaker = side === 'left' ? 'right' : 'left';
+                    showSpeechBubble(currentSpeaker);
+                }
+            }
+        }
+
+        function addToTranscript(speakerName, message, side) {
+            const transcriptContent = document.getElementById('transcriptContent');
+            
+            if (transcriptContent.querySelector('.empty')) {
+                transcriptContent.innerHTML = '';
+            }
+            
+            // Generate timestamp
+            const now = new Date();
+            const timestamp = now.toLocaleDateString('da-DK') + ' ' + now.toLocaleTimeString('da-DK', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = side === 'left' ? 'message-left' : 'message-right';
+            
+            let backgroundColor = side === 'left' ? '#e3f2fd' : '#e8f5e8';
+            const originalColor = side === 'left' ? leftColor : rightColor;
+            if (originalColor) {
+                backgroundColor = lightenColor(originalColor, 0.7);
+            }
+            
+            messageDiv.style.backgroundColor = backgroundColor;
+            
+            const speakerDiv = document.createElement('div');
+            speakerDiv.className = 'speaker';
+            speakerDiv.textContent = speakerName;
+            
+            const timestampDiv = document.createElement('div');
+            timestampDiv.className = 'timestamp';
+            timestampDiv.textContent = timestamp;
+            speakerDiv.appendChild(timestampDiv);
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'text';
+            textDiv.contentEditable = true;
+            textDiv.textContent = message;
+            
+            const deleteBtn = document.createElement('div');
+            deleteBtn.className = 'delete-circle';
+            deleteBtn.textContent = '×';
+            
+            const messageId = Date.now() + Math.random();
+            
+            deleteBtn.onclick = function() {
+                messageDiv.remove();
+                const index = transcript.findIndex(t => t.messageId === messageId);
+                if (index > -1) {
+                    transcript.splice(index, 1);
+                    if (transcript.length > 0) {
+                        lastSpeaker = transcript[transcript.length - 1].side;
+                    } else {
+                        lastSpeaker = null;
+                    }
+                }
+                
+                if (!transcriptContent.querySelector('.message-left') && !transcriptContent.querySelector('.message-right')) {
+                    transcriptContent.innerHTML = '<div class="empty">Alle beskeder slettet</div>';
+                }
+                updateAllButtons();
+            };
+            
+            textDiv.onkeydown = function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    textDiv.blur();
+                }
+            };
+            
+            textDiv.onblur = function() {
+                const newText = textDiv.textContent.trim();
+                const transcriptEntry = transcript.find(t => t.messageId === messageId);
+                if (transcriptEntry && newText) {
+                    transcriptEntry.message = newText;
+                }
+            };
+            
+            messageDiv.appendChild(speakerDiv);
+            messageDiv.appendChild(textDiv);
+            messageDiv.appendChild(deleteBtn);
+            transcriptContent.appendChild(messageDiv);
+            
+            transcriptContent.scrollTop = transcriptContent.scrollHeight;
+            
+            transcript.push({ 
+                side: side, 
+                speaker: speakerName, 
+                message: message,
+                messageId: messageId,
+                timestamp: timestamp
+            });
+            updateAllButtons();
+        }
+
+
+
+
+        function updateAllButtons() {
+            const leftSelected = document.getElementById('leftDropdown').value;
+            const rightSelected = document.getElementById('rightDropdown').value;
+            const hasDialog = transcript.length > 0;
+            const bothSelected = leftSelected && rightSelected;
+            const systemReset = !leftSelected && !rightSelected && !hasDialog && !dialogActive;
+            
+            document.getElementById('startBtn').disabled = !bothSelected || hasDialog;
+            document.getElementById('loadBtn').disabled = !systemReset;
+			document.getElementById('copyBtn').disabled = !hasDialog;
+            document.getElementById('saveBtn').disabled = !hasDialog;
+            
+            const continueBtn = document.getElementById('continueBtn');
+            continueBtn.disabled = !(hasDialog && bothSelected && !dialogActive && !isAutoPlaying);
+            
+            document.getElementById('playBtn').disabled = !hasDialog;
+            document.getElementById('nextBtn').disabled = !hasDialog;
+            document.getElementById('pauseBtn').disabled = false;
+            
+            if (isAutoPlaying) {
+                document.getElementById('playBtn').style.display = 'none';
+                document.getElementById('pauseBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('playBtn').style.display = 'inline-block';
+                document.getElementById('pauseBtn').style.display = 'none';
+            }
+
+            // Show/hide mini C buttons and apply colors
+            const miniWrapper = document.getElementById('miniControlsWrapper');
+            if (miniWrapper) {
+                miniWrapper.style.display = bothSelected ? 'block' : 'none';
+                const leftBtn = document.getElementById('leftMiniC');
+                const rightBtn = document.getElementById('rightMiniC');
+                if (leftBtn) leftBtn.style.background = leftColor || '#3b82f6';
+                if (rightBtn) rightBtn.style.background = rightColor || '#ef4444';
+            }
+        }
+
+        function setStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
+
+        function clearAll() {
+            if (autoTimeout) clearTimeout(autoTimeout);
+            
+            dialogActive = false;
+            isAutoPlaying = false;
+            transcript = [];
+            lastSpeaker = null;
+            leftColor = null;
+            rightColor = null;
+            leftLightColor = null;
+            rightLightColor = null;
+			hideAllSpeechBubbles();
+            
+            document.getElementById('leftCircle').style.display = 'none';
+            document.getElementById('rightCircle').style.display = 'none';
+            document.getElementById('leftDropdown').value = '';
+            document.getElementById('rightDropdown').value = '';
+            
+            for (let i = 1; i <= 6; i++) {
+                ['left', 'right'].forEach(side => {
+                    const field = document.getElementById(side + 'Stikord' + i);
+                    if (field) field.value = '';
+                });
+            }
+            
+            ['leftName', 'rightName'].forEach(id => {
+                const element = document.getElementById(id);
+                element.textContent = '';
+                element.removeAttribute('data-edited');
+            });
+			// Reset pose dropdowns and mirror checkboxes
+			const leftPose = document.getElementById('leftPose');
+			const rightPose = document.getElementById('rightPose');
+			const leftMirror = document.getElementById('leftMirror');
+			const rightMirror = document.getElementById('rightMirror');
+
+			if (leftPose) leftPose.value = '';
+			if (rightPose) rightPose.value = '';
+			if (leftMirror) leftMirror.checked = false;
+			if (rightMirror) rightMirror.checked = false;
+            
+            document.getElementById('transcriptContent').innerHTML = '<div class="empty"><h4 style="margin-bottom: 15px; color: #374151;">Sådan bruger du Dialog systemet:</h4><p style="margin-bottom: 12px; text-align: left;"><strong>1. Vælg dele:</strong> Brug dropdown-menuerne til at vælge to indre dele der skal tale sammen.</p><p style="margin-bottom: 12px; text-align: left;"><strong>2. Start dialog:</strong> Klik "Ny Dialog" for at begynde samtalen.</p><p style="margin-bottom: 12px; text-align: left;"><strong>3. Skriv beskeder:</strong> En speech bubble vises ved den aktive del. Skriv din besked og tryk Enter for at skifte til den anden del.</p><p style="margin-bottom: 12px; text-align: left;"><strong>4. Afspil dialog:</strong> Brug "Afspil" for automatisk gennemgang eller "Næste" for manuel kontrol.</p><p style="margin-bottom: 12px; text-align: left;"><strong>5. Fortsæt dialog:</strong> Efter pause eller afspilning kan du fortsætte med at tilføje nye beskeder via "Fortsæt Dialog".</p><p style="margin-bottom: 12px; text-align: left;"><strong>6. Rediger beskeder:</strong> Beskeder kan redigeres i transskriptet ved at klikke på dem.</p><p style="margin-top: 15px; font-style: italic; color: #6b7280;">Du kan bruge det til en samtale med en indre del eller til at øve dig på en svær samtale.</p></div>';
+            
+            updateAllButtons();
+            setStatus('Vælg to dele og start dialog');
+        }
+		
+		
+		
+		
+
+        function playDialog() {
+            if (currentIndex >= transcript.length) {
+                currentIndex = 0;
+                hideAllSpeechBubbles();
+            }
+            
+            isAutoPlaying = true;
+            dialogActive = false;
+            updateAllButtons();
+            setStatus('Automatisk afspilning...');
+            
+            showCurrentMessage();
+            scheduleNextMessage();
+        }
+
+        function pauseDialog() {
+            isAutoPlaying = false;
+            if (autoTimeout) {
+                clearTimeout(autoTimeout);
+                autoTimeout = null;
+            }
+            dialogActive = false;
+            updateAllButtons();
+            setStatus('Pauseret - klik "Fortsæt Dialog" for at tilføje flere beskeder');
+        }
+
+        function nextDialog() {
+            dialogActive = false;
+            
+            if (isAutoPlaying) {
+                isAutoPlaying = false;
+                if (autoTimeout) {
+                    clearTimeout(autoTimeout);
+                    autoTimeout = null;
+                }
+                updateAllButtons();
+            }
+            
+            if (currentIndex >= transcript.length) {
+                currentIndex = 0;
+                hideAllSpeechBubbles();
+                updateAllButtons();
+                setStatus('Genstartet');
+                return;
+            }
+            
+            showCurrentMessage();
+            currentIndex++;
+            
+            if (currentIndex >= transcript.length) {
+                setStatus('Dialog færdig - klik "Fortsæt Dialog" for at tilføje flere beskeder');
+                dialogActive = false;
+            } else {
+                setStatus('Manuel: ' + currentIndex + '/' + transcript.length);
+            }
+            
+            updateAllButtons();
+        }
+
+        function showCurrentMessage() {
+    if (currentIndex >= transcript.length) return;
+    
+    const message = transcript[currentIndex];
+    hideAllSpeechBubbles();
+	// Scale den talende part op
+		const activeParticipant = document.getElementById(message.side + 'Circle').parentElement;
+		activeParticipant.style.transform = 'scale(1.035)';
+		activeParticipant.style.transition = 'transform 0.45s ease';
+
+		// Scale den anden part ned til normal
+		const otherSide = message.side === 'left' ? 'right' : 'left';
+		const otherParticipant = document.getElementById(otherSide + 'Circle').parentElement;
+		otherParticipant.style.transform = 'scale(1.0)';
+		otherParticipant.style.transition = 'transform 0.45s ease';
+	
+    
+    const bubble = document.getElementById(message.side + 'Bubble');
+    const textarea = document.getElementById(message.side + 'Textarea');
+    const dots = document.getElementById(message.side + 'Dots');
+	
+	// Opdater bubble farve
+	const lightColor = message.side === 'left' ? leftLightColor : rightLightColor;
+	if (lightColor) {
+		bubble.style.backgroundColor = lightColor;
+		
+		const style = document.createElement('style');
+		if (message.side === 'left') {
+			style.textContent = '.speech-bubble.left::after { border-color: transparent ' + lightColor + ' transparent transparent !important; }';
+		} else {
+			style.textContent = '.speech-bubble.right::after { border-color: transparent transparent transparent ' + lightColor + ' !important; }';
+		}
+		document.head.appendChild(style);
+	}
+    
+    // Sæt indhold
+    textarea.value = message.message;
+    textarea.style.display = 'inline';
+    dots.style.display = 'none';
+    
+    // Positionér boblen
+    if (message.side === 'left') {
+        bubble.style.left = '230px';
+        bubble.style.right = 'auto';
+        bubble.style.transformOrigin = 'left center';
+    } else {
+        bubble.style.right = '230px';
+        bubble.style.left = 'auto';
+        bubble.style.transformOrigin = 'right center';
+    }
+    bubble.style.top = '50%';
+    
+    // Start animation - samme som showSpeechBubble
+    bubble.style.transform = 'translateY(-50%) scale(0.85)';
+    bubble.style.opacity = '0';
+    bubble.style.display = 'block';
+    
+    setTimeout(() => {
+        bubble.style.transform = bubble.style.transform.replace('scale(0.85)', 'scale(1)');
+        bubble.style.opacity = '1';
+    }, 10);
+    
+    bubble.offsetHeight;
+    bubble.classList.add('visible');
+    
+    autoResizeTextarea(textarea);
+}
+
+        function scheduleNextMessage() {
+            if (!isAutoPlaying || currentIndex >= transcript.length) return;
+            
+            const message = transcript[currentIndex];
+            const baseTime = 1500;
+            const timePerWord = 400;
+            const wordCount = message.message.split(' ').length;
+            const displayTime = baseTime + (wordCount * timePerWord);
+            
+            autoTimeout = setTimeout(function() {
+                currentIndex++;
+                
+                if (currentIndex >= transcript.length) {
+                    isAutoPlaying = false;
+                    dialogActive = false;
+                    updateAllButtons();
+                    setStatus('Dialog færdig - klik "Fortsæt Dialog" for at tilføje flere beskeder');
+                } else {
+                    setStatus('Auto: ' + currentIndex + '/' + transcript.length);
+                    showCurrentMessage();
+                    scheduleNextMessage();
+                }
+            }, displayTime);
+        }
+
+        function hideAllSpeechBubbles() {
+    document.getElementById('leftBubble').style.display = 'none';
+    document.getElementById('rightBubble').style.display = 'none';
+	
+	// Reset scaling
+    document.getElementById('leftCircle').parentElement.style.transform = 'scale(1.0)';
+    document.getElementById('rightCircle').parentElement.style.transform = 'scale(1.0)';
+	
+	
+	
+}
+
+        function saveDialog() {
+            console.log('saveDialog kaldt, transcript length:', transcript.length);
+            
+            if (transcript.length === 0) {
+                alert('Ingen dialog at gemme! Start en dialog først.');
+                return;
+            }
+
+            const leftName = document.getElementById('leftName').textContent || 'Venstre del';
+            const rightName = document.getElementById('rightName').textContent || 'Højre del';
+            
+            console.log('Deltagere:', leftName, rightName);
+            
+            const leftStikord = [];
+            const rightStikord = [];
+            for (let i = 1; i <= 6; i++) {
+                const leftField = document.getElementById('leftStikord' + i);
+                const rightField = document.getElementById('rightStikord' + i);
+                leftStikord.push(leftField ? leftField.value.trim() : "");
+                rightStikord.push(rightField ? rightField.value.trim() : "");
+            }
+            
+            const leftExportColor = leftColor || "#10b981";
+            const rightExportColor = rightColor || "#3b82f6";
+            
+            const now = new Date();
+            const timestamp = now.toISOString();
+            const defaultFileName = 'Dialog_' + now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0');
+            
+            console.log('Forbereder CSV data...');
+            
+            const csvData = [];
+            csvData.push(['#metadata']);
+            csvData.push(['timestamp', timestamp]);
+            csvData.push(['']);
+            
+            	// Hent pose-data
+			const leftPoseDropdown = document.getElementById('leftPose');
+			const rightPoseDropdown = document.getElementById('rightPose');
+			const leftMirror = document.getElementById('leftMirror');
+			const rightMirror = document.getElementById('rightMirror');
+
+			// Hent pose-navne i stedet for indeks
+			const leftPose = leftPoseDropdown && leftPoseDropdown.value ? (poseLibrary[leftPoseDropdown.value]?.name || '') : '';
+			const rightPose = rightPoseDropdown && rightPoseDropdown.value ? (poseLibrary[rightPoseDropdown.value]?.name || '') : '';
+			const leftSpejl = leftMirror ? leftMirror.checked : false;
+			const rightSpejl = rightMirror ? rightMirror.checked : false;
+
+			csvData.push(['#cirkler']);
+			csvData.push(['navn', 'farve', 'pose', 'spejl', 'stikord1', 'stikord2', 'stikord3', 'stikord4', 'stikord5', 'stikord6']);
+			csvData.push([leftName, leftExportColor, leftPose, leftSpejl, ...leftStikord]);
+			csvData.push([rightName, rightExportColor, rightPose, rightSpejl, ...rightStikord]);
+            csvData.push(['']);
+            
+            csvData.push(['#dialog']);
+            csvData.push(['speaker', 'message', 'side', 'timestamp']);
+            
+            transcript.forEach(function(entry) {
+                csvData.push([entry.speaker, entry.message, entry.side, entry.timestamp || '']);
+            });
+            
+            const csvContent = csvData.map(function(row) {
+                return row.map(function(field) {
+                    const fieldStr = (field == null) ? '' : String(field);
+                    if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n') || fieldStr.includes('\r')) {
+                        return '"' + fieldStr.replace(/"/g, '""') + '"';
+                    }
+                    return fieldStr;
+                }).join(',');
+            }).join('\r\n');
+            
+            console.log('CSV content genereret, længde:', csvContent.length);
+            
+            try {
+                // Test om prompt virker
+                let fileName;
+                try {
+                    fileName = prompt('Indtast filnavn (uden .csv):', defaultFileName);
+                    console.log('Prompt result:', fileName);
+                } catch (promptError) {
+                    console.log('Prompt fejl, bruger default:', promptError);
+                    fileName = defaultFileName;
+                }
+                
+                if (fileName === null) {
+                    console.log('Bruger annullerede');
+                    return;
+                }
+                
+                if (!fileName || fileName.trim() === '') {
+                    fileName = defaultFileName;
+                }
+                
+                console.log('Filnavn:', fileName);
+                
+                const BOM = '\uFEFF';
+                const csvWithBOM = BOM + csvContent;
+                
+                const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+                console.log('Blob oprettet:', blob.size, 'bytes');
+                
+                // Test forskellige download metoder
+                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+                    // IE/Edge
+                    console.log('Bruger IE/Edge download');
+                    window.navigator.msSaveOrOpenBlob(blob, fileName + '.csv');
+                    setStatus('Dialog gemt som ' + fileName + '.csv');
+                } else {
+                    // Moderne browsere
+                    console.log('Bruger moderne browser download');
+                    const link = document.createElement('a');
+                    
+                    if (typeof link.download === 'undefined') {
+                        console.log('Download attribute ikke understøttet');
+                        // Fallback: åbn i nyt vindue
+                        const url = URL.createObjectURL(blob);
+                        window.open(url, '_blank');
+                        setTimeout(() => URL.revokeObjectURL(url), 1000);
+                        setStatus('Dialog åbnet i nyt vindue - gem med Ctrl+S');
+                        return;
+                    }
+                    
+                    const url = URL.createObjectURL(blob);
+                    console.log('URL oprettet:', url);
+                    
+                    link.href = url;
+                    link.download = fileName + '.csv';
+                    link.style.display = 'none';
+                    
+                    // Sikr at link er i DOM
+                    document.body.appendChild(link);
+                    console.log('Link tilføjet til DOM');
+                    
+                    // Trigger download
+                    if (link.click) {
+                        link.click();
+                        console.log('Link.click() kaldt');
+                    } else {
+                        // Fallback for ældre browsere
+                        const event = document.createEvent('MouseEvents');
+                        event.initEvent('click', true, true);
+                        link.dispatchEvent(event);
+                        console.log('Event dispatch brugt');
+                    }
+                    
+                    // Cleanup
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        console.log('Cleanup udført');
+                    }, 100);
+                    
+                    setStatus('Dialog gemt som ' + fileName + '.csv');
+                }
+                
+            } catch (error) {
+                console.error('Fejl ved download:', error);
+                alert('Fejl ved download: ' + error.message + '\n\nPrøv en anden browser eller kontakt support.');
+            }
+        }
+
+        function loadDialog() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.csv';
+            fileInput.style.display = 'none';
+            
+            fileInput.onchange = function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        try {
+                            let content = e.target.result;
+                            if (content.charCodeAt(0) === 0xFEFF) {
+                                content = content.slice(1);
+                            }
+                            content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+                            
+                            parseDialogCSV(content);
+                        } catch (error) {
+                            alert('Fejl ved indlæsning: ' + error.message);
+                        }
+                    };
+                    
+                    reader.readAsText(file, 'UTF-8');
+                }
+            };
+            
+            document.body.appendChild(fileInput);
+            fileInput.click();
+            setTimeout(() => {
+                if (fileInput.parentNode) {
+                    document.body.removeChild(fileInput);
+                }
+            }, 1000);
+        }
+
+        function parseDialogCSV(csvContent) {
+            const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line !== '');
+            
+            let currentSection = null;
+            let cirkelData = [];
+            let dialogData = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                if (line === '#metadata') {
+                    currentSection = 'metadata';
+                    continue;
+                } else if (line === '#cirkler') {
+                    currentSection = 'cirkler';
+                    continue;
+                } else if (line === '#dialog') {
+                    currentSection = 'dialog';
+                    continue;
+                }
+                
+               if (currentSection === 'cirkler') {
+					const parts = parseCSVLine(line);
+					if (parts[0] === 'navn') continue;
+					
+					if (parts.length >= 2) {  // ← TILFØJ DENNE LINJE
+						const cirkel = {
+							name: parts[0] || '',
+							color: parts[1] || '#10b981',
+							pose: parts[2] || '',
+							spejl: parts[3] === 'true',
+							keywords: []
+						};
+						for (let j = 4; j < Math.min(parts.length, 10); j++) {
+							cirkel.keywords.push(parts[j] || '');
+						}
+						while (cirkel.keywords.length < 6) {
+							cirkel.keywords.push('');
+						}
+						
+						cirkelData.push(cirkel);
+					}  // ← DENNE } MATCHER DEN NYE if
+				} else if (currentSection === 'dialog') {
+                    const parts = parseCSVLine(line);
+                    if (parts[0] === 'speaker') continue;
+                    
+                    if (parts.length >= 3) {
+                        dialogData.push({
+                            speaker: parts[0] || '',
+                            message: parts[1] || '',
+                            side: parts[2] || '',
+                            timestamp: parts[3] || '' // Include timestamp if available
+                        });
+                    }
+                }
+            }
+            
+            if (cirkelData.length < 2) {
+                throw new Error('Ikke nok cirkel-data fundet');
+            }
+            
+            applyLoadedDialog(cirkelData[0], cirkelData[1], dialogData);
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current.trim());
+            return result;
+        }
+		
+		// funktioner til copy til klipboard
+				function copyDialog() {
+			if (transcript.length === 0) {
+				alert('Ingen dialog at kopiere!');
+				return;
+			}
+			
+			const dialogText = transcript.map(entry => {
+				return `${entry.speaker}: ${entry.message}`;
+			}).join('\n\n');
+			
+			// Forsøg moderne clipboard API først
+			if (navigator.clipboard && window.isSecureContext) {
+				navigator.clipboard.writeText(dialogText).then(() => {
+					setStatus('Dialog kopieret til udklipsholderen!');
+				}).catch(() => {
+					fallbackCopy(dialogText);
+				});
+			} else {
+				fallbackCopy(dialogText);
+			}
+		}
+
+		function fallbackCopy(text) {
+			const textArea = document.createElement('textarea');
+			textArea.value = text;
+			textArea.style.position = 'fixed';
+			textArea.style.opacity = '0';
+			document.body.appendChild(textArea);
+			textArea.select();
+			
+			try {
+				document.execCommand('copy');
+				setStatus('Dialog kopieret til udklipsholderen!');
+			} catch (err) {
+				setStatus('Kunne ikke kopiere - prøv at markere og kopiere manuelt');
+			}
+			
+			document.body.removeChild(textArea);
+		}
+		
+		
+		
+		
+		
+		
+
+        function applyLoadedDialog(leftPart, rightPart, dialogData) {
+            leftColor = leftPart.color;
+            rightColor = rightPart.color;
+            leftLightColor = lightenColor(leftPart.color, 0.6);
+            rightLightColor = lightenColor(rightPart.color, 0.6);
+			updateBodyColors('left', leftPart.color);
+			updateBodyColors('right', rightPart.color);
+            
+            document.getElementById('leftDropdown').value = 'lav_ny_left';
+            document.getElementById('rightDropdown').value = 'lav_ny_right';
+            
+            const leftCircle = document.getElementById('leftCircle');
+            const rightCircle = document.getElementById('rightCircle');
+            const leftName = document.getElementById('leftName');
+            const rightName = document.getElementById('rightName');
+            
+            leftCircle.style.display = 'flex';
+            rightCircle.style.display = 'flex';
+            
+            leftName.textContent = leftPart.name;
+            rightName.textContent = rightPart.name;
+            leftName.setAttribute('data-edited', 'true');
+            rightName.setAttribute('data-edited', 'true');
+            
+            const leftHead = leftCircle.querySelector('.head');
+			const rightHead = rightCircle.querySelector('.head');
+
+			if (leftHead) {
+				leftHead.style.background = `linear-gradient(135deg, ${leftPart.color}, ${leftPart.color})`;
+				
+			}
+			if (rightHead) {
+				rightHead.style.background = `linear-gradient(135deg, ${rightPart.color}, ${rightPart.color})`;
+				
+			}
+						
+            document.getElementById('leftColorBtn').style.display = 'flex';
+            document.getElementById('rightColorBtn').style.display = 'flex';
+            
+            for (let i = 1; i <= 6; i++) {
+                const leftField = document.getElementById('leftStikord' + i);
+                const rightField = document.getElementById('rightStikord' + i);
+                if (leftField) leftField.value = leftPart.keywords[i-1] || '';
+                if (rightField) rightField.value = rightPart.keywords[i-1] || '';
+            }
+			
+			// Genopret pose-indstillinger ved navn
+const leftPoseDropdown = document.getElementById('leftPose');
+const rightPoseDropdown = document.getElementById('rightPose');
+const leftMirror = document.getElementById('leftMirror');
+const rightMirror = document.getElementById('rightMirror');
+
+// Sæt spejl-checkboxes først
+if (leftMirror) leftMirror.checked = leftPart.spejl || false;
+if (rightMirror) rightMirror.checked = rightPart.spejl || false;
+
+// Derefter anvend poses (som nu vil tage højde for spejl-indstillingen)
+if (leftPoseDropdown && leftPart.pose) {
+    const poseIndex = poseLibrary.findIndex(pose => pose.name === leftPart.pose);
+    if (poseIndex !== -1) {
+        leftPoseDropdown.value = poseIndex;
+        applyPose('left', poseIndex); // Nu vil den spejle hvis checkboxen er true
+    }
+}
+if (rightPoseDropdown && rightPart.pose) {
+    const poseIndex = poseLibrary.findIndex(pose => pose.name === rightPart.pose);
+    if (poseIndex !== -1) {
+        rightPoseDropdown.value = poseIndex;
+        applyPose('right', poseIndex); // Nu vil den spejle hvis checkboxen er true
+    }
+}
+			
+            
+            transcript = [];
+            document.getElementById('transcriptContent').innerHTML = '';
+            
+            dialogData.forEach(function(entry) {
+                addToTranscriptFromFile(entry.speaker, entry.message, entry.side, entry.timestamp);
+            });
+            
+            if (transcript.length > 0) {
+                lastSpeaker = transcript[transcript.length - 1].side;
+            }
+            
+            updateAllButtons();
+            setStatus('Dialog indlæst med ' + transcript.length + ' beskeder');
+        }
+
+        function addToTranscriptFromFile(speakerName, message, side, timestamp = '') {
+            const transcriptContent = document.getElementById('transcriptContent');
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = side === 'left' ? 'message-left' : 'message-right';
+            
+            let backgroundColor = side === 'left' ? '#e3f2fd' : '#e8f5e8';
+            const originalColor = side === 'left' ? leftColor : rightColor;
+            if (originalColor) {
+                backgroundColor = lightenColor(originalColor, 0.7);
+            }
+            messageDiv.style.backgroundColor = backgroundColor;
+            
+            const speakerDiv = document.createElement('div');
+            speakerDiv.className = 'speaker';
+            speakerDiv.textContent = speakerName;
+            
+            // Add timestamp if available
+            if (timestamp) {
+                const timestampDiv = document.createElement('div');
+                timestampDiv.className = 'timestamp';
+                timestampDiv.textContent = timestamp;
+                speakerDiv.appendChild(timestampDiv);
+            }
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'text';
+            textDiv.contentEditable = true;
+            textDiv.textContent = message;
+            
+            const deleteBtn = document.createElement('div');
+            deleteBtn.className = 'delete-circle';
+            deleteBtn.textContent = '×';
+            
+            const messageId = Date.now() + Math.random();
+            
+            deleteBtn.onclick = function() {
+                messageDiv.remove();
+                const index = transcript.findIndex(t => t.messageId === messageId);
+                if (index > -1) {
+                    transcript.splice(index, 1);
+                    if (transcript.length > 0) {
+                        lastSpeaker = transcript[transcript.length - 1].side;
+                    } else {
+                        lastSpeaker = null;
+                    }
+                }
+                if (!transcriptContent.querySelector('.message-left') && !transcriptContent.querySelector('.message-right')) {
+                    transcriptContent.innerHTML = '<div class="empty">Alle beskeder slettet</div>';
+                }
+                updateAllButtons();
+            };
+            
+            textDiv.onkeydown = function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    textDiv.blur();
+                }
+            };
+            
+            textDiv.onblur = function() {
+                const newText = textDiv.textContent.trim();
+                const transcriptEntry = transcript.find(t => t.messageId === messageId);
+                if (transcriptEntry && newText) {
+                    transcriptEntry.message = newText;
+                }
+            };
+            
+            messageDiv.appendChild(speakerDiv);
+            messageDiv.appendChild(textDiv);
+            messageDiv.appendChild(deleteBtn);
+            transcriptContent.appendChild(messageDiv);
+            
+            transcript.push({ 
+                side: side, 
+                speaker: speakerName, 
+                message: message,
+                messageId: messageId,
+                timestamp: timestamp
+            });
+        }
+
+        function confirmBackToOpstilling() {
+            if (confirm('Brug "Gem Dialog" hvis du vil beholde dit arbejde.\n\nVil du fortsætte til Relations Opstilling?')) {
+                window.location.href = 'opstilling_01.html';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Load pose library first
+            await loadPoseLibrary();
+            // Initialize color picker grid
+            const grid = document.getElementById('colorGrid');
+            
+            for(let row = 0; row < 14; row++) {
+                for(let col = 0; col < 12; col++) {
+                    let hex;
+                    
+                    if(row === 0) {
+                        const hue = Math.round(col * 360/12);
+                        hex = hslToHex(hue, 95, 50);
+                    } else if(row === 1) {
+                        const light = Math.round(100 - (col * (100/11)));
+                        hex = hslToHex(0, 0, light);
+                    } else {
+                        const gridRow = row - 2;
+                        const hue = Math.round(col * 360/12);
+                        const light = Math.round(92 - (gridRow * (84/11)));
+                        const satBase = 86;
+                        const sat = Math.round(satBase - Math.abs((col - 6)/ 6) * 20);
+                        hex = hslToHex(hue, sat, light);
+                    }
+                    
+                    const swatch = document.createElement('button');
+                    swatch.className = 'swatch';
+                    swatch.style.background = hex;
+                    swatch.dataset.hex = hex;
+                    swatch.title = hex;
+                    swatch.setAttribute('aria-label', `Farve ${hex}`);
+                    swatch.tabIndex = 0;
+                    
+                    swatch.addEventListener('click', () => selectColor(hex));
+                    
+                    grid.appendChild(swatch);
+                }
+            }
+            
+            // Event listeners
+            document.getElementById('colorPickerModal').addEventListener('click', function(e) {
+                if (e.target === this) closeColorPicker();
+            });
+
+            
+
+            initializeDropdowns();
+			initializePoseDropdowns();
+            
+            // Listen for localStorage changes (cross-tab synchronization)
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'relationsSetupData') {
+                    console.log('localStorage relationsSetupData updated, refreshing dropdowns...');
+                    handleStorageUpdate();
+                }
+            });
+            
+            document.getElementById('leftDropdown').addEventListener('change', () => updateParticipant('left'));
+            document.getElementById('rightDropdown').addEventListener('change', () => updateParticipant('right'));
+            
+            document.getElementById('leftColorBtn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                openColorPicker(this, 'left');
+            });
+            document.getElementById('rightColorBtn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                openColorPicker(this, 'right');
+            });
+
+            // Initial render for mini controls in case both are preselected via load
+            updateAllButtons();
+
+            
+			
+			document.getElementById('leftTextarea').addEventListener('input', function() {
+			autoResizeTextarea(this);
+			});
+			document.getElementById('rightTextarea').addEventListener('input', function() {
+				autoResizeTextarea(this);
+			});
+			
+			// Tilføj dette i din DOMContentLoaded event listener
+			document.getElementById('posePickerModal').addEventListener('click', function(e) {
+				if (e.target === this) {
+					closePosePicker();
+				}
+			});
+			
+			document.getElementById('leftPoseBtn').addEventListener('click', function(e) {
+				e.stopPropagation();
+				openPosePicker(this);
+			});
+			document.getElementById('rightPoseBtn').addEventListener('click', function(e) {
+				e.stopPropagation();
+				openPosePicker(this);
+			});
+
+            // Wire mini C buttons to write dialogData
+            const leftMini = document.getElementById('leftMiniC');
+            const rightMini = document.getElementById('rightMiniC');
+            if (leftMini) leftMini.addEventListener('click', function() { writeDialogData('left'); });
+            if (rightMini) rightMini.addEventListener('click', function() { writeDialogData('right'); });
+						
+            document.getElementById('startBtn').addEventListener('click', startDialog);			
+            document.getElementById('loadBtn').addEventListener('click', loadDialog);
+            document.getElementById('continueBtn').addEventListener('click', continueDialog);
+            document.getElementById('playBtn').addEventListener('click', playDialog);
+            document.getElementById('pauseBtn').addEventListener('click', pauseDialog);
+            document.getElementById('nextBtn').addEventListener('click', nextDialog);
+            document.getElementById('copyBtn').addEventListener('click', copyDialog);
+			document.getElementById('saveBtn').addEventListener('click', saveDialog);
+            document.querySelector('.clear-btn').addEventListener('click', clearAll);
+            
+            document.getElementById('leftTextarea').addEventListener('keypress', (event) => handleInput(event, 'left'));
+            document.getElementById('rightTextarea').addEventListener('keypress', (event) => handleInput(event, 'right'));
+            
+            updateAllButtons();
+        });
+    </script>
+</body>
+</html>

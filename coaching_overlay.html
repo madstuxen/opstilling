@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coaching Overlay</title>
+    <script src="coaching_engine.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        
+        .content {
+            padding: 12px;
+            height: calc(100% - 60px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Layout variables for popup positioning */
+        .dialog-popup {
+            --left-figure-offset-x: -80px;
+            --left-figure-offset-y: 0px;
+            --right-figure-offset-x: 80px;
+            --right-figure-offset-y: 0px;
+            --left-bubble-left: 140px;
+            --left-bubble-offset-y: 0px;
+            --right-bubble-right: 140px;
+            --right-bubble-offset-y: 0px;
+            --controls-margin-top: 100px;
+        }
+        
+        /* Speech bubble tails */
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .speech-bubble.left::after {
+            left: -15px;
+            border-width: 15px 15px 15px 0;
+            border-color: transparent #93c5fd transparent transparent;
+        }
+        
+        .speech-bubble.right::after {
+            right: -15px;
+            border-width: 15px 0 15px 15px;
+            border-color: transparent transparent transparent #86efac;
+        }
+        
+        /* Arm layering for figures */
+        .skulder_translate_right.front-arm {
+            z-index: 15 !important;
+        }
+        
+        .skulder_translate_left.front-arm {
+            z-index: 15 !important;
+        }
+        
+        .albue_geo_right.front {
+            z-index: 20 !important;
+            position: relative;
+        }
+        
+        .albue_geo_left.front {
+            z-index: 20 !important;
+            position: relative;
+        }
+        
+        .participants-section {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            gap: 12px;
+        }
+        
+        .participant {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        
+        .coach {
+            transform: translate(var(--left-figure-offset-x), var(--left-figure-offset-y));
+        }
+        
+        .client {
+            transform: translate(var(--right-figure-offset-x), var(--right-figure-offset-y));
+        }
+        
+        .speech-bubble {
+            position: absolute;
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            min-width: 200px;
+            max-width: 300px;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .speech-bubble.left {
+            top: calc(50% + var(--left-bubble-offset-y));
+            transform: translate(calc(var(--left-bubble-shift-x, 0px)), -50%);
+            left: var(--left-bubble-left);
+        }
+        
+        .speech-bubble.right {
+            top: calc(50% + var(--right-bubble-offset-y));
+            transform: translateY(-50%);
+            right: var(--right-bubble-right);
+        }
+        
+        .speech-textarea {
+            width: 100%;
+            border: none;
+            background: transparent;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            font-size: 14px;
+            min-height: 40px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: var(--controls-margin-top);
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .transcript-section {
+            flex: 1;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        
+        .transcript-header {
+            margin-bottom: 8px;
+        }
+        
+        .transcript-header h3 {
+            color: #495057;
+            font-size: 14px;
+            margin: 0;
+        }
+        
+        .empty {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .message-left, .message-right {
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        
+        .message-left {
+            margin-right: auto;
+        }
+        
+        .message-right {
+            margin-left: auto;
+        }
+        
+        .speaker {
+            font-weight: 600;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .message-text {
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+        
+        .timestamp {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+        
+        .buttons-container {
+            margin-top: 10px;
+        }
+        
+        .buttons-container .btn {
+            margin: 5px;
+            padding: 5px 10px;
+            font-size: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .slider-container {
+            margin-top: 10px;
+        }
+        
+        .slider-container input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .slider-container .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="content dialog-popup">
+            <div class="overlay-participants-section" style="display: flex; justify-content: space-between; margin-bottom: 20px; gap: 20px;">
+                <div class="overlay-participant" style="flex: 1; text-align: center; position: relative;">
+                    <div class="overlay-participant-circle coach" id="coachCircle" style="width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 10px; background: transparent; border: none; position: relative; padding: 5px; line-height: 1.1; z-index: 10; transform: translate(var(--left-figure-offset-x), var(--left-figure-offset-y));">
+                        <div class="participant-body" style="position: absolute; top: 76px; transform-origin: 50px -40px; z-index: 5; pointer-events: none; width: 100px; height: 200px;">
+                            <div class="head" style="position: absolute; top: -78px; left: 50%; transform: translateX(-50%); width: 72px; height: 72px; border-radius: 50%; background: #667eea; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.15); padding: 10px; line-height: 1.2; z-index: 5; pointer-events: auto; opacity: 1 !important;">
+                                <span style="cursor: text; font-size: 10px;">Coach</span>
+                            </div>
+                            <div class="participant-torso" style="position: absolute; width: 55px; height: 80px; background: #667eea; border-radius: 22px 22px 15px 15px; box-shadow: 0 3px 12px rgba(0,0,0,0.15); top: -2px; left: 50%; transform: translateX(-50%); z-index: 8;"></div>
+                            
+                            <!-- Venstre arm hierarki -->
+                            <div class="skulder_translate_left" style="position: absolute; top: 0px; left: 22px; width: 15px; height: 15px; background: rgba(59, 130, 246, 0.0); z-index: 3;">
+                                <div class="skulder_rotate_left" style="width: 100%; height: 100%; background: rgba(239, 68, 68, 0.0); transform-origin: center center;">
+                                    <div class="arm_geo_left" style="width: 50px; height: 18px; background: #667eea; border-radius: 9px; position: relative; top: -1px; left: -34px;">
+                                        <div class="albue_rotate_left" style="position: relative; top: 1px; left: 0px; width: 15px; height: 15px; background: rgba(16, 185, 129, 0.0); transform-origin: center center;">
+                                            <div class="albue_geo_left" style="position: relative; top: -1px; left: -33px; width: 50px; height: 18px; background: #667eea; border-radius: 9px; z-index: 4;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Højre arm hierarki -->
+                            <div class="skulder_translate_right" style="position: absolute; top: 0px; left: 62px; width: 15px; height: 15px; background: rgba(59, 130, 246, 0.0); z-index: 3;">
+                                <div class="skulder_rotate_right" style="width: 100%; height: 100%; background: rgba(239, 68, 68, 0.0); transform-origin: center center;">
+                                    <div class="arm_geo_right" style="width: 50px; height: 18px; background: #667eea; border-radius: 9px; position: relative; top: -1px; left: -1px;">
+                                        <div class="albue_rotate_right" style="position: relative; top: 1px; left: 34px; width: 15px; height: 15px; background: rgba(16, 185, 129, 0.0); transform-origin: center center;">
+                                            <div class="albue_geo_right" style="position: relative; top: -1px; left: 1px; width: 50px; height: 18px; background: #667eea; border-radius: 9px; z-index: 4;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Venstre ben hierarki -->
+                            <div class="hofte_translate_left" style="position: absolute; top: 68px; left: 26px; width: 15px; height: 15px; background: rgba(59, 130, 246, 0.0); z-index: 3;">
+                                <div class="hofte_rotate_left" style="width: 100%; height: 100%; background: rgba(239, 68, 68, 0.0); transform-origin: center center;">
+                                    <div class="laar_geo_left" style="width: 18px; height: 55px; background: #667eea; border-radius: 9px; position: relative; top: -1px; left: -1px;">
+                                        <div class="knae_rotate_left" style="position: relative; top: 38px; left: 1px; width: 15px; height: 15px; background: rgba(16, 185, 129, 0.0); transform-origin: center center;">
+                                            <div class="skinneben_geo_left" style="position: relative; top: -1px; left: -1px; width: 18px; height: 50px; background: #667eea; border-radius: 9px; z-index: 4;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Højre ben hierarki -->
+                            <div class="hofte_translate_right" style="position: absolute; top: 68px; left: 58px; width: 15px; height: 15px; background: rgba(59, 130, 246, 0.0); z-index: 3;">
+                                <div class="hofte_rotate_right" style="width: 100%; height: 100%; background: rgba(239, 68, 68, 0.0); transform-origin: center center;">
+                                    <div class="laar_geo_right" style="width: 18px; height: 55px; background: #667eea; border-radius: 9px; position: relative; top: -1px; left: -1px;">
+                                        <div class="knae_rotate_right" style="position: relative; top: 38px; left: 1px; width: 15px; height: 15px; background: rgba(16, 185, 129, 0.0); transform-origin: center center;">
+                                            <div class="skinneben_geo_right" style="position: relative; top: -1px; left: -1px; width: 18px; height: 50px; background: #667eea; border-radius: 9px; z-index: 4;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="speech-bubble left" id="leftBubble" style="position: absolute; top: calc(50% + var(--left-bubble-offset-y)); transform: translate(calc(var(--left-bubble-shift-x, 0px)), -50%); background: #93c5fd; border: none; border-radius: 12px; padding: 12px; min-width: 200px; max-width: 300px; display: none; z-index: 1000; left: var(--left-bubble-left);">
+                        <div id="coachMessage" style="font-size: 14px; line-height: 1.4;"></div>
+                    </div>
+                </div>
+                
+                <div class="overlay-participant" style="flex: 1; text-align: center; position: relative;">
+                    <div class="overlay-participant-circle client" id="clientCircle" style="width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 10px; background: transparent; border: none; position: relative; padding: 5px; line-height: 1.1; z-index: 10; transform: translate(var(--right-figure-offset-x), var(--right-figure-offset-y));">
+                        <div class="participant-body" style="position: absolute; top: 76px; transform-origin: 50px -40px; z-index: 5; pointer-events: none; width: 100px; height: 200px;">
+                            <div class="head" style="position: absolute; top: -78px; left: 50%; transform: translateX(-50%); width: 72px; height: 72px; border-radius: 50%; background: #f093fb; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.15); padding: 10px; line-height: 1.2; z-index: 5; pointer-events: auto; opacity: 1 !important;">
+                                <span id="clientName" style="cursor: text; font-size: 10px;">Klient</span>
+                            </div>
+                            <div class="participant-torso" style="position: absolute; width: 55px; height: 80px; background: #f093fb; border-radius: 22px 22px 15px 15px; box-shadow: 0 3px 12px rgba(0,0,0,0.15); top: -2px; left: 50%; transform: translateX(-50%); z-index: 8;"></div>
+                            
+                            <!-- Venstre arm hierarki -->
+                            <div class="skulder_translate_left" style="position: absolute; top: 0px; left: 22px; width: 15px; height: 15px; background: rgba(59, 130, 246, 0.0); z-index: 3;">
+                                <div class="skulder_rotate_left" style="width: 100%; height: 100%; background: rgba(239, 68, 68, 0.0); transform-origin: center center;">
+                                    <div class="arm_geo_left" style="width: 50px; height: 18px; background: #f093fb; border-radius: 9px; position: relative; top: -1px; left: -34px;">
+                                        <div class="albue_rotate_left" style="position: relative; top: 1px; left: 0px; width: 15px; height: 15px; background: rgba(16, 185, 129, 0.0); transform-origin: center center;">
+                                            <div class="albue_geo_left" style="position: relative; top: -1px; left: -33px; width: 50px; height: 18px; background: #f093fb; border-radius: 9px; z-index: 4;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Højre arm hierarki -->
+                            <div class="skulder_translate_right" style="position: absolute; top: 0px; left: 62px; width: 15px; height: 15px; background: rgba(59, 130, 246, 0.0); z-index: 3;">
+                                <div class="skulder_rotate_right" style="width: 100%; height: 100%; background: rgba(239, 68, 68, 0.0); transform-origin: center center;">
+                                    <div class="arm_geo_right" style="width: 50px; height: 18px; background: #f093fb; border-radius: 9px; position: relative; top: -1px; left: -1px;">
+                                        <div class="albue_rotate_right" style="position: relative; top: 1px; left: 34px; width: 15px; height: 15px; background: rgba(16, 185, 129, 0.0); transform-origin: center center;">
+                                            <div class="albue_geo_right" style="position: relative; top: -1px; left: 1px; width: 50px; height: 18px; background: #f093fb; border-radius: 9px; z-index: 4;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Venstre ben hierarki -->
+                            <div class="hofte_translate_left" style="position: absolute; top: 68px; left: 26px; width: 15px; height: 15px; background: rgba(59, 130, 246, 0.0); z-index: 3;">
+                                <div class="hofte_rotate_left" style="width: 100%; height: 100%; background: rgba(239, 68, 68, 0.0); transform-origin: center center;">
+                                    <div class="laar_geo_left" style="width: 18px; height: 55px; background: #f093fb; border-radius: 9px; position: relative; top: -1px; left: -1px;">
+                                        <div class="knae_rotate_left" style="position: relative; top: 38px; left: 1px; width: 15px; height: 15px; background: rgba(16, 185, 129, 0.0); transform-origin: center center;">
+                                            <div class="skinneben_geo_left" style="position: relative; top: -1px; left: -1px; width: 18px; height: 50px; background: #f093fb; border-radius: 9px; z-index: 4;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Højre ben hierarki -->
+                            <div class="hofte_translate_right" style="position: absolute; top: 68px; left: 58px; width: 15px; height: 15px; background: rgba(59, 130, 246, 0.0); z-index: 3;">
+                                <div class="hofte_rotate_right" style="width: 100%; height: 100%; background: rgba(239, 68, 68, 0.0); transform-origin: center center;">
+                                    <div class="laar_geo_right" style="width: 18px; height: 55px; background: #f093fb; border-radius: 9px; position: relative; top: -1px; left: -1px;">
+                                        <div class="knae_rotate_right" style="position: relative; top: 38px; left: 1px; width: 15px; height: 15px; background: rgba(16, 185, 129, 0.0); transform-origin: center center;">
+                                            <div class="skinneben_geo_right" style="position: relative; top: -1px; left: -1px; width: 18px; height: 50px; background: #f093fb; border-radius: 9px; z-index: 4;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="speech-bubble right" id="rightBubble" style="position: absolute; top: calc(50% + var(--right-bubble-offset-y)); transform: translateY(-50%); background: #86efac; border: none; border-radius: 12px; padding: 12px; min-width: 200px; max-width: 300px; display: none; z-index: 1000; right: var(--right-bubble-right);">
+                        <textarea class="speech-textarea" id="rightTextarea" placeholder="Skriv dit svar..." style="width: 100%; border: none; background: transparent; resize: none; outline: none; font-family: inherit; font-size: 14px; min-height: 40px;"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls" style="display: flex; gap: 10px; margin-top: var(--controls-margin-top); justify-content: center;">
+                <button class="btn btn-primary" id="startCoachingBtn" style="padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">Start Coaching</button>
+                <button class="btn btn-secondary" id="mmmBtn" disabled style="padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; background: #6c757d; color: white;">Mmmmm</button>
+                <button class="btn btn-secondary" id="saveBtn" disabled style="padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; background: #6c757d; color: white;">Gem Session</button>
+            </div>
+            
+            <div class="transcript-section" style="flex: 1; background: #f8f9fa; border-radius: 8px; padding: 10px; overflow-y: auto; min-height: 0; max-height: calc(80vh - 200px);">
+                <div class="transcript-header" style="margin-bottom: 8px;">
+                    <h3 style="color: #495057; font-size: 14px; margin: 0;">Samtale</h3>
+                </div>
+                <div class="transcript-content" id="transcriptContent">
+                    <div class="empty" style="text-align: center; color: #6c757d; font-style: italic; padding: 20px;">
+                        <p>Klik "Start Coaching" for at begynde sessionen</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        // Copy all JavaScript from coaching_popup.html here
+        // Dynamic color system
+        let popupCoachColor = '#667eea'; // Fixed coach color
+        let popupClientColor = '#f093fb'; // Default client color
+        let popupCoachLightColor = '#93c5fd'; // Lightened coach color
+        let popupClientLightColor = '#86efac'; // Lightened client color
+        
+        // Popup state
+        let popupEngine = null;
+        let popupCurrentQuestion = null;
+        let popupActive = false;
+        let loadedSessionData = null;
+        let loadedVariables = null;
+        
+        function lightenColor(color, factor = 0.6) {
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            
+            const newR = Math.round(r + (255 - r) * factor);
+            const newG = Math.round(g + (255 - g) * factor);
+            const newB = Math.round(b + (255 - b) * factor);
+            
+            return `rgb(${newR}, ${newG}, ${newB})`;
+        }
+        
+        function darkenColor(hex, factor = 0.8) {
+            // Convert hex to RGB
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            const rgb = result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+            
+            if (!rgb) return hex;
+            
+            const r = Math.round(rgb.r * factor);
+            const g = Math.round(rgb.g * factor);
+            const b = Math.round(rgb.b * factor);
+            
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+        
+        function updatePopupColors() {
+            // Calculate light colors
+            popupCoachLightColor = lightenColor(popupCoachColor, 0.6);
+            popupClientLightColor = lightenColor(popupClientColor, 0.6);
+            
+            // Update coach figure colors
+            const coachCircle = document.getElementById('coachCircle');
+            if (coachCircle) {
+                const coachHead = coachCircle.querySelector('.head');
+                const coachTorso = coachCircle.querySelector('.participant-torso');
+                const coachArmParts = coachCircle.querySelectorAll('.arm_geo_left, .arm_geo_right, .albue_geo_left, .albue_geo_right');
+                const coachLegParts = coachCircle.querySelectorAll('.laar_geo_left, .laar_geo_right, .skinneben_geo_left, .skinneben_geo_right');
+                
+                if (coachHead) coachHead.style.background = popupCoachColor;
+                if (coachTorso) coachTorso.style.background = popupCoachColor;
+                
+                // Arme og ben får mørkere farve (15% mørkere)
+                const coachDarkerColor = darkenColor(popupCoachColor, 0.85);
+                coachArmParts.forEach(part => part.style.background = coachDarkerColor);
+                coachLegParts.forEach(part => part.style.background = coachDarkerColor);
+            }
+            
+            // Update client figure colors
+            const clientCircle = document.getElementById('clientCircle');
+            if (clientCircle) {
+                const head = clientCircle.querySelector('.head');
+                const torso = clientCircle.querySelector('.participant-torso');
+                const armParts = clientCircle.querySelectorAll('.arm_geo_left, .arm_geo_right, .albue_geo_left, .albue_geo_right');
+                const legParts = clientCircle.querySelectorAll('.laar_geo_left, .laar_geo_right, .skinneben_geo_left, .skinneben_geo_right');
+                
+                if (head) head.style.background = popupClientColor;
+                if (torso) torso.style.background = popupClientColor;
+                
+                // Arme og ben får mørkere farve (15% mørkere)
+                const darkerColor = darkenColor(popupClientColor, 0.85);
+                armParts.forEach(part => part.style.background = darkerColor);
+                legParts.forEach(part => part.style.background = darkerColor);
+            }
+            
+            // Update speech bubble colors
+            const leftBubble = document.getElementById('leftBubble');
+            const rightBubble = document.getElementById('rightBubble');
+            
+            if (leftBubble) {
+                leftBubble.style.backgroundColor = popupCoachLightColor;
+            }
+            if (rightBubble) {
+                rightBubble.style.backgroundColor = popupClientLightColor;
+            }
+            
+            // Update bubble tail colors
+            const style = document.createElement('style');
+            style.textContent = `
+                .speech-bubble.left::after { 
+                    border-color: transparent ${popupCoachLightColor} transparent transparent !important; 
+                }
+                .speech-bubble.right::after { 
+                    border-color: transparent transparent transparent ${popupClientLightColor} !important; 
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Pose Library - loaded from external JSON file
+        let poseLibrary = [];
+        
+        // Load pose library from external JSON file
+        async function loadPoseLibrary() {
+            try {
+                const response = await fetch('Standard_new_poses.json');
+                if (response.ok) {
+                    poseLibrary = await response.json();
+                    console.log('Loaded pose library with', poseLibrary.length, 'poses');
+                    console.log('Available poses:', poseLibrary.map(p => p.name));
+                } else {
+                    console.error('Failed to load pose library');
+                    // Fallback to basic poses
+                    poseLibrary = [
+                        {
+                            "name": "standard",
+                            "pose": {
+                                "translate_x_left": -3,
+                                "translate_y_left": 0,
+                                "skulder_rot_left": -70,
+                                "albue_rot_left": 0,
+                                "translate_x": 3,
+                                "translate_y": 0,
+                                "skulder_rot": 70,
+                                "albue_rot": 0,
+                                "translate_x_left_leg": 0,
+                                "translate_y_left_leg": 0,
+                                "hofte_rot_left": 6,
+                                "knae_rot_left": 0,
+                                "translate_x_right_leg": 0,
+                                "translate_y_right_leg": 0,
+                                "hofte_rot_right": -6,
+                                "knae_rot_right": 0,
+                                "left_arm_front": false,
+                                "right_arm_front": false,
+                                "duration": 0.3
+                            }
+                        }
+                    ];
+                }
+            } catch (error) {
+                console.error('Error loading pose library:', error);
+                // Fallback to basic poses
+                poseLibrary = [
+                    {
+                        "name": "standard",
+                        "pose": {
+                            "translate_x_left": -3,
+                            "translate_y_left": 0,
+                            "skulder_rot_left": -70,
+                            "albue_rot_left": 0,
+                            "translate_x": 3,
+                            "translate_y": 0,
+                            "skulder_rot": 70,
+                            "albue_rot": 0,
+                            "translate_x_left_leg": 0,
+                            "translate_y_left_leg": 0,
+                            "hofte_rot_left": 6,
+                            "knae_rot_left": 0,
+                            "translate_x_right_leg": 0,
+                            "translate_y_right_leg": 0,
+                            "hofte_rot_right": -6,
+                            "knae_rot_right": 0,
+                            "left_arm_front": false,
+                            "right_arm_front": false,
+                            "duration": 0.3
+                        }
+                    }
+                ];
+            }
+        }
+
+        // Apply pose to figure
+        function applyPose(side, poseIndex) {
+            console.log('applyPose called with:', { side, poseIndex });
+            const circle = document.getElementById(side + 'Circle');
+            
+            if (!circle) {
+                console.error('Circle element not found for side:', side);
+                return;
+            }
+            
+            // Check if pose library is loaded
+            if (!poseLibrary || poseLibrary.length === 0) {
+                console.warn('Pose library not loaded yet, skipping pose application for', side, poseIndex);
+                return;
+            }
+            
+            // Handle string pose names by finding the index
+            if (typeof poseIndex === 'string') {
+                const foundIndex = poseLibrary.findIndex(p => p && p.name === poseIndex);
+                if (foundIndex !== -1) {
+                    poseIndex = foundIndex;
+                } else {
+                    console.warn('Pose not found:', poseIndex);
+                    console.log('Available poses:', poseLibrary.map(p => p.name));
+                    resetPose(side);
+                    return;
+                }
+            }
+            
+            // Map empty to standard index if available
+            if (poseIndex === '') {
+                const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+                if (standardIndex !== -1) {
+                    poseIndex = standardIndex;
+                } else {
+                    resetPose(side);
+                    return;
+                }
+            }
+            
+            // Add smooth transitions to all animated elements
+            const animatedElements = circle.querySelectorAll(
+                '.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+                '.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+                '.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+                '.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+            );
+            
+            animatedElements.forEach(element => {
+                element.style.transition = 'transform 1.5s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            });
+            
+            const pose = poseLibrary[poseIndex];
+            console.log('Found pose at index', poseIndex, ':', pose);
+            if (!pose) {
+                console.error('No pose found at index:', poseIndex, 'Available poses:', poseLibrary.map(p => p.name));
+                return;
+            }
+            
+            let poseData = pose.pose;
+            console.log('Applying pose data:', poseData);
+            
+            // Apply transforms to figure parts
+            const skulderLeft = circle.querySelector('.skulder_translate_left');
+            const skulderRight = circle.querySelector('.skulder_translate_right');
+            const hofteLeft = circle.querySelector('.hofte_translate_left');
+            const hofteRight = circle.querySelector('.hofte_translate_right');
+            
+            if (skulderLeft) {
+                skulderLeft.style.transform = `translate(${poseData.translate_x_left || 0}px, ${poseData.translate_y_left || 0}px)`;
+            }
+            if (skulderRight) {
+                skulderRight.style.transform = `translate(${poseData.translate_x || 0}px, ${poseData.translate_y || 0}px)`;
+            }
+            if (hofteLeft) {
+                hofteLeft.style.transform = `translate(${poseData.translate_x_left_leg || 0}px, ${poseData.translate_y_left_leg || 0}px)`;
+            }
+            if (hofteRight) {
+                hofteRight.style.transform = `translate(${poseData.translate_x_right_leg || 0}px, ${poseData.translate_y_right_leg || 0}px)`;
+            }
+            
+            // Apply rotations
+            const skulderRotLeft = circle.querySelector('.skulder_rotate_left');
+            const skulderRotRight = circle.querySelector('.skulder_rotate_right');
+            const albueRotLeft = circle.querySelector('.albue_rotate_left');
+            const albueRotRight = circle.querySelector('.albue_rotate_right');
+            const hofteRotLeft = circle.querySelector('.hofte_rotate_left');
+            const hofteRotRight = circle.querySelector('.hofte_rotate_right');
+            const knaeRotLeft = circle.querySelector('.knae_rotate_left');
+            const knaeRotRight = circle.querySelector('.knae_rotate_right');
+            
+            if (skulderRotLeft) {
+                skulderRotLeft.style.transform = `rotate(${poseData.skulder_rot_left || 0}deg)`;
+            }
+            if (skulderRotRight) {
+                skulderRotRight.style.transform = `rotate(${poseData.skulder_rot || 0}deg)`;
+            }
+            if (albueRotLeft) {
+                albueRotLeft.style.transform = `rotate(${poseData.albue_rot_left || 0}deg)`;
+            }
+            if (albueRotRight) {
+                albueRotRight.style.transform = `rotate(${poseData.albue_rot || 0}deg)`;
+            }
+            if (hofteRotLeft) {
+                hofteRotLeft.style.transform = `rotate(${poseData.hofte_rot_left || 0}deg)`;
+            }
+            if (hofteRotRight) {
+                hofteRotRight.style.transform = `rotate(${poseData.hofte_rot_right || 0}deg)`;
+            }
+            if (knaeRotLeft) {
+                knaeRotLeft.style.transform = `rotate(${poseData.knae_rot_left || 0}deg)`;
+            }
+            if (knaeRotRight) {
+                knaeRotRight.style.transform = `rotate(${poseData.knae_rot_right || 0}deg)`;
+            }
+            
+            // Handle arm layering
+            if (poseData.left_arm_front) {
+                skulderLeft?.classList.add('front-arm');
+            } else {
+                skulderLeft?.classList.remove('front-arm');
+            }
+            
+            if (poseData.right_arm_front) {
+                skulderRight?.classList.add('front-arm');
+            } else {
+                skulderRight?.classList.remove('front-arm');
+            }
+        }
+        
+        // Reset pose to default
+        function resetPose(side) {
+            const circle = document.getElementById(side + 'Circle');
+            if (!circle) return;
+            
+            const animatedElements = circle.querySelectorAll(
+                '.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+                '.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+                '.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+                '.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+            );
+            
+            animatedElements.forEach(element => {
+                element.style.transform = '';
+                element.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            });
+            
+            // Reset arm layering
+            const skulderLeft = circle.querySelector('.skulder_translate_left');
+            const skulderRight = circle.querySelector('.skulder_translate_right');
+            skulderLeft?.classList.remove('front-arm');
+            skulderRight?.classList.remove('front-arm');
+        }
+        
+        // Demo coaching session data
+        const demoSession = {
+            nodes: [
+                {
+                    id: 'start',
+                    type: 'all',
+                    questions: [
+                        'Hej! Velkommen til coaching sessionen. Hvad hedder du?',
+                        'Hvordan har du det i dag?',
+                        'Hvad er dit mål med denne session?'
+                    ],
+                    next: 'choice1'
+                },
+                {
+                    id: 'choice1',
+                    type: 'choice',
+                    question: 'Hvilken type coaching ønsker du? <<coaching_type>>',
+                    items: ['Karriere', 'Personlig udvikling', 'Relationscoaching', 'Stress management'],
+                    next: 'save1'
+                },
+                {
+                    id: 'save1',
+                    type: 'save',
+                    question: 'Fortæl mig mere om din situation:',
+                    save_as: 'situation',
+                    next: 'slider1'
+                },
+                {
+                    id: 'slider1',
+                    type: 'choice',
+                    question: 'Hvor tilfreds er du med din nuværende situation? <<satisfaction>>',
+                    input_type: 'slider',
+                    min: 1,
+                    max: 10,
+                    step: 1,
+                    labels: ['Meget utilfreds', 'Meget tilfreds'],
+                    next: 'end'
+                }
+            ],
+            start_node: 'start'
+        };
+        
+        const demoVariables = {
+            You: 'Klient',
+            You_color: '#f093fb'
+        };
+        
+        // Close overlay functionality
+        function closeOverlay() {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'closeOverlay' }, '*');
+            }
+        }
+        
+        // Event listeners - wait for DOM to be ready
+        function setupCloseButton() {
+            const closeBtn = document.getElementById('overlayClose');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeOverlay);
+                console.log('Close button event listener added');
+            } else {
+                console.log('Close button not found');
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupCloseButton);
+        } else {
+            setupCloseButton();
+        }
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeOverlay();
+            }
+        });
+        
+        function startPopupCoaching() {
+            try {
+                console.log('Starting popup coaching...');
+                
+                // Don't start if already active
+                if (popupActive) {
+                    console.log('Coaching already active, skipping start');
+                    return;
+                }
+                
+                // Use loaded session data if available, otherwise load from localStorage
+                let sessionData, variables;
+                
+                if (loadedSessionData && loadedVariables) {
+                    console.log('Using pre-loaded session data');
+                    sessionData = loadedSessionData;
+                    variables = loadedVariables;
+                    
+                    // Merge external data into variables if available
+                    if (window.loadedExternalData) {
+                        Object.keys(window.loadedExternalData).forEach(key => {
+                            variables[key] = window.loadedExternalData[key];
+                        });
+                    }
+                } else {
+                    console.log('Loading session data from localStorage...');
+                    sessionData = demoSession;
+                    variables = demoVariables;
+                    
+                    // Get the data source from URL parameters
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const dataSource = urlParams.get('data') || 'myCoachingProject';
+                    
+                    // Try to load from localStorage using the correct data source
+                    try {
+                        const savedProject = localStorage.getItem(dataSource);
+                        if (savedProject) {
+                            const project = JSON.parse(savedProject);
+                            console.log('Loaded project from localStorage with dataSource:', dataSource, project);
+                            
+                            if (project.session) {
+                                sessionData = project.session;
+                                console.log('Using saved session:', sessionData);
+                            }
+                            
+                            if (project.variables) {
+                                variables = project.variables;
+                                console.log('Using saved variables:', variables);
+                            }
+                            
+                            // Also load external data if it exists in the project
+                            if (project.variables && project.variables.Data) {
+                                console.log('Found Data key in project, loading external data from:', project.variables.Data);
+                                loadExternalDataIfNeeded(project.variables.Data);
+                                
+                                // Merge external data into variables for coaching engine
+                                try {
+                                    const externalData = localStorage.getItem(project.variables.Data);
+                                    if (externalData) {
+                                        const loaded = JSON.parse(externalData);
+                                        if (loaded && typeof loaded === 'object') {
+                                            // Merge external data into variables
+                                            Object.keys(loaded).forEach(key => {
+                                                variables[key] = loaded[key];
+                                            });
+                                            console.log('Merged external data into variables:', variables);
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.log('Error merging external data:', e);
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Could not load project from localStorage, using demo data:', e);
+                    }
+                }
+                
+                // Create engine with loaded session and variables
+                popupEngine = new CoachEngine(sessionData, variables);
+                popupCurrentQuestion = popupEngine.start();
+                popupActive = true;
+                
+                // Clear transcript
+                document.getElementById('transcriptContent').innerHTML = '';
+                
+                // Update colors
+                updatePopupColors();
+                
+                // Set initial poses
+                applyPose('coach', 'standard'); // standard pose
+                // Client pose will be set from external data in loadExternalDataIfNeeded
+                
+                // Show first question
+                showPopupQuestion();
+                updatePopupButtons();
+                
+            } catch (e) {
+                alert('Fejl ved start af coaching: ' + e.message);
+            }
+        }
+        
+        function showPopupQuestion() {
+            // Ensure previous UI elements are cleared to avoid duplicates
+            cleanupPopupQuestion();
+            console.log('showPopupQuestion called with:', popupCurrentQuestion);
+            
+            if (!popupCurrentQuestion) {
+                console.log('No current question');
+                return;
+            }
+            
+            // Clean up previous question elements
+            cleanupPopupQuestion();
+            
+            // Always show coach bubble with question
+            showSpeechBubble('left');
+            
+            // Show coach question in coach bubble (clean text without placeholders)
+            const cleanText = popupCurrentQuestion.text.replace(/<<[^>]+>>/g, '');
+            document.getElementById('coachMessage').innerHTML = cleanText.replace(/\n/g, '<br>');
+            
+            // Add to transcript
+            addPopupMessage('coach', cleanText);
+            
+            // Animate coach when speaking
+            applyPose('coach', 'tænke'); // "tænke" pose when coach is speaking
+            
+            // Show client input area if not done
+            if (!popupCurrentQuestion.done) {
+                console.log('Question not done, showing client input area');
+                
+                // Show client bubble for input, but keep coach bubble visible
+                document.getElementById('rightBubble').style.display = 'block';
+                
+                // Handle different question types in client bubble
+                if (popupCurrentQuestion.type === 'choice' && popupCurrentQuestion.choices && popupCurrentQuestion.input_type !== 'slider') {
+                    // Show choice buttons in client bubble
+                    showPopupChoiceQuestion();
+                } else if (popupCurrentQuestion.type === 'slider' || 
+                           (popupCurrentQuestion.type === 'choice' && popupCurrentQuestion.input_type === 'slider')) {
+                    // Show slider in client bubble
+                    showPopupSliderQuestion();
+                } else {
+                    // Regular text input
+                    document.getElementById('rightTextarea').style.display = 'block';
+                    document.getElementById('rightTextarea').focus();
+                }
+            }
+        }
+        
+        function cleanupPopupQuestion() {
+            // Show textarea again
+            document.getElementById('rightTextarea').style.display = 'block';
+            document.getElementById('rightTextarea').innerHTML = '';
+            
+            // Remove any existing buttons or slider containers
+            const rightBubble = document.getElementById('rightBubble');
+            const buttonsContainer = rightBubble.querySelector('.buttons-container');
+            const sliderContainer = rightBubble.querySelector('.slider-container');
+            
+            if (buttonsContainer) {
+                buttonsContainer.remove();
+            }
+            if (sliderContainer) {
+                sliderContainer.remove();
+            }
+        }
+        
+        function showPopupChoiceQuestion() {
+            // Create a div inside the right bubble for buttons
+            const rightBubble = document.getElementById('rightBubble');
+            const rightTextarea = document.getElementById('rightTextarea');
+            
+            // Hide textarea and show buttons
+            rightTextarea.style.display = 'none';
+            
+            // Create buttons container
+            let buttonsContainer = rightBubble.querySelector('.buttons-container');
+            if (!buttonsContainer) {
+                buttonsContainer = document.createElement('div');
+                buttonsContainer.className = 'buttons-container';
+                buttonsContainer.style.marginTop = '10px';
+                rightBubble.appendChild(buttonsContainer);
+            }
+            
+            // Clear and add buttons
+            buttonsContainer.innerHTML = '';
+            popupCurrentQuestion.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.className = 'btn';
+                button.textContent = choice;
+                button.style.margin = '5px';
+                button.style.padding = '5px 10px';
+                button.style.fontSize = '14px';
+                button.style.background = '#667eea';
+                button.style.color = 'white';
+                button.style.border = 'none';
+                button.style.borderRadius = '4px';
+                button.style.cursor = 'pointer';
+                button.onclick = () => handlePopupChoice(choice, popupCurrentQuestion.variableName);
+                buttonsContainer.appendChild(button);
+            });
+        }
+        
+        function showPopupSliderQuestion() {
+            console.log('showPopupSliderQuestion called with:', popupCurrentQuestion);
+            
+            // Create a div inside the right bubble for slider
+            const rightBubble = document.getElementById('rightBubble');
+            const rightTextarea = document.getElementById('rightTextarea');
+            
+            if (!rightBubble) {
+                console.error('rightBubble not found');
+                return;
+            }
+            
+            // Hide textarea and show slider
+            rightTextarea.style.display = 'none';
+            
+            // Create slider container
+            let sliderContainer = rightBubble.querySelector('.slider-container');
+            if (!sliderContainer) {
+                sliderContainer = document.createElement('div');
+                sliderContainer.className = 'slider-container';
+                sliderContainer.style.marginTop = '10px';
+                rightBubble.appendChild(sliderContainer);
+            }
+            
+            const sliderId = 'popup_slider_' + Date.now();
+            const valueId = 'popup_value_' + Date.now();
+            
+            // Handle both slider object format and direct properties
+            const min = popupCurrentQuestion.min !== undefined ? popupCurrentQuestion.min : 
+                       (popupCurrentQuestion.slider ? popupCurrentQuestion.slider.min : 0);
+            const max = popupCurrentQuestion.max !== undefined ? popupCurrentQuestion.max : 
+                       (popupCurrentQuestion.slider ? popupCurrentQuestion.slider.max : 100);
+            const step = popupCurrentQuestion.step !== undefined ? popupCurrentQuestion.step : 
+                        (popupCurrentQuestion.slider ? popupCurrentQuestion.slider.step : 1);
+            const labels = popupCurrentQuestion.labels || 
+                          (popupCurrentQuestion.slider ? popupCurrentQuestion.slider.labels : null);
+            
+            console.log('Slider properties:', { min, max, step, labels });
+            
+            const midValue = Math.round((min + max) / 2);
+            
+            // Clear and add slider
+            sliderContainer.innerHTML = '';
+            
+            // Labels
+            if (labels && labels.length >= 2) {
+                const leftLabel = popupEngine.replaceVars(labels[0]);
+                const rightLabel = popupEngine.replaceVars(labels[1]);
+                
+                const labelsDiv = document.createElement('div');
+                labelsDiv.style.display = 'flex';
+                labelsDiv.style.justifyContent = 'space-between';
+                labelsDiv.style.fontSize = '12px';
+                labelsDiv.style.color = '#666';
+                labelsDiv.style.marginBottom = '10px';
+                labelsDiv.innerHTML = `<span>${leftLabel}</span><span>${rightLabel}</span>`;
+                sliderContainer.appendChild(labelsDiv);
+            }
+            
+            // Slider
+            const sliderInput = document.createElement('input');
+            sliderInput.type = 'range';
+            sliderInput.id = sliderId;
+            sliderInput.min = min;
+            sliderInput.max = max;
+            sliderInput.step = step;
+            sliderInput.value = midValue;
+            sliderInput.style.width = '100%';
+            sliderInput.style.marginBottom = '10px';
+            sliderContainer.appendChild(sliderInput);
+            
+            // Value display
+            const valueDiv = document.createElement('div');
+            valueDiv.style.textAlign = 'center';
+            valueDiv.style.fontWeight = 'bold';
+            valueDiv.style.fontSize = '18px';
+            valueDiv.innerHTML = `<span id="${valueId}">${midValue}</span>`;
+            sliderContainer.appendChild(valueDiv);
+            
+            // Submit button
+            const submitBtn = document.createElement('button');
+            submitBtn.className = 'btn';
+            submitBtn.textContent = 'Bekræft';
+            submitBtn.style.background = '#667eea';
+            submitBtn.style.color = 'white';
+            submitBtn.style.border = 'none';
+            submitBtn.style.padding = '8px 16px';
+            submitBtn.style.borderRadius = '4px';
+            submitBtn.style.cursor = 'pointer';
+            submitBtn.style.marginTop = '10px';
+            submitBtn.onclick = () => handlePopupSlider(sliderId, popupCurrentQuestion.variableName);
+            sliderContainer.appendChild(submitBtn);
+            
+            // Update value on input
+            sliderInput.oninput = () => {
+                document.getElementById(valueId).textContent = sliderInput.value;
+            };
+            
+            console.log('Slider created with ID:', sliderId);
+        }
+        
+        function sendPopupResponse() {
+            console.log('sendPopupResponse called');
+            console.log('popupActive:', popupActive);
+            console.log('popupCurrentQuestion:', popupCurrentQuestion);
+            
+            if (!popupActive || !popupCurrentQuestion || popupCurrentQuestion.done) {
+                console.log('Early return - popup not active or question done');
+                return;
+            }
+            
+            const input = document.getElementById('rightTextarea').value.trim();
+            console.log('Input value:', input);
+            
+            if (!input) {
+                console.log('No input provided');
+                return;
+            }
+            
+            // Add user response to transcript
+            addPopupMessage('user', input);
+            
+            // Keep client in their initial pose
+            // applyPose('client', 4); // "nervøs" pose when client is responding
+            
+            // If current question is save type, save to blackboard
+            if (popupCurrentQuestion.type === 'save' && popupCurrentQuestion.saveAs) {
+                const value = !isNaN(input) && input.trim() !== '' ? Number(input) : input;
+                popupEngine.blackboard[popupCurrentQuestion.saveAs] = value;
+            }
+            
+            // Process response
+            popupCurrentQuestion = popupEngine.answer(input);
+            console.log('Next question after answer:', popupCurrentQuestion);
+            
+            // Clear input
+            document.getElementById('rightTextarea').value = '';
+            
+            if (popupCurrentQuestion.done) {
+                // Session finished
+                addPopupMessage('coach', popupCurrentQuestion.text);
+                // Show coach's final message in speech bubble
+                const cleanText = popupCurrentQuestion.text.replace(/<<[^>]+>>/g, '');
+                document.getElementById('coachMessage').innerHTML = cleanText.replace(/\n/g, '<br>');
+                showSpeechBubble('left');
+                popupActive = false;
+            } else {
+                // Show next question
+                console.log('Calling showPopupQuestion for next question');
+                showPopupQuestion();
+            }
+            
+            updatePopupButtons();
+        }
+        
+        function sendPopupMmmm() {
+            document.getElementById('rightTextarea').value = 'Mmmmm';
+            sendPopupResponse();
+        }
+        
+        function handlePopupChoice(choiceValue, variableName) {
+            // Save to blackboard
+            popupEngine.blackboard[variableName] = choiceValue;
+            
+            // Add user message to transcript
+            addPopupMessage('user', choiceValue);
+            
+            // Keep client in their initial pose
+            // applyPose('client', 4); // "nervøs" pose when client is responding
+            
+            // Process next
+            popupCurrentQuestion = popupEngine.answer(choiceValue);
+            
+            if (popupCurrentQuestion.done) {
+                // Session finished
+                addPopupMessage('coach', popupCurrentQuestion.text);
+                // Show coach's final message in speech bubble
+                const cleanText = popupCurrentQuestion.text.replace(/<<[^>]+>>/g, '');
+                document.getElementById('coachMessage').innerHTML = cleanText.replace(/\n/g, '<br>');
+                showSpeechBubble('left');
+                popupActive = false;
+            } else {
+                // Show next question
+                showPopupQuestion();
+            }
+            
+            updatePopupButtons();
+        }
+        
+        function handlePopupSlider(sliderId, variableName) {
+            // Find slider element BEFORE cleaning up
+            let sliderElement = document.getElementById(sliderId);
+            let sliderValue = 0;
+            
+            if (sliderElement) {
+                sliderValue = Number(sliderElement.value);
+                console.log('Popup: Found slider by ID, value:', sliderValue);
+            } else {
+                // Try to find any slider in the right bubble
+                const rightBubble = document.getElementById('rightBubble');
+                if (rightBubble) {
+                    const slider = rightBubble.querySelector('input[type="range"]');
+                    if (slider) {
+                        sliderValue = Number(slider.value);
+                        console.log('Popup: Found slider by querySelector, value:', sliderValue);
+                    } else {
+                        console.error('Popup: No slider found in right bubble');
+                        alert('Fejl: Kunne ikke finde slider element i popup');
+                        return;
+                    }
+                } else {
+                    console.error('Popup: rightBubble element not found');
+                    alert('Fejl: Kunne ikke finde popup input område');
+                    return;
+                }
+            }
+            
+            // Clean up popup question AFTER getting the value
+            cleanupPopupQuestion();
+            
+            // Save to blackboard
+            popupEngine.blackboard[variableName] = sliderValue;
+            
+            // Add user message to transcript
+            addPopupMessage('user', sliderValue.toString());
+            
+            // Keep client in their initial pose
+            // applyPose('client', 4); // "nervøs" pose when client is responding
+            
+            // Process next
+            popupCurrentQuestion = popupEngine.answer(sliderValue.toString());
+            
+            if (popupCurrentQuestion.done) {
+                // Session finished
+                addPopupMessage('coach', popupCurrentQuestion.text);
+                // Show coach's final message in speech bubble
+                const cleanText = popupCurrentQuestion.text.replace(/<<[^>]+>>/g, '');
+                document.getElementById('coachMessage').innerHTML = cleanText.replace(/\n/g, '<br>');
+                showSpeechBubble('left');
+                popupActive = false;
+            } else {
+                // Show next question
+                showPopupQuestion();
+            }
+            
+            updatePopupButtons();
+        }
+        
+        function showSpeechBubble(side) {
+            // Don't hide coach bubble when showing client input
+            if (side === 'right') {
+                // Only hide client bubble, keep coach bubble visible
+                document.getElementById('leftBubble').style.display = 'block';
+            } else {
+                // For coach side, only hide client bubble, keep coach bubble visible
+                document.getElementById('rightBubble').style.display = 'none';
+            }
+            
+            // Scale den talende part op (som i det originale system)
+            const activeParticipant = document.getElementById(side === 'left' ? 'coachCircle' : 'clientCircle').parentElement;
+            activeParticipant.style.transform = 'scale(1.035)';
+            activeParticipant.style.transition = 'transform 0.45s ease';
+            
+            // Scale den anden part ned til normal
+            const otherSide = side === 'left' ? 'right' : 'left';
+            const otherParticipant = document.getElementById(otherSide === 'left' ? 'coachCircle' : 'clientCircle').parentElement;
+            otherParticipant.style.transform = 'scale(1.0)';
+            otherParticipant.style.transition = 'transform 0.45s ease';
+            
+            // Show bubble with scale animation
+            const bubble = document.getElementById(side + 'Bubble');
+            bubble.style.display = 'block';
+            
+            // Apply bubble scale and positioning (som i det originale system)
+            if (side === 'left') {
+                bubble.style.left = 'var(--left-bubble-left)';
+                bubble.style.right = 'auto';
+                bubble.style.transformOrigin = 'left center';
+            } else {
+                bubble.style.right = '100px';
+                bubble.style.left = 'auto';
+                bubble.style.transformOrigin = 'right center';
+            }
+            bubble.style.top = '50%';
+            bubble.style.transform = 'translateY(-50%) scale(0.85)';
+            
+            // Add smooth transition to bubble
+            bubble.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            
+            // Animate bubble scale up
+            setTimeout(() => {
+                bubble.style.transform = bubble.style.transform.replace('scale(0.85)', 'scale(1)');
+            }, 50);
+            
+            if (side === 'right') {
+                document.getElementById('rightTextarea').focus();
+            }
+        }
+        
+        function hideAllSpeechBubbles() {
+            const leftBubble = document.getElementById('leftBubble');
+            const rightBubble = document.getElementById('rightBubble');
+            
+            // Add smooth transition for hiding
+            if (leftBubble.style.display !== 'none') {
+                leftBubble.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)';
+                leftBubble.style.transform = leftBubble.style.transform.replace('scale(1)', 'scale(0.85)');
+                setTimeout(() => {
+                    leftBubble.style.display = 'none';
+                }, 400);
+            }
+            
+            if (rightBubble.style.display !== 'none') {
+                rightBubble.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1)';
+                rightBubble.style.transform = rightBubble.style.transform.replace('scale(1)', 'scale(0.85)');
+                setTimeout(() => {
+                    rightBubble.style.display = 'none';
+                }, 400);
+            }
+            
+            // Reset scale på begge figurer (som i det originale system)
+            document.getElementById('coachCircle').parentElement.style.transform = 'scale(1.0)';
+            document.getElementById('clientCircle').parentElement.style.transform = 'scale(1.0)';
+        }
+        
+        function addPopupMessage(type, text) {
+            const transcriptContent = document.getElementById('transcriptContent');
+            
+            if (transcriptContent.querySelector('.empty')) {
+                transcriptContent.innerHTML = '';
+            }
+            
+            // Generate timestamp
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString('da-DK', { 
+                hour: '2-digit', 
+                minute: '2-digit'
+            });
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'coach' ? 'message-left' : 'message-right';
+            messageDiv.style.marginBottom = '12px';
+            messageDiv.style.padding = '10px 12px';
+            messageDiv.style.borderRadius = '8px';
+            messageDiv.style.maxWidth = '80%';
+            // Use dynamic colors - align with dialog system brightness
+            const transcriptCoachColor = lightenColor(popupCoachColor, 0.7);
+            const transcriptClientColor = lightenColor(popupClientColor, 0.7);
+            messageDiv.style.backgroundColor = type === 'coach' ? transcriptCoachColor : transcriptClientColor;
+            if (type === 'coach') {
+                messageDiv.style.marginRight = 'auto';
+            } else {
+                messageDiv.style.marginLeft = 'auto';
+            }
+            
+            const speakerDiv = document.createElement('div');
+            speakerDiv.className = 'speaker';
+            speakerDiv.style.fontWeight = '600';
+            speakerDiv.style.fontSize = '12px';
+            speakerDiv.style.color = '#666';
+            speakerDiv.style.marginBottom = '4px';
+            speakerDiv.textContent = type === 'coach' ? 'Coach' : document.getElementById('clientName').textContent;
+            
+            const messageTextDiv = document.createElement('div');
+            messageTextDiv.className = 'message-text';
+            messageTextDiv.style.fontSize = '14px';
+            messageTextDiv.style.lineHeight = '1.4';
+            messageTextDiv.style.whiteSpace = 'pre-wrap';
+            
+            // Make client messages editable (not coach messages)
+            if (type === 'user') {
+                messageTextDiv.contentEditable = true;
+                messageTextDiv.style.cursor = 'text';
+                messageTextDiv.style.outline = 'none';
+                messageTextDiv.style.borderRadius = '4px';
+                messageTextDiv.style.padding = '4px';
+                messageTextDiv.style.transition = 'background-color 0.2s ease';
+                
+                // Add hover effect
+                messageTextDiv.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                });
+                messageTextDiv.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = 'transparent';
+                });
+                
+                // Handle Enter key to save
+                messageTextDiv.onkeydown = function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        messageTextDiv.blur();
+                    }
+                };
+                
+                // Handle blur to save changes
+                messageTextDiv.onblur = function() {
+                    const newText = messageTextDiv.textContent.trim();
+                    if (newText && popupEngine) {
+                        // Find the most recent user response in the conversation
+                        // and update it in the engine's blackboard if possible
+                        console.log('Updated client response:', newText);
+                    }
+                };
+            }
+            
+            messageTextDiv.textContent = text;
+            
+            const timestampDiv = document.createElement('div');
+            timestampDiv.className = 'timestamp';
+            timestampDiv.style.fontSize = '11px';
+            timestampDiv.style.color = '#999';
+            timestampDiv.style.marginTop = '4px';
+            timestampDiv.textContent = timestamp;
+            
+            messageDiv.appendChild(speakerDiv);
+            messageDiv.appendChild(messageTextDiv);
+            messageDiv.appendChild(timestampDiv);
+            
+            transcriptContent.appendChild(messageDiv);
+            transcriptContent.scrollTop = transcriptContent.scrollHeight;
+        }
+        
+        function savePopupSession() {
+            if (!popupEngine) {
+                alert('Ingen session at gemme!');
+                return;
+            }
+            
+            const sessionData = {
+                engine: popupEngine,
+                blackboard: popupEngine.blackboard,
+                timestamp: new Date().toISOString(),
+                clientName: document.getElementById('clientName').textContent
+            };
+            
+            const dataStr = JSON.stringify(sessionData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'coaching-session-' + new Date().toISOString().split('T')[0] + '.json';
+            a.click();
+            
+            URL.revokeObjectURL(url);
+        }
+        
+        function updatePopupButtons() {
+            document.getElementById('startCoachingBtn').disabled = popupActive;
+            document.getElementById('mmmBtn').disabled = !popupActive || !popupCurrentQuestion || popupCurrentQuestion.done;
+            document.getElementById('saveBtn').disabled = !popupEngine;
+        }
+        
+        // Load external data from localStorage and merge with variables
+        function loadExternalDataIfNeeded(dataSource) {
+            try {
+                console.log('Loading external data from:', dataSource);
+                
+                // Read the project from localStorage to get the Data key
+                const projectRaw = localStorage.getItem(dataSource);
+                if (!projectRaw) {
+                    console.log('No project found in localStorage for:', dataSource);
+                    return;
+                }
+                
+                const project = JSON.parse(projectRaw);
+                
+                // Check if project has variables.Data key
+                if (!project.variables || !project.variables.Data) {
+                    console.log('No Data key found in project variables');
+                    return;
+                }
+                
+                const dataKey = project.variables.Data;
+                
+                // Read from the data key specified in the project
+                const raw = localStorage.getItem(dataKey);
+                if (!raw) {
+                    console.log('No data found in localStorage for:', dataKey);
+                    return;
+                }
+                
+                let loaded;
+                try {
+                    loaded = JSON.parse(raw);
+                } catch (e) {
+                    console.log('Data under ' + dataKey + ' is not valid JSON:', e);
+                    return;
+                }
+                
+                // Update variables with loaded data
+                if (loaded && typeof loaded === 'object') {
+                    // Update client name if available
+                    if (loaded.You) {
+                        document.getElementById('clientName').textContent = loaded.You;
+                    }
+                    
+                    // Update client color if available
+                    if (loaded.You_color) {
+                        popupClientColor = loaded.You_color;
+                    }
+                    
+                    // Apply pose if available
+                    if (loaded.You_pose !== undefined) {
+                        // Convert pose name to index if it's a string
+                        let poseIndex = loaded.You_pose;
+                        if (typeof loaded.You_pose === 'string') {
+                            const foundIndex = poseLibrary.findIndex(p => p && p.name === loaded.You_pose);
+                            if (foundIndex !== -1) {
+                                poseIndex = foundIndex;
+                            } else {
+                                poseIndex = 0; // standard pose
+                            }
+                        }
+                        
+                        applyPose('client', poseIndex);
+                    }
+                    
+                    // Update colors after loading data
+                    updatePopupColors();
+                    
+                    // Store loaded data globally for use in coaching engine
+                    window.loadedExternalData = loaded;
+                }
+                
+            } catch (e) {
+                console.log('Error loading external data:', e);
+            }
+        }
+        
+        // Event listeners for buttons
+        document.getElementById('startCoachingBtn').addEventListener('click', startPopupCoaching);
+        document.getElementById('mmmBtn').addEventListener('click', sendPopupMmmm);
+        document.getElementById('saveBtn').addEventListener('click', savePopupSession);
+        document.getElementById('rightTextarea').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendPopupResponse();
+            }
+        });
+        
+        // Initialize colors on page load
+        updatePopupColors();
+        
+        // Auto-start coaching when page loads if project exists
+        window.addEventListener('load', async function() {
+            // Load pose library first
+            await loadPoseLibrary();
+            console.log('Pose library loaded with', poseLibrary.length, 'poses');
+            // Check for data source from URL parameters or localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataSource = urlParams.get('data') || 'myCoachingProject';
+            
+            console.log('Looking for data source:', dataSource);
+            
+            try {
+                const savedProject = localStorage.getItem(dataSource);
+                if (savedProject) {
+                    console.log('Found saved project, auto-starting coaching');
+                    
+                    // Load external data first if needed
+                    loadExternalDataIfNeeded(dataSource);
+                    
+                    // Store session data for later use
+                    const project = JSON.parse(savedProject);
+                    if (project.session) {
+                        loadedSessionData = project.session;
+                    }
+                    if (project.variables) {
+                        loadedVariables = project.variables;
+                    }
+                    
+                    startPopupCoaching();
+                } else {
+                    console.log('No data found for source:', dataSource);
+                    // If it's a temp key and not found, wait a bit and try again
+                    if (dataSource.startsWith('tempCoachingProject_')) {
+                        console.log('Temp key not found, waiting and retrying...');
+                        setTimeout(() => {
+                            const retryProject = localStorage.getItem(dataSource);
+                            if (retryProject) {
+                                console.log('Found temp project on retry, starting coaching');
+                                loadExternalDataIfNeeded(dataSource);
+                                
+                                // Store session data for later use
+                                const project = JSON.parse(retryProject);
+                                if (project.session) {
+                                    loadedSessionData = project.session;
+                                }
+                                if (project.variables) {
+                                    loadedVariables = project.variables;
+                                }
+                                
+                                startPopupCoaching();
+                            } else {
+                                console.log('Temp project still not found, falling back to myCoachingProject');
+                                const fallbackProject = localStorage.getItem('myCoachingProject');
+                                if (fallbackProject) {
+                                    console.log('Using fallback project');
+                                    loadExternalDataIfNeeded('myCoachingProject');
+                                    startPopupCoaching();
+                                }
+                            }
+                        }, 100);
+                    }
+                }
+            } catch (e) {
+                console.log('Error loading data from source:', dataSource, e);
+            }
+        });
+        
+        // Listen for messages from parent window
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'coachingData') {
+                console.log('Received coaching data:', event.data);
+                
+                // Load external data if provided
+                if (event.data.dataSource) {
+                    loadExternalDataIfNeeded(event.data.dataSource);
+                }
+                
+                // Start coaching
+                startPopupCoaching();
+            }
+        });
+        
+    </script>
+</body>
+</html>

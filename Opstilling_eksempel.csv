@@ -1,0 +1,41 @@
+Navn;PosX;PosY;Størrelse;Farve_Gradient;Border_Farve;Lag;Noter;Stikord1;Stikord2;Stikord3;Stikord4;Stikord5;Stikord6;Gruppe;Form;Kategori;Forbindelser;Baggrund;Pose;Mirror;PosX_none;PosY_none;Size_none;Res1_none;Res2_none;Res3_none;PosX_har_onsker;PosY_har_onsker;Size_har_onsker;Res1_har_onsker;Res2_har_onsker;Res3_har_onsker;PosX_xy_axes;PosY_xy_axes;Size_xy_axes;Res1_xy_axes;Res2_xy_axes;Res3_xy_axes;PosX_timeline;PosY_timeline;Size_timeline;Res1_timeline;Res2_timeline;Res3_timeline;PosX_for_imod;PosY_for_imod;Size_for_imod;Res1_for_imod;Res2_for_imod;Res3_for_imod;PosX_drama_trekant;PosY_drama_trekant;Size_drama_trekant;Res1_drama_trekant;Res2_drama_trekant;Res3_drama_trekant;PosX_mandala;PosY_mandala;Size_mandala;Res1_mandala;Res2_mandala;Res3_mandala
+Mads;701;227;1.1;#f59e0b;#fbbf24;7;;53;;;;;;;cirkel;;;none;Kram;false;701;227;1.1;;;;1048.0229218343345;332.25382691976034;;;;;1048.0229218343345;332.25382691976034;;;;;1048.0229218343345;332.25382691976034;;;;;1048.0229218343345;332.25382691976034;;;;;1048.0229218343345;332.25382691976034;;;;;1048.0229218343345;332.25382691976034;;;;
+mads 3år;752;316;0.7;#6eb0f2;#3b7dbf;8;;;;;;;;;cirkel;;;none;Leg;false;752;316;0.7;;;;1131.4900987712235;113.66245863152241;;;;;1131.4900987712235;113.66245863152241;;;;;1131.4900987712235;113.66245863152241;;;;;1131.4900987712235;113.66245863152241;;;;;1131.4900987712235;113.66245863152241;;;;;1131.4900987712235;113.66245863152241;;;;
+Far Gorm;767;225;1;#db2777;#ec4899;6;;70+ død;;;;;;;cirkel;;;none;ud;true;767;225;1;;;;1223.5060372228409;265.6783831742137;;;;;1223.5060372228409;265.6783831742137;;;;;1223.5060372228409;265.6783831742137;;;;;1223.5060372228409;265.6783831742137;;;;;1223.5060372228409;265.6783831742137;;;;;1223.5060372228409;265.6783831742137;;;;
+FarFar Erik;824;217;0.9;#7c3aed;#8b5cf6;4;;68+ død;;;;;;;cirkel;;;none;;false;824;217;0.9;;;;1083.1469164121265;162.12930755527657;;;;;1083.1469164121265;162.12930755527657;;;;;1083.1469164121265;162.12930755527657;;;;;1083.1469164121265;162.12930755527657;;;;;1083.1469164121265;162.12930755527657;;;;;1083.1469164121265;162.12930755527657;;;;
+Oldefar Bartholin;881;191;1;#611414;#2e0000;2;;;;;;;;;cirkel;;;none;ud;true;881;191;1;;;;978.3058628069251;476.43782163792787;;;;;978.3058628069251;476.43782163792787;;;;;978.3058628069251;476.43782163792787;;;;;978.3058628069251;476.43782163792787;;;;;978.3058628069251;476.43782163792787;;;;;978.3058628069251;476.43782163792787;;;;
+Anton;624;249;1;#ea580c;#f97316;9;;25;;;;;;;cirkel;;;none;drejet;true;624;249;1;;;;550.6946298931875;86.86413252636964;;;;;550.6946298931875;86.86413252636964;;;;;550.6946298931875;86.86413252636964;;;;;550.6946298931875;86.86413252636964;;;;;550.6946298931875;86.86413252636964;;;;;550.6946298931875;86.86413252636964;;;;
+Atle;726;77;1.2;#dc2626;#ef4444;1;;;;;;;;;cirkel;;;none;Kram;false;726;77;1.2;;;;853.0351131666633;379.3067153959298;;;;;853.0351131666633;379.3067153959298;;;;;853.0351131666633;379.3067153959298;;;;;853.0351131666633;379.3067153959298;;;;;853.0351131666633;379.3067153959298;;;;;853.0351131666633;379.3067153959298;;;;
+gorm lille;830;294;0.6;#2563eb;#3b82f6;5;;;;;;;;;cirkel;;;none;;false;830;294;0.6;;;;1113.4792699791835;396.05202371638643;;;;;1113.4792699791835;396.05202371638643;;;;;1113.4792699791835;396.05202371638643;;;;;1113.4792699791835;396.05202371638643;;;;;1113.4792699791835;396.05202371638643;;;;;1113.4792699791835;396.05202371638643;;;;
+Erik lille;880;268;0.6;#65a30d;#84cc16;3;;;;;;;;;cirkel;;;none;drejet;false;880;268;0.6;;;;671.678702751188;104.61057960514421;;;;;671.678702751188;104.61057960514421;;;;;671.678702751188;104.61057960514421;;;;;671.678702751188;104.61057960514421;;;;;671.678702751188;104.61057960514421;;;;;671.678702751188;104.61057960514421;;;;
+
+# Gruppenavne
+Gruppe1;Manager;#ef4444
+Gruppe2;Brandmand;#f97316
+Gruppe3;Eksileret;#eab308
+Gruppe4;Ekstern;#22c55e
+Gruppe5;;#06b6d4
+Gruppe6;;#3b82f6
+
+# Alle Baggrund Labels
+har_onsker;topLeft;Har/Ønsker
+har_onsker;topRight;Har/Ønsker-ikke
+har_onsker;bottomLeft;Har ikke/Ønsker
+har_onsker;bottomRight;Har ikke/Ønsker ikke
+xy_axes;xLabel;X-akse
+xy_axes;yLabel;Y-akse
+timeline;title;Tidslinje
+timeline;start;Start
+timeline;end;Slut
+for_imod;left;For
+for_imod;right;Imod
+drama_trekant;offer;Offer
+drama_trekant;hjaelper;Hjælper
+drama_trekant;boeddel;Bøddel
+mandala;kerne;Kerne
+mandala;primaer;Primær
+mandala;sekundaer;Sekundær
+mandala;periferi;Periferi
+
+# Generelle Noter
+Opstilling efter tur hos Alte. Jeg fik snakket med far og at jeg havde svært ved at trænge ind til ham da jeg var barn. Jeg fik fortalt ham at jeg elskede ham at jeg var ked af de kampe vi havde haft, at jeg tilgav ham, at jeg skulle kæmpe for ikke at blive vanvittig. Det var dejligt at snakke med atle om. Farfar skulle hjælpe far men hans skulle først have hjælpe af sin far. Han havde vendt sig mod Bartholin specielt efter at Bartholin startede en anden familie. Farfar var fuld af vrede og skam over at have mistet sin far. Det er et farsår som er gået videre i arv helt frem til min mave. Far skulle sådan kæmpe med sit selvværd og med et storhedsvanvid som skulle kompensere. Det var en virkelig god session. 

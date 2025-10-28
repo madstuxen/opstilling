@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pose Editor - Session Bibliotek</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+        }
+        
+        .left-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 280px;
+            height: fit-content;
+            max-height: calc(100vh - 240px);
+            overflow-y: auto;
+        }
+        
+        .workspace {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        h1 {
+            color: #4f46e5;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 24px;
+        }
+        
+        /* Session Management */
+        .session-management {
+            background: #e0f2fe;
+            border: 2px solid #0284c7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .session-management h3 {
+            color: #0284c7;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+			padding: 6px 8px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 10px;
+			font-weight: bold;
+			transition: all 0.3s ease;
+			text-align: center;
+		}
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0369a1, #075985);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #047857, #065f46);
+            transform: translateY(-1px);
+        }
+
+        .pose-input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #0284c7;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-display {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #94a3b8;
+            border-radius: 6px;
+            font-size: 12px;
+            background: #f8fafc;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        /* Current Pose Section */
+        .current-pose {
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .current-pose h3 {
+            color: #0ea5e9;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        /* Pose Library */
+        .pose-library {
+            background: #f8fafc;
+            border: 2px solid #94a3b8;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .pose-library h3 {
+            color: #374151;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .pose-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .pose-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.3s ease;
+        }
+
+        .pose-button:hover {
+            background: #f1f5f9;
+            border-color: #0ea5e9;
+        }
+
+        .pose-button.active {
+            background: #e0f2fe;
+            border-color: #0284c7;
+            font-weight: bold;
+        }
+
+        .pose-button-text {
+            flex: 1;
+            text-align: left;
+        }
+
+        .delete-pose-btn {
+            padding: 2px 6px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+
+        .delete-pose-btn:hover {
+            background: #dc2626;
+        }
+
+        .no-poses {
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+            font-size: 11px;
+            padding: 20px;
+        }
+
+        /* Figure and Control Layout */
+        .figure-workspace {
+            position: relative;
+            width: 600px;
+            height: 500px;
+        }
+        
+        .figure-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Mini Control Panels */
+        .mini-controls {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 15;
+        }
+
+        .mini-controls h4 {
+            font-size: 11px;
+            color: #374151;
+            margin-bottom: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .mini-slider {
+            margin-bottom: 4px;
+        }
+
+        .mini-slider label {
+            display: block;
+            font-size: 9px;
+            color: #6b7280;
+            margin-bottom: 2px;
+        }
+
+        .mini-slider input[type="range"] {
+            width: 120px;
+            height: 3px;
+            margin-bottom: 2px;
+        }
+
+        .mini-value {
+            font-size: 8px;
+            color: #9ca3af;
+            text-align: center;
+        }
+		
+		.mini-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 4px;
+            font-size: 8px;
+        }
+
+        .mini-checkbox input[type="checkbox"] {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* Control positions around figure */
+        .left-arm-controls {
+            top: 20px;
+            left: 50px;
+            width: 150px;
+        }
+
+        .right-arm-controls {
+            top: 20px;
+            right: 50px;
+            width: 150px;
+        }
+
+        .left-leg-controls {
+            bottom: 20px;
+            left: 50px;
+            width: 150px;
+        }
+
+        .right-leg-controls {
+            bottom: 20px;
+            right: 50px;
+            width: 150px;
+        }
+
+        .timeline-panel {
+			background: rgba(255, 255, 255, 0.95);
+			border-radius: 20px;
+			padding: 20px;
+			padding-top: 10px;
+			box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+			height: 180px;
+			position: relative;
+		}
+
+        .timeline-panel h2 {
+			position: absolute;
+			left: 20px;
+			top: 15px;
+			color: #4f46e5;
+			font-size: 16px;
+			margin: 0;
+			writing-mode: horizontal-tb;
+		}
+
+        .timeline-controls {
+			position: absolute;
+			left: 20px;
+			top: 45px;
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+			width: 80px;
+		}
+
+        .timeline-container {
+			overflow-x: auto;
+			padding-bottom: 10px;
+			margin-left: 120px;
+			height: 160px; /* Bruger næsten hele højden */
+			display: flex;
+			align-items: center;
+		}
+
+        .timeline-track {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            min-width: max-content;
+            padding: 10px;
+        }
+
+        .timeline-slide {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px;
+    min-width: 100px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative; /* TILFØJ DENNE LINJE */
+}
+
+        .timeline-slide:hover {
+            border-color: #0ea5e9;
+            transform: translateY(-2px);
+        }
+
+        .timeline-slide.active {
+            border-color: #0284c7;
+            background: #e0f2fe;
+            font-weight: bold;
+        }
+
+        .mini-figure {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    margin-bottom: 5px;
+    transform: scale(0.2);
+    transform-origin: center center;
+}
+
+.mini-figure .head {
+    position: absolute;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border: 3px solid #fbbf24;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
+
+.mini-figure .torso {
+    position: absolute;
+    width: 55px;
+    height: 80px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 22px 22px 15px 15px;
+    top: 104px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+}
+
+/* Mini figure arm/leg structures - exact same as main figure */
+.mini-figure .skulder_translate_left,
+.mini-figure .skulder_translate_right,
+.mini-figure .hofte_translate_left,
+.mini-figure .hofte_translate_right {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+}
+
+.mini-figure .skulder_translate_left { top: 105px; left: 1px; }
+.mini-figure .skulder_translate_right { top: 105px; left: 48px; }
+.mini-figure .hofte_translate_left { top: 168px; left: 9px; }
+.mini-figure .hofte_translate_right { top: 168px; left: 37px; }
+
+.mini-figure .skulder_rotate_left,
+.mini-figure .skulder_rotate_right,
+.mini-figure .hofte_rotate_left,
+.mini-figure .hofte_rotate_right {
+    width: 100%;
+    height: 100%;
+    transform-origin: center center;
+}
+
+.mini-figure .arm_geo_left,
+.mini-figure .arm_geo_right {
+    width: 50px;
+    height: 18px;
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+}
+
+.mini-figure .arm_geo_left { left: -34px; }
+.mini-figure .arm_geo_right { left: -1px; }
+
+.mini-figure .laar_geo_left,
+.mini-figure .laar_geo_right {
+    width: 18px;
+    height: 55px;
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+    left: -1px;
+}
+
+.mini-figure .albue_rotate_left,
+.mini-figure .albue_rotate_right,
+.mini-figure .knae_rotate_left,
+.mini-figure .knae_rotate_right {
+    position: relative;
+    width: 15px;
+    height: 15px;
+    transform-origin: center center;
+}
+
+.mini-figure .albue_rotate_left { top: 1px; left: 0px; }
+.mini-figure .albue_rotate_right { top: 1px; left: 34px; }
+.mini-figure .knae_rotate_left,
+.mini-figure .knae_rotate_right { top: 38px; left: 1px; }
+
+.mini-figure .albue_geo_left,
+.mini-figure .albue_geo_right,
+.mini-figure .skinneben_geo_left,
+.mini-figure .skinneben_geo_right {
+    background: #f59e0b;
+    border-radius: 9px;
+    position: relative;
+    top: -1px;
+}
+
+.mini-figure .albue_geo_left,
+.mini-figure .albue_geo_right {
+    width: 50px;
+    height: 18px;
+}
+
+.mini-figure .albue_geo_left { left: -33px; }
+.mini-figure .albue_geo_right { left: 1px; }
+
+.mini-figure .skinneben_geo_left,
+.mini-figure .skinneben_geo_right {
+    width: 18px;
+    height: 50px;
+    left: -1px;
+}
+
+        .slide-info {
+            text-align: center;
+        }
+
+        .slide-info label {
+            font-size: 10px;
+            color: #6b7280;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .duration-input {
+            width: 60px;
+            padding: 2px 4px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        .add-slide-btn {
+            width: 50px;
+            height: 50px;
+            border: 2px dashed #94a3b8;
+            border-radius: 10px;
+            background: transparent;
+            color: #6b7280;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .add-slide-btn:hover {
+            border-color: #0ea5e9;
+            color: #0ea5e9;
+            background: rgba(14, 165, 233, 0.1);
+        }
+        
+        /* Hoved */
+        .head {
+            position: absolute;
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 11px;
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border: 3px solid #fbbf24;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+        
+        /* Torso */
+        .torso {
+            position: absolute;
+            width: 55px;
+            height: 80px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            border-radius: 22px 22px 15px 15px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.15);
+            top: 104px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+        }
+        
+        /* Højre arm hierarki */
+        .skulder_translate_right {
+            position: absolute;
+            top: 105px;
+            left: 162px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0.0);
+        }
+        
+        .skulder_rotate_right {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.0);
+            transform-origin: center center;
+        }
+		
+		.skulder_translate_right.front-arm {
+			z-index: 20;
+		}
+        
+        .arm_geo_right {
+			width: 50px;
+            height: 18px;
+            background: #f59e0b;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -1px;
+        }
+        
+        .albue_rotate_right  {
+            position: relative;
+            top: 1px;
+            left: 34px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0.0);
+            transform-origin: center center;
+        }
+        
+        .albue_geo_right {
+            position: relative;
+            top: -1px;
+            left: 1px;
+    	    width: 50px;
+    	    height: 18px;
+            background: #f59e0b;
+            border-radius: 9px;
+            z-index: 4;
+        }
+
+        .albue_geo_right.front {
+            z-index: 20 !important; 
+            position: relative;
+        }
+        
+        /* Venstre arm hierarki */
+        .skulder_translate_left {
+            position: absolute;
+            top: 105px;
+            left: 123px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0.0);
+        }
+        
+        .skulder_rotate_left {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.0);
+            transform-origin: center center;
+        }
+		
+		.skulder_translate_left.front-arm {
+			z-index: 20;
+		}
+				
+        .arm_geo_left {
+            width: 50px;
+            height: 18px;
+            background: #f59e0b;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -34px;
+        }
+        
+        .albue_rotate_left {
+            position: relative;
+            top: 1px;
+            left: 0px; 
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0.0);
+            transform-origin: center center;
+        }
+        
+        .albue_geo_left {
+			position: relative;
+			top: -1px;
+			left: -33px;
+			width: 50px;
+			height: 18px;
+			background: #f59e0b;
+			border-radius: 9px;
+			z-index: 4;
+		}
+
+        .albue_geo_left.front {
+            z-index: 20 !important;
+            position: relative;
+        }
+		
+        /* Højre ben hierarki */
+        .hofte_translate_right {
+            position: absolute;
+            top: 168px;
+            left: 158px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .hofte_rotate_right {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.0);
+            transform-origin: center center;
+        }
+
+        .laar_geo_right {
+            width: 18px;
+            height: 55px;
+            background: #f59e0b;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -1px;
+        }
+
+        .knae_rotate_right {
+            position: relative;
+            top: 38px;
+            left: 1px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0.2);
+            transform-origin: center center;
+        }
+
+        .skinneben_geo_right {
+            position: relative;
+            top: -1px;
+            left: -1px;
+            width: 18px;
+            height: 50px;
+            background: #f59e0b;
+            border-radius: 9px;
+        }
+
+        /* Venstre ben hierarki */
+        .hofte_translate_left {
+            position: absolute;
+            top: 168px;
+            left: 126px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0.2);
+        }
+
+        .hofte_rotate_left {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.0);
+            transform-origin: center center;
+        }
+
+        .laar_geo_left {
+            width: 18px;
+            height: 55px;
+            background: #f59e0b;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -1px;
+        }
+
+        .knae_rotate_left {
+            position: relative;
+            top: 38px;
+            left: 1px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0.2);
+            transform-origin: center center;
+        }
+
+        .skinneben_geo_left {
+            position: relative;
+            top: -1px;
+            left: -1px;
+            width: 18px;
+            height: 50px;
+            background: #f59e0b;
+            border-radius: 9px;
+        }
+		
+	.timeline-slide .delete-slide-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0; /* Start skjult */
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.timeline-slide:hover .delete-slide-btn {
+    opacity: 0.7; /* Vis ved hover over slide */
+}
+
+.timeline-slide .delete-slide-btn:hover {
+    opacity: 1 !important; /* Fuld opacity ved hover over knappen selv */
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+.move-slide-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.move-slide-left {
+    left: 5px;
+}
+
+.move-slide-right {
+    right: 5px;
+}
+
+.timeline-slide:hover .move-slide-btn {
+    opacity: 0.6;
+}
+
+.move-slide-btn:hover {
+    opacity: 1 !important;
+    background: #059669;
+    transform: translateY(-50%) scale(1.1);
+}
+		
+		
+		
+		
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <div class="left-panel">
+            <h1>Pose Editor</h1>
+            
+            <!-- Session Management -->
+            <div class="session-management">
+                <h3>Session Håndtering</h3>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="exportAllPoses()">Gem Alle</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">Indlæs</button>
+                </div>
+                
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" class="file-input" accept=".json" onchange="importPoses(event)">
+                    <div class="file-input-display">Vælg JSON fil...</div>
+                </div>
+				
+				<div class="button-group" style="margin-top: 8px;">
+					<button class="btn btn-primary" onclick="exportTimelineSlides()">Gem Timeline</button>
+					<button class="btn btn-secondary" onclick="document.getElementById('timelineFileInput').click()">Indlæs Timeline</button>
+					<button class="btn btn-primary" onclick="exportForJavaScript()">Export JS</button>
+
+				</div>
+
+				<div class="file-input-wrapper">
+					<input type="file" id="timelineFileInput" class="file-input" accept=".json" onchange="importTimelineSlides(event)">
+					<div class="file-input-display">Vælg Timeline JSON fil...</div>
+				</div>
+				
+            </div>
+
+            <!-- Current Pose -->
+            <div class="current-pose">
+                <h3>Aktuel Pose</h3>
+                
+                <input type="text" class="pose-input" id="poseName" placeholder="Pose navn...">
+                
+                <div class="button-group">
+    			<button class="btn btn-success" onclick="savePoseToLibrary()">Gem Pose</button>
+    			<button class="btn btn-secondary" onclick="newPose()">Ny Pose</button>
+    			</div>
+    			<div class="button-group" style="margin-top: 8px;">
+    			<button class="btn btn-secondary" onclick="flipPose()">Flip Pose</button>
+    			</div>
+    			<div class="button-group" style="margin-top: 8px;">
+    				<button class="btn btn-primary" onclick="saveAsNewPose()">Gem som Ny</button>
+    			</div>
+            </div>
+
+            <!-- Pose Library -->
+            <div class="pose-library">
+                <h3>Pose Bibliotek</h3>
+                <div class="pose-buttons" id="poseButtons">
+                    <div class="no-poses">Ingen poses endnu...<br>Opret din første pose!</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="workspace">
+            <div class="figure-workspace">
+                <!-- Venstre Arm Controls -->
+                <div class="mini-controls left-arm-controls">
+                    <h4>Venstre Arm</h4>
+                    <div class="mini-slider">
+                        <label>X:</label>
+                        <input type="range" id="translate_x_left" min="-30" max="30" value="0">
+                        <div class="mini-value" id="translate_x_left_val">0</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Y:</label>
+                        <input type="range" id="translate_y_left" min="-30" max="30" value="0">
+                        <div class="mini-value" id="translate_y_left_val">0</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Skulder:</label>
+                        <input type="range" id="skulder_rot_left" min="-180" max="180" value="0">
+                        <div class="mini-value" id="skulder_rot_left_val">0°</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Albue:</label>
+                        <input type="range" id="albue_rot_left" min="-175" max="175" value="0">
+                        <div class="mini-value" id="albue_rot_left_val">0°</div>
+                    </div>
+    				<div class="mini-checkbox">
+    				<input type="checkbox" id="left_arm_front" onchange="toggleArmLayer('left')">
+    				<label for="left_arm_front">Foran torso</label>
+    				</div>
+                </div>
+
+                <!-- Højre Arm Controls -->
+                <div class="mini-controls right-arm-controls">
+                    <h4>Højre Arm</h4>
+                    <div class="mini-slider">
+                        <label>X:</label>
+                        <input type="range" id="translate_x" min="-30" max="30" value="0">
+                        <div class="mini-value" id="translate_x_val">0</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Y:</label>
+                        <input type="range" id="translate_y" min="-30" max="30" value="0">
+                        <div class="mini-value" id="translate_y_val">0</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Skulder:</label>
+                        <input type="range" id="skulder_rot" min="-180" max="180" value="0">
+                        <div class="mini-value" id="skulder_rot_val">0°</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Albue:</label>
+                        <input type="range" id="albue_rot" min="-175" max="175" value="0">
+                        <div class="mini-value" id="albue_rot_val">0°</div>
+                    </div>
+    				<div class="mini-checkbox">
+    				<input type="checkbox" id="right_arm_front" onchange="toggleArmLayer('right')">
+    				<label for="right_arm_front">Foran torso</label>
+    				</div>
+                </div>
+
+                <!-- Venstre Ben Controls -->
+                <div class="mini-controls left-leg-controls">
+                    <h4>Venstre Ben</h4>
+                    <div class="mini-slider">
+                        <label>X:</label>
+                        <input type="range" id="translate_x_left_leg" min="-30" max="30" value="0">
+                        <div class="mini-value" id="translate_x_left_leg_val">0</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Y:</label>
+                        <input type="range" id="translate_y_left_leg" min="-30" max="30" value="0">
+                        <div class="mini-value" id="translate_y_left_leg_val">0</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Hofte:</label>
+                        <input type="range" id="hofte_rot_left" min="-180" max="180" value="0">
+                        <div class="mini-value" id="hofte_rot_left_val">0°</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Knæ:</label>
+                        <input type="range" id="knae_rot_left" min="-175" max="175" value="0">
+                        <div class="mini-value" id="knae_rot_left_val">0°</div>
+                    </div>
+                </div>
+
+                <!-- Højre Ben Controls -->
+                <div class="mini-controls right-leg-controls">
+                    <h4>Højre Ben</h4>
+                    <div class="mini-slider">
+                        <label>X:</label>
+                        <input type="range" id="translate_x_right_leg" min="-30" max="30" value="0">
+                        <div class="mini-value" id="translate_x_right_leg_val">0</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Y:</label>
+                        <input type="range" id="translate_y_right_leg" min="-30" max="30" value="0">
+                        <div class="mini-value" id="translate_y_right_leg_val">0</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Hofte:</label>
+                        <input type="range" id="hofte_rot_right" min="-180" max="180" value="0">
+                        <div class="mini-value" id="hofte_rot_right_val">0°</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label>Knæ:</label>
+                        <input type="range" id="knae_rot_right" min="-135" max="135" value="0">
+                        <div class="mini-value" id="knae_rot_right_val">0°</div>
+                    </div>
+                </div>
+
+                <!-- Figure -->
+                <div class="figure-container">
+                    <!-- Hoved -->
+                    <div class="head">
+                        <span>Hoved</span>
+                    </div>
+                    
+                    <!-- Torso -->
+                    <div class="torso"></div>
+                    
+                    <!-- Venstre arm hierarki -->
+                    <div class="skulder_translate_left">
+                        <div class="skulder_rotate_left">
+                            <div class="arm_geo_left">
+                                <div class="albue_rotate_left">
+                                    <div class="albue_geo_left"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Højre arm hierarki -->
+                    <div class="skulder_translate_right">
+                        <div class="skulder_rotate_right">
+                            <div class="arm_geo_right">
+                                <div class="albue_rotate_right">
+                                    <div class="albue_geo_right"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Venstre ben hierarki -->
+                    <div class="hofte_translate_left">
+                        <div class="hofte_rotate_left">
+                            <div class="laar_geo_left">
+                                <div class="knae_rotate_left">
+                                    <div class="skinneben_geo_left"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Højre ben hierarki -->
+                    <div class="hofte_translate_right">
+                        <div class="hofte_rotate_right">
+                            <div class="laar_geo_right">
+                                <div class="knae_rotate_right">
+                                    <div class="skinneben_geo_right"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Animation Timeline -->
+    <div class="timeline-panel">
+        <h2>Animation Timeline</h2>
+        <div class="timeline-controls">
+			<button class="btn btn-success" onclick="playAnimation()">▶ Play</button>
+			<button class="btn btn-secondary" onclick="stopAnimation()">⏹ Stop</button>
+			<button class="btn btn-danger" onclick="clearTimeline()">🗑 Ryd</button>
+		</div>
+        <div class="timeline-container">
+            <div class="timeline-track" id="timelineTrack">
+               
+                <button class="add-slide-btn" onclick="addTimelineSlide()">+</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Session pose library
+        let poseLibrary = [];
+        let currentPoseId = null;
+        let currentPose = {};
+
+        // Animation timeline
+        let timelineSlides = [getDefaultPose()];
+        let currentSlideIndex = 0;
+        let isPlaying = false;
+
+        function getDefaultPose() {
+            return {
+                translate_x_left: 0, translate_y_left: 0, skulder_rot_left: 0, albue_rot_left: 0,
+                translate_x: 0, translate_y: 0, skulder_rot: 0, albue_rot: 0,
+                translate_x_left_leg: 0, translate_y_left_leg: 0, hofte_rot_left: 0, knae_rot_left: 0,
+                translate_x_right_leg: 0, translate_y_right_leg: 0, hofte_rot_right: 0, knae_rot_right: 0,
+                left_arm_front: false,
+                right_arm_front: false,
+                duration: 0.1
+            };
+        }
+		
+		
+		
+		
+		
+		function applyPoseSilently(pose) {
+			// Temporarily remove event listeners to avoid triggering updateTransforms
+			const sliders = document.querySelectorAll('input[type="range"]');
+			sliders.forEach(slider => {
+				slider.removeEventListener('input', updateTransforms);
+			});
+			
+			const leftCheck = document.getElementById('left_arm_front');
+			const rightCheck = document.getElementById('right_arm_front');
+			leftCheck.removeEventListener('change', updateTransforms);
+			rightCheck.removeEventListener('change', updateTransforms);
+			
+			// Update slider values
+			sliders.forEach(slider => {
+				slider.value = pose[slider.id] || 0;
+			});
+			
+			// Update checkboxes
+			leftCheck.checked = pose.left_arm_front || false;
+			rightCheck.checked = pose.right_arm_front || false;
+			
+			// Update currentPose
+			currentPose = {...pose};
+			
+			// Apply transforms directly to the big figure
+			document.querySelector('.skulder_translate_left').style.transform = 
+				`translate(${pose.translate_x_left || 0}px, ${pose.translate_y_left || 0}px)`;
+			document.querySelector('.skulder_rotate_left').style.transform = 
+				`rotate(${pose.skulder_rot_left || 0}deg)`;
+			document.querySelector('.albue_rotate_left').style.transform = 
+				`rotate(${pose.albue_rot_left || 0}deg)`;
+			
+			document.querySelector('.skulder_translate_right').style.transform = 
+				`translate(${pose.translate_x || 0}px, ${pose.translate_y || 0}px)`;
+			document.querySelector('.skulder_rotate_right').style.transform = 
+				`rotate(${pose.skulder_rot || 0}deg)`;
+			document.querySelector('.albue_rotate_right').style.transform = 
+				`rotate(${pose.albue_rot || 0}deg)`;
+			
+			document.querySelector('.hofte_translate_left').style.transform = 
+				`translate(${pose.translate_x_left_leg || 0}px, ${pose.translate_y_left_leg || 0}px)`;
+			document.querySelector('.hofte_rotate_left').style.transform = 
+				`rotate(${pose.hofte_rot_left || 0}deg)`;
+			document.querySelector('.knae_rotate_left').style.transform = 
+				`rotate(${pose.knae_rot_left || 0}deg)`;
+
+			document.querySelector('.hofte_translate_right').style.transform = 
+				`translate(${pose.translate_x_right_leg || 0}px, ${pose.translate_y_right_leg || 0}px)`;
+			document.querySelector('.hofte_rotate_right').style.transform = 
+				`rotate(${pose.hofte_rot_right || 0}deg)`;
+			document.querySelector('.knae_rotate_right').style.transform = 
+				`rotate(${pose.knae_rot_right || 0}deg)`;
+			
+			// Handle arm layering
+			const leftSkulder = document.querySelector('.skulder_translate_left');
+			const rightSkulder = document.querySelector('.skulder_translate_right');
+			
+			if (pose.left_arm_front) {
+				leftSkulder.classList.add('front-arm');
+			} else {
+				leftSkulder.classList.remove('front-arm');
+			}
+			
+			if (pose.right_arm_front) {
+				rightSkulder.classList.add('front-arm');
+			} else {
+				rightSkulder.classList.remove('front-arm');
+			}
+			
+			// Update value displays
+			updateValueDisplays();
+			
+			// Re-attach event listeners
+			sliders.forEach(slider => {
+				slider.addEventListener('input', updateTransforms);
+			});
+			leftCheck.addEventListener('change', updateTransforms);
+			rightCheck.addEventListener('change', updateTransforms);
+		}
+		
+		function updateSingleSlideDisplay(index) {
+    const slides = document.querySelectorAll('.timeline-slide');
+    if (slides[index]) {
+        const miniFigure = slides[index].querySelector('.mini-figure');
+        if (miniFigure) {
+            updateMiniPoseTransforms(miniFigure, currentPose);
+        }
+    }
+}
+
+
+function testSlideData() {
+    console.log("=== SLIDE DATA TEST ===");
+    timelineSlides.forEach((slide, index) => {
+        console.log(`Slide ${index}:`, slide.translate_x_left, slide.translate_x, slide.skulder_rot_left);
+    });
+    console.log("Current slide index:", currentSlideIndex);
+    console.log("======================");
+}
+
+		
+		function updateTransforms() {
+    console.log("updateTransforms called, currentSlideIndex:", currentSlideIndex);
+    
+    // resten af funktionen...
+			// Get all slider values
+			const sliders = document.querySelectorAll('input[type="range"]');
+			
+			sliders.forEach(slider => {
+				currentPose[slider.id] = parseInt(slider.value);
+			});
+
+			// Get checkbox states
+			currentPose.left_arm_front = document.getElementById('left_arm_front').checked;
+			currentPose.right_arm_front = document.getElementById('right_arm_front').checked;
+
+			// Update timeline slide with current pose
+		if (currentSlideIndex >= 0 && currentSlideIndex < timelineSlides.length) {
+    console.log("updateTransforms updating slide:", currentSlideIndex, "with pose data");
+    timelineSlides[currentSlideIndex] = {...currentPose, duration: timelineSlides[currentSlideIndex].duration || 1.0};
+			
+			updateSingleSlideDisplay(currentSlideIndex);
+		}
+
+			// Update main figure transforms
+			document.querySelector('.skulder_translate_left').style.transform = 
+				`translate(${currentPose.translate_x_left}px, ${currentPose.translate_y_left}px)`;
+			document.querySelector('.skulder_rotate_left').style.transform = 
+				`rotate(${currentPose.skulder_rot_left}deg)`;
+			document.querySelector('.albue_rotate_left').style.transform = 
+				`rotate(${currentPose.albue_rot_left}deg)`;
+			
+			document.querySelector('.skulder_translate_right').style.transform = 
+				`translate(${currentPose.translate_x}px, ${currentPose.translate_y}px)`;
+			document.querySelector('.skulder_rotate_right').style.transform = 
+				`rotate(${currentPose.skulder_rot}deg)`;
+			document.querySelector('.albue_rotate_right').style.transform = 
+				`rotate(${currentPose.albue_rot}deg)`;
+			
+			document.querySelector('.hofte_translate_left').style.transform = 
+				`translate(${currentPose.translate_x_left_leg}px, ${currentPose.translate_y_left_leg}px)`;
+			document.querySelector('.hofte_rotate_left').style.transform = 
+				`rotate(${currentPose.hofte_rot_left}deg)`;
+			document.querySelector('.knae_rotate_left').style.transform = 
+				`rotate(${currentPose.knae_rot_left}deg)`;
+
+			document.querySelector('.hofte_translate_right').style.transform = 
+				`translate(${currentPose.translate_x_right_leg}px, ${currentPose.translate_y_right_leg}px)`;
+			document.querySelector('.hofte_rotate_right').style.transform = 
+				`rotate(${currentPose.hofte_rot_right}deg)`;
+			document.querySelector('.knae_rotate_right').style.transform = 
+				`rotate(${currentPose.knae_rot_right}deg)`;
+			
+			// Update value displays
+			updateValueDisplays();
+			
+			// Update only the current slide's mini figure
+			const slides = document.querySelectorAll('.timeline-slide');
+			if (slides[currentSlideIndex]) {
+				const miniFigure = slides[currentSlideIndex].querySelector('.mini-figure');
+				if (miniFigure) {
+					updateMiniPoseTransforms(miniFigure, currentPose);
+				}
+			}
+		}
+        
+        function toggleArmLayer(side) {
+            const checkbox = document.getElementById(`${side}_arm_front`);
+            const skulderTranslate = document.querySelector(`.skulder_translate_${side}`);
+            
+            if (checkbox && checkbox.checked) {
+                skulderTranslate.classList.add('front-arm');
+            } else {
+                skulderTranslate.classList.remove('front-arm');
+            }
+        }
+
+        function updateValueDisplays() {
+            document.getElementById('translate_x_left_val').textContent = currentPose.translate_x_left || 0;
+            document.getElementById('translate_y_left_val').textContent = currentPose.translate_y_left || 0;
+            document.getElementById('skulder_rot_left_val').textContent = (currentPose.skulder_rot_left || 0) + '°';
+            document.getElementById('albue_rot_left_val').textContent = (currentPose.albue_rot_left || 0) + '°';
+            
+            document.getElementById('translate_x_val').textContent = currentPose.translate_x || 0;
+            document.getElementById('translate_y_val').textContent = currentPose.translate_y || 0;
+            document.getElementById('skulder_rot_val').textContent = (currentPose.skulder_rot || 0) + '°';
+            document.getElementById('albue_rot_val').textContent = (currentPose.albue_rot || 0) + '°';
+            
+            document.getElementById('translate_x_left_leg_val').textContent = currentPose.translate_x_left_leg || 0;
+            document.getElementById('translate_y_left_leg_val').textContent = currentPose.translate_y_left_leg || 0;
+            document.getElementById('hofte_rot_left_val').textContent = (currentPose.hofte_rot_left || 0) + '°';
+            document.getElementById('knae_rot_left_val').textContent = (currentPose.knae_rot_left || 0) + '°';
+
+            document.getElementById('translate_x_right_leg_val').textContent = currentPose.translate_x_right_leg || 0;
+            document.getElementById('translate_y_right_leg_val').textContent = currentPose.translate_y_right_leg || 0;
+            document.getElementById('hofte_rot_right_val').textContent = (currentPose.hofte_rot_right || 0) + '°';
+            document.getElementById('knae_rot_right_val').textContent = (currentPose.knae_rot_right || 0) + '°';
+        }
+
+        function resetSliders() {
+            const defaultPose = getDefaultPose();
+            applyPose(defaultPose);
+        }
+
+        function applyPose(pose) {
+            // Apply pose values to sliders
+            Object.keys(pose).forEach(key => {
+                const slider = document.getElementById(key);
+                if (slider && slider.type === 'range') {
+                    slider.value = pose[key];
+                }
+            });
+            
+            // Apply checkbox states
+            if (pose.left_arm_front !== undefined) {
+                document.getElementById('left_arm_front').checked = pose.left_arm_front;
+                toggleArmLayer('left');
+            }
+            if (pose.right_arm_front !== undefined) {
+                document.getElementById('right_arm_front').checked = pose.right_arm_front;
+                toggleArmLayer('right');
+            }
+            
+            currentPose = {...pose};
+            updateTransforms();
+        }
+        
+        function flipPose() {
+            // Save current toggle states
+            const leftArmFront = currentPose.left_arm_front;
+            const rightArmFront = currentPose.right_arm_front;
+            
+            // Save current values to swap
+            const leftArmX = currentPose.translate_x_left || 0;
+            const rightArmX = currentPose.translate_x || 0;
+            const leftArmY = currentPose.translate_y_left || 0;
+            const rightArmY = currentPose.translate_y || 0;
+            const leftShoulderRot = currentPose.skulder_rot_left || 0;
+            const rightShoulderRot = currentPose.skulder_rot || 0;
+            const leftElbowRot = currentPose.albue_rot_left || 0;
+            const rightElbowRot = currentPose.albue_rot || 0;
+            
+            const leftLegX = currentPose.translate_x_left_leg || 0;
+            const rightLegX = currentPose.translate_x_right_leg || 0;
+            const leftLegY = currentPose.translate_y_left_leg || 0;
+            const rightLegY = currentPose.translate_y_right_leg || 0;
+            const leftHipRot = currentPose.hofte_rot_left || 0;
+            const rightHipRot = currentPose.hofte_rot_right || 0;
+            const leftKneeRot = currentPose.knae_rot_left || 0;
+            const rightKneeRot = currentPose.knae_rot_right || 0;
+            
+            // Flip arms: swap sides and invert X and rotations
+            currentPose.translate_x_left = -rightArmX;
+            currentPose.translate_x = -leftArmX;
+            currentPose.translate_y_left = rightArmY;
+            currentPose.translate_y = leftArmY;
+            currentPose.skulder_rot_left = -rightShoulderRot;
+            currentPose.skulder_rot = -leftShoulderRot;
+            currentPose.albue_rot_left = -rightElbowRot;
+            currentPose.albue_rot = -leftElbowRot;
+            
+            // Flip legs: swap sides and invert X and rotations
+            currentPose.translate_x_left_leg = -rightLegX;
+            currentPose.translate_x_right_leg = -leftLegX;
+            currentPose.translate_y_left_leg = rightLegY;
+            currentPose.translate_y_right_leg = leftLegY;
+            currentPose.hofte_rot_left = -rightHipRot;
+            currentPose.hofte_rot_right = -leftHipRot;
+            currentPose.knae_rot_left = -rightKneeRot;
+            currentPose.knae_rot_right = -leftKneeRot;
+            
+            // Swap toggle states
+            currentPose.left_arm_front = rightArmFront;
+            currentPose.right_arm_front = leftArmFront;
+            
+            // Apply the flipped pose
+            applyPose(currentPose);
+        }
+
+        function newPose() {
+            currentPoseId = null;
+            document.getElementById('poseName').value = '';
+            resetSliders();
+            updatePoseLibraryDisplay();
+        }
+
+        function savePoseToLibrary() {
+            const name = document.getElementById('poseName').value.trim();
+            
+            if (!name) {
+                alert('Indtast venligst et navn for posen!');
+                return;
+            }
+            
+            const poseData = {...currentPose};
+            
+            if (currentPoseId !== null) {
+                // Update existing pose
+                poseLibrary[currentPoseId] = {
+                    name: name,
+                    pose: poseData
+                };
+                alert(`Pose "${name}" opdateret!`);
+            } else {
+                // Add new pose
+                poseLibrary.push({
+                    name: name,
+                    pose: poseData
+                });
+                currentPoseId = poseLibrary.length - 1;
+                alert(`Pose "${name}" gemt!`);
+            }
+            
+            updatePoseLibraryDisplay();
+        }
+        
+        function saveAsNewPose() {
+            const name = document.getElementById('poseName').value.trim();
+            
+            if (!name) {
+                alert('Indtast venligst et navn for den nye pose!');
+                return;
+            }
+            
+            // Check if name already exists
+            const existingPose = poseLibrary.find(pose => pose.name === name);
+            if (existingPose) {
+                if (!confirm(`En pose med navnet "${name}" findes allerede. Vil du overskrive den?`)) {
+                    return;
+                }
+            }
+        
+            const poseData = {...currentPose};
+            
+            // Always add as new pose (don't update existing)
+            poseLibrary.push({
+                name: name,
+                pose: poseData
+            });
+            
+            // Set current selection to the new pose
+            currentPoseId = poseLibrary.length - 1;
+            
+            updatePoseLibraryDisplay();
+            alert(`Ny pose "${name}" gemt!`);
+        }
+
+        function loadPoseFromLibrary(index) {
+            if (index >= 0 && index < poseLibrary.length) {
+                const pose = poseLibrary[index];
+                currentPoseId = index;
+                document.getElementById('poseName').value = pose.name;
+                applyPose(pose.pose);
+                updatePoseLibraryDisplay();
+            }
+        }
+
+        function deletePoseFromLibrary(index) {
+            if (index >= 0 && index < poseLibrary.length) {
+                const poseName = poseLibrary[index].name;
+                
+                if (confirm(`Er du sikker på at du vil slette "${poseName}"?`)) {
+                    poseLibrary.splice(index, 1);
+                    
+                    // Adjust currentPoseId if necessary
+                    if (currentPoseId === index) {
+                        currentPoseId = null;
+                        newPose();
+                    } else if (currentPoseId > index) {
+                        currentPoseId--;
+                    }
+                    
+                    updatePoseLibraryDisplay();
+                    alert(`Pose "${poseName}" slettet!`);
+                }
+            }
+        }
+
+        function updatePoseLibraryDisplay() {
+            const container = document.getElementById('poseButtons');
+            
+            if (poseLibrary.length === 0) {
+                container.innerHTML = '<div class="no-poses">Ingen poses endnu...<br>Opret din første pose!</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            poseLibrary.forEach((pose, index) => {
+                const button = document.createElement('div');
+                button.className = 'pose-button' + (index === currentPoseId ? ' active' : '');
+                
+                button.innerHTML = `
+                    <div class="pose-button-text">${pose.name}</div>
+                    <button class="delete-pose-btn" onclick="deletePoseFromLibrary(${index}); event.stopPropagation();">×</button>
+                `;
+                
+                button.onclick = () => loadPoseFromLibrary(index);
+                container.appendChild(button);
+            });
+        }
+
+        function exportAllPoses() {
+            if (poseLibrary.length === 0) {
+                alert('Ingen poses at eksportere!');
+                return;
+            }
+            
+            const exportData = {
+                version: "1.0",
+                created: new Date().toISOString(),
+                poses: poseLibrary
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'poses.json';
+            link.click();
+            
+            alert(`${poseLibrary.length} poses eksporteret!`);
+        }
+
+        function importPoses(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    // Handle different formats
+                    let importedPoses = [];
+                    
+                    if (data.poses && Array.isArray(data.poses)) {
+                        // New format
+                        importedPoses = data.poses;
+                    } else if (Array.isArray(data)) {
+                        // Simple array format
+                        importedPoses = data;
+                    } else {
+                        // Single pose format
+                        importedPoses = [data];
+                    }
+                    
+                    // Validate and import
+                    let validPoses = 0;
+                    importedPoses.forEach(pose => {
+                        if (pose.name && pose.pose) {
+                            poseLibrary.push(pose);
+                            validPoses++;
+                        }
+                    });
+                    
+                    updatePoseLibraryDisplay();
+                    alert(`${validPoses} poses indlæst succesfuldt!`);
+                    
+                } catch (error) {
+                    alert('Fejl ved indlæsning af fil. Tjek at det er en gyldig JSON fil.');
+                    console.error('Import error:', error);
+                }
+            };
+            
+            reader.readAsText(file);
+            // Reset file input
+            event.target.value = '';
+        }
+
+//////////// Timeline Functions
+
+    
+function selectTimelineSlide(index) {
+    console.log("NEW selectTimelineSlide called with index:", index);
+    
+    if (index >= 0 && index < timelineSlides.length) {
+        currentSlideIndex = index;
+        console.log("About to apply pose silently for slide:", index);
+        applyPoseSilently(timelineSlides[index]);
+        console.log("Finished applying pose silently");
+        
+        currentPoseId = null;
+        document.getElementById('poseName').value = '';
+        updatePoseLibraryDisplay();
+        
+        updateTimelineHighlight(); // <-- TILFØJ DENNE LINJE
+    }
+}
+
+
+
+
+		function addTimelineSlide() {
+			// Add current pose as new timeline slide
+			timelineSlides.push({...currentPose, duration: 0.1});
+			currentSlideIndex = timelineSlides.length - 1;
+			updateTimelineDisplay();
+		}
+		
+		function updateTimelineHighlight() {
+    console.log("updateTimelineHighlight called, currentSlideIndex:", currentSlideIndex);
+    
+    const slides = document.querySelectorAll('.timeline-slide');
+    slides.forEach((slide, index) => {
+        if (index === currentSlideIndex) {
+            slide.classList.add('active');
+            console.log("Added active to slide", index);
+        } else {
+            slide.classList.remove('active');
+        }
+    });
+}
+
+function moveTimelineSlide(fromIndex, direction) {
+    const toIndex = fromIndex + direction;
+    
+    if (toIndex < 0 || toIndex >= timelineSlides.length) return;
+    
+    // Swap slides
+    const temp = timelineSlides[fromIndex];
+    timelineSlides[fromIndex] = timelineSlides[toIndex];
+    timelineSlides[toIndex] = temp;
+    
+    // Update currentSlideIndex if necessary
+    if (currentSlideIndex === fromIndex) {
+        currentSlideIndex = toIndex;
+    } else if (currentSlideIndex === toIndex) {
+        currentSlideIndex = fromIndex;
+    }
+    
+    updateTimelineDisplay();
+}
+
+
+
+       function updateTimelineDisplay() {
+			console.log("updateTimelineDisplay called");
+			const track = document.getElementById('timelineTrack');
+			const addBtn = track.querySelector('.add-slide-btn');
+			
+			// Remove all slides except add button
+			track.querySelectorAll('.timeline-slide').forEach(slide => slide.remove());
+			
+			// Add all timeline slides
+			timelineSlides.forEach((slide, index) => {
+				const slideElement = document.createElement('div');
+				slideElement.className = 'timeline-slide' + (index === currentSlideIndex ? ' active' : '');
+				
+				slideElement.innerHTML = `
+					 <button class="delete-slide-btn" onclick="deleteTimelineSlide(${index}); event.stopPropagation();">×</button>
+					${index > 0 ? `<button class="move-slide-btn move-slide-left" onclick="moveTimelineSlide(${index}, -1); event.stopPropagation();">‹</button>` : ''}
+					${index < timelineSlides.length - 1 ? `<button class="move-slide-btn move-slide-right" onclick="moveTimelineSlide(${index}, 1); event.stopPropagation();">›</button>` : ''}
+					<!-- resten af din HTML -->
+					<div class="mini-figure">
+						<div class="head"></div>
+						<div class="torso"></div>
+						
+						<div class="skulder_translate_left">
+							<div class="skulder_rotate_left">
+								<div class="arm_geo_left">
+									<div class="albue_rotate_left">
+										<div class="albue_geo_left"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<div class="skulder_translate_right">
+							<div class="skulder_rotate_right">
+								<div class="arm_geo_right">
+									<div class="albue_rotate_right">
+										<div class="albue_geo_right"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<div class="hofte_translate_left">
+							<div class="hofte_rotate_left">
+								<div class="laar_geo_left">
+									<div class="knae_rotate_left">
+										<div class="skinneben_geo_left"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="hofte_translate_right">
+							<div class="hofte_rotate_right">
+								<div class="laar_geo_right">
+									<div class="knae_rotate_right">
+										<div class="skinneben_geo_right"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="slide-info">
+						<label>Varighed (s):</label>
+						<input type="number" class="duration-input" value="${slide.duration || 0.1}" min="0.05" max="10" step="0.05" 
+							   onchange="updateSlideDuration(${index}, this.value)">
+					</div>
+				`;
+
+				// Apply the pose transforms to mini figure
+				updateMiniPoseTransforms(slideElement.querySelector('.mini-figure'), slide);
+
+				// Add event listener for clicking on entire slide
+				slideElement.addEventListener('click', () => selectTimelineSlide(index));
+
+				track.insertBefore(slideElement, addBtn);
+			});
+		}
+		
+		function deleteTimelineSlide(index) {
+			if (timelineSlides.length <= 1) {
+				alert('Du skal have mindst ét slide!');
+				return;
+			}
+			
+			if (confirm('Er du sikker på at du vil slette dette slide?')) {
+				timelineSlides.splice(index, 1);
+				
+				// Adjust currentSlideIndex if necessary
+				if (currentSlideIndex >= timelineSlides.length) {
+					currentSlideIndex = timelineSlides.length - 1;
+				}
+				
+				updateTimelineDisplay();
+				selectTimelineSlide(currentSlideIndex);
+			}
+		}
+		
+		
+		
+
+        function updateSlideDuration(index, duration) {
+            if (timelineSlides[index]) {
+                timelineSlides[index].duration = parseFloat(duration);
+            }
+        }
+
+			function updateMiniPoseTransforms(miniElement, poseData) {
+			console.log("updateMiniPoseTransforms called for slide");
+			
+				miniElement.querySelector('.skulder_translate_left').style.transform = 
+					`translate(${poseData.translate_x_left || 0}px, ${poseData.translate_y_left || 0}px)`;
+				miniElement.querySelector('.skulder_rotate_left').style.transform = 
+					`rotate(${poseData.skulder_rot_left || 0}deg)`;
+				miniElement.querySelector('.albue_rotate_left').style.transform = 
+					`rotate(${poseData.albue_rot_left || 0}deg)`;
+				
+				miniElement.querySelector('.skulder_translate_right').style.transform = 
+					`translate(${poseData.translate_x || 0}px, ${poseData.translate_y || 0}px)`;
+				miniElement.querySelector('.skulder_rotate_right').style.transform = 
+					`rotate(${poseData.skulder_rot || 0}deg)`;
+				miniElement.querySelector('.albue_rotate_right').style.transform = 
+					`rotate(${poseData.albue_rot || 0}deg)`;
+				
+				miniElement.querySelector('.hofte_translate_left').style.transform = 
+					`translate(${poseData.translate_x_left_leg || 0}px, ${poseData.translate_y_left_leg || 0}px)`;
+				miniElement.querySelector('.hofte_rotate_left').style.transform = 
+					`rotate(${poseData.hofte_rot_left || 0}deg)`;
+				miniElement.querySelector('.knae_rotate_left').style.transform = 
+					`rotate(${poseData.knae_rot_left || 0}deg)`;
+
+				miniElement.querySelector('.hofte_translate_right').style.transform = 
+					`translate(${poseData.translate_x_right_leg || 0}px, ${poseData.translate_y_right_leg || 0}px)`;
+				miniElement.querySelector('.hofte_rotate_right').style.transform = 
+					`rotate(${poseData.hofte_rot_right || 0}deg)`;
+				miniElement.querySelector('.knae_rotate_right').style.transform = 
+					`rotate(${poseData.knae_rot_right || 0}deg)`;
+			}
+
+
+        async function playAnimation() {
+            if (timelineSlides.length < 2) {
+                alert('Tilføj mindst 2 slides for at afspille animation!');
+                return;
+            }
+			
+
+            isPlaying = true;
+            
+            for (let i = 0; i < timelineSlides.length; i++) {
+                if (!isPlaying) break;
+                
+                // Highlight current slide
+                currentSlideIndex = i;
+                updateTimelineDisplay();
+                
+                // Apply pose with transition
+                const pose = timelineSlides[i];
+                const duration = pose.duration || 1.0;
+                
+               // Sæt transition på alle de elementer der faktisk animeres
+				const animatedElements = [
+					'.skulder_translate_left', '.skulder_rotate_left', '.albue_rotate_left',
+					'.skulder_translate_right', '.skulder_rotate_right', '.albue_rotate_right',
+					'.hofte_translate_left', '.hofte_rotate_left', '.knae_rotate_left',
+					'.hofte_translate_right', '.hofte_rotate_right', '.knae_rotate_right'
+				];
+
+				animatedElements.forEach(selector => {
+					document.querySelector(selector).style.transition = `transform ${duration}s cubic-bezier(0.25, 0.1, 0.25, 1)`;
+				});
+                
+                applyPose(pose);
+                
+                // Wait for transition to complete
+                await new Promise(resolve => setTimeout(resolve, duration * 1000));
+            }
+            
+            isPlaying = false;
+            // Reset transition
+            document.querySelector('.figure-container').style.transition = '';
+        }
+
+        function stopAnimation() {
+            isPlaying = false;
+           const animatedElements = [
+				'.skulder_translate_left', '.skulder_rotate_left', '.albue_rotate_left',
+				'.skulder_translate_right', '.skulder_rotate_right', '.albue_rotate_right',
+				'.hofte_translate_left', '.hofte_rotate_left', '.knae_rotate_left',
+				'.hofte_translate_right', '.hofte_rotate_right', '.knae_rotate_right'
+			];
+
+animatedElements.forEach(selector => {
+    document.querySelector(selector).style.transition = '';
+});
+        }
+
+        function clearTimeline() {
+            if (confirm('Er du sikker på du vil ryde hele timeline?')) {
+                timelineSlides = [getDefaultPose()];
+                currentSlideIndex = 0;
+                updateTimelineDisplay();
+                applyPose(timelineSlides[0]);
+            }
+        }
+		
+		function exportTimelineSlides() {
+    if (timelineSlides.length === 0) {
+        alert('Ingen timeline slides at eksportere!');
+        return;
+    }
+    
+    const exportData = {
+        version: "1.0",
+        type: "timeline",
+        created: new Date().toISOString(),
+        slides: timelineSlides
+    };
+    
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = 'timeline.json';
+    link.click();
+    
+    alert(`${timelineSlides.length} slides eksporteret!`);
+}
+
+function importTimelineSlides(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            // Handle different formats
+            let importedSlides = [];
+            
+            if (data.slides && Array.isArray(data.slides)) {
+                // Timeline format
+                importedSlides = data.slides;
+            } else if (Array.isArray(data)) {
+                // Simple array format
+                importedSlides = data;
+            } else {
+                alert('Ugyldig timeline fil format.');
+                return;
+            }
+            
+            // Validate slides have required properties
+            let validSlides = 0;
+            importedSlides.forEach(slide => {
+                if (slide.duration !== undefined) {
+                    validSlides++;
+                }
+            });
+            
+            if (validSlides > 0) {
+                timelineSlides = importedSlides;
+                currentSlideIndex = 0;
+                updateTimelineDisplay();
+                if (timelineSlides.length > 0) {
+                    selectTimelineSlide(0);
+                }
+                alert(`${validSlides} slides indlæst succesfuldt!`);
+            } else {
+                alert('Ingen gyldige slides fundet i filen.');
+            }
+            
+        } catch (error) {
+            alert('Fejl ved indlæsning af fil. Tjek at det er en gyldig JSON fil.');
+            console.error('Timeline import error:', error);
+        }
+    };
+    
+    reader.readAsText(file);
+    event.target.value = '';
+}
+		
+function exportForJavaScript() {
+    if (timelineSlides.length === 0) {
+        alert('Ingen timeline slides at eksportere!');
+        return;
+    }
+    
+    const animationName = prompt('Hvad skal animationen hedde?', 'myAnimation');
+    if (!animationName) return;
+    
+    // Fjern mellemrum og specialtegn fra navn
+    const cleanName = animationName.replace(/[^a-zA-Z0-9æøåÆØÅ]/g, '_').toLowerCase();
+    
+    const jsCode = `    ${cleanName}: {
+        slides: ${JSON.stringify(timelineSlides, null, 12)}
+    },`;
+    
+    const dataBlob = new Blob([jsCode], {type: 'text/javascript'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `${cleanName}_animation.js`;
+    link.click();
+    
+    alert(`Animation "${animationName}" eksporteret!\n\nCopy-paste indholdet fra filen ind i dit animations objekt.`);
+}		
+		
+
+        // Initialize
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            slider.addEventListener('input', updateTransforms);
+        });
+        
+        // Add checkbox listeners
+        document.getElementById('left_arm_front').addEventListener('change', updateTransforms);
+        document.getElementById('right_arm_front').addEventListener('change', updateTransforms);
+                
+        // Initialize with default state
+        newPose();
+        updateTimelineDisplay();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coaching Session Designer</title>
+    <script src="coaching_engine.js" defer></script>
+    <script src="coaching_overlay_complete.js" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .node {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #fafafa;
+        }
+        
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .node-id {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-bottom: 2px solid #ddd;
+            border-radius: 3px;
+        }
+        
+        .delete-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .delete-btn:hover {
+            background: #cc0000;
+        }
+        
+        .field {
+            margin-bottom: 12px;
+        }
+        
+        label {
+            display: block;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        
+        textarea {
+            resize: vertical;
+            font-family: monospace;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 0 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            line-height: 1;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .nodes-container {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .message.coach {
+            background: #e3f2fd;
+            margin-right: 60px;
+        }
+        
+        .message.user {
+            background: #e8f5e8;
+            margin-left: 60px;
+        }
+        
+        .message-label {
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #666;
+        }
+        
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            background: #fafafa;
+            margin-bottom: 15px;
+        }
+        
+        .input-area {
+            display: none;
+        }
+        
+        .input-area.active {
+            display: block;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        #jsonEditor {
+            height: 300px;
+            font-size: 12px;
+        }
+        
+        #testVariables {
+            height: 80px;
+            font-size: 12px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 60px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin-bottom: 0;">Coaching Session Designer</h1>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="text" id="projectNameInput" placeholder="Projektnavn..." style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 14px;">
+                <button class="btn" onclick="downloadProject()">Gem Projekt</button>
+                <button class="btn" onclick="document.getElementById('projectUploadInput').click()">Indlæs Projekt</button>
+                <button class="btn btn-secondary" onclick="showHelp()">Hjælp</button>
+                <button class="btn btn-secondary" onclick="showFlow()">Vis Flow</button>
+                <input type="file" id="projectUploadInput" accept=".json" style="display: none;" onchange="uploadProject(event)">
+            </div>
+        </div>
+        
+        <div class="grid">
+            <!-- Venstre side: Node Builder -->
+            <div>
+                <div class="panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2>Nodes</h2>
+                        <button class="btn" onclick="addNode()">+ Tilføj Node</button>
+                    </div>
+                    
+                    <div class="nodes-container" id="nodesContainer"></div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+    <h2 style="margin-bottom: 0;">Session Data (JSON)</h2>
+    <div>
+        <button class="btn" onclick="downloadSession()" style="margin-right: 10px;">Gem</button>
+        <button class="btn" onclick="document.getElementById('uploadInput').click()">Indlæs</button>
+        <input type="file" id="uploadInput" accept=".json" style="display: none;" onchange="uploadSession(event)">
+        <button class="btn" onclick="loadFromJSON()" style="margin-left: 10px;">Opdater</button>
+    </div>
+</div>
+					<textarea id="jsonEditor"></textarea>
+				</div>
+            </div>
+            
+            <!-- Højre side: Test Runner -->
+            <div>
+                <div class="panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2 style="margin-bottom: 0;">Test Variabler</h2>
+                    </div>
+                    <textarea id="testVariables">"deltagere": ["Anna", "Peter", "Else"]
+"højre side": "Mads"</textarea>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-success" onclick="startTest()">Start Coaching Session</button>
+                        <button class="btn btn-secondary" onclick="loadExternalData()">Indlæs Data</button>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <h2>Coaching Session</h2>
+                    <div class="chat-container" id="chatContainer">
+                        <div class="empty-state">Klik "Start Coaching Session" for at begynde</div>
+                    </div>
+                    
+                    <div class="input-area" id="inputArea">
+                        <textarea id="userInput" placeholder="Skriv dit svar..." style="height: 100px;"></textarea>
+                        <div class="button-group">
+                            <button class="btn" onclick="openDialogPopup('myCoachingProject')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">Dialog</button>
+                            <button class="btn" onclick="createTestProject()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">Gem som Projekt</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        
+
+    <script>
+        // State
+        let nodes = [
+			{
+				id: 'start',
+				type: 'all',
+				questions: [],
+				next: ''
+			}
+		];
+        
+        let engine = null;
+        let currentQuestion = null;
+		
+		function showHelp() {
+		const helpText = `COACHING SESSION DESIGNER  HJÆLP
+
+=== OVERBLIK ===
+Design samtaleforløb med noder (trin), variabler og enkel logik.
+- Venstre: Byg noder og se JSON.
+- Højre: Sæt test-variabler, vis flow, kør tests.
+
+=== NODE-TYPER ===
+ALL
+Viser alle spørgsmål i rækkefølge. Brugeren svarer før næste vises.
+- Questions: én linje pr. spørgsmål (tom linje adskiller).
+- Items (valgfri): loop over liste/variabel. Brug {{item}} i spørgsmål.
+- Next: næste node-id eller tom (slut).
+
+PICK
+Vælger ét tilfældigt spørgsmål (og evt. ét tilfældigt item) og viser det.
+- Questions, Items (valgfri), Next.
+
+RANDOM
+Vælger N tilfældige spørgsmål (evt. pr. item) og viser dem i rækkefølge.
+- Questions, Items (valgfri), Count, Next.
+
+CHOICE
+Viser valg som knapper eller en slider og gemmer automatisk værdien.
+- Question: brug <<variabel>> der hvor knapper/slider skal indsættes.
+- Buttons: Items som "a, b, c" eller navn på variabel-liste.
+- Slider (vælg input_type=slider): min, max, step, labels.
+- Next.
+
+SAVE
+Stiller et spørgsmål og gemmer frit tekstsvar i variabel.
+- Question, Save As, Next.
+
+BRANCH
+Eksekverer regler linje for linje. Kan sætte variabler og hoppe videre.
+- Rules (én regel pr. linje), Next (fallback).
+
+=== VARIABLER ===
+- Læs: {{navn}} (indsætter værdi i tekst, understøtter også {{a + b}} m.m.)
+- Skriv (i regler): <<navn>>
+- Choice: Question med <<navn>> gemmer automatisk valgt værdi i navnet.
+- Save: gemmer input i Save As-variablen.
+- Test Variabler: foruddefinér værdier (én pr. linje) før du starter.
+
+=== BRANCH-REGLER — SYNTAX ===
+Linjeformat: if betingelse -> handlinger
+Handlinger kan kædes med komma: set:..., next:...  (rækkefølgen er ligegyldig)
+
+Sammenligninger:
+- {{a}} == {{b}}, {{a}} != {{b}}
+- {{a}} > {{b}}, >=, <, <=  (tal sammenlignes numerisk)
+- Tekster angives i anførselstegn: "arbejde"
+
+Logik:
+- AND: brug &&  (if {{a}} > 10 && {{b}} == "ok")
+- OR:  brug ||
+
+Udtryk i {{...}}:
+- Aritmetik: {{x + y}}, {{x - y}}, {{x * y}}, {{x / y}}
+- Variabler og tal kan blandes: {{You_slider - Other_slider}}
+
+Handlinger:
+- set:<<navn>> = {{udtryk}}  (eller = "tekst", = 123)
+- set:score+=10  (+=, -=, *=, /= understøttes for tal)
+- next:node_id  (hopper straks til node_id)
+
+Eksempler:
+1) Kategorisering i faldende rækkefølge (sidste match vinder ikke  brug rækkefølge):
+if {{diff}} > 70 -> set:<<kategori>> = "meget stor"
+if {{diff}} > 50 -> set:<<kategori>> = "stor"
+if {{diff}} > 30 -> set:<<kategori>> = "mellem"
+if {{diff}} > 15 -> set:<<kategori>> = "lille"
+else -> set:<<kategori>> = "ubetydelig"
+
+2) Sæt vinderen og gå videre:
+if {{You_slider}} >= {{Other_slider}} -> set:<<vinder>> = {{You}}, next:vis_vinder
+else -> set:<<vinder>> = {{Other}}, next:vis_vinder
+
+3) Beregn forskel (tal, ikke tekst):
+if {{You_slider}} >= {{Other_slider}} -> set:<<forskel>> = {{You_slider - Other_slider}}
+else -> set:<<forskel>> = {{Other_slider - You_slider}}
+
+=== DATA IN/UD ===
+Session (JSON): Redigér i venstre panel, klik Opdater for at synce.
+Gem/Indlæs session som .json via knapperne.
+
+Test Variabler: én pr. linje, fx:
+"Data": "comparisonData"
+"You": "Anna"
+"You_slider": 42
+- Indlæs Data: finder nøglen i "Data" og merger værdier fra localStorage.
+
+=== FLOW & FEJLSØGNING ===
+- Vis Flow: se forbindelser, løse noder og udefinerede variabler.
+- Røde felter: manglende reference til node-id.
+- Lyserød node: ikke forbundet i flow.
+- Husk set: foran alle tildelinger i regler.
+- Brug faldende rækkefølge for klassificering (størst tærskel først).
+
+=== STARTPUNKT ===
+Der startes på den node, som er angivet i start_node.
+`;
+
+    const chat = document.getElementById('chatContainer');
+    chat.innerHTML = '';
+    addMessage('coach', helpText);
+}
+
+
+
+		function downloadSession() {
+			const sessionName = prompt('Navn på coaching session:', 'min-coaching');
+			
+			if (!sessionName) return; // Bruger trykkede cancel
+			
+			const sessionData = document.getElementById('jsonEditor').value;
+			const filename = sessionName + '_coaching.json';
+			
+			const blob = new Blob([sessionData], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = filename;
+			a.click();
+			URL.revokeObjectURL(url);
+		}
+
+		function uploadSession(event) {
+			if (window.__uploadingSession) return;
+			window.__uploadingSession = true;
+			const inputEl = event.target;
+			const file = inputEl.files[0];
+			if (!file) return;
+			
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				try {
+					const content = e.target.result;
+					document.getElementById('jsonEditor').value = content;
+					loadFromJSON();
+				} catch (error) {
+					alert('Kunne ikke læse filen: ' + error.message);
+				} finally {
+					// Reset to avoid duplicate prompts and allow same file to be re-selected
+					inputEl.value = '';
+					window.__uploadingSession = false;
+				}
+			};
+			reader.readAsText(file);
+		}
+
+		function downloadProject() {
+			try {
+				// Ensure JSON editor is synced
+				updateJSON();
+
+				const sessionDataText = document.getElementById('jsonEditor').value;
+				const sessionData = JSON.parse(sessionDataText);
+
+				const varsText = document.getElementById('testVariables').value.trim();
+				let variables = {};
+				if (varsText) {
+					if (varsText.startsWith('{')) {
+						variables = JSON.parse(varsText);
+					} else {
+						const lines = varsText.split('\n').filter(l => l.trim());
+						const jsonStr = '{' + lines.join(',') + '}';
+						variables = JSON.parse(jsonStr);
+					}
+				}
+
+				const nameInputEl = document.getElementById('projectNameInput');
+				const currentName = (nameInputEl && nameInputEl.value ? nameInputEl.value : '').trim();
+				const suffix = '_coaching_project';
+				const baseName = currentName;
+				const suggestedName = baseName
+					? (baseName.endsWith(suffix) ? baseName : (baseName + suffix))
+					: suffix;
+				const projectName = prompt('Navn på projekt:', suggestedName);
+				if (!projectName) return;
+
+				// Persist chosen name back to input
+				if (nameInputEl) nameInputEl.value = projectName;
+
+				const project = {
+					version: 1,
+					saved_at: new Date().toISOString(),
+					session: sessionData,
+					variables: variables
+				};
+
+				const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				const hasJson = /\.json$/i.test(projectName);
+				a.download = hasJson ? projectName : (projectName + '.json');
+				a.click();
+				URL.revokeObjectURL(url);
+			} catch (e) {
+				alert('Kunne ikke gemme projekt: ' + e.message);
+			}
+		}
+
+		function uploadProject(event) {
+			if (window.__uploadingProject) return;
+			window.__uploadingProject = true;
+			const inputEl = event.target;
+			const file = inputEl.files[0];
+			if (!file) return;
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				try {
+					const content = e.target.result;
+					const project = JSON.parse(content);
+
+					if (!project || !project.session) throw new Error('Ugyldigt projektformat');
+
+					// Set project name input from filename (strip .project.json or .json)
+					const fileName = (file && file.name) ? file.name : '';
+					let inferredName = fileName.replace(/\.project\.json$/i, '');
+					if (inferredName === fileName) {
+						inferredName = fileName.replace(/\.json$/i, '');
+					}
+					const nameInputEl = document.getElementById('projectNameInput');
+					if (nameInputEl && inferredName) {
+						nameInputEl.value = inferredName;
+					}
+
+					// Load session into editor and UI
+					document.getElementById('jsonEditor').value = JSON.stringify(project.session, null, 2);
+					loadFromJSON();
+
+					// Load variables into textarea (pretty print line format)
+					if (project.variables && typeof project.variables === 'object') {
+						const lines = Object.keys(project.variables).map(key => {
+							const value = project.variables[key];
+							if (Array.isArray(value)) return `"${key}": ${JSON.stringify(value)}`;
+							if (typeof value === 'number') return `"${key}": ${value}`;
+							return `"${key}": "${value}"`;
+						});
+						document.getElementById('testVariables').value = lines.join('\n');
+					}
+				} catch (err) {
+					alert('Kunne ikke indlæse projekt: ' + err.message);
+				} finally {
+					// Reset to avoid duplicate prompts and allow same file to be re-selected
+					inputEl.value = '';
+					window.__uploadingProject = false;
+				}
+			};
+			reader.readAsText(file);
+		}
+
+		
+		
+        
+        // CoachEngine (now using external coaching_engine.js)
+		
+		
+		
+		
+		
+		
+		
+        
+		function ensureDefaultStartNode() {
+			try {
+				if (!Array.isArray(nodes) || nodes.length === 0) {
+					nodes = [{ id: 'start', type: 'all', questions: [], next: '' }];
+				}
+				const editor = document.getElementById('jsonEditor');
+				if (editor && (!editor.value || editor.value.trim() === '')) {
+					const sessionData = { start_node: nodes[0].id, nodes };
+					editor.value = JSON.stringify(sessionData, null, 2);
+				}
+			} catch (_) {}
+		}
+
+		// UI Functions
+        function renderNodes() {
+			const container = document.getElementById('nodesContainer');
+			container.innerHTML = '';
+			
+			// Find connected nodes for highlighting
+				const connectedNodes = new Set([nodes.length > 0 ? nodes[0].id : '']);
+				nodes.forEach(node => {
+					if (node.next) connectedNodes.add(node.next);
+					if (node.cases) {
+						Object.values(node.cases).forEach(nextId => connectedNodes.add(nextId));
+					}
+					// Check branch rules for next: references
+					if (node.rules) {
+						const nextMatches = node.rules.matchAll(/next:(\S+)/g);
+						for (const match of nextMatches) {
+							connectedNodes.add(match[1]);
+						}
+					}
+				});
+			
+			// Check which branch nodes have invalid next: references
+				const nodesWithInvalidBranchRefs = new Set();
+				nodes.forEach((node, idx) => {
+					if (node.type === 'branch' && node.rules) {
+						const nextMatches = [...node.rules.matchAll(/next:(\S+)/g)];
+						const hasInvalidRef = nextMatches.some(match => !nodes.find(n => n.id === match[1]));
+						if (hasInvalidRef) {
+							nodesWithInvalidBranchRefs.add(idx);
+						}
+					}
+				});
+				
+				
+				
+    
+			nodes.forEach((node, index) => {
+				const div = document.createElement('div');
+				div.className = 'node';
+				
+				// Check if node is loose (not connected)
+				const isLoose = !connectedNodes.has(node.id);
+        
+        div.innerHTML = `
+            <div class="node-header">
+                <input type="text" class="node-id" value="${node.id}" 
+                    style="${isLoose ? 'border: 1px solid #ff4444; ' : ''}"
+                    onchange="nodes[${index}].id = this.value; updateJSON(); renderNodes();">
+                        <button class="delete-btn" onclick="deleteNode(${index})">Slet</button>
+                    </div>
+                    
+                    <div class="field">
+                        <label>Type</label>
+                        <select onchange="
+								const oldType = nodes[${index}].type;
+								nodes[${index}].type = this.value;
+								
+								// Clean up irrelevant fields when changing type
+								if (this.value === 'choice' || this.value === 'save') {
+									// Moving to single question type
+									if (oldType !== 'choice' && oldType !== 'save') {
+										delete nodes[${index}].questions;
+									}
+								} else if (this.value === 'branch') {
+									// Moving to branch - clean everything except rules
+									delete nodes[${index}].questions;
+									delete nodes[${index}].question;
+									delete nodes[${index}].items;
+									delete nodes[${index}].save_as;
+									delete nodes[${index}].count;
+									delete nodes[${index}].check;
+									delete nodes[${index}].cases;
+								} else {
+									// Moving to all/pick/random
+									if (oldType === 'choice' || oldType === 'save') {
+										delete nodes[${index}].question;
+									}
+									if (oldType === 'branch') {
+										delete nodes[${index}].rules;
+									}
+								}
+								
+								// Clean up type-specific fields
+								if (this.value !== 'save') delete nodes[${index}].save_as;
+								if (this.value !== 'branch') {
+									delete nodes[${index}].cases;
+									delete nodes[${index}].check;
+									delete nodes[${index}].rules;
+								}
+								if (this.value !== 'random') delete nodes[${index}].count;
+								if (this.value === 'save' || this.value === 'branch') delete nodes[${index}].items;
+								
+								renderNodes();
+								updateJSON();
+							">
+							<option value="all" ${node.type === 'all' ? 'selected' : ''}>All</option>
+							<option value="pick" ${node.type === 'pick' ? 'selected' : ''}>Pick</option>
+							<option value="random" ${node.type === 'random' ? 'selected' : ''}>Random</option>
+							<option value="choice" ${node.type === 'choice' ? 'selected' : ''}>Choice</option>
+							<option value="save" ${node.type === 'save' ? 'selected' : ''}>Save</option>
+							<option value="branch" ${node.type === 'branch' ? 'selected' : ''}>Branch</option>
+						</select>
+                    </div>
+					
+					${node.type !== 'branch' ? `
+						<div class="field">
+							<div class="field">
+							<label>${
+								node.type === 'choice' ? 'Question (du navngiver selv variablen der gemmes &lt;&lt;min_variabel&gt;&gt;)' :
+								node.type === 'save' ? 'Question (svaret er en fri tekst, den gemmes under det navn du skriver i Save As)' :
+								'Questions (tom linje mellem spørgsmål)'
+							}</label>
+							<textarea rows="5" 
+								placeholder="${(node.type === 'choice' || node.type === 'save') ? (node.type === 'choice' ? 'Hvad vil du tale om &lt;&lt;min_variabel&gt;&gt;?&#10;vises som:&#10;Hvad vil du tale om &lt;knap&gt; &lt;knap&gt; &lt;knap&gt;?' : 'Hvad vil du tale om?') : 'Spørgsmål A&#10;&#10;Spørgsmål B&#10;&#10;Spørgsmål C'}"
+								onchange="
+									if (nodes[${index}].type === 'choice' || nodes[${index}].type === 'save') {
+										nodes[${index}].question = this.value;
+									} else {
+										nodes[${index}].questions = this.value.split('\\n\\n').map(q => q.trim()).filter(q => q);
+									}
+									updateJSON();
+								">${(node.type === 'choice' || node.type === 'save') ? (node.question || '') : (node.questions || []).join('\n\n')}</textarea>
+						</div>
+					` : ''}
+					
+                    
+                    
+				
+					
+					${node.type === 'choice' ? `
+    <div class="field">
+        <label>Input Type</label>
+        <select onchange="nodes[${index}].input_type = this.value; renderNodes(); updateJSON();">
+            <option value="buttons" ${!node.input_type || node.input_type === 'buttons' ? 'selected' : ''}>Buttons</option>
+            <option value="slider" ${node.input_type === 'slider' ? 'selected' : ''}>Slider</option>
+        </select>
+    </div>
+    
+    ${!node.input_type || node.input_type === 'buttons' ? `
+        <div class="field">
+            <label>Choices (Knapper: komma-separeret eller variabel-navn)</label>
+            <input type="text" value="${Array.isArray(node.items) ? node.items.join(', ') : (node.items || '')}"
+                onchange="
+                const val = this.value.trim();
+                if (val.includes(',')) {
+                    nodes[${index}].items = val.split(',').map(s => s.trim()).filter(s => s);
+                } else {
+                    nodes[${index}].items = val;
+                }
+                updateJSON();
+            ">
+        </div>
+    ` : ''}
+    
+    ${node.input_type === 'slider' ? `
+        <div class="field">
+            <label>Min værdi</label>
+            <input type="number" value="${node.min !== undefined ? node.min : 0}"
+                onchange="nodes[${index}].min = parseInt(this.value); updateJSON();">
+        </div>
+        <div class="field">
+            <label>Max værdi</label>
+            <input type="number" value="${node.max !== undefined ? node.max : 100}"
+                onchange="nodes[${index}].max = parseInt(this.value); updateJSON();">
+        </div>
+        <div class="field">
+            <label>Step (valgfri - default 1)</label>
+            <input type="number" value="${node.step !== undefined ? node.step : 1}"
+                onchange="nodes[${index}].step = parseInt(this.value); updateJSON();">
+        </div>
+        <div class="field">
+            <label>Labels (valgfri): Introvert,Ekstrovert ELLER {{left}},{{right}} ELLER liste</label>
+            <input type="text" value="${node.labels ? node.labels.join(', ') : ''}"
+                placeholder="Introvert, Ekstrovert"
+                onchange="
+                const val = this.value.trim();
+                if (val) {
+                    nodes[${index}].labels = val.split(',').map(s => s.trim());
+                } else {
+                    delete nodes[${index}].labels;
+                }
+                updateJSON();
+            ">
+        </div>
+    ` : ''}
+` : ''}
+
+					${node.type !== 'save' && node.type !== 'branch' && node.type !== 'choice' ? `
+						<div class="field">
+							<label>Items (komma-separeret eller variabel-navn. Brug {{item}} i questions)</label>
+							<input type="text" value="${Array.isArray(node.items) ? node.items.join(', ') : (node.items || '')}"
+								onchange="
+								const val = this.value.trim();
+								if (val.includes(',')) {
+									nodes[${index}].items = val.split(',').map(s => s.trim()).filter(s => s);
+								} else {
+									nodes[${index}].items = val;
+								}
+								updateJSON();
+							">
+						</div>
+					` : ''}
+					
+					${node.type === 'branch' ? `
+						<div class="field">
+							<label>Branch Logic (én regel per linje)</label>
+							<textarea rows="8" 
+								style="${nodesWithInvalidBranchRefs.has(index) ? 'border: 2px solid #ff4444;' : ''}"
+								placeholder="if {{left_score}} > {{right_score}} -> set:<<winner>>={{left}},<<diff>>={{left_score - right_score}} next:left_higher&#10;if {{right_score}} > {{left_score}} -> set:<<winner>>={{right}},<<diff>>={{right_score - left_scale}} next:right_higher&#10;else -> next:equal_scores&#10;&#10;Syntaks:&#10;• Læs variabler: {{navn}}&#10;• Ny variabel: <<navn>>&#10;• Opdater: set:score+=10&#10;• Operators: ==, !=, >, <, >=, <=, &&, ||"
+								onchange="nodes[${index}].rules = this.value; updateJSON(); renderNodes();">${node.rules || ''}</textarea>
+						</div>
+					` : ''}
+										
+                    ${node.type === 'random' ? `
+                        <div class="field">
+                            <label>Count</label>
+                            <input type="number" value="${node.count || 2}" 
+                                onchange="nodes[${index}].count = parseInt(this.value); updateJSON();">
+                        </div>
+                    ` : ''}
+					${node.type === 'save' ? `
+						<div class="field">
+							<label>Save As (variabelnavn)</label>
+							<input type="text" value="${node.save_as || ''}" 
+								onchange="nodes[${index}].save_as = this.value; updateJSON();"
+								placeholder="f.eks. tema">
+						</div>
+					` : ''}
+					
+					
+                    
+					<div class="field">
+						<label>Next Node (tomt = slut)</label>
+						<input type="text" value="${node.next || ''}" 
+							style="${node.next && !nodes.find(n => n.id === node.next) ? 'border: 1px solid #ff4444; ' : ''}"
+							onchange="nodes[${index}].next = this.value; updateJSON(); renderNodes();">
+					</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+			function showFlow() {
+			try {
+				const sessionData = JSON.parse(document.getElementById('jsonEditor').value);
+				const chat = document.getElementById('chatContainer');
+				chat.innerHTML = '';
+				
+				let flowText = 'SESSION FLOW:\n\n';
+				const visited = new Set();
+				
+				function buildFlow(nodeId, indent = 0) {
+					if (!nodeId || nodeId === '') return;
+					
+					const node = sessionData.nodes.find(n => n.id === nodeId);
+					if (!node) {
+						flowText += `(node ${nodeId} ikke fundet)\n`;
+						return;
+					}
+					
+					if (visited.has(nodeId)) {
+						flowText += `${nodeId}\n`;
+						return;
+					}
+					visited.add(nodeId);
+					
+					const prefix = '  '.repeat(indent);
+					
+					// Build type info with variable names
+					let typeInfo = node.type;
+					if (node.type === 'save' && node.save_as) {
+						typeInfo += `: ${node.save_as}`;
+					} else if (node.type === 'choice' && node.question) {
+						const match = node.question.match(/<<([^>]+)>>/);
+						if (match) typeInfo += `: ${match[1]}`;
+					} else if (node.type === 'branch' && node.check) {
+						typeInfo += ` on: ${node.check}`;
+					} else if (node.type === 'random' && node.count) {
+						typeInfo += ` (${node.count})`;
+					}
+					
+					flowText += `${prefix}${nodeId} (${typeInfo})\n`;
+					
+					if (node.type === 'branch' && node.cases) {
+						const caseEntries = Object.entries(node.cases);
+						caseEntries.forEach(([value, nextId], idx) => {
+							const isLast = idx === caseEntries.length - 1 && !node.next;
+							flowText += `${prefix}  ${isLast ? '├' : '└'}→ ${value} → `;
+							buildFlow(nextId, indent + 2);
+						});
+						if (node.next && node.next !== '') {
+							flowText += `${prefix}  ├• default → `;
+							buildFlow(node.next, indent + 2);
+						}
+					} else if (node.next && node.next !== '') {
+						flowText += `${prefix}  → `;
+						buildFlow(node.next, indent);
+					} else {
+						flowText += `${prefix}  [SLUT]\n`;
+					}
+				}
+				
+				buildFlow(sessionData.start_node);
+				
+				// Find loose nodes
+				const allNodeIds = sessionData.nodes.map(n => n.id);
+				const connectedNodes = new Set([sessionData.start_node]);
+
+				// Add all nodes that are referenced as next or in cases
+				sessionData.nodes.forEach(node => {
+					if (node.next) connectedNodes.add(node.next);
+					if (node.cases) {
+						Object.values(node.cases).forEach(nextId => connectedNodes.add(nextId));
+					}
+					// Add nodes referenced in branch rules
+					if (node.rules) {
+						const nextMatches = [...node.rules.matchAll(/next:(\S+)/g)];
+						nextMatches.forEach(match => connectedNodes.add(match[1]));
+					}
+				});
+
+				const looseNodes = allNodeIds.filter(id => !connectedNodes.has(id));
+
+				if (looseNodes.length > 0) {
+					flowText += '\n\nLOOSE NODES (ikke forbundet):\n';
+					looseNodes.forEach(nodeId => {
+						const node = sessionData.nodes.find(n => n.id === nodeId);
+						let typeInfo = node.type;
+						if (node.type === 'save' && node.save_as) {
+							typeInfo += `: ${node.save_as}`;
+						} else if (node.type === 'choice' && node.question) {
+							const match = node.question.match(/<<([^>]+)>>/);
+							if (match) typeInfo += `: ${match[1]}`;
+						}
+						flowText += `  ${nodeId} (${typeInfo})\n`;
+					});
+				}
+				
+				// Find undefined variables
+				const definedVars = new Map();
+
+				// Add test variables
+				try {
+					const varsText = document.getElementById('testVariables').value.trim();
+					if (varsText.startsWith('{')) {
+						const vars = JSON.parse(varsText);
+						Object.keys(vars).forEach(key => definedVars.set(key, 'Test Variabler'));
+					} else {
+						const lines = varsText.split('\n').filter(l => l.trim());
+						lines.forEach(line => {
+							const match = line.match(/"([^"]+)":/);
+							if (match) definedVars.set(match[1], 'Test Variabler');
+						});
+					}
+				} catch (e) {}
+
+				// Add save_as and choice variables
+				sessionData.nodes.forEach(node => {
+					if (node.type === 'save' && node.save_as) {
+						definedVars.set(node.save_as, `node: ${node.id}`);
+					}
+					if (node.type === 'choice' && node.question) {
+						const match = node.question.match(/<<([^>]+)>>/);
+						if (match) definedVars.set(match[1], `node: ${node.id}`);
+					}
+					// Add variables defined in branch rules
+					if (node.type === 'branch' && node.rules) {
+						const varMatches = [...node.rules.matchAll(/<<([^>]+)>>/g)];
+						varMatches.forEach(match => definedVars.set(match[1], `node: ${node.id}`));
+					}
+				});
+
+				// Find used variables (in questions)
+				const usedVars = new Map();
+				sessionData.nodes.forEach(node => {
+					const checkText = (text) => {
+						if (!text) return;
+						const matches = text.matchAll(/\{\{([^}]+)\}\}/g);
+						for (const match of matches) {
+							// Extract just the variable name (before any operators)
+							const varName = match[1].trim().split(/[\s\+\-\*\/]/)[0];
+							if (varName !== 'item') {
+								if (!usedVars.has(varName)) {
+									usedVars.set(varName, []);
+								}
+								usedVars.get(varName).push(node.id);
+							}
+						}
+					};
+					
+					if (node.question) checkText(node.question);
+					if (node.questions) node.questions.forEach(q => checkText(q));
+					
+					// Check branch 'check' variable
+					if (node.type === 'branch' && node.check) {
+						if (!usedVars.has(node.check)) {
+							usedVars.set(node.check, []);
+						}
+						usedVars.get(node.check).push(node.id);
+					}
+					
+					// Check branch rules for used variables
+					if (node.type === 'branch' && node.rules) {
+						checkText(node.rules);
+					}
+				});
+
+				// Find undefined
+				const undefinedVars = [];
+				usedVars.forEach((nodes, varName) => {
+					if (!definedVars.has(varName)) {
+						undefinedVars.push({ name: varName, usedIn: nodes });
+					}
+				});
+
+				if (undefinedVars.length > 0) {
+					flowText += '\n\nUDEFINEREDE VARIABLER:\n';
+					undefinedVars.forEach(v => {
+						flowText += `  ${v.name} (bruges i: ${v.usedIn.join(', ')})\n`;
+					});
+				}
+
+				// Find unused variables
+				const unusedVars = [];
+				definedVars.forEach((source, varName) => {
+					if (!usedVars.has(varName)) {
+						unusedVars.push({ name: varName, definedIn: source });
+					}
+				});
+
+				if (unusedVars.length > 0) {
+					flowText += '\n\nUBRUGTE VARIABLER:\n';
+					unusedVars.forEach(v => {
+						flowText += `  ${v.name} (defineret i: ${v.definedIn})\n`;
+					});
+				}
+
+				addMessage('coach', flowText);
+			} catch (e) {
+				alert('Kan ikke vise flow: ' + e.message);
+			}
+		}
+
+
+        
+        function updateJSON() {
+            const sessionData = {
+                start_node: nodes[0].id,
+                nodes: nodes
+            };
+            document.getElementById('jsonEditor').value = JSON.stringify(sessionData, null, 2);
+        }
+		
+		function loadFromJSON() {
+			try {
+				const sessionData = JSON.parse(document.getElementById('jsonEditor').value);
+				let loadedNodes = Array.isArray(sessionData.nodes) ? sessionData.nodes : [];
+				if (!loadedNodes || loadedNodes.length === 0) {
+					loadedNodes = [{ id: 'start', type: 'all', questions: [], next: '' }];
+					// write back a sane default so editor stays in sync
+					document.getElementById('jsonEditor').value = JSON.stringify({ start_node: 'start', nodes: loadedNodes }, null, 2);
+				}
+				nodes = loadedNodes;
+				renderNodes();
+				
+			} catch (e) {
+				alert('Ugyldig JSON: ' + e.message);
+			}
+		}
+        
+        function addNode() {
+            nodes.push({
+				id: 'node_' + nodes.length,
+				type: 'all',
+				questions: [],
+				next: ''
+			});
+            renderNodes();
+            updateJSON();
+        }
+        
+        function deleteNode(index) {
+			nodes.splice(index, 1);
+			if (nodes.length === 0) {
+				nodes.push({ id: 'start', type: 'all', questions: [], next: '' });
+			}
+            renderNodes();
+            updateJSON();
+        }
+        
+        function startTest() {
+			try {
+				// Ensure clean input area (remove previous choices/sliders/mmm)
+				cleanupInputArea();
+				const sessionData = JSON.parse(document.getElementById('jsonEditor').value);
+				const varsText = document.getElementById('testVariables').value.trim();
+				
+				let variables = {};
+
+				// Try to parse as JSON first
+				if (varsText.startsWith('{')) {
+					variables = JSON.parse(varsText);
+				} else {
+					// Parse line by line
+					const lines = varsText.split('\n').filter(l => l.trim());
+					const jsonStr = '{' + lines.join(',') + '}';
+					variables = JSON.parse(jsonStr);
+				}
+
+				// Convert numeric strings to numbers
+				for (let key in variables) {
+					const value = variables[key];
+					if (typeof value === 'string' && !isNaN(value) && value.trim() !== '') {
+						variables[key] = Number(value);
+					}
+				}
+				
+				engine = new CoachEngine(sessionData, variables);
+				currentQuestion = engine.start();
+				
+				const chat = document.getElementById('chatContainer');
+				chat.innerHTML = '';
+				const hasMMarker = (q) => !!(q && typeof q.text === 'string' && /<<\s*m\s*>>/i.test(q.text));
+				const mmmFlag = (q) => !!(q && q.mmm);
+				if (currentQuestion.type === 'choice') {
+					addMessage('coach', currentQuestion.text, currentQuestion.choices, currentQuestion.variableName, false, (hasMMarker(currentQuestion) || mmmFlag(currentQuestion)));
+				} else if (currentQuestion.type === 'slider') {
+					addMessage('coach', currentQuestion.text, currentQuestion, currentQuestion.variableName, true, (hasMMarker(currentQuestion) || mmmFlag(currentQuestion)));
+				} else {
+					addMessage('coach', currentQuestion.text, null, null, false, (hasMMarker(currentQuestion) || mmmFlag(currentQuestion)));
+				}
+				
+				document.getElementById('inputArea').classList.add('active');
+				document.getElementById('userInput').value = '';
+			} catch (e) {
+				alert('Fejl: ' + e.message);
+			}
+		}
+        
+		function addMessage(type, text, sliderOrChoices, variableName, isSlider, isMmm) {
+			const chat = document.getElementById('chatContainer');
+			const msg = document.createElement('div');
+			msg.className = 'message ' + type;
+			
+			let content = `<div class="message-label">${type === 'coach' ? 'Coach' : 'Dig'}</div>`;
+			
+			// Always show clean text in coach message
+			const cleanText = text.replace(/<<[^>]+>>/g, '');
+			content += `<div style="white-space: pre-wrap;">${cleanText}</div>`;
+			
+			msg.innerHTML = content;
+			
+			// Apply dynamic colors for transcript messages
+			let clientName = 'Klient';
+			let clientColor = '#f093fb';
+			if (window.currentProjectData && window.currentProjectData.variables) {
+				clientName = window.currentProjectData.variables.You || 'Klient';
+				clientColor = window.currentProjectData.variables.You_color || '#f093fb';
+			}
+			const coachColor = '#667eea';
+			
+			if (type === 'coach') {
+				msg.style.backgroundColor = '#e3f2fd';
+			} else {
+				msg.style.backgroundColor = '#f3e5f5';
+			}
+			
+			chat.appendChild(msg);
+			chat.scrollTop = chat.scrollHeight;
+			
+			// If this is a coach message with choices or slider, show them in input area
+			if (type === 'coach' && !isSlider && sliderOrChoices && sliderOrChoices.length > 0) {
+				// Show choice buttons in input area
+				showChoiceButtons(sliderOrChoices, variableName);
+			} else if (type === 'coach' && isSlider && sliderOrChoices) {
+				// Show slider in input area
+				showSlider(sliderOrChoices, variableName);
+			} else if (type === 'coach') {
+				// Detect <<m>> marker either via engine flag or directly in the question text
+				const hasMmm = !!isMmm || /<<\s*m\s*>>/i.test(text);
+				if (hasMmm) {
+					showMmmButton();
+				}
+			}
+		}
+		
+		function showChoiceButtons(choices, variableName) {
+			const inputArea = document.getElementById('inputArea');
+			const userInput = document.getElementById('userInput');
+			
+			// Hide textarea and show buttons
+			userInput.style.display = 'none';
+			
+			// Create buttons container
+			let buttonsContainer = inputArea.querySelector('.choice-buttons');
+			if (!buttonsContainer) {
+				buttonsContainer = document.createElement('div');
+				buttonsContainer.className = 'choice-buttons';
+				buttonsContainer.style.marginTop = '10px';
+				inputArea.appendChild(buttonsContainer);
+			}
+			
+			// Clear and add buttons
+			buttonsContainer.innerHTML = '';
+			choices.forEach(choice => {
+				const button = document.createElement('button');
+				button.className = 'btn';
+				button.textContent = choice;
+				button.style.margin = '5px';
+				button.style.padding = '5px 10px';
+				button.style.fontSize = '14px';
+				button.onclick = () => handleChoice(choice, variableName);
+				buttonsContainer.appendChild(button);
+			});
+		}
+		
+		function showSlider(slider, variableName) {
+			const inputArea = document.getElementById('inputArea');
+			const userInput = document.getElementById('userInput');
+			
+			// Hide textarea and show slider
+			userInput.style.display = 'none';
+			
+			// Create slider container
+			let sliderContainer = inputArea.querySelector('.slider-container');
+			if (!sliderContainer) {
+				sliderContainer = document.createElement('div');
+				sliderContainer.className = 'slider-container';
+				sliderContainer.style.marginTop = '10px';
+				inputArea.appendChild(sliderContainer);
+			}
+			
+			const sliderId = 'slider_' + Date.now();
+			const valueId = 'value_' + Date.now();
+			
+			// Handle both slider object format and direct properties
+			const min = slider.min !== undefined ? slider.min : (slider.slider ? slider.slider.min : 0);
+			const max = slider.max !== undefined ? slider.max : (slider.slider ? slider.slider.max : 100);
+			const step = slider.step !== undefined ? slider.step : (slider.slider ? slider.slider.step : 1);
+			const labels = slider.labels || (slider.slider ? slider.slider.labels : null);
+			
+			const midValue = Math.round((min + max) / 2);
+			
+			// Clear and add slider
+			sliderContainer.innerHTML = '';
+			
+			// Labels
+			if (labels && labels.length >= 2) {
+				const leftLabel = engine.replaceVars(labels[0]);
+				const rightLabel = engine.replaceVars(labels[1]);
+				
+				const labelsDiv = document.createElement('div');
+				labelsDiv.style.display = 'flex';
+				labelsDiv.style.justifyContent = 'space-between';
+				labelsDiv.style.fontSize = '12px';
+				labelsDiv.style.color = '#666';
+				labelsDiv.style.marginBottom = '10px';
+				labelsDiv.innerHTML = `<span>${leftLabel}</span><span>${rightLabel}</span>`;
+				sliderContainer.appendChild(labelsDiv);
+			}
+			
+			// Slider
+			const sliderInput = document.createElement('input');
+			sliderInput.type = 'range';
+			sliderInput.id = sliderId;
+			sliderInput.min = min;
+			sliderInput.max = max;
+			sliderInput.step = step;
+			sliderInput.value = midValue;
+			sliderInput.style.width = '100%';
+			sliderInput.style.marginBottom = '10px';
+			sliderContainer.appendChild(sliderInput);
+			
+			// Value display
+			const valueDiv = document.createElement('div');
+			valueDiv.style.textAlign = 'center';
+			valueDiv.style.fontWeight = 'bold';
+			valueDiv.style.fontSize = '18px';
+			valueDiv.innerHTML = `<span id="${valueId}">${midValue}</span>`;
+			sliderContainer.appendChild(valueDiv);
+			
+			// Submit button
+			const submitBtn = document.createElement('button');
+			submitBtn.className = 'btn';
+			submitBtn.textContent = 'Bekræft';
+			submitBtn.style.marginTop = '10px';
+			submitBtn.onclick = () => handleSlider(sliderId, variableName);
+			sliderContainer.appendChild(submitBtn);
+			
+			// Update value on input
+			sliderInput.oninput = () => {
+				document.getElementById(valueId).textContent = sliderInput.value;
+			};
+		}
+			
+			
+        function handleChoice(choiceValue, variableName) {
+				// Clean up choice buttons
+				cleanupInputArea();
+				
+				// Save to blackboard
+				engine.blackboard[variableName] = choiceValue;
+				
+				// Update test variables display
+				updateTestVariables();
+				
+				// Add user message
+				addMessage('user', choiceValue);
+				
+				// Process next
+				currentQuestion = engine.answer(choiceValue);
+				
+				if (currentQuestion.done) {
+					addMessage('coach', currentQuestion.text);
+					document.getElementById('inputArea').classList.remove('active');
+				} else {
+					const isM = (!!currentQuestion.mmm) || /<<\s*m\s*>>/i.test(currentQuestion.text || '');
+					if (currentQuestion.type === 'choice') {
+						addMessage('coach', currentQuestion.text, currentQuestion.choices, currentQuestion.variableName, false, isM);
+					} else if (currentQuestion.type === 'slider') {
+						addMessage('coach', currentQuestion.text, currentQuestion, currentQuestion.variableName, true, isM);
+					} else {
+						addMessage('coach', currentQuestion.text, null, null, false, isM);
+					}
+				}
+			}
+		function handleSlider(sliderId, variableName) {
+			// Find slider element BEFORE cleaning up
+			let sliderElement = document.getElementById(sliderId);
+			let sliderValue = 0;
+			
+			if (sliderElement) {
+				sliderValue = Number(sliderElement.value);
+				console.log('Found slider by ID, value:', sliderValue);
+			} else {
+				// Try to find any slider in the input area
+				const inputArea = document.getElementById('inputArea');
+				if (inputArea) {
+					const slider = inputArea.querySelector('input[type="range"]');
+					if (slider) {
+						sliderValue = Number(slider.value);
+						console.log('Found slider by querySelector, value:', sliderValue);
+					} else {
+						console.error('No slider found in input area');
+						alert('Fejl: Kunne ikke finde slider element');
+						return;
+					}
+				} else {
+					console.error('inputArea element not found');
+					alert('Fejl: Kunne ikke finde input område');
+					return;
+				}
+			}
+			
+			// Clean up slider AFTER getting the value
+			cleanupInputArea();
+			
+			// Debug logging
+			console.log('handleSlider called with:', { sliderId, variableName, sliderValue });
+			console.log('Engine blackboard before:', engine.blackboard);
+			
+			// Save to blackboard
+			engine.blackboard[variableName] = sliderValue;
+			
+			console.log('Engine blackboard after:', engine.blackboard);
+			
+			// Update test variables display
+			updateTestVariables();
+			
+			// Add user message
+			addMessage('user', sliderValue.toString());
+			
+			// Process next
+			currentQuestion = engine.answer(sliderValue);
+			
+			if (currentQuestion.done) {
+				addMessage('coach', currentQuestion.text);
+				document.getElementById('inputArea').classList.remove('active');
+			} else {
+				if (currentQuestion.type === 'choice') {
+					addMessage('coach', currentQuestion.text, currentQuestion.choices, currentQuestion.variableName, false, /<<\s*m\s*>>/i.test(currentQuestion.text || ''));
+				} else if (currentQuestion.type === 'slider') {
+					addMessage('coach', currentQuestion.text, currentQuestion, currentQuestion.variableName, true, /<<\s*m\s*>>/i.test(currentQuestion.text || ''));
+				} else {
+					addMessage('coach', currentQuestion.text, null, null, false, /<<\s*m\s*>>/i.test(currentQuestion.text || ''));
+				}
+			}
+		}
+		
+		function cleanupInputArea() {
+			// Show textarea again
+			document.getElementById('userInput').style.display = 'block';
+			
+			// Remove any existing choice buttons or slider containers
+			const inputArea = document.getElementById('inputArea');
+			const buttonsContainer = inputArea.querySelector('.choice-buttons');
+			const sliderContainer = inputArea.querySelector('.slider-container');
+			const mmmContainer = inputArea.querySelector('.mmm-container');
+			
+			if (buttonsContainer) {
+				buttonsContainer.remove();
+			}
+			if (sliderContainer) {
+				sliderContainer.remove();
+			}
+			if (mmmContainer) {
+				mmmContainer.remove();
+			}
+		}	
+
+		function showMmmButton() {
+			const inputArea = document.getElementById('inputArea');
+			const userInput = document.getElementById('userInput');
+			// Hide textarea
+			userInput.style.display = 'none';
+			
+			// Remove previous dynamic UI
+			const prev = inputArea.querySelector('.mmm-container');
+			if (prev) prev.remove();
+			const prevChoices = inputArea.querySelector('.choice-buttons');
+			if (prevChoices) prevChoices.remove();
+			const prevSlider = inputArea.querySelector('.slider-container');
+			if (prevSlider) prevSlider.remove();
+			
+			const container = document.createElement('div');
+			container.className = 'mmm-container';
+			container.style.marginTop = '10px';
+			
+			const button = document.createElement('button');
+			button.className = 'btn';
+			button.textContent = 'Mmmm';
+			button.style.margin = '5px';
+			button.style.padding = '5px 10px';
+			button.style.fontSize = '14px';
+			button.onclick = () => handleMmm();
+			
+			container.appendChild(button);
+			inputArea.appendChild(container);
+		}
+
+		function handleMmm() {
+			// Clean up UI first
+			cleanupInputArea();
+			
+			// Add user message
+			addMessage('user', 'Mmmm');
+			
+			// Advance engine
+			currentQuestion = engine.answer('Mmmm');
+			
+			if (currentQuestion.done) {
+				addMessage('coach', currentQuestion.text);
+				document.getElementById('inputArea').classList.remove('active');
+			} else {
+				const isM = (!!currentQuestion.mmm) || /<<\s*m\s*>>/i.test(currentQuestion.text || '');
+				if (currentQuestion.type === 'choice') {
+					addMessage('coach', currentQuestion.text, currentQuestion.choices, currentQuestion.variableName, false, isM);
+				} else if (currentQuestion.type === 'slider') {
+					addMessage('coach', currentQuestion.text, currentQuestion, currentQuestion.variableName, true, isM);
+				} else {
+					addMessage('coach', currentQuestion.text, null, null, false, isM);
+				}
+			}
+		}
+			
+		function updateTestVariables() {
+			const varsTextarea = document.getElementById('testVariables');
+			const lines = [];
+			
+			for (let key in engine.blackboard) {
+				const value = engine.blackboard[key];
+				if (Array.isArray(value)) {
+					lines.push(`"${key}": ${JSON.stringify(value)}`);
+				} else if (typeof value === 'number') {
+					lines.push(`"${key}": ${value}`);
+				} else {
+					lines.push(`"${key}": "${value}"`);
+				}
+			}
+			
+			varsTextarea.value = lines.join('\n');
+		}
+		
+		
+		
+        function sendResponse() {
+			const input = document.getElementById('userInput').value.trim();
+			if (!input) return;
+			
+			addMessage('user', input);
+			
+			// If current question is save type, save to blackboard
+			if (currentQuestion.type === 'save' && currentQuestion.saveAs) {
+				// Try to parse as number, otherwise keep as string
+				const value = !isNaN(input) && input.trim() !== '' ? Number(input) : input;
+				engine.blackboard[currentQuestion.saveAs] = value;
+				updateTestVariables();
+			}
+			
+			currentQuestion = engine.answer(input);
+			
+			if (currentQuestion.done) {
+				addMessage('coach', currentQuestion.text);
+				document.getElementById('inputArea').classList.remove('active');
+			} else {
+				if (currentQuestion.type === 'choice') {
+					addMessage('coach', currentQuestion.text, currentQuestion.choices, currentQuestion.variableName, false, /<<\s*m\s*>>/i.test(currentQuestion.text || ''));
+				} else if (currentQuestion.type === 'slider') {
+					addMessage('coach', currentQuestion.text, currentQuestion, currentQuestion.variableName, true, /<<\s*m\s*>>/i.test(currentQuestion.text || ''));
+				} else {
+					addMessage('coach', currentQuestion.text, null, null, false, /<<\s*m\s*>>/i.test(currentQuestion.text || ''));
+				}
+			}
+			
+			document.getElementById('userInput').value = '';
+		}
+        
+
+
+        function loadExternalData() {
+            try {
+                const varsTextarea = document.getElementById('testVariables');
+                const currentText = varsTextarea.value.trim();
+                let obj = {};
+                if (currentText) {
+                    if (currentText.startsWith('{')) {
+                        obj = JSON.parse(currentText);
+                    } else {
+                        const lines = currentText.split('\n').filter(l => l.trim());
+                        const jsonStr = '{' + lines.join(',') + '}';
+                        obj = JSON.parse(jsonStr);
+                    }
+                }
+
+                // Find which localStorage key to use
+                const storageKey = obj.Data || obj.data || null;
+                if (!storageKey) {
+                    alert('Ingen Data-nøgle fundet i Test Variabler (f.eks. "Data": "comparisonData").');
+                    return;
+                }
+
+                // Read from localStorage
+                const raw = localStorage.getItem(storageKey);
+                if (!raw) {
+                    alert('Ingen data fundet i localStorage for nøgle: ' + storageKey);
+                    return;
+                }
+                let loaded;
+                try {
+                    loaded = JSON.parse(raw);
+                } catch (_) {
+                    alert('Data under ' + storageKey + ' er ikke gyldig JSON.');
+                    return;
+                }
+
+                // Merge loaded into obj (overwrite existing same keys)
+                if (loaded && typeof loaded === 'object') {
+                    Object.keys(loaded).forEach(k => {
+                        obj[k] = loaded[k];
+                    });
+                }
+
+                // Re-render textarea in the same line-based format
+                const lines = [];
+                Object.keys(obj).forEach(key => {
+                    const value = obj[key];
+                    if (Array.isArray(value)) {
+                        lines.push(`"${key}": ${JSON.stringify(value)}`);
+                    } else if (typeof value === 'number') {
+                        lines.push(`"${key}": ${value}`);
+                    } else if (typeof value === 'object' && value !== null) {
+                        lines.push(`"${key}": ${JSON.stringify(value)}`);
+                    } else {
+                        lines.push(`"${key}": "${value}"`);
+                    }
+                });
+                varsTextarea.value = lines.join('\n');
+            } catch (e) {
+                alert('Kunne ikke indlæse data: ' + e.message);
+            }
+        }
+		
+		// Event listener for Enter key
+		
+		document.getElementById('userInput').addEventListener('keydown', function(e) {
+			if (e.key === 'Enter' && !e.shiftKey) {
+				e.preventDefault();
+				sendResponse();
+			}
+		});
+		
+		
+		
+		
+        
+		// Initialize
+		document.addEventListener('DOMContentLoaded', function() {
+			ensureDefaultStartNode();
+			renderNodes();
+			updateJSON();
+		});
+		// Add JSON editor sync
+		document.getElementById('jsonEditor').addEventListener('change', function() {
+			try {
+				const sessionData = JSON.parse(this.value);
+				nodes = sessionData.nodes;
+				renderNodes();
+			} catch (e) {
+				alert('Ugyldig JSON: ' + e.message);
+			}
+		});
+		
+		// Coaching Integration (using overlay system)
+		
+	
+		
+		
+		
+		function loadCoachingProject(projectName) {
+			try {
+				// Load project from localStorage
+				const projectData = localStorage.getItem(projectName);
+				if (!projectData) {
+					alert('Ingen coaching projekt fundet med navnet: ' + projectName);
+					return null;
+				}
+				
+				const project = JSON.parse(projectData);
+				if (!project || !project.session) {
+					alert('Ugyldigt projekt format');
+					return null;
+				}
+				
+				return project;
+			} catch (e) {
+				alert('Fejl ved indlæsning af projekt: ' + e.message);
+				return null;
+			}
+		}
+		
+		function loadProjectVariables(project) {
+			try {
+				let variables = project.variables || {};
+				
+				// Check if there's a Data key that points to localStorage
+				const dataKey = variables.Data || variables.data;
+				if (dataKey) {
+					const externalData = localStorage.getItem(dataKey);
+					if (externalData) {
+						const loaded = JSON.parse(externalData);
+						// Merge external data into variables
+						Object.keys(loaded).forEach(k => {
+							variables[k] = loaded[k];
+						});
+					}
+				}
+				
+				// Convert numeric strings to numbers
+				for (let key in variables) {
+					const value = variables[key];
+					if (typeof value === 'string' && !isNaN(value) && value.trim() !== '') {
+						variables[key] = Number(value);
+					}
+				}
+				
+				return variables;
+			} catch (e) {
+				alert('Fejl ved indlæsning af variabler: ' + e.message);
+				return {};
+			}
+		}
+		
+		
+		function loadExternalDataIfNeeded() {
+			try {
+				const testVariablesText = document.getElementById('testVariables').value.trim();
+				if (!testVariablesText) {
+					// No variables, use defaults
+					updatePopupColors();
+					return;
+				}
+				
+				// Parse the test variables
+				let variables = {};
+				if (testVariablesText.startsWith('{')) {
+					variables = JSON.parse(testVariablesText);
+				} else {
+					const lines = testVariablesText.split('\n').filter(l => l.trim());
+					const jsonStr = '{' + lines.join(',') + '}';
+					variables = JSON.parse(jsonStr);
+				}
+				
+				// Check if only "Data" key exists
+				const keys = Object.keys(variables);
+				if (keys.length === 1 && keys[0] === 'Data' && variables.Data) {
+					console.log('Auto-loading external data from:', variables.Data);
+					// Load external data first, then update colors
+					loadExternalData();
+					// Wait a moment for loadExternalData to complete, then update colors
+					setTimeout(() => {
+						updatePopupColors();
+					}, 100);
+				} else {
+					// Use existing variables directly
+					updatePopupColors();
+				}
+			} catch (e) {
+				console.log('Could not parse test variables for auto-load:', e);
+				// Fallback to default colors
+				updatePopupColors();
+			}
+		}
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		function showSpeechBubble(side) {
+			// Don't hide coach bubble when showing client input
+			if (side === 'right') {
+				// Only hide client bubble, keep coach bubble visible
+				document.getElementById('leftBubble').style.display = 'block';
+			} else {
+				// Hide all bubbles when showing coach question
+				hideAllSpeechBubbles();
+			}
+			
+			// Scale den talende part op (som i det originale system)
+			const activeParticipant = document.getElementById(side === 'left' ? 'coachCircle' : 'clientCircle').parentElement;
+			activeParticipant.style.transform = 'scale(1.035)';
+			activeParticipant.style.transition = 'transform 0.45s ease';
+			
+			// Scale den anden part ned til normal
+			const otherSide = side === 'left' ? 'right' : 'left';
+			const otherParticipant = document.getElementById(otherSide === 'left' ? 'coachCircle' : 'clientCircle').parentElement;
+			otherParticipant.style.transform = 'scale(1.0)';
+			otherParticipant.style.transition = 'transform 0.45s ease';
+			
+			// Show bubble with scale animation
+			const bubble = document.getElementById(side + 'Bubble');
+			bubble.style.display = 'block';
+			
+			// Apply bubble scale and positioning (som i det originale system)
+			if (side === 'left') {
+				bubble.style.left = 'var(--left-bubble-left)';
+				bubble.style.right = 'auto';
+				bubble.style.transformOrigin = 'left center';
+			} else {
+				bubble.style.right = '100px';
+				bubble.style.left = 'auto';
+				bubble.style.transformOrigin = 'right center';
+			}
+			bubble.style.top = '50%';
+			bubble.style.transform = 'translateY(-50%) scale(0.85)';
+			
+			// Animate bubble scale up
+			setTimeout(() => {
+				bubble.style.transform = bubble.style.transform.replace('scale(0.85)', 'scale(1)');
+			}, 100);
+			
+			if (side === 'right') {
+				document.getElementById('rightTextarea').focus();
+			}
+		}
+		
+		function hideAllSpeechBubbles() {
+			document.getElementById('leftBubble').style.display = 'none';
+			document.getElementById('rightBubble').style.display = 'none';
+			
+			// Reset scale på begge figurer (som i det originale system)
+			document.getElementById('coachCircle').parentElement.style.transform = 'scale(1.0)';
+			document.getElementById('clientCircle').parentElement.style.transform = 'scale(1.0)';
+		}
+		
+		
+		
+		
+		
+		// Function to save current session as a coaching project
+		function createTestProject() {
+			try {
+				// Get current session data and variables
+				const sessionData = JSON.parse(document.getElementById('jsonEditor').value);
+				const varsText = document.getElementById('testVariables').value.trim();
+				
+				let variables = {};
+				if (varsText) {
+					if (varsText.startsWith('{')) {
+						variables = JSON.parse(varsText);
+					} else {
+						const lines = varsText.split('\n').filter(l => l.trim());
+						const jsonStr = '{' + lines.join(',') + '}';
+						variables = JSON.parse(jsonStr);
+					}
+				}
+				
+				// Create project from current session
+				const project = {
+					version: 1,
+					saved_at: new Date().toISOString(),
+					session: sessionData,
+					variables: variables
+				};
+				
+				// Store project in localStorage
+				localStorage.setItem('myCoachingProject', JSON.stringify(project));
+				
+				// Project saved silently
+			} catch (e) {
+				alert('Fejl ved gemning af projekt: ' + e.message);
+			}
+		}
+		
+		function openDialogPopup(projectName) {
+			try {
+				const invoke = () => (window.openCoachingOverlay || openCoachingOverlay)(projectName);
+				if (typeof window.openCoachingOverlay === 'function' || typeof openCoachingOverlay === 'function') {
+					invoke();
+					return;
+				}
+
+				// Dynamically load script if not present yet
+				let script = document.querySelector('script[src="coaching_overlay_complete.js"]');
+				if (!script) {
+					script = document.createElement('script');
+					script.src = 'coaching_overlay_complete.js';
+					script.defer = true;
+					document.head.appendChild(script);
+				}
+				script.addEventListener('load', function() {
+					if (typeof window.openCoachingOverlay === 'function' || typeof openCoachingOverlay === 'function') {
+						invoke();
+					} else {
+						alert('Coaching overlay funktion ikke tilgængelig. Sørg for at coaching_overlay_complete.js er indlæst.');
+					}
+				});
+			} catch (e) {
+				alert('Fejl ved åbning af coaching overlay: ' + e.message);
+			}
+		}
+		
+		
+    </script>
+</body>
+</html>

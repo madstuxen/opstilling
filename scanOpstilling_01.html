@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="da">
+
+
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBSCAN Test Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            padding: 20px;
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #475569;
+        }
+        
+        .control-group input[type="number"],
+        .control-group input[type="range"] {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .control-group input[type="range"] {
+            width: 150px;
+        }
+        
+        .slider-value {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: bold;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .workspace {
+            position: relative;
+            width: 1600px;
+            height: 600px;
+            margin: 20px auto;
+            background: #fafafa;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+        }
+        
+        .point {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+			opacity: 0.1;
+        }
+        
+        .point:hover {
+            transform: scale(1.1);
+            z-index: 100;
+        }
+        
+        .noise {
+            background: #64748b !important;
+        }
+        
+        .results {
+            padding: 20px;
+            background: #f8fafc;
+            border-top: 2px solid #e2e8f0;
+        }
+        
+        .results h3 {
+            margin-bottom: 10px;
+            color: #475569;
+        }
+        
+        .cluster-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .cluster-item {
+            padding: 10px 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            font-size: 14px;
+        }
+        
+        .cluster-item strong {
+            color: #475569;
+        }
+        
+        .stats {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .stats div {
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #475569;
+        }
+		
+		.epsilon-reference {
+			position: absolute;
+			top: 20px;
+			left: 20px;
+			border: 2px solid #1e293b;
+			border-radius: 50%;
+			background: rgba(100, 116, 139, 0.1);
+			pointer-events: none;
+			z-index: 1;
+		}
+
+		.epsilon-label {
+			position: absolute;
+			top: 4px;
+			left: 20px;
+			font-size: 11px;
+			font-weight: bold;
+			color: #1e293b;
+			background: rgba(255, 255, 255, 0.9);
+			padding: 2px 6px;
+			border-radius: 4px;
+			pointer-events: none;
+			z-index: 2;
+		}
+		
+    /* Dialog-like articulated figure */
+    .participant-body { position: absolute; top: 74%; left: 50%; transform: translate(-50%, -50%); z-index: 5; pointer-events: none; width: 100px; height: 200px; }
+    .participant-body .head { position: absolute; top: -78px; left: 50%; transform: translateX(-50%); width: 72px; height: 72px; border-radius: 50%; background: #1e293b; }
+    .participant-body .participant-torso { position: absolute; width: 55px; height: 80px; background: #1e293b; border-radius: 22px 22px 15px 15px; top: -2px; left: 50%; transform: translateX(-50%); z-index: 8; }
+
+    /* Arms hierarchy */
+    .participant-body .skulder_translate_right { position: absolute; top: 0px; left: 62px; width: 15px; height: 15px; background: transparent; z-index: 3; }
+    .participant-body .skulder_rotate_right { width: 100%; height: 100%; background: transparent; transform-origin: center center; }
+    .participant-body .arm_geo_right { width: 50px; height: 18px; background: #334155; border-radius: 9px; position: relative; top: -1px; left: -1px; }
+    .participant-body .albue_rotate_right { position: relative; top: 1px; left: 34px; width: 15px; height: 15px; background: transparent; transform-origin: center center; }
+    .participant-body .albue_geo_right { position: relative; top: -1px; left: 1px; width: 50px; height: 18px; background: #334155; border-radius: 9px; z-index: 4; }
+
+    .participant-body .skulder_translate_left { position: absolute; top: 0px; left: 22px; width: 15px; height: 15px; background: transparent; z-index: 3; }
+    .participant-body .skulder_rotate_left { width: 100%; height: 100%; background: transparent; transform-origin: center center; }
+    .participant-body .arm_geo_left { width: 50px; height: 18px; background: #334155; border-radius: 9px; position: relative; top: -1px; left: -34px; }
+    .participant-body .albue_rotate_left { position: relative; top: 1px; left: 0px; width: 15px; height: 15px; background: transparent; transform-origin: center center; }
+    .participant-body .albue_geo_left { position: relative; top: -1px; left: -33px; width: 50px; height: 18px; background: #334155; border-radius: 9px; z-index: 4; }
+
+    /* Legs hierarchy */
+    .participant-body .hofte_translate_right { position: absolute; top: 68px; left: 58px; width: 15px; height: 15px; background: transparent; }
+    .participant-body .hofte_rotate_right { width: 100%; height: 100%; background: transparent; transform-origin: center center; }
+    .participant-body .laar_geo_right { width: 18px; height: 55px; background: #334155; border-radius: 9px; position: relative; top: -1px; left: -1px; }
+    .participant-body .knae_rotate_right { position: relative; top: 38px; left: 1px; width: 15px; height: 15px; background: transparent; transform-origin: center center; }
+    .participant-body .skinneben_geo_right { position: relative; top: -1px; left: -1px; width: 18px; height: 50px; background: #334155; border-radius: 9px; }
+
+    .participant-body .hofte_translate_left { position: absolute; top: 68px; left: 26px; width: 15px; height: 15px; background: transparent; }
+    .participant-body .hofte_rotate_left { width: 100%; height: 100%; background: transparent; transform-origin: center center; }
+    .participant-body .laar_geo_left { width: 18px; height: 55px; background: #334155; border-radius: 9px; position: relative; top: -1px; left: -1px; }
+    .participant-body .knae_rotate_left { position: relative; top: 38px; left: 1px; width: 15px; height: 15px; background: transparent; transform-origin: center center; }
+    .participant-body .skinneben_geo_left { position: relative; top: -1px; left: -1px; width: 18px; height: 50px; background: #334155; border-radius: 9px; }
+
+		
+
+
+
+
+
+		
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>DBSCAN Clustering Test Tool</h1>
+            <p>Test clustering algoritme med variable punkt-størrelser</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="numPoints">Antal punkter:</label>
+                <input type="number" id="numPoints" value="5" min="3" max="50">
+            </div>
+            
+            
+			<div class="control-group">
+				<label for="minOverlap">Min overlap %:</label>
+				<input type="range" id="minOverlap" value="20" min="5" max="100" step="5">
+				<span class="slider-value" id="minOverlapValue">25%</span>
+			</div>
+            
+            <div class="control-group">
+                <label for="epsilon">Epsilon (kant-afstand):</label>
+                <input type="range" id="epsilon" value="50" min="0" max="200" step="5">
+                <span class="slider-value" id="epsilonValue">50px</span>
+            </div>
+			
+			<div class="control-group">
+				<label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+					<input type="checkbox" id="autoEpsilon" onchange="toggleAutoEpsilon()" checked>
+					<span>Auto-epsilon</span>
+				</label>
+			</div>
+            <div class="control-group">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="autoUpdateIFS" onchange="toggleAutoUpdateIFS()" checked>
+                    <span>Auto-update (IFS)</span>
+                </label>
+            </div>
+            
+            <div class="control-group">
+                <label for="minPts">Min punkter pr. klynge:</label>
+                <input type="number" id="minPts" value="2" min="1" max="10">
+            </div>
+            
+            <button onclick="generatePoints()">Generer nye punkter</button>
+            <button onclick="runClustering()">Kør DBSCAN</button>
+            <button onclick="importFromSharedCharacters()" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);">Importer fra IFS (shared)</button>
+			
+        </div>
+        
+        <div class="workspace" id="workspace"></div>
+        
+        <div class="results">
+            <h3>Resultater</h3>
+            <div class="cluster-list" id="clusterList"></div>
+            <div class="stats" id="stats"></div>
+        </div>
+    </div>
+
+    <script>
+        let points = [];
+        let runClusterDebounce = null;
+        // Ensure this is defined before any init calls use it
+let storageListenerRegistered = false;
+        // Helper: get ellipse metrics (center and radii) for two points based on rendered bounding-spheres
+        function getEllipseMetricsForPair(pt1, pt2) {
+            try {
+                const spheres = document.querySelectorAll('.bounding-sphere');
+                if (!spheres || spheres.length === 0) return null;
+                const idx1 = points.indexOf(pt1);
+                const idx2 = points.indexOf(pt2);
+                if (idx1 < 0 || idx2 < 0) return null;
+                const sphere1 = spheres[idx1];
+                const sphere2 = spheres[idx2];
+                if (!sphere1 || !sphere2) return null;
+                const r1 = (sphere1.getClientRects && sphere1.getClientRects().length) ? sphere1.getClientRects()[0] : sphere1.getBoundingClientRect();
+                const r2 = (sphere2.getClientRects && sphere2.getClientRects().length) ? sphere2.getClientRects()[0] : sphere2.getBoundingClientRect();
+                const workspaceRect = document.getElementById('workspace').getBoundingClientRect();
+                const cx1 = r1.left - workspaceRect.left + r1.width / 2;
+                const cy1 = r1.top - workspaceRect.top + r1.height / 2;
+                const cx2 = r2.left - workspaceRect.left + r2.width / 2;
+                const cy2 = r2.top - workspaceRect.top + r2.height / 2;
+                const rx1 = r1.width / 2;
+                const ry1 = r1.height / 2;
+                const rx2 = r2.width / 2;
+                const ry2 = r2.height / 2;
+                return { cx1, cy1, rx1, ry1, cx2, cy2, rx2, ry2 };
+            } catch (_) { return null; }
+        }
+        let lastClusterResult = null;
+        const clusterColors = [
+            '#ef4444', '#f97316', '#eab308', '#22c55e', 
+            '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899',
+            '#f59e0b', '#10b981', '#6366f1', '#d946ef'
+        ];
+		
+		let densityEpsilonPairs = [];
+        let autoUpdateTimer = null;
+        let lastRelationsSetupHash = '';
+		
+		// Navne-liste (50 danske navne)
+		const nameList = [
+			"Emma", "Noah", "Ida", "Lucas", "Alma", "Oscar", "Clara", "William", 
+			"Ella", "Victor", "Sofie", "Oliver", "Anna", "Emil", "Freja", "Karl", 
+			"Maja", "Adam", "Laura", "Felix", "Sara", "Anton", "Julie", "August", 
+			"Liv", "Jonas", "Agnes", "Malthe", "Nora", "Magnus", "Lea", "Alfred", 
+			"Signe", "Arthur", "Lærke", "Aksel", "Mille", "Elias", "Rosa", "Viggo", 
+			"Esther", "Storm", "Liva", "Alex", "Thea", "Erik", "Maria", "Otto", 
+			"Line", "Theo"
+		];
+		
+		// Hjælpefunktion: vælg en tilfældig pose direkte fra poseLibrary
+		function getRandomPoseIndex() {
+			if (!Array.isArray(poseLibrary) || poseLibrary.length === 0) return -1;
+			return Math.floor(Math.random() * poseLibrary.length);
+		}
+		
+// Pose Library - loaded from external JSON file
+let poseLibrary = [];
+
+// Load pose library from external JSON file
+async function loadPoseLibrary() {
+    try {
+        const response = await fetch('Standard_new_poses.json');
+        if (response.ok) {
+            poseLibrary = await response.json();
+            console.log('Loaded pose library with', poseLibrary.length, 'poses');
+        } else {
+            console.error('Failed to load pose library');
+            // Fallback to basic poses
+            poseLibrary = [
+                {
+                    "name": "standard",
+                    "pose": {
+                        "translate_x_left": -3,
+                        "translate_y_left": 0,
+                        "skulder_rot_left": -70,
+                        "albue_rot_left": 0,
+                        "translate_x": 3,
+                        "translate_y": 0,
+                        "skulder_rot": 70,
+                        "albue_rot": 0,
+                        "translate_x_left_leg": 0,
+                        "translate_y_left_leg": 0,
+                        "hofte_rot_left": 6,
+                        "knae_rot_left": 0,
+                        "translate_x_right_leg": 0,
+                        "translate_y_right_leg": 0,
+                        "hofte_rot_right": -6,
+                        "knae_rot_right": 0,
+                        "left_arm_front": false,
+                        "right_arm_front": false,
+                        "duration": 0.3
+                    }
+                }
+            ];
+        }
+    } catch (error) {
+        console.error('Error loading pose library:', error);
+        // Fallback to basic poses
+        poseLibrary = [
+            {
+                "name": "standard",
+                "pose": {
+                    "translate_x_left": -3,
+                    "translate_y_left": 0,
+                    "skulder_rot_left": -70,
+                    "albue_rot_left": 0,
+                    "translate_x": 3,
+                    "translate_y": 0,
+                    "skulder_rot": 70,
+                    "albue_rot": 0,
+                    "translate_x_left_leg": 0,
+                    "translate_y_left_leg": 0,
+                    "hofte_rot_left": 6,
+                    "knae_rot_left": 0,
+                    "translate_x_right_leg": 0,
+                    "translate_y_right_leg": 0,
+                    "hofte_rot_right": -6,
+                    "knae_rot_right": 0,
+                    "left_arm_front": false,
+                    "right_arm_front": false,
+                    "duration": 0.3
+                }
+            }
+        ];
+    }
+}	
+		
+        
+        // yCompression removed
+		// update episilon	
+			document.getElementById('epsilon').addEventListener('input', function() {
+			document.getElementById('epsilonValue').textContent = this.value + 'px';
+			// Ensure DOM/render reflects new epsilon visuals before clustering (needed esp. for epsilon=0)
+			renderPoints();
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					try { runClustering(); } catch(_) {}
+				});
+			});
+		});
+		
+		// update overlap
+			document.getElementById('minOverlap').addEventListener('input', function() {
+			document.getElementById('minOverlapValue').textContent = this.value + '%';
+		});
+		
+		
+		// Hjælpefunktion til at vælge tilfældige unikke navne
+		function getRandomNames(count) {
+			const shuffled = [...nameList].sort(() => Math.random() - 0.5);
+			return shuffled.slice(0, Math.min(count, nameList.length));
+		}
+		
+		function getPoseIndexFromValue(poseValue) {
+			// Accepter både indeks (number) og navn (string) for bagud-kompatibilitet
+			if (typeof poseValue === 'number' && poseLibrary[poseValue]) return poseValue;
+			const name = (poseValue || '').toString().trim().toLowerCase();
+			if (!name) return -1;
+			return poseLibrary.findIndex(p => (p && p.name || '').toLowerCase() === name);
+		}
+
+		function getPoseNameFromValue(poseValue) {
+			const idx = getPoseIndexFromValue(poseValue);
+			if (idx !== -1) return poseLibrary[idx]?.name || '';
+			return '';
+		}
+		
+		
+		
+		
+		function toggleAutoEpsilon() {
+    if (document.getElementById('autoEpsilon').checked) {
+        calculateAndSetEpsilon();
+    }
+}
+
+function calculateAndSetEpsilon() {
+    if (points.length === 0) return;
+    
+    const densityData = calculateDensity();
+    const numPoints = points.length;
+    
+    // Ved 25+ punkter, epsilon = 0
+    // Ved færre punkter, brug density-baseret formel med kraftig fald
+    let suggestedEpsilon;
+    if (numPoints >= 25) {
+        suggestedEpsilon = 0;
+    } else {
+        // Kombination: density-baseret men skaleret ned baseret på antal punkter
+        const baseEpsilon = 15 / Math.sqrt(densityData.density);
+        const scaleFactor = Math.max(0, (25 - numPoints) / 25); // 1.0 ved 0 pts, 0.0 ved 25 pts
+        suggestedEpsilon = baseEpsilon * scaleFactor;
+    }
+    
+    const roundedEpsilon = Math.round(suggestedEpsilon / 5) * 5;
+    const finalEpsilon = Math.max(0, Math.min(200, roundedEpsilon));
+    
+    document.getElementById('epsilon').value = finalEpsilon;
+    document.getElementById('epsilonValue').textContent = finalEpsilon + 'px';
+    
+    runClustering();
+    
+    // console debug removed
+}
+		
+		
+		
+		
+		
+		function showDensity() {
+    const densityData = calculateDensity();
+    alert(`Densitet: ${densityData.density.toFixed(3)}\nCoverage: ${densityData.coverage}\nTotal areal: ${Math.round(densityData.totalArea)}px²\nCirkler areal: ${Math.round(densityData.circlesArea)}px²`);
+}
+
+function getGroupBoundingBox() {
+    // Compute bbox from rendered spheres (no baseRadius/yCompression)
+    const spheres = document.querySelectorAll('.bounding-sphere');
+    if (!spheres.length) return { left:0, right:0, top:0, bottom:0, width:0, height:0 };
+    const workspaceRect = document.getElementById('workspace').getBoundingClientRect();
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    spheres.forEach(s => {
+        const r = (s.getClientRects && s.getClientRects().length) ? s.getClientRects()[0] : s.getBoundingClientRect();
+        const left = r.left - workspaceRect.left;
+        const right = r.right - workspaceRect.left;
+        const top = r.top - workspaceRect.top;
+        const bottom = r.bottom - workspaceRect.top;
+        minX = Math.min(minX, left);
+        maxX = Math.max(maxX, right);
+        minY = Math.min(minY, top);
+        maxY = Math.max(maxY, bottom);
+    });
+    return { left: minX, right: maxX, top: minY, bottom: maxY, width: maxX - minX, height: maxY - minY };
+}
+
+function calculateDensity() {
+    const bbox = getGroupBoundingBox();
+    const totalArea = bbox.width * bbox.height;
+    // Approx circles area from rendered spheres
+    let circlesArea = 0;
+    const spheres = document.querySelectorAll('.bounding-sphere');
+    spheres.forEach(s => {
+        const r = (s.getClientRects && s.getClientRects().length) ? s.getClientRects()[0] : s.getBoundingClientRect();
+        const rx = r.width / 2;
+        const ry = r.height / 2;
+        circlesArea += Math.PI * rx * ry;
+    });
+    
+    const density = circlesArea / totalArea;
+    
+    return {
+        density: density,
+        totalArea: totalArea,
+        circlesArea: circlesArea,
+        coverage: (density * 100).toFixed(1) + '%'
+    };
+}
+
+
+// registerPair / copyPairs removed with their buttons
+		
+		
+		
+		
+        
+        function generatePoints() {
+    // previously logged density/epsilon pairs removed
+    
+    const numPoints = parseInt(document.getElementById('numPoints').value);
+    points = [];
+    
+    // Få unikke navne til alle punkter
+    const names = getRandomNames(numPoints);
+    
+    for (let i = 0; i < numPoints; i++) {
+        points.push({
+            x: Math.random() * 1500 + 50,
+            y: Math.random() * 500 + 50,
+            scale: Math.random() * 1.0 + 0.5,
+            zDepth: i + 1,  // z-dybde starter fra 1 (højere = foran)
+            name: names[i] || `Person${i}`,  // Fallback hvis vi løber tør for navne
+            pose: getRandomPoseIndex() // store as index
+        });
+    }
+    
+    renderPoints();
+    
+    if (document.getElementById('autoEpsilon').checked) {
+        calculateAndSetEpsilon();
+    } else {
+        runClustering();
+    }
+}
+        
+        function renderPoints(clusters = null, noise = null) {
+            const workspace = document.getElementById('workspace');
+            workspace.innerHTML = '';
+			
+			const epsilon = parseFloat(document.getElementById('epsilon').value);
+
+			// Add epsilon reference circle
+            // epsilon visual reference removed
+
+			// Add epsilon label (fixed position)
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'epsilon-label';
+            labelDiv.textContent = `ε=${epsilon}px`;
+            labelDiv.style.left = '20px';
+            labelDiv.style.zIndex = '20';
+            workspace.appendChild(labelDiv);
+
+			// Visual reference: circle with diameter = epsilon
+			const refDiv = document.createElement('div');
+			refDiv.className = 'epsilon-reference';
+			refDiv.style.width = `${epsilon}px`;
+			refDiv.style.height = `${epsilon}px`;
+			refDiv.style.borderRadius = '50%';
+			refDiv.style.border = '2px dashed rgba(51,65,85,0.6)';
+			refDiv.style.position = 'absolute';
+            refDiv.style.left = '25px';
+            refDiv.style.top = '25px';
+            refDiv.style.pointerEvents = 'none';
+            refDiv.style.zIndex = '10';
+			workspace.appendChild(refDiv);
+            
+            points.forEach((point, idx) => {
+                const div = document.createElement('div');
+                div.className = 'point';
+                div.setAttribute('data-idx', String(idx));
+                
+                // Position the container at head center (no ellipse rendering for now)
+                div.style.left = point.x + 'px';
+                div.style.top = point.y + 'px';
+                div.style.width = '0px';
+                div.style.height = '0px';
+                div.style.background = 'transparent';
+                
+                const figureScale = point.scale;
+
+                // Determine cluster-based sphere color
+                let sphereColor = '#94a3b8';
+                let sphereOpacity = 0.65;
+                if (noise && noise.includes(idx)) {
+                    sphereColor = '#64748b';
+                    sphereOpacity = 0.65;
+                } else if (clusters) {
+                    for (let i = 0; i < clusters.length; i++) {
+                        if (clusters[i].includes(idx)) {
+                            sphereColor = clusterColors[i % clusterColors.length];
+                            sphereOpacity = 0.65;
+                            break;
+                        }
+                    }
+                }
+
+                // Bounding sphere: head-size (72px), centered on head; will inherit scale when moved into body later
+                const sphereW = 72;
+                const sphereH = 72;
+
+                const poseLabel = getPoseNameFromValue(point.pose);
+                div.innerHTML = `
+                    <span style="position: relative; z-index: 10; text-align: center; line-height: 1.2; transform: translate(0, 0); display: inline-block;">
+                        ${point.name}<br>
+                        ${point.zDepth}<br>
+                        ${poseLabel}
+                    </span>
+                    <div class="participant-body" style="transform-origin: 50px -42px; transform: translate(-50px, 42px) scale(${figureScale});">
+                        <div class="bounding-sphere" data-idx="${idx}" style="position:absolute; left:13px; top:-78px; width:${sphereW}px; height:${sphereH}px; border-radius:50%; background:${sphereColor}; opacity:${sphereOpacity}; pointer-events:none; transform-origin:50% 0; transform: scale(1.6, 1); z-index: 0;"></div>
+                        <div class="head"></div>
+                        <div class="participant-torso"></div>
+                        <!-- Venstre arm hierarki -->
+                        <div class="skulder_translate_left">
+                            <div class="skulder_rotate_left">
+                                <div class="arm_geo_left">
+                                    <div class="albue_rotate_left">
+                                        <div class="albue_geo_left"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Højre arm hierarki -->
+                        <div class="skulder_translate_right">
+                            <div class="skulder_rotate_right">
+                                <div class="arm_geo_right">
+                                    <div class="albue_rotate_right">
+                                        <div class="albue_geo_right"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Venstre ben hierarki -->
+                        <div class="hofte_translate_left">
+                            <div class="hofte_rotate_left">
+                                <div class="laar_geo_left">
+                                    <div class="knae_rotate_left">
+                                        <div class="skinneben_geo_left"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Højre ben hierarki -->
+                        <div class="hofte_translate_right">
+                            <div class="hofte_rotate_right">
+                                <div class="laar_geo_right">
+                                    <div class="knae_rotate_right">
+                                        <div class="skinneben_geo_right"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                div.title = `${point.name}\nZ-dybde: ${point.zDepth}\nPose: ${point.pose}\nPosition: (${Math.round(point.x)}, ${Math.round(point.y)})\nScale: ${point.scale.toFixed(2)}`;
+                
+                // Apply pose using dialog-style wrappers (support index or legacy name)
+                const poseIndex = getPoseIndexFromValue(point.pose);
+                if (poseIndex !== -1 && poseLibrary[poseIndex] && poseLibrary[poseIndex].pose) {
+                    applyDialogStylePose(div, poseLibrary[poseIndex].pose);
+                }
+
+                // Append to DOM first so measurements are valid
+                workspace.appendChild(div);
+
+                // Compute dynamic Y-scale for bounding sphere after layout and transforms
+                try {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            const bodyEl = div.querySelector('.participant-body');
+                            const headEl = div.querySelector('.head');
+                            const sphereEl = div.querySelector('.bounding-sphere');
+                            if (bodyEl && headEl && sphereEl) {
+                                // Union of all visible parts' rects to capture pose-dependent extents
+                                const partSelectors = [
+                                    '.head', '.participant-torso',
+                                    '.arm_geo_left', '.arm_geo_right',
+                                    '.albue_geo_left', '.albue_geo_right',
+                                    '.laar_geo_left', '.laar_geo_right',
+                                    '.skinneben_geo_left', '.skinneben_geo_right'
+                                ];
+                                const candidates = partSelectors
+                                    .map(sel => Array.from(bodyEl.querySelectorAll(sel)))
+                                    .flat()
+                                    .filter(Boolean);
+
+                                let minTop = Infinity, maxBottom = -Infinity;
+                                let minLeft = Infinity, maxRight = -Infinity;
+                                candidates.forEach(el => {
+                                    const r = el.getBoundingClientRect();
+                                    if (r.height === 0 && r.width === 0) return;
+                                    if (r.top < minTop) minTop = r.top;
+                                    if (r.bottom > maxBottom) maxBottom = r.bottom;
+                                    if (r.left < minLeft) minLeft = r.left;
+                                    if (r.right > maxRight) maxRight = r.right;
+                                });
+
+                                // Fallback to body rect if union fails
+                                if (!Number.isFinite(minTop) || !Number.isFinite(maxBottom) || 
+                                    !Number.isFinite(minLeft) || !Number.isFinite(maxRight)) {
+                                    const br = bodyEl.getBoundingClientRect();
+                                    minTop = br.top; maxBottom = br.bottom;
+                                    minLeft = br.left; maxRight = br.right;
+                                }
+
+                                const headRect = headEl.getBoundingClientRect();
+                                const headH = Math.max(1, headRect.height);
+                                const headW = Math.max(1, headRect.width);
+                                const unionH = Math.max(1, maxBottom - minTop);
+                                const unionW = Math.max(1, maxRight - minLeft);
+                                
+                                const scaleY = unionH / headH;
+                                const scaleX = unionW / headW;
+                                sphereEl.style.transform = `scale(${scaleX.toFixed(3)}, ${scaleY.toFixed(3)})`;
+                            }
+                        });
+                    });
+                } catch(_) {}
+            });
+
+            // If this render was not invoked by runClustering (clusters/noise are null),
+            // debounce a clustering run to keep UI in sync without loops
+            if (clusters === null && noise === null) {
+                if (runClusterDebounce) { try { clearTimeout(runClusterDebounce); } catch(_) {} }
+                runClusterDebounce = setTimeout(() => {
+                    try { runClustering(); } catch(_) {}
+                }, 120);
+            }
+        }
+        
+        function getDistanceBetweenCircles(pt1, pt2) {
+			// Ellipse-edge distance based on rendered bounding-sphere metrics
+			const metrics = getEllipseMetricsForPair(pt1, pt2);
+			if (!metrics) return Infinity;
+			const { cx1, cy1, rx1, ry1, cx2, cy2, rx2, ry2 } = metrics;
+			// Direction from A to B
+			const dx = cx2 - cx1;
+			const dy = cy2 - cy1;
+			const angle = Math.atan2(dy, dx);
+			const rInDir = (rx, ry, a) => {
+				const cosA = Math.cos(a);
+				const sinA = Math.sin(a);
+				const denom = Math.sqrt((ry * cosA) ** 2 + (rx * sinA) ** 2);
+				return (rx * ry) / (denom || 1);
+			};
+			const r1 = rInDir(rx1, ry1, angle);
+			const r2 = rInDir(rx2, ry2, angle + Math.PI);
+			const centerDistance = Math.hypot(dx, dy);
+			const edgeDistance = centerDistance - (r1 + r2);
+			return Math.max(0, edgeDistance);
+		}
+        
+        function getNeighbors(pointIdx, epsilon) {
+            const neighbors = [];
+            const point = points[pointIdx];
+            
+            for (let i = 0; i < points.length; i++) {
+                if (i === pointIdx) continue;
+                
+                const distance = getDistanceBetweenCircles(point, points[i]);
+                if (distance <= epsilon) {
+                    neighbors.push(i);
+                }
+            }
+            
+            return neighbors;
+        }
+        
+        function expandCluster(pointIdx, neighbors, cluster, visited, epsilon, minPts) {
+            cluster.push(pointIdx);
+            
+            for (let i = 0; i < neighbors.length; i++) {
+                const neighborIdx = neighbors[i];
+                
+                if (!visited.has(neighborIdx)) {
+                    visited.add(neighborIdx);
+                    const neighborNeighbors = getNeighbors(neighborIdx, epsilon);
+                    
+                    if (neighborNeighbors.length >= minPts) {
+                        neighbors.push(...neighborNeighbors);
+                    }
+                }
+                
+                // Add to cluster if not already in any cluster
+                let inCluster = false;
+                for (let c of cluster) {
+                    if (c === neighborIdx) {
+                        inCluster = true;
+                        break;
+                    }
+                }
+                if (!inCluster) {
+                    cluster.push(neighborIdx);
+                }
+            }
+        }
+        
+        function dbscan(epsilon, minPts) {
+    const clusters = [];
+    const visited = new Set();
+    const noise = [];
+    const clustered = new Set(); // Tilføj dette
+    
+    for (let i = 0; i < points.length; i++) {
+        if (visited.has(i)) continue;
+        
+        visited.add(i);
+        const neighbors = getNeighbors(i, epsilon);
+        
+        // Include-self convention: a point counts itself, so require (minPts - 1) neighbors
+        if (neighbors.length < (minPts - 1)) {
+            noise.push(i);
+        } else {
+            const cluster = [];
+            expandCluster(i, neighbors, cluster, visited, epsilon, minPts);
+            clusters.push(cluster);
+            cluster.forEach(idx => clustered.add(idx)); // Tilføj dette
+        }
+    }
+    
+    // Filtrer noise for at fjerne punkter der blev clusteret
+    const finalNoise = noise.filter(idx => !clustered.has(idx));
+    
+    return { clusters, noise: finalNoise };
+}
+        
+        function runClustering() {
+            const epsilon = parseFloat(document.getElementById('epsilon').value);
+            const minPts = parseInt(document.getElementById('minPts').value);
+            
+            const result = dbscan(epsilon, minPts);
+            lastClusterResult = result;
+            
+            renderPoints(result.clusters, result.noise);
+            
+            // Wait for all transforms to complete before calculating overlaps
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const overlaps = findOverlappingPairs();
+                    lastClusterResult.overlaps = overlaps;
+                    displayResults(lastClusterResult);
+                });
+            });
+        }
+        
+        function displayResults(result) {
+            const clusterList = document.getElementById('clusterList');
+            const stats = document.getElementById('stats');
+            
+            // Display clusters
+            clusterList.innerHTML = '';
+            result.clusters.forEach((cluster, idx) => {
+                const div = document.createElement('div');
+                div.className = 'cluster-item';
+                div.style.borderColor = clusterColors[idx % clusterColors.length];
+                
+                // Vis navne i stedet for indices
+                const names = cluster.map(i => points[i].name).join(', ');
+                div.innerHTML = `<strong>Klynge ${idx + 1}:</strong> ${names}`;
+                clusterList.appendChild(div);
+            });
+            
+            if (result.noise.length > 0) {
+                const div = document.createElement('div');
+                div.className = 'cluster-item';
+                div.style.borderColor = '#64748b';
+                
+                // Vis navne i stedet for indices
+                const names = result.noise.map(i => points[i].name).join(', ');
+                div.innerHTML = `<strong>Outliers:</strong> ${names}`;
+                clusterList.appendChild(div);
+            }
+            
+            // Små (scale <= 0.7) og Store (scale >= 1.2)
+            const smallPoints = points.filter(p => (p.scale || 0) <= 0.7);
+            const largePoints = points.filter(p => (p.scale || 0) >= 1.2);
+
+            // Display stats
+            stats.innerHTML = `
+                <div><strong>Antal klynger fundet:</strong> ${result.clusters.length}</div>
+                <div><strong>Antal outliers:</strong> ${result.noise.length}</div>
+                <div><strong>Gennemsnitlig klyngestørrelse:</strong> ${result.clusters.length > 0 ? (result.clusters.reduce((sum, c) => sum + c.length, 0) / result.clusters.length).toFixed(1) : 'N/A'}</div>
+                <div style="margin-top: 10px;"><strong>Små (<= 0.7):</strong> ${smallPoints.length > 0 ? smallPoints.map(p => p.name).join(', ') : 'Ingen'}</div>
+                <div><strong>Store (>= 1.2):</strong> ${largePoints.length > 0 ? largePoints.map(p => p.name).join(', ') : 'Ingen'}</div>
+            `;
+
+            // Global Density: sum of all members' ellipse areas (bounding-spheres)
+            // divided by area of the global bounding box of all points (rectangle)
+            try {
+                const workspaceRect = document.getElementById('workspace').getBoundingClientRect();
+                const spheres = Array.from(document.querySelectorAll('.bounding-sphere'));
+                if (spheres.length > 0) {
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    let membersArea = 0;
+                    const pi = Math.PI;
+                    spheres.forEach(el => {
+                        const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                        const left = r.left - workspaceRect.left;
+                        const top = r.top - workspaceRect.top;
+                        const right = left + r.width;
+                        const bottom = top + r.height;
+                        if (left < minX) minX = left;
+                        if (top < minY) minY = top;
+                        if (right > maxX) maxX = right;
+                        if (bottom > maxY) maxY = bottom;
+                        const rx = r.width / 2;
+                        const ry = r.height / 2;
+                        membersArea += pi * rx * ry;
+                    });
+                    const bw = Math.max(0, maxX - minX);
+                    const bh = Math.max(0, maxY - minY);
+                    const bboxArea = bw * bh;
+                    if (bboxArea > 0) {
+                        const densityPct = Math.round((membersArea / bboxArea) * 100);
+                        stats.innerHTML += `<div><strong>Density:</strong> ${densityPct}%</div>`;
+                    }
+                }
+            } catch (_) {}
+
+            // Cluster centers (use rendered ellipse centers for precision)
+            if (result.clusters.length > 0) {
+                const workspaceRect = document.getElementById('workspace').getBoundingClientRect();
+                const spheres = Array.from(document.querySelectorAll('.bounding-sphere'));
+                const getEllipseCenter = (idx) => {
+                    const el = spheres[idx];
+                    if (!el) return null;
+                    const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                    return {
+                        x: r.left - workspaceRect.left + r.width / 2,
+                        y: r.top  - workspaceRect.top  + r.height / 2
+                    };
+                };
+                const centers = result.clusters.map((cluster, idx) => {
+                    if (!cluster || cluster.length === 0) return null;
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    cluster.forEach(i => {
+                        const el = spheres[i];
+                        if (!el) return;
+                        const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                        const left = r.left - workspaceRect.left;
+                        const top = r.top - workspaceRect.top;
+                        const right = left + r.width;
+                        const bottom = top + r.height;
+                        if (left < minX) minX = left;
+                        if (top < minY) minY = top;
+                        if (right > maxX) maxX = right;
+                        if (bottom > maxY) maxY = bottom;
+                    });
+                    if (!Number.isFinite(minX)) return null;
+                    const cx = Math.round((minX + maxX) / 2);
+                    const cy = Math.round((minY + maxY) / 2);
+                    return { id: idx + 1, x: cx, y: cy };
+                }).filter(Boolean);
+                if (centers.length > 0) {
+                    stats.innerHTML += `<div style="margin-top: 10px;"><strong>Klynge-centre (x,y):</strong></div>`;
+                    centers.forEach(c => {
+                        stats.innerHTML += `<div>Klynge ${c.id}: (${c.x}, ${c.y})</div>`;
+                    });
+
+                    // Draw visual cross markers at cluster centers
+                    const workspace = document.getElementById('workspace');
+                    // Remove previous markers
+                    Array.from(workspace.querySelectorAll('.cluster-center')).forEach(el => el.remove());
+                    // Remove previous cluster boundaries
+                    Array.from(workspace.querySelectorAll('.cluster-boundary')).forEach(el => el.remove());
+                    const groupEllipses = [];
+                    centers.forEach((c, idx) => {
+                        const color = clusterColors[(c.id - 1) % clusterColors.length] || '#334155';
+                        const wrap = document.createElement('div');
+                        wrap.className = 'cluster-center';
+                        wrap.style.position = 'absolute';
+                        wrap.style.left = (c.x - 6) + 'px';
+                        wrap.style.top = (c.y - 6) + 'px';
+                        wrap.style.width = '12px';
+                        wrap.style.height = '12px';
+                        wrap.style.pointerEvents = 'none';
+                        wrap.style.zIndex = '15';
+                        const h = document.createElement('div');
+                        h.style.position = 'absolute';
+                        h.style.left = '0px';
+                        h.style.top = '5px';
+                        h.style.width = '12px';
+                        h.style.height = '2px';
+                        h.style.background = color;
+                        const v = document.createElement('div');
+                        v.style.position = 'absolute';
+                        v.style.left = '5px';
+                        v.style.top = '0px';
+                        v.style.width = '2px';
+                        v.style.height = '12px';
+                        v.style.background = color;
+                        wrap.appendChild(h);
+                        wrap.appendChild(v);
+                        workspace.appendChild(wrap);
+
+                        // Draw cluster boundary ellipse using members' bounding box
+                        const clusterIdx = c.id - 1;
+                        const memberIndices = result.clusters[clusterIdx] || [];
+                        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                        memberIndices.forEach(i => {
+                            const el = spheres[i];
+                            if (!el) return;
+                            const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                            const left = r.left - workspaceRect.left;
+                            const top = r.top - workspaceRect.top;
+                            const right = left + r.width;
+                            const bottom = top + r.height;
+                            if (left < minX) minX = left;
+                            if (top < minY) minY = top;
+                            if (right > maxX) maxX = right;
+                            if (bottom > maxY) maxY = bottom;
+                        });
+                        if (Number.isFinite(minX) && Number.isFinite(minY) && Number.isFinite(maxX) && Number.isFinite(maxY)) {
+                            const bw = Math.max(0, maxX - minX);
+                            const bh = Math.max(0, maxY - minY);
+                            const gcx = minX + bw / 2;
+                            const gcy = minY + bh / 2;
+                            const grx = bw / 2;
+                            const gry = bh / 2;
+                            groupEllipses.push({ id: c.id, cx: gcx, cy: gcy, rx: grx, ry: gry, color });
+                            const ellipse = document.createElement('div');
+                            ellipse.className = 'cluster-boundary';
+                            ellipse.style.position = 'absolute';
+                            ellipse.style.left = `${minX}px`;
+                            ellipse.style.top = `${minY}px`;
+                            ellipse.style.width = `${bw}px`;
+                            ellipse.style.height = `${bh}px`;
+                            ellipse.style.border = `2px solid ${color}`;
+                            ellipse.style.borderRadius = '50%';
+                            ellipse.style.background = 'transparent';
+                            ellipse.style.pointerEvents = 'none';
+                            ellipse.style.zIndex = '12';
+                            workspace.appendChild(ellipse);
+
+                            // Density label: sum(member areas) / cluster ellipse area
+                            let membersArea = 0;
+                            const pi = Math.PI;
+                            memberIndices.forEach(i => {
+                                const el = spheres[i]; if (!el) return;
+                                const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                                const rx = r.width / 2;
+                                const ry = r.height / 2;
+                                membersArea += pi * rx * ry;
+                            });
+                            const clusterArea = pi * grx * gry;
+                            if (clusterArea > 0) {
+                                const densityPct = Math.round((membersArea / clusterArea) * 100);
+                                const qual = densityPct < 85 ? 'løs' : (densityPct > 120 ? 'tæt' : '');
+                                
+                                // Find closest member to cluster center
+                                let closestToClusterCenter = null;
+                                let minClusterDistance = Infinity;
+                                memberIndices.forEach(idx => {
+                                    const el = spheres[idx];
+                                    if (!el) return;
+                                    const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                                    const centerX = r.left - workspaceRect.left + r.width / 2;
+                                    const centerY = r.top - workspaceRect.top + r.height / 2;
+                                    const distance = Math.sqrt((centerX - gcx) ** 2 + (centerY - gcy) ** 2);
+                                    
+                                    if (distance < minClusterDistance) {
+                                        minClusterDistance = distance;
+                                        closestToClusterCenter = points[idx].name;
+                                    }
+                                });
+                                
+                                const label = document.createElement('div');
+                                label.className = 'cluster-density-label';
+                                const densityText = qual ? `${densityPct}% (${qual})` : `${densityPct}%`;
+                                const nameText = closestToClusterCenter ? `\n${closestToClusterCenter}` : '';
+                                label.textContent = densityText + nameText;
+                                label.style.position = 'absolute';
+                                label.style.left = (c.x + 8) + 'px';
+                                label.style.top = (c.y - 12) + 'px';
+                                label.style.fontSize = '12px';
+                                label.style.fontWeight = '600';
+                                label.style.color = color;
+                                label.style.textShadow = '0 1px 2px rgba(0,0,0,0.35)';
+                                label.style.pointerEvents = 'none';
+                                label.style.zIndex = '16';
+                                label.style.lineHeight = '1.2';
+                                label.style.textAlign = 'center';
+                                workspace.appendChild(label);
+                            }
+                        }
+                    });
+
+                    // Helper for ellipse-ellipse edge distance
+                    const radiusDir = (rx, ry, ang) => {
+                        const ca = Math.cos(ang);
+                        const sa = Math.sin(ang);
+                        const denom = Math.sqrt((ry * ca) ** 2 + (rx * sa) ** 2) || 1;
+                        return (rx * ry) / denom;
+                    };
+                    const edgeDistance = (a, b) => {
+                        const dx = b.cx - a.cx;
+                        const dy = b.cy - a.cy;
+                        const ang = Math.atan2(dy, dx);
+                        const r1 = radiusDir(a.rx, a.ry, ang);
+                        const r2 = radiusDir(b.rx, b.ry, ang + Math.PI);
+                        const d = Math.hypot(dx, dy) - (r1 + r2);
+                        return Math.max(0, d);
+                    };
+
+                    // Collect outlier ellipses
+                    const outliers = (result.noise || []).map(i => {
+                        const el = spheres[i];
+                        if (!el) return null;
+                        const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                        const cx = r.left - workspaceRect.left + r.width / 2;
+                        const cy = r.top - workspaceRect.top + r.height / 2;
+                        return { name: points[i].name, cx, cy, rx: r.width / 2, ry: r.height / 2, idx: i };
+                    }).filter(Boolean);
+
+					// (Outlier distance listing is generated later in the outlier-first analysis section)
+                }
+            }
+			
+			// Display overlapping pairs (area-based, enkel sætning per par)
+			if (result.overlaps && result.overlaps.length > 0) {
+				stats.innerHTML += `<div style="margin-top: 15px;"><strong>Overlappende par (areal-dækning):</strong></div>`;
+				result.overlaps.forEach(overlap => {
+					const line = `${overlap.subjectName} ${overlap.verb} ${overlap.objectName} (${overlap.percent}%)`;
+					stats.innerHTML += `<div>${line}</div>`;
+				});
+			}
+
+            // Outlier-first distance analysis
+            try {
+                const workspaceRect = document.getElementById('workspace').getBoundingClientRect();
+                const spheres = Array.from(document.querySelectorAll('.bounding-sphere'));
+                const getEllipseFromIndex = (i) => {
+                    const el = spheres[i];
+                    if (!el) return null;
+                    const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                    return {
+                        name: points[i].name,
+                        cx: r.left - workspaceRect.left + r.width / 2,
+                        cy: r.top - workspaceRect.top + r.height / 2,
+                        rx: r.width / 2,
+                        ry: r.height / 2,
+                        idx: i
+                    };
+                };
+                const radiusDir = (rx, ry, ang) => {
+                    const ca = Math.cos(ang);
+                    const sa = Math.sin(ang);
+                    const denom = Math.sqrt((ry * ca) ** 2 + (rx * sa) ** 2) || 1;
+                    return (rx * ry) / denom;
+                };
+                const edgeDistance = (a, b) => {
+                    const dx = b.cx - a.cx;
+                    const dy = b.cy - a.cy;
+                    const ang = Math.atan2(dy, dx);
+                    const r1 = radiusDir(a.rx, a.ry, ang);
+                    const r2 = radiusDir(b.rx, b.ry, ang + Math.PI);
+                    const d = Math.hypot(dx, dy) - (r1 + r2);
+                    return Math.max(0, d);
+                };
+
+                const outliers = (result.noise || []).map(i => getEllipseFromIndex(i)).filter(Boolean);
+                if (!outliers || outliers.length === 0) return;
+
+                // Build group ellipses (bounding of member spheres per cluster)
+                const groupEllipses = (result.clusters || []).map((cluster, idx) => {
+                    if (!cluster || cluster.length === 0) return null;
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    cluster.forEach(i => {
+                        const el = spheres[i]; if (!el) return;
+                        const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                        const left = r.left - workspaceRect.left;
+                        const top = r.top - workspaceRect.top;
+                        const right = left + r.width;
+                        const bottom = top + r.height;
+                        if (left < minX) minX = left;
+                        if (top < minY) minY = top;
+                        if (right > maxX) maxX = right;
+                        if (bottom > maxY) maxY = bottom;
+                    });
+                    if (!Number.isFinite(minX)) return null;
+                    return {
+                        id: idx + 1,
+                        cx: (minX + maxX) / 2,
+                        cy: (minY + maxY) / 2,
+                        rx: (maxX - minX) / 2,
+                        ry: (maxY - minY) / 2
+                    };
+                }).filter(Boolean);
+
+                const lines = [];
+                outliers.forEach(ol => {
+                    const parts = [];
+                    // Nearest other outlier
+                    if (outliers.length > 1) {
+                        let bestO = { name: null, d: Infinity };
+                        outliers.forEach(other => {
+                            if (other.idx === ol.idx) return;
+                            const d = edgeDistance(ol, other);
+                            if (d < bestO.d) bestO = { name: other.name, d };
+                        });
+                        if (Number.isFinite(bestO.d) && bestO.name) {
+                            const height = ol.ry * 2; // Total height of outlier
+                            const distanceRatio = bestO.d / height;
+                            let distanceDesc;
+                            if (distanceRatio < 0.6) distanceDesc = 'lille afstand';
+                            else if (distanceRatio < 1.5) distanceDesc = 'mellem afstand';
+                            else distanceDesc = 'stor afstand';
+                            parts.push(`Outlier ${bestO.name} ${Math.round(bestO.d)}px (${distanceDesc})`);
+                        }
+                    }
+                    // Nearest group
+                    if (groupEllipses.length > 0) {
+                        let bestG = { id: null, d: Infinity };
+                        groupEllipses.forEach(g => {
+                            const d = edgeDistance(ol, g);
+                            if (d < bestG.d) bestG = { id: g.id, d };
+                        });
+                        if (Number.isFinite(bestG.d) && bestG.id != null) {
+                            const height = ol.ry * 2; // Total height of outlier
+                            const distanceRatio = bestG.d / height;
+                            let distanceDesc;
+                            if (distanceRatio < 0.6) distanceDesc = 'lille afstand';
+                            else if (distanceRatio < 1.5) distanceDesc = 'mellem afstand';
+                            else distanceDesc = 'stor afstand';
+                            parts.push(`Gruppe ${bestG.id} ${Math.round(bestG.d)}px (${distanceDesc})`);
+                        }
+                    }
+                    if (parts.length > 0) lines.push(`${ol.name}: ${parts.join(' ; ')}`);
+                });
+                if (lines.length > 0) {
+                    stats.innerHTML += `<div style=\"margin-top: 15px;\"><strong>Outlier afstande:</strong></div>`;
+                    lines.forEach(line => { stats.innerHTML += `<div>${line}</div>`; });
+                }
+            } catch(_) {}
+            
+            // Find closest to center and closest to cluster centers
+            try {
+                const workspaceRect = document.getElementById('workspace').getBoundingClientRect();
+                const workspaceCenterX = workspaceRect.width / 2;
+                const workspaceCenterY = workspaceRect.height / 2;
+                
+                // Get all spheres (including outliers and cluster members)
+                const spheres = Array.from(document.querySelectorAll('.bounding-sphere'));
+                
+                // Find closest to overall center
+                let closestToCenter = null;
+                let minCenterDistance = Infinity;
+                
+                spheres.forEach((sphere, idx) => {
+                    const r = (sphere.getClientRects && sphere.getClientRects().length) ? sphere.getClientRects()[0] : sphere.getBoundingClientRect();
+                    const centerX = r.left - workspaceRect.left + r.width / 2;
+                    const centerY = r.top - workspaceRect.top + r.height / 2;
+                    const distance = Math.sqrt((centerX - workspaceCenterX) ** 2 + (centerY - workspaceCenterY) ** 2);
+                    
+                    if (distance < minCenterDistance) {
+                        minCenterDistance = distance;
+                        closestToCenter = { name: points[idx].name, distance: Math.round(distance) };
+                    }
+                });
+                
+                // Add closest to center info
+                if (closestToCenter) {
+                    stats.innerHTML += `<div style="margin-top: 15px;"><strong>Tættest på midten:</strong> ${closestToCenter.name} (${closestToCenter.distance}px)</div>`;
+                }
+                
+                // Find closest to each cluster center
+                if (result.clusters && result.clusters.length > 0) {
+                    stats.innerHTML += `<div style="margin-top: 15px;"><strong>Tættest på klynge-centre:</strong></div>`;
+                    
+                    result.clusters.forEach((cluster, clusterIdx) => {
+                        if (!cluster || cluster.length === 0) return;
+                        
+                        // Calculate cluster center
+                        let clusterMinX = Infinity, clusterMinY = Infinity, clusterMaxX = -Infinity, clusterMaxY = -Infinity;
+                        cluster.forEach(idx => {
+                            const el = spheres[idx];
+                            if (!el) return;
+                            const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                            const left = r.left - workspaceRect.left;
+                            const top = r.top - workspaceRect.top;
+                            const right = left + r.width;
+                            const bottom = top + r.height;
+                            if (left < clusterMinX) clusterMinX = left;
+                            if (top < clusterMinY) clusterMinY = top;
+                            if (right > clusterMaxX) clusterMaxX = right;
+                            if (bottom > clusterMaxY) clusterMaxY = bottom;
+                        });
+                        
+                        if (!Number.isFinite(clusterMinX)) return;
+                        
+                        const clusterCenterX = (clusterMinX + clusterMaxX) / 2;
+                        const clusterCenterY = (clusterMinY + clusterMaxY) / 2;
+                        
+                        // Find closest and furthest members to cluster center
+                        let closestToClusterCenter = null;
+                        let furthestFromClusterCenter = null;
+                        let minClusterDistance = Infinity;
+                        let maxClusterDistance = 0;
+                        
+                        cluster.forEach(idx => {
+                            const el = spheres[idx];
+                            if (!el) return;
+                            const r = (el.getClientRects && el.getClientRects().length) ? el.getClientRects()[0] : el.getBoundingClientRect();
+                            const centerX = r.left - workspaceRect.left + r.width / 2;
+                            const centerY = r.top - workspaceRect.top + r.height / 2;
+                            const distance = Math.sqrt((centerX - clusterCenterX) ** 2 + (centerY - clusterCenterY) ** 2);
+                            
+                            if (distance < minClusterDistance) {
+                                minClusterDistance = distance;
+                                closestToClusterCenter = { name: points[idx].name, distance: Math.round(distance) };
+                            }
+                            
+                            if (distance > maxClusterDistance) {
+                                maxClusterDistance = distance;
+                                furthestFromClusterCenter = { name: points[idx].name, distance: Math.round(distance) };
+                            }
+                        });
+                        
+                        if (closestToClusterCenter && furthestFromClusterCenter) {
+                            const clusterNumber = clusterIdx + 1;
+                            stats.innerHTML += `<div>Klynge ${clusterNumber} Tættest ${closestToClusterCenter.name} ${closestToClusterCenter.distance}px, fjernest ${furthestFromClusterCenter.name} ${furthestFromClusterCenter.distance}px.</div>`;
+                        }
+                    });
+                }
+            } catch(_) {}
+			
+        }
+		
+        function applyDialogStylePose(root, pose) {
+            const q = sel => root.querySelector(sel);
+            // Arms
+            const skulderTL = q('.skulder_translate_left');
+            const skulderTR = q('.skulder_translate_right');
+            const skulderRL = q('.skulder_rotate_left');
+            const skulderRR = q('.skulder_rotate_right');
+            const albueRL = q('.albue_rotate_left');
+            const albueRR = q('.albue_rotate_right');
+            // Legs
+            const hofteTL = q('.hofte_translate_left');
+            const hofteTR = q('.hofte_translate_right');
+            const hofteRL = q('.hofte_rotate_left');
+            const hofteRR = q('.hofte_rotate_right');
+            const knaeRL = q('.knae_rotate_left');
+            const knaeRR = q('.knae_rotate_right');
+
+            const read = (key, def = 0) => (pose && typeof pose[key] === 'number') ? pose[key] : def;
+
+            if (skulderTL) skulderTL.style.transform = `translate(${read('translate_x_left')}px, ${read('translate_y_left')}px)`;
+            if (skulderTR) skulderTR.style.transform = `translate(${read('translate_x')}px, ${read('translate_y')}px)`;
+            if (skulderRL) skulderRL.style.transform = `rotate(${read('skulder_rot_left')}deg)`;
+            if (skulderRR) skulderRR.style.transform = `rotate(${read('skulder_rot')}deg)`;
+            if (albueRL) albueRL.style.transform = `rotate(${read('albue_rot_left')}deg)`;
+            if (albueRR) albueRR.style.transform = `rotate(${read('albue_rot')}deg)`;
+
+            if (hofteTL) hofteTL.style.transform = `translate(${read('translate_x_left_leg')}px, ${read('translate_y_left_leg')}px)`;
+            if (hofteTR) hofteTR.style.transform = `translate(${read('translate_x_right_leg')}px, ${read('translate_y_right_leg')}px)`;
+            if (hofteRL) hofteRL.style.transform = `rotate(${read('hofte_rot_left')}deg)`;
+            if (hofteRR) hofteRR.style.transform = `rotate(${read('hofte_rot_right')}deg)`;
+            if (knaeRL) knaeRL.style.transform = `rotate(${read('knae_rot_left')}deg)`;
+            if (knaeRR) knaeRR.style.transform = `rotate(${read('knae_rot_right')}deg)`;
+        }
+
+		function findOverlappingPairs() {
+			const minOverlapPercent = parseFloat(document.getElementById('minOverlap').value);
+			const overlaps = [];
+			
+			// Get all bounding spheres from DOM
+			const spheres = document.querySelectorAll('.bounding-sphere');
+			if (spheres.length !== points.length) {
+				console.warn('Mismatch between points and rendered spheres');
+				return overlaps;
+			}
+			
+			for (let i = 0; i < points.length; i++) {
+				for (let j = i + 1; j < points.length; j++) {
+					const pt1 = points[i];
+					const pt2 = points[j];
+					
+					// Get actual bounding sphere dimensions from DOM
+					const sphere1 = spheres[i];
+					const sphere2 = spheres[j];
+					
+					if (!sphere1 || !sphere2) continue;
+					
+					// Use getClientRects()[0] to ensure we read post-transform layout
+					const rect1 = (sphere1.getClientRects && sphere1.getClientRects().length) ? sphere1.getClientRects()[0] : sphere1.getBoundingClientRect();
+					const rect2 = (sphere2.getClientRects && sphere2.getClientRects().length) ? sphere2.getClientRects()[0] : sphere2.getBoundingClientRect();
+					
+					// Convert to workspace coordinates
+					const workspaceRect = document.getElementById('workspace').getBoundingClientRect();
+					
+					// Centers and radii from actual rendered ellipses (workspace-relative)
+					const cx1 = rect1.left - workspaceRect.left + rect1.width / 2;
+					const cy1 = rect1.top - workspaceRect.top + rect1.height / 2;
+					const cx2 = rect2.left - workspaceRect.left + rect2.width / 2;
+					const cy2 = rect2.top - workspaceRect.top + rect2.height / 2;
+					
+					const rx1 = rect1.width / 2;
+					const ry1 = rect1.height / 2;
+					const rx2 = rect2.width / 2;
+					const ry2 = rect2.height / 2;
+					
+					// ELLIPSE OVERLAP CALCULATION
+					// Step 1: Calculate angle from ellipse A center to ellipse B center
+					const dx = cx2 - cx1;
+					const dy = cy2 - cy1;
+					const angle = Math.atan2(dy, dx);
+					
+					// Step 2: Calculate radius in the direction for each ellipse
+					// Formula: r = (rx × ry) / sqrt((ry × cos(angle))² + (rx × sin(angle))²)
+					const getRadiusInDirection = (rx, ry, angle) => {
+						const cosA = Math.cos(angle);
+						const sinA = Math.sin(angle);
+						const denominator = Math.sqrt((ry * cosA) ** 2 + (rx * sinA) ** 2);
+						return (rx * ry) / denominator;
+					};
+					
+					const radiusA = getRadiusInDirection(rx1, ry1, angle);
+					const radiusB = getRadiusInDirection(rx2, ry2, angle + Math.PI); // Opposite direction
+					
+					// Step 3: Calculate distance between centers
+					const distance = Math.sqrt(dx * dx + dy * dy);
+					
+					// Step 4: Calculate overlap percentage
+					const minRadius = Math.min(radiusA, radiusB);
+					const maxRadius = Math.max(radiusA, radiusB);
+					const sumRadius = radiusA + radiusB;
+					
+					let overlapPercent;
+					if (distance >= sumRadius) {
+						// No overlap
+						overlapPercent = 0;
+					} else if (distance <= (maxRadius - minRadius)) {
+						// Full overlap (smaller ellipse completely inside larger)
+						overlapPercent = 100;
+					} else {
+						// Linear interpolation between 0% and 100%
+						const overlapRange = sumRadius - (maxRadius - minRadius);
+						const overlapDistance = sumRadius - distance;
+						overlapPercent = (overlapDistance / overlapRange) * 100;
+					}
+					
+                    // debug removed
+					
+					if (overlapPercent < minOverlapPercent) continue;
+					
+					// Use the calculated overlap percentage
+					const coverage = overlapPercent;
+					
+					// Front/back by zDepth (higher is front)
+					const frontPoint = pt1.zDepth > pt2.zDepth ? pt1 : pt2;
+					const backPoint = pt1.zDepth > pt2.zDepth ? pt2 : pt1;
+					
+					const smallPoint = minRadius === radiusA ? pt1 : pt2;
+					const largePoint = minRadius === radiusA ? pt2 : pt1;
+					
+					let subjectName, verb, objectName, percent;
+					if (frontPoint === smallPoint) {
+						// lille er forrest -> "lille støttes af Stor"
+						subjectName = smallPoint.name;
+						verb = 'støttes af';
+						objectName = largePoint.name;
+						percent = coverage;
+					} else {
+						// stor er forrest -> "Stor dækker lille"
+						subjectName = frontPoint.name;
+						verb = 'dækker';
+						objectName = smallPoint.name;
+						percent = coverage;
+					}
+					
+					overlaps.push({
+						subjectName: subjectName,
+						verb: verb,
+						objectName: objectName,
+						percent: percent.toFixed(1)
+					});
+				}
+			}
+			
+			return overlaps;
+		}
+		
+		
+		
+		
+        
+        // Initialize with random points
+        (async () => {
+            await loadPoseLibrary();
+            generatePoints();
+        })();
+        // Initialize auto-update state (ON by default) and last hash
+        lastRelationsSetupHash = simpleHash(localStorage.getItem('relationsSetupData') || '');
+        toggleAutoUpdateIFS(true);
+        
+        function importFromSharedCharacters() {
+            try {
+                const raw = localStorage.getItem('relationsSetupData');
+                if (!raw) {
+                    alert('Ingen shared data fundet i localStorage. Åbn IFS og sørg for at den har gemt characters.');
+                    return;
+                }
+                const data = JSON.parse(raw);
+                if (!data || !Array.isArray(data.characters) || data.characters.length === 0) {
+                    alert('Shared data indeholder ingen characters.');
+                    return;
+                }
+        // Update hash to current
+        lastRelationsSetupHash = simpleHash(raw);
+                points = data.characters.map((c, idx) => {
+                    const safeX = typeof c.x === 'number' ? c.x : parseFloat(c.x) || 0;
+                    const safeY = typeof c.y === 'number' ? c.y : parseFloat(c.y) || 0;
+                    const safeScale = typeof c.size === 'number' ? c.size : parseFloat(c.size) || 1;
+                    const safeZ = typeof c.layer === 'number' ? c.layer : parseInt(c.layer) || (idx + 1);
+                    // Align DBSCAN head-center coordinates to IFS part-origin (top-left) → head center
+                    const headCenterOffsetX = 40;   // approx torso/head horizontal center from part.left
+                    const headCenterOffsetY = 34;   // y grows downward; move head center below part.top
+                    return {
+                        x: safeX + headCenterOffsetX,
+                        y: safeY + headCenterOffsetY,
+                        scale: safeScale,
+                        zDepth: safeZ,
+                        name: c.name || `Person${idx+1}`,
+                pose: getPoseIndexFromValue(c.pose || '')
+                    };
+                });
+                // Log mapped positions for comparison with IFS
+                try {
+                    console.table(points.map(p => ({ name: p.name, x: Math.round(p.x), y: Math.round(p.y), scale: p.scale })));
+                } catch(_) {}
+                renderPoints();
+                if (document.getElementById('autoEpsilon').checked) {
+                    calculateAndSetEpsilon();
+                } else {
+                    runClustering();
+                }
+            } catch (e) {
+                alert('Kunne ikke importere fra shared: ' + (e && e.message ? e.message : e));
+            }
+        }
+        // Expose for inline onclick handlers
+        try { window.importFromSharedCharacters = importFromSharedCharacters; } catch(_) {}
+
+        function simpleHash(str) {
+            try {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                    hash |= 0;
+                }
+                return String(hash);
+            } catch (_) { return ''; }
+        }
+
+        function toggleAutoUpdateIFS(forceState) {
+            const checkbox = document.getElementById('autoUpdateIFS');
+            const enabled = typeof forceState === 'boolean' ? forceState : (checkbox ? checkbox.checked : false);
+            if (checkbox && typeof forceState === 'boolean') {
+                checkbox.checked = forceState;
+            }
+            // Remove any polling
+            if (autoUpdateTimer) { try { clearInterval(autoUpdateTimer); } catch(_) {} autoUpdateTimer = null; }
+            // Storage event handler (fires when other tabs modify localStorage)
+            const onStorage = (e) => {
+                try {
+                    if (e && e.key === 'relationsSetupData') {
+                        importFromSharedCharacters();
+                        if (document.getElementById('autoEpsilon').checked) {
+                            calculateAndSetEpsilon();
+                        } else {
+                            runClustering();
+                        }
+                    }
+                } catch(_) {}
+            };
+            if (enabled) {
+                if (!storageListenerRegistered) {
+                    window.addEventListener('storage', onStorage);
+                    storageListenerRegistered = true;
+                }
+            } else {
+                if (storageListenerRegistered) {
+                    window.removeEventListener('storage', onStorage);
+                    storageListenerRegistered = false;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
