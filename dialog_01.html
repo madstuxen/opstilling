@@ -1560,7 +1560,7 @@ async function loadPoseLibrary() {
         const response = await fetch('Standard_new_poses.json');
         if (response.ok) {
             poseLibrary = await response.json();
-            console.log('Loaded pose library with', poseLibrary.length, 'poses');
+            (window.__APP_DEBUG__ && console.log('Loaded pose library with', poseLibrary.length, 'poses'));
         } else {
             console.error('Failed to load pose library');
             // Fallback to basic poses
@@ -1741,7 +1741,7 @@ function closePosePicker() {
 	function runAnimation(side, animName) {
 		const animation = animations[animName];
 		if (!animation || !animation.slides) {
-			console.log(`Animation "${animName}" not found`);
+			(window.__APP_DEBUG__ && console.log(`Animation "${animName}" not found`));
 			return;
 		}
 		
@@ -2299,7 +2299,7 @@ function resetPose(side) {
         }
         
         function handleStorageUpdate() {
-            console.log('Handling storage update...');
+            (window.__APP_DEBUG__ && console.log('Handling storage update...'));
             
             // Store current selections
             const leftDropdown = document.getElementById('leftDropdown');
@@ -2353,13 +2353,13 @@ function resetPose(side) {
             setStatus(`Dropdowns opdateret - ${updatedCount} karakterer tilgængelige`);
             
             // Log what happened for debugging
-            console.log('Storage update handled:', {
+            (window.__APP_DEBUG__ && console.log('Storage update handled:', {
                 leftWasValid: leftStillValid,
                 rightWasValid: rightStillValid,
                 leftSelected: leftDropdown.value,
                 rightSelected: rightDropdown.value,
                 availableCharacters: updatedCount
-            });
+            }));
         }
 
         
@@ -2371,7 +2371,7 @@ function resetPose(side) {
             const leftSelected = leftDropdown.value;
             const rightSelected = rightDropdown.value;
             
-            console.log('Building dropdown menus, current selections:', leftSelected, rightSelected);
+            (window.__APP_DEBUG__ && console.log('Building dropdown menus, current selections:', leftSelected, rightSelected));
             
             leftDropdown.innerHTML = '';
             rightDropdown.innerHTML = '';
@@ -3089,7 +3089,7 @@ function resetPose(side) {
 }
 
         function saveDialog() {
-            console.log('saveDialog kaldt, transcript length:', transcript.length);
+            (window.__APP_DEBUG__ && console.log('saveDialog kaldt, transcript length:', transcript.length));
             
             if (transcript.length === 0) {
                 alert('Ingen dialog at gemme! Start en dialog først.');
@@ -3099,7 +3099,7 @@ function resetPose(side) {
             const leftName = document.getElementById('leftName').textContent || 'Venstre del';
             const rightName = document.getElementById('rightName').textContent || 'Højre del';
             
-            console.log('Deltagere:', leftName, rightName);
+            (window.__APP_DEBUG__ && console.log('Deltagere:', leftName, rightName));
             
             const leftStikord = [];
             const rightStikord = [];
@@ -3117,7 +3117,7 @@ function resetPose(side) {
             const timestamp = now.toISOString();
             const defaultFileName = 'Dialog_' + now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0');
             
-            console.log('Forbereder CSV data...');
+            (window.__APP_DEBUG__ && console.log('Forbereder CSV data...'));
             
             const csvData = [];
             csvData.push(['#metadata']);
@@ -3159,21 +3159,21 @@ function resetPose(side) {
                 }).join(',');
             }).join('\r\n');
             
-            console.log('CSV content genereret, længde:', csvContent.length);
+            (window.__APP_DEBUG__ && console.log('CSV content genereret, længde:', csvContent.length));
             
             try {
                 // Test om prompt virker
                 let fileName;
                 try {
                     fileName = prompt('Indtast filnavn (uden .csv):', defaultFileName);
-                    console.log('Prompt result:', fileName);
+                    (window.__APP_DEBUG__ && console.log('Prompt result:', fileName));
                 } catch (promptError) {
-                    console.log('Prompt fejl, bruger default:', promptError);
+                    (window.__APP_DEBUG__ && console.log('Prompt fejl, bruger default:', promptError));
                     fileName = defaultFileName;
                 }
                 
                 if (fileName === null) {
-                    console.log('Bruger annullerede');
+                    (window.__APP_DEBUG__ && console.log('Bruger annullerede'));
                     return;
                 }
                 
@@ -3181,27 +3181,27 @@ function resetPose(side) {
                     fileName = defaultFileName;
                 }
                 
-                console.log('Filnavn:', fileName);
+                (window.__APP_DEBUG__ && console.log('Filnavn:', fileName));
                 
                 const BOM = '\uFEFF';
                 const csvWithBOM = BOM + csvContent;
                 
                 const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
-                console.log('Blob oprettet:', blob.size, 'bytes');
+                (window.__APP_DEBUG__ && console.log('Blob oprettet:', blob.size, 'bytes'));
                 
                 // Test forskellige download metoder
                 if (window.navigator && window.navigator.msSaveOrOpenBlob) {
                     // IE/Edge
-                    console.log('Bruger IE/Edge download');
+                    (window.__APP_DEBUG__ && console.log('Bruger IE/Edge download'));
                     window.navigator.msSaveOrOpenBlob(blob, fileName + '.csv');
                     setStatus('Dialog gemt som ' + fileName + '.csv');
                 } else {
                     // Moderne browsere
-                    console.log('Bruger moderne browser download');
+                    (window.__APP_DEBUG__ && console.log('Bruger moderne browser download'));
                     const link = document.createElement('a');
                     
                     if (typeof link.download === 'undefined') {
-                        console.log('Download attribute ikke understøttet');
+                        (window.__APP_DEBUG__ && console.log('Download attribute ikke understøttet'));
                         // Fallback: åbn i nyt vindue
                         const url = URL.createObjectURL(blob);
                         window.open(url, '_blank');
@@ -3211,7 +3211,7 @@ function resetPose(side) {
                     }
                     
                     const url = URL.createObjectURL(blob);
-                    console.log('URL oprettet:', url);
+                    (window.__APP_DEBUG__ && console.log('URL oprettet:', url));
                     
                     link.href = url;
                     link.download = fileName + '.csv';
@@ -3219,25 +3219,25 @@ function resetPose(side) {
                     
                     // Sikr at link er i DOM
                     document.body.appendChild(link);
-                    console.log('Link tilføjet til DOM');
+                    (window.__APP_DEBUG__ && console.log('Link tilføjet til DOM'));
                     
                     // Trigger download
                     if (link.click) {
                         link.click();
-                        console.log('Link.click() kaldt');
+                        (window.__APP_DEBUG__ && console.log('Link.click() kaldt'));
                     } else {
                         // Fallback for ældre browsere
                         const event = document.createEvent('MouseEvents');
                         event.initEvent('click', true, true);
                         link.dispatchEvent(event);
-                        console.log('Event dispatch brugt');
+                        (window.__APP_DEBUG__ && console.log('Event dispatch brugt'));
                     }
                     
                     // Cleanup
                     setTimeout(() => {
                         document.body.removeChild(link);
                         URL.revokeObjectURL(url);
-                        console.log('Cleanup udført');
+                        (window.__APP_DEBUG__ && console.log('Cleanup udført'));
                     }, 100);
                     
                     setStatus('Dialog gemt som ' + fileName + '.csv');
@@ -3653,7 +3653,7 @@ if (rightPoseDropdown && rightPart.pose) {
             // Listen for localStorage changes (cross-tab synchronization)
             window.addEventListener('storage', function(e) {
                 if (e.key === 'relationsSetupData') {
-                    console.log('localStorage relationsSetupData updated, refreshing dropdowns...');
+                    (window.__APP_DEBUG__ && console.log('localStorage relationsSetupData updated, refreshing dropdowns...'));
                     handleStorageUpdate();
                 }
             });

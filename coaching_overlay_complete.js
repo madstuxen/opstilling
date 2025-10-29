@@ -6,6 +6,131 @@
 let coachingOverlay = null;
 let currentEngine = null;
 let currentQuestion = null;
+let overlayTranscript = [];
+
+// Debug helper (toggle with window.__COACH_DEBUG__ = true)
+function debugLog() {
+    if (window && window.__COACH_DEBUG__) {
+        try { console.log.apply(console, arguments); } catch (_) {}
+    }
+}
+
+// Build CSV in same format as dialog save
+function saveOverlayDialogCSV(contentElement) {
+    try {
+        const entries = Array.isArray(overlayTranscript) ? overlayTranscript : [];
+        if (entries.length === 0) {
+            alert('Ingen dialog at gemme! Start en dialog først.');
+            return;
+        }
+
+        const now = new Date();
+        const timestamp = now.toISOString();
+        const defaultFileName = 'Dialog_' + now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+
+        // Participants
+        const coachName = 'Coach';
+        const coachColor = '#667eea';
+        const coachPose = 'tænke';
+        const coachMirror = false;
+        const emptyStikord = ['', '', '', '', '', ''];
+
+        const clientName = (window.loadedExternalData && window.loadedExternalData.You) ? window.loadedExternalData.You : 'Klient';
+        const clientColor = window.popupClientColor || '#f093fb';
+        let clientPoseName = '';
+        try {
+            let poseLib = window.poseLibrary;
+            if (!poseLib && typeof poseLibrary !== 'undefined') poseLib = poseLibrary;
+            let val = window.pendingClientPose;
+            if (typeof val === 'string') {
+                clientPoseName = val;
+            } else if (typeof val === 'number' && poseLib && poseLib[val] && poseLib[val].name) {
+                clientPoseName = poseLib[val].name;
+            }
+        } catch(_) {}
+        const clientMirror = false;
+
+        const csvData = [];
+        csvData.push(['#metadata']);
+        csvData.push(['timestamp', timestamp]);
+        csvData.push(['']);
+        csvData.push(['#cirkler']);
+        csvData.push(['navn', 'farve', 'pose', 'spejl', 'stikord1', 'stikord2', 'stikord3', 'stikord4', 'stikord5', 'stikord6']);
+        // Order: Coach first, then Client (consistent two rows)
+        csvData.push([coachName, coachColor, coachPose, coachMirror, ...emptyStikord]);
+        csvData.push([clientName, clientColor, clientPoseName, clientMirror, ...emptyStikord]);
+        csvData.push(['']);
+        csvData.push(['#dialog']);
+        csvData.push(['speaker', 'message', 'side', 'timestamp']);
+        entries.forEach(e => {
+            csvData.push([e.speaker, e.message, e.side, e.timestamp || '']);
+        });
+
+        const csvContent = csvData.map(row => row.map(field => {
+            const fieldStr = (field == null) ? '' : String(field);
+            if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n') || fieldStr.includes('\r')) {
+                return '"' + fieldStr.replace(/"/g, '""') + '"';
+            }
+            return fieldStr;
+        }).join(',')).join('\r\n');
+
+        let fileName = defaultFileName;
+        try {
+            const promptResult = prompt('Indtast filnavn (uden .csv):', defaultFileName);
+            if (promptResult === null) return;
+            fileName = (promptResult && promptResult.trim()) ? promptResult.trim() : defaultFileName;
+        } catch(_) {}
+
+        const BOM = '\uFEFF';
+        const csvWithBOM = BOM + csvContent;
+        const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+    } catch (e) {
+        console.log('Error saving dialog CSV from overlay:', e);
+    }
+}
+
+function copyOverlayDialog() {
+    try {
+        const entries = Array.isArray(overlayTranscript) ? overlayTranscript : [];
+        if (entries.length === 0) {
+            alert('Ingen dialog at kopiere!');
+            return;
+        }
+        const dialogText = entries.map(e => `${e.speaker}: ${e.message}`).join('\n\n');
+        const doCopy = (text) => {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    // ok
+                }).catch(() => { fallbackCopyText(text); });
+            } else {
+                fallbackCopyText(text);
+            }
+        };
+        const fallbackCopyText = (text) => {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch(_) {}
+            document.body.removeChild(ta);
+        };
+        doCopy(dialogText);
+    } catch (e) {
+        console.log('Error copying dialog from overlay:', e);
+    }
+}
 
 // Add CSS for the overlay system - scoped to overlay only
 const style = document.createElement('style');
@@ -157,7 +282,7 @@ function closeCoachingOverlay() {
         currentEngine = null;
         currentQuestion = null;
         window.coachingActive = false;
-        console.log('Coaching overlay closed');
+        debugLog('Coaching overlay closed');
     }
 }
 
@@ -165,7 +290,7 @@ function closeCoachingOverlay() {
  * Open coaching overlay from file (for compatibility with compare_01.html)
  */
 async function openCoachingOverlayFromFile(filename) {
-    console.log('openCoachingOverlayFromFile called with:', filename);
+    debugLog('openCoachingOverlayFromFile called with:', filename);
     await openCoachingOverlay(filename);
 }
 
@@ -189,14 +314,15 @@ async function createCoachingContent(contentElement, dataSource) {
         
         // Extract and add styles to overlay only
         const styles = doc.head.getElementsByTagName('style');
-        for (let style of styles) {
-            const existingStyle = contentElement.querySelector(`style[data-coaching-overlay]`);
-            if (!existingStyle) {
-                const newStyle = style.cloneNode(true);
-                newStyle.setAttribute('data-coaching-overlay', 'true');
-                contentElement.appendChild(newStyle);
-            }
-        }
+        // IMPORTANT: Do not append styles to light DOM; we will inject them into the shadowRoot only
+        // for (let style of styles) {
+        //     const existingStyle = contentElement.querySelector(`style[data-coaching-overlay]`);
+        //     if (!existingStyle) {
+        //         const newStyle = style.cloneNode(true);
+        //         newStyle.setAttribute('data-coaching-overlay', 'true');
+        //         contentElement.appendChild(newStyle);
+        //     }
+        // }
         
         // Scripts are handled by the main page, no need to inject them
         
@@ -227,13 +353,20 @@ async function createCoachingContent(contentElement, dataSource) {
             }
         `;
         shadowRoot.appendChild(dialogMaxHeightStyle);
+        // Ensure client bubble grows like coach (no internal scroll)
+        const bubbleGrowStyle = document.createElement('style');
+        bubbleGrowStyle.textContent = `
+            #rightBubble { max-height: none !important; overflow: visible !important; }
+            #rightTextarea { overflow: hidden !important; resize: none !important; }
+        `;
+        shadowRoot.appendChild(bubbleGrowStyle);
         
         // Hide client figure immediately to avoid wrong color
         const clientCircle = shadowRoot.querySelector('#clientCircle');
         if (clientCircle) {
             clientCircle.style.opacity = '0';
             clientCircle.style.visibility = 'hidden';
-            console.log('Hidden client figure immediately');
+            debugLog('Hidden client figure immediately');
         }
         
         // Ensure consistent CSS variables across host pages (keeps positions identical)
@@ -279,6 +412,18 @@ async function createCoachingContent(contentElement, dataSource) {
         if (leftBubbleEl) leftBubbleEl.style.pointerEvents = 'auto';
         if (rightBubbleEl) rightBubbleEl.style.pointerEvents = 'auto';
         if (controls) controls.style.pointerEvents = 'auto';
+
+        // Auto-resize client textarea so bubble grows with content
+        const rightTextarea = shadowRoot.querySelector('#rightTextarea');
+        if (rightTextarea) {
+            const autoResize = () => {
+                rightTextarea.style.height = 'auto';
+                rightTextarea.style.height = rightTextarea.scrollHeight + 'px';
+            };
+            rightTextarea.addEventListener('input', autoResize);
+            // Initialize once
+            autoResize();
+        }
         
         // Ensure pose library is available when not coming from compare_01.html
         await loadPoseLibraryIfMissing();
@@ -292,7 +437,7 @@ async function createCoachingContent(contentElement, dataSource) {
         initializeCoachingSystem(shadowRoot, dataSource);
         
     } catch (error) {
-        console.error('Error loading coaching content:', error);
+        debugLog('Error loading coaching content:', error);
         // Fallback to simple content
         contentElement.innerHTML = `
             <div style="text-align: center; padding: 40px;">
@@ -321,13 +466,13 @@ function initializeCoachingSystem(contentElement, dataSource) {
         try {
             // Set up the data source globally
             window.currentDataSource = dataSource;
-            console.log('Set currentDataSource to:', dataSource);
+            debugLog('Set currentDataSource to:', dataSource);
             
             // Wait for CoachEngine to be available
             waitForCoachEngine(contentElement, dataSource);
             
         } catch (error) {
-            console.error('Error initializing coaching system:', error);
+            debugLog('Error initializing coaching system:', error);
         }
     }, 200);
 }
@@ -341,13 +486,13 @@ function waitForCoachEngine(contentElement, dataSource) {
     
     const checkCoachEngine = async () => {
         attempts++;
-        console.log('Checking for CoachEngine, attempt:', attempts);
+        debugLog('Checking for CoachEngine, attempt:', attempts);
         
         if (typeof window.CoachEngine === 'function' || typeof CoachEngine === 'function') {
-            console.log('CoachEngine found! Starting coaching...');
+            debugLog('CoachEngine found! Starting coaching...');
             await startCoachingSession(contentElement, dataSource);
         } else if (attempts >= maxAttempts) {
-            console.log('Timeout waiting for CoachEngine');
+            debugLog('Timeout waiting for CoachEngine');
             // Show error message
             const transcriptContent = contentElement.querySelector('#transcriptContent');
             if (transcriptContent) {
@@ -371,46 +516,48 @@ function waitForCoachEngine(contentElement, dataSource) {
  */
 async function startCoachingSession(contentElement, dataSource) {
     try {
+        // Reset transcript for a fresh session
+        overlayTranscript = [];
         // First try to load from localStorage
         let projectData = localStorage.getItem(dataSource);
         
         if (!projectData) {
-            console.log('No project data found in localStorage for:', dataSource);
-            console.log('Available localStorage keys:', Object.keys(localStorage));
+            debugLog('No project data found in localStorage for:', dataSource);
+            debugLog('Available localStorage keys:', Object.keys(localStorage));
             
             // Try to find the data with a different key
             const possibleKeys = Object.keys(localStorage).filter(key => key.includes('coaching') || key.includes('compare'));
-            console.log('Possible coaching keys:', possibleKeys);
+            debugLog('Possible coaching keys:', possibleKeys);
             
             if (possibleKeys.length > 0) {
                 const actualKey = possibleKeys[0];
-                console.log('Using key:', actualKey);
+                debugLog('Using key:', actualKey);
                 projectData = localStorage.getItem(actualKey);
             }
         }
         
         // If still no data, try to load from file
         if (!projectData) {
-            console.log('Trying to load from file:', dataSource);
+            debugLog('Trying to load from file:', dataSource);
             try {
                 const response = await fetch(dataSource);
                 if (response.ok) {
                     projectData = await response.text();
-                    console.log('Loaded project data from file:', dataSource);
+                    debugLog('Loaded project data from file:', dataSource);
                 } else {
-                    console.log('Could not load file:', dataSource);
+                    debugLog('Could not load file:', dataSource);
                 }
             } catch (error) {
-                console.log('Error loading file:', error);
+                debugLog('Error loading file:', error);
             }
         }
         
         // Check if comparisonData exists in localStorage
         const comparisonData = localStorage.getItem('comparisonData');
         if (!comparisonData) {
-            console.log('No comparisonData found in localStorage - coaching may not work correctly');
+            debugLog('No comparisonData found in localStorage - coaching may not work correctly');
         } else {
-            console.log('Found comparisonData in localStorage:', JSON.parse(comparisonData));
+            debugLog('Found comparisonData in localStorage:', JSON.parse(comparisonData));
         }
         
         if (!projectData) {
@@ -429,14 +576,14 @@ async function startCoachingSession(contentElement, dataSource) {
         }
         
         const project = JSON.parse(projectData);
-        console.log('Loaded project:', project);
+        debugLog('Loaded project:', project);
         
         // Prepare variables like the original system
         let variables = { ...project.variables };
         
         // Merge external data if it exists in the project
         if (project.variables && project.variables.Data) {
-            console.log('Found Data key in project, loading external data from:', project.variables.Data);
+            debugLog('Found Data key in project, loading external data from:', project.variables.Data);
             
             try {
                 const externalData = localStorage.getItem(project.variables.Data);
@@ -447,14 +594,14 @@ async function startCoachingSession(contentElement, dataSource) {
                         Object.keys(loaded).forEach(key => {
                             variables[key] = loaded[key];
                         });
-                        console.log('Merged external data into variables:', variables);
+                        debugLog('Merged external data into variables:', variables);
                         
                         // Load external data for UI (colors, poses, names)
                         loadExternalDataForUI(contentElement, loaded);
                     }
                 }
             } catch (e) {
-                console.log('Error merging external data:', e);
+                debugLog('Error merging external data:', e);
             }
         }
         
@@ -474,10 +621,10 @@ async function startCoachingSession(contentElement, dataSource) {
         // Set up event listeners
         setupCoachingEventListeners(contentElement);
         
-        console.log('Coaching session started, current question:', currentQuestion);
+        debugLog('Coaching session started, current question:', currentQuestion);
         
     } catch (error) {
-        console.error('Error starting coaching session:', error);
+        debugLog('Error starting coaching session:', error);
     }
 }
 
@@ -486,7 +633,7 @@ async function startCoachingSession(contentElement, dataSource) {
  */
 function loadExternalDataForUI(contentElement, loaded) {
     try {
-        console.log('Loading external data for UI:', loaded);
+        debugLog('Loading external data for UI:', loaded);
         
         // Update client name if available
         if (loaded.You) {
@@ -498,14 +645,14 @@ function loadExternalDataForUI(contentElement, loaded) {
         
         // Update client color if available
         if (loaded.You_color) {
-            console.log('Setting client color to:', loaded.You_color);
+            debugLog('Setting client color to:', loaded.You_color);
             // Store color for later use
             window.popupClientColor = loaded.You_color;
         }
         
         // Apply pose if available
         if (loaded.You_pose !== undefined) {
-            console.log('Setting client pose to:', loaded.You_pose);
+            debugLog('Setting client pose to:', loaded.You_pose);
             // Store pose for later use when poseLibrary is loaded
             window.pendingClientPose = loaded.You_pose;
         }
@@ -515,14 +662,14 @@ function loadExternalDataForUI(contentElement, loaded) {
         
         // Update colors BEFORE showing client figure
         updatePopupColors(contentElement);
-        console.log('Updated colors before showing client');
+        debugLog('Updated colors before showing client');
         
         // Wait for poseLibrary to be loaded before applying poses
         setTimeout(() => {
             // Ensure poseLibrary is available globally
             if (typeof poseLibrary !== 'undefined' && !window.poseLibrary) {
                 window.poseLibrary = poseLibrary;
-                console.log('Set window.poseLibrary from global poseLibrary');
+                debugLog('Set window.poseLibrary from global poseLibrary');
             }
             waitForPoseLibraryAndApplyPoses();
         }, 100);
@@ -533,17 +680,17 @@ function loadExternalDataForUI(contentElement, loaded) {
             clientCircle.style.visibility = 'visible';
             clientCircle.style.opacity = '1';
             clientCircle.style.transition = 'opacity 0.5s ease-in-out';
-            console.log('Showed client figure with correct colors');
+            debugLog('Showed client figure with correct colors');
         }
         
         // Apply client pose if pending
         if (window.pendingClientPose !== undefined && window.pendingClientPose !== null) {
             applyPendingPose();
-            console.log('Applied client pose after colors are set');
+            debugLog('Applied client pose after colors are set');
         }
         
     } catch (e) {
-        console.log('Error loading external data for UI:', e);
+        debugLog('Error loading external data for UI:', e);
     }
 }
 
@@ -555,14 +702,14 @@ function updatePopupColors(contentElement) {
         const coachColor = '#667eea'; // Fixed coach color
         const clientColor = window.popupClientColor || '#f093fb'; // Default client color
         
-        console.log('updatePopupColors - coachColor:', coachColor, 'clientColor:', clientColor);
-        console.log('window.popupClientColor:', window.popupClientColor);
+        debugLog('updatePopupColors - coachColor:', coachColor, 'clientColor:', clientColor);
+        debugLog('window.popupClientColor:', window.popupClientColor);
         
         // Calculate light colors
         const coachLightColor = lightenColor(coachColor, 0.6);
         const clientLightColor = lightenColor(clientColor, 0.6);
         
-        console.log('Calculated light colors - coach:', coachLightColor, 'client:', clientLightColor);
+        debugLog('Calculated light colors - coach:', coachLightColor, 'client:', clientLightColor);
         
         // Update speech bubble colors and ensure proper z-index
         const leftBubble = contentElement.querySelector('#leftBubble');
@@ -620,10 +767,10 @@ function updatePopupColors(contentElement) {
         // Update speech bubble triangle colors with dynamic CSS inside the same root (shadow)
         updateSpeechBubbleTriangles(contentElement, coachLightColor, clientLightColor);
         
-        console.log('Updated popup colors - coach:', coachColor, 'client:', clientColor);
+        debugLog('Updated popup colors - coach:', coachColor, 'client:', clientColor);
         
     } catch (e) {
-        console.log('Error updating popup colors:', e);
+        debugLog('Error updating popup colors:', e);
     }
 }
 
@@ -652,10 +799,10 @@ function updateSpeechBubbleTriangles(rootEl, coachLightColor, clientLightColor) 
             styleHost.appendChild(style);
         }
         
-        console.log('Updated speech bubble triangle colors - coach:', coachLightColor, 'client:', clientLightColor);
+        debugLog('Updated speech bubble triangle colors - coach:', coachLightColor, 'client:', clientLightColor);
         
     } catch (e) {
-        console.log('Error updating speech bubble triangle colors:', e);
+        debugLog('Error updating speech bubble triangle colors:', e);
     }
 }
 
@@ -663,7 +810,7 @@ function updateSpeechBubbleTriangles(rootEl, coachLightColor, clientLightColor) 
  * Apply pose to figure (matching original coaching_overlay.html structure)
  */
 function applyPose(side, poseIndex) {
-    console.log('applyPose called with:', { side, poseIndex });
+    debugLog('applyPose called with:', { side, poseIndex });
     
     // Try to find circle within shadow root first, then fallback to light DOM
     let circle = null;
@@ -680,13 +827,13 @@ function applyPose(side, poseIndex) {
     }
     
     if (!circle) {
-        console.warn('No circle found for side:', side);
-        console.log('Available elements with Circle:', document.querySelectorAll('#coachingOverlay [id*="Circle"]'));
-        console.log('Available elements in overlay:', document.querySelectorAll('#coachingOverlay [id*="Circle"]'));
+        debugLog('No circle found for side:', side);
+        debugLog('Available elements with Circle:', document.querySelectorAll('#coachingOverlay [id*="Circle"]'));
+        debugLog('Available elements in overlay:', document.querySelectorAll('#coachingOverlay [id*="Circle"]'));
         return;
     }
     
-    console.log('Found circle for', side, ':', circle);
+    debugLog('Found circle for', side, ':', circle);
     
     // Check if pose library is loaded (use global poseLibrary from compare_01.html)
     let poseLib = window.poseLibrary;
@@ -696,23 +843,23 @@ function applyPose(side, poseIndex) {
     }
     
     if (!poseLib || poseLib.length === 0) {
-        console.warn('Pose library not loaded yet, skipping pose application for', side, poseIndex);
-        console.log('Available poseLibrary:', typeof poseLibrary, poseLibrary);
-        console.log('Available window.poseLibrary:', typeof window.poseLibrary, window.poseLibrary);
+        debugLog('Pose library not loaded yet, skipping pose application for', side, poseIndex);
+        debugLog('Available poseLibrary:', typeof poseLibrary, poseLibrary);
+        debugLog('Available window.poseLibrary:', typeof window.poseLibrary, window.poseLibrary);
         return;
     }
     
     // Handle string pose names by finding the index
     if (typeof poseIndex === 'string') {
-        console.log('Looking for pose:', poseIndex);
-        console.log('Available poses:', poseLib.map(p => p.name));
+        debugLog('Looking for pose:', poseIndex);
+        debugLog('Available poses:', poseLib.map(p => p.name));
         const foundIndex = poseLib.findIndex(p => p && p.name === poseIndex);
         if (foundIndex !== -1) {
             poseIndex = foundIndex;
-            console.log('Found pose at index:', poseIndex);
+            debugLog('Found pose at index:', poseIndex);
         } else {
-            console.warn('Pose not found:', poseIndex);
-            console.log('Available poses:', poseLib.map(p => p.name));
+            debugLog('Pose not found:', poseIndex);
+            debugLog('Available poses:', poseLib.map(p => p.name));
             resetPose(side);
             return;
         }
@@ -742,14 +889,14 @@ function applyPose(side, poseIndex) {
     });
     
     const pose = poseLib[poseIndex];
-    console.log('Found pose at index', poseIndex, ':', pose);
+    debugLog('Found pose at index', poseIndex, ':', pose);
     if (!pose) {
-        console.error('No pose found at index:', poseIndex, 'Available poses:', poseLib.map(p => p.name));
+        debugLog('No pose found at index:', poseIndex, 'Available poses:', poseLib.map(p => p.name));
         return;
     }
     
     let poseData = pose.pose;
-    console.log('Applying pose data:', poseData);
+    debugLog('Applying pose data:', poseData);
     
     // Apply transforms to figure parts (matching original structure exactly)
     const skulderLeft = circle.querySelector('.skulder_translate_left');
@@ -914,32 +1061,32 @@ function waitForPoseLibraryAndApplyPoses() {
     
     const checkPoseLibrary = () => {
         attempts++;
-        console.log('Checking for poseLibrary, attempt:', attempts);
+        debugLog('Checking for poseLibrary, attempt:', attempts);
         
         // Check both window.poseLibrary and global poseLibrary
         let poseLib = window.poseLibrary;
         if (!poseLib && typeof poseLibrary !== 'undefined') {
             poseLib = poseLibrary;
             window.poseLibrary = poseLibrary; // Set it globally for future use
-            console.log('Found global poseLibrary and set it globally');
+            debugLog('Found global poseLibrary and set it globally');
         }
         
         if (poseLib && poseLib.length > 0) {
-            console.log('poseLibrary loaded! Applying initial poses...');
-            console.log('Available poses:', poseLib.map(p => p.name));
+            debugLog('poseLibrary loaded! Applying initial poses...');
+            debugLog('Available poses:', poseLib.map(p => p.name));
             
             // Set initial coach pose to "tænke" (thinking) - use index 2
             applyPose('coach', 2);
-            console.log('Set coach to tænke pose (index 2)');
+            debugLog('Set coach to tænke pose (index 2)');
             
             // Apply client pose if pending (but don't hide client again)
             if (window.pendingClientPose !== undefined && window.pendingClientPose !== null) {
                 applyPose('client', window.pendingClientPose);
-                console.log('Applied pending client pose');
+                debugLog('Applied pending client pose');
             }
             
         } else if (attempts >= maxAttempts) {
-            console.log('Timeout waiting for poseLibrary');
+            debugLog('Timeout waiting for poseLibrary');
         } else {
             setTimeout(checkPoseLibrary, 100);
         }
@@ -965,13 +1112,13 @@ async function loadPoseLibraryIfMissing() {
             const data = await resp.json();
             if (Array.isArray(data)) {
                 window.poseLibrary = data;
-                console.log('Loaded poseLibrary from Standard_new_poses.json');
+                debugLog('Loaded poseLibrary from Standard_new_poses.json');
             }
         } else {
-            console.log('Could not load Standard_new_poses.json:', resp.status);
+            debugLog('Could not load Standard_new_poses.json:', resp.status);
         }
     } catch (e) {
-        console.log('Error loading pose library:', e);
+        debugLog('Error loading pose library:', e);
     }
 }
 
@@ -984,7 +1131,7 @@ function waitForPoseLibraryAndApplyCoachPose(poseName) {
     
     const checkPoseLibrary = () => {
         attempts++;
-        console.log('Checking for poseLibrary for coach pose, attempt:', attempts);
+        debugLog('Checking for poseLibrary for coach pose, attempt:', attempts);
         
         let poseLib = window.poseLibrary;
         if (!poseLib && typeof poseLibrary !== 'undefined') {
@@ -992,7 +1139,7 @@ function waitForPoseLibraryAndApplyCoachPose(poseName) {
             window.poseLibrary = poseLibrary;
         }
         if (poseLib && poseLib.length > 0) {
-            console.log('poseLibrary loaded! Applying coach pose:', poseName);
+            debugLog('poseLibrary loaded! Applying coach pose:', poseName);
             
             // Convert pose name to index
             let poseIndex = poseName;
@@ -1001,16 +1148,16 @@ function waitForPoseLibraryAndApplyCoachPose(poseName) {
                 if (foundIndex !== -1) {
                     poseIndex = foundIndex;
                 } else {
-                    console.warn('Pose not found:', poseName);
+                    debugLog('Pose not found:', poseName);
                     return;
                 }
             }
             
             applyPose('coach', poseIndex);
-            console.log('Coach transitioned to', poseName, 'pose (index', poseIndex, ')');
+            debugLog('Coach transitioned to', poseName, 'pose (index', poseIndex, ')');
             
         } else if (attempts >= maxAttempts) {
-            console.log('Timeout waiting for poseLibrary for coach pose');
+            debugLog('Timeout waiting for poseLibrary for coach pose');
         } else {
             setTimeout(checkPoseLibrary, 100);
         }
@@ -1028,7 +1175,7 @@ function waitForPoseLibraryAndApplyClientPose(poseIndex) {
     
     const checkPoseLibrary = () => {
         attempts++;
-        console.log('Checking for poseLibrary for client pose, attempt:', attempts);
+        debugLog('Checking for poseLibrary for client pose, attempt:', attempts);
         
         let poseLib = window.poseLibrary;
         if (!poseLib && typeof poseLibrary !== 'undefined') {
@@ -1036,7 +1183,7 @@ function waitForPoseLibraryAndApplyClientPose(poseIndex) {
             window.poseLibrary = poseLibrary;
         }
         if (poseLib && poseLib.length > 0) {
-            console.log('poseLibrary loaded! Applying client pose:', poseIndex);
+            debugLog('poseLibrary loaded! Applying client pose:', poseIndex);
             // Ensure standard (0) maps to an existing pose, fallback to 0
             let finalIndex = poseIndex;
             if (typeof finalIndex === 'number') {
@@ -1045,10 +1192,10 @@ function waitForPoseLibraryAndApplyClientPose(poseIndex) {
                 }
             }
             applyPose('client', finalIndex);
-            console.log('Applied client pose:', poseIndex);
+            debugLog('Applied client pose:', poseIndex);
             
         } else if (attempts >= maxAttempts) {
-            console.log('Timeout waiting for poseLibrary for client pose');
+            debugLog('Timeout waiting for poseLibrary for client pose');
         } else {
             setTimeout(checkPoseLibrary, 100);
         }
@@ -1090,7 +1237,7 @@ function applyPendingPose() {
         window.pendingClientPose = null;
         
     } catch (e) {
-        console.log('Error applying pending pose:', e);
+        debugLog('Error applying pending pose:', e);
     }
 }
 
@@ -1098,10 +1245,10 @@ function applyPendingPose() {
  * Show coaching question
  */
 function showCoachingQuestion(contentElement, question) {
-    console.log('Showing coaching question:', question);
+    debugLog('Showing coaching question:', question);
     
     if (!question) {
-        console.log('No current question');
+        debugLog('No current question');
         return;
     }
     
@@ -1126,7 +1273,7 @@ function showCoachingQuestion(contentElement, question) {
     
     // Show client input area if not done and session is active
     if (!question.done && window.coachingActive !== false) {
-        console.log('Question not done, showing client input area');
+        debugLog('Question not done, showing client input area');
         
         // Show client bubble for input
         const rightBubble = contentElement.querySelector('#rightBubble');
@@ -1195,8 +1342,9 @@ function showMmmButton(contentElement) {
     btn.style.border = 'none';
     btn.style.background = '#667eea';
     btn.style.color = '#ffffff';
-    btn.style.fontWeight = '600';
-    btn.style.fontSize = '13px';
+    btn.style.fontFamily = 'Arial, sans-serif';
+    btn.style.fontWeight = '500';
+    btn.style.fontSize = '14px';
     btn.style.cursor = 'pointer';
     btn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
     btn.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease';
@@ -1260,8 +1408,9 @@ function showChoiceQuestion(contentElement, question) {
         btn.style.border = 'none';
         btn.style.background = '#667eea';
         btn.style.color = '#ffffff';
-        btn.style.fontWeight = '600';
-        btn.style.fontSize = '13px';
+        btn.style.fontFamily = 'Arial, sans-serif';
+        btn.style.fontWeight = '500';
+        btn.style.fontSize = '14px';
         btn.style.cursor = 'pointer';
         btn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
         btn.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease';
@@ -1397,8 +1546,31 @@ function setupCoachingEventListeners(contentElement) {
     if (startBtn) {
         // Rename to "Start forfra"
         startBtn.textContent = 'Start forfra';
+        // Ensure it's active and styled with hover
+        startBtn.disabled = false;
+        startBtn.style.padding = '6px 12px';
+        startBtn.style.borderRadius = '8px';
+        startBtn.style.border = 'none';
+        startBtn.style.background = '#0ea5e9';
+        startBtn.style.color = '#ffffff';
+        startBtn.style.fontFamily = 'Arial, sans-serif';
+        startBtn.style.fontWeight = '500';
+        startBtn.style.fontSize = '14px';
+        startBtn.style.cursor = 'pointer';
+        startBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+        startBtn.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease';
+        startBtn.onmouseenter = () => {
+            startBtn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.18)';
+            startBtn.style.transform = 'translateY(-1px)';
+            startBtn.style.filter = 'brightness(1.05)';
+        };
+        startBtn.onmouseleave = () => {
+            startBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+            startBtn.style.transform = 'none';
+            startBtn.style.filter = 'none';
+        };
         startBtn.addEventListener('click', () => {
-            console.log('Restart coaching button clicked');
+            debugLog('Restart coaching button clicked');
             restartCoaching(contentElement);
         });
     }
@@ -1409,13 +1581,74 @@ function setupCoachingEventListeners(contentElement) {
         mmmBtn.remove();
     }
     
-    // Save button
+    // Save button -> save CSV compatible with dialog
     const saveBtn = contentElement.querySelector('#saveBtn');
     if (saveBtn) {
-        saveBtn.addEventListener('click', () => {
-            console.log('Save button clicked');
-            saveSession();
+       saveBtn.textContent = 'Gem session';
+       // Ensure always enabled/active
+       saveBtn.disabled = false;
+       saveBtn.style.opacity = '';
+       saveBtn.style.pointerEvents = 'auto';
+       // Style and hover
+       saveBtn.style.padding = '6px 12px';
+       saveBtn.style.borderRadius = '8px';
+       saveBtn.style.border = 'none';
+       saveBtn.style.background = '#8b5cf6';
+       saveBtn.style.color = '#ffffff';
+       saveBtn.style.fontFamily = 'Arial, sans-serif';
+       saveBtn.style.fontWeight = '500';
+       saveBtn.style.fontSize = '14px';
+       saveBtn.style.cursor = 'pointer';
+       saveBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+       saveBtn.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease';
+       saveBtn.onmouseenter = () => {
+           saveBtn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.18)';
+           saveBtn.style.transform = 'translateY(-1px)';
+           saveBtn.style.filter = 'brightness(1.05)';
+       };
+       saveBtn.onmouseleave = () => {
+           saveBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+           saveBtn.style.transform = 'none';
+           saveBtn.style.filter = 'none';
+       };
+       saveBtn.addEventListener('click', () => {
+           saveOverlayDialogCSV(contentElement);
+       });
+    }
+
+    // Add "Kopier dialog" button for clipboard export
+    const controls = contentElement.querySelector('.controls');
+    if (controls && !contentElement.querySelector('#copyOverlayBtn')) {
+        const copyBtn = document.createElement('button');
+        copyBtn.id = 'copyOverlayBtn';
+        copyBtn.textContent = 'Kopier dialog';
+        // Visual style aligned with other small buttons, but fresh color
+        copyBtn.style.padding = '6px 12px';
+        copyBtn.style.borderRadius = '8px';
+        copyBtn.style.border = 'none';
+        copyBtn.style.background = '#22c55e'; // fresh green
+        copyBtn.style.color = '#ffffff';
+        copyBtn.style.fontFamily = 'Arial, sans-serif';
+        copyBtn.style.fontWeight = '500';
+        copyBtn.style.fontSize = '14px';
+        copyBtn.style.cursor = 'pointer';
+        copyBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+        copyBtn.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease';
+        copyBtn.style.marginLeft = '8px';
+        copyBtn.onmouseenter = () => {
+            copyBtn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.18)';
+            copyBtn.style.transform = 'translateY(-1px)';
+            copyBtn.style.filter = 'brightness(1.05)';
+        };
+        copyBtn.onmouseleave = () => {
+            copyBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+            copyBtn.style.transform = 'none';
+            copyBtn.style.filter = 'none';
+        };
+        copyBtn.addEventListener('click', () => {
+            copyOverlayDialog();
         });
+        controls.appendChild(copyBtn);
     }
     
     // Textarea for responses
@@ -1440,11 +1673,19 @@ function setupCoachingEventListeners(contentElement) {
 function sendResponse(response) {
     if (!currentEngine || !currentQuestion) return;
     
-    console.log('Sending response:', response);
+    debugLog('Sending response:', response);
     
     // Add to transcript (prefer shadow root if available)
     const rootEl = (window.coachingOverlay && window.coachingOverlay.contentRoot) ? window.coachingOverlay.contentRoot : coachingOverlay.content;
     addToTranscript(rootEl, 'user', response);
+
+    // Reset client textarea height back to default after sending
+    try {
+        const rt = rootEl.querySelector('#rightTextarea');
+        if (rt) {
+            rt.style.height = '';
+        }
+    } catch (_) {}
     
     // Process response
     currentQuestion = currentEngine.answer(response);
@@ -1470,11 +1711,18 @@ function sendResponse(response) {
         // Set session as inactive
         window.coachingActive = false;
         
-        console.log('Coaching session finished');
+        debugLog('Coaching session finished');
     } else {
         // Show next question
         const rootEl2 = (window.coachingOverlay && window.coachingOverlay.contentRoot) ? window.coachingOverlay.contentRoot : coachingOverlay.content;
         showCoachingQuestion(rootEl2, currentQuestion);
+        // Ensure textarea starts from standard size for new input
+        try {
+            const rt2 = rootEl2.querySelector('#rightTextarea');
+            if (rt2) {
+                rt2.style.height = '';
+            }
+        } catch (_) {}
     }
 }
 
@@ -1488,6 +1736,8 @@ function restartCoaching(contentElement) {
         if (transcriptContent) {
             transcriptContent.innerHTML = '<div class="empty" style="color:#999; text-align:center; padding:8px;">Ingen beskeder endnu…</div>';
         }
+        // Reset overlay transcript store
+        overlayTranscript = [];
 
         // Reset bubbles
         const leftBubble = contentElement.querySelector('#leftBubble');
@@ -1526,7 +1776,7 @@ function restartCoaching(contentElement) {
         const dataSource = window.currentDataSource || 'compare_coaching.json';
         startCoachingSession(contentElement, dataSource);
     } catch (e) {
-        console.log('Error restarting coaching:', e);
+        debugLog('Error restarting coaching:', e);
     }
 }
 
@@ -1627,6 +1877,12 @@ function addToTranscript(contentElement, type, text) {
     const isNearBottom = (transcriptContent.scrollHeight - transcriptContent.scrollTop - transcriptContent.clientHeight) < nearBottomThresholdPx;
     
     transcriptContent.appendChild(messageDiv);
+    // Track transcript entries for export
+    try {
+        const speakerLabel = (type === 'coach') ? 'Coach' : (window.loadedExternalData?.You || 'Klient');
+        const side = (type === 'coach') ? 'left' : 'right';
+        overlayTranscript.push({ speaker: speakerLabel, message: text, side, timestamp: new Date().toISOString() });
+    } catch (_) {}
     
     if (isNearBottom) {
         // Smooth scroll to newest message
@@ -1640,25 +1896,7 @@ function addToTranscript(contentElement, type, text) {
  * Save session
  */
 function saveSession() {
-    if (!currentEngine) return;
-    
-    const sessionData = {
-        engine: currentEngine,
-        blackboard: currentEngine.blackboard,
-        timestamp: new Date().toISOString(),
-        clientName: 'Klient'
-    };
-    
-    const dataStr = JSON.stringify(sessionData, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'coaching-session-' + new Date().toISOString().split('T')[0] + '.json';
-    a.click();
-    
-    URL.revokeObjectURL(url);
+    // Deprecated: kept for compatibility but not used. CSV export implemented in saveOverlayDialogCSV.
 }
 
 /**
@@ -1739,6 +1977,6 @@ window.openCoachingOverlayFromStorage = openCoachingOverlay;
 window.openCoachingOverlayFromURL = openCoachingOverlay;
 window.openCoachingOverlayFromFile = openCoachingOverlay;
 
-console.log('Complete coaching overlay system loaded');
+debugLog('Complete coaching overlay system loaded');
 
 })();

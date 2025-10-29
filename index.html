@@ -160,6 +160,7 @@
             background: #fafafa;
             overflow: hidden;
             cursor: crosshair;
+            touch-action: none;
         }
         
         .background-layer {
@@ -210,6 +211,7 @@
 				cursor: move;
                 transition: transform 0.44s ease-in-out, filter 0.44s ease-in-out;
 				user-select: none;
+                -webkit-user-select: none;
 				z-index: 10;
 				will-change: transform;
 				backface-visibility: hidden;
@@ -573,6 +575,12 @@
         }
 
         .part:hover .control-btn {
+            display: flex !important;
+            pointer-events: auto;
+        }
+
+        /* On mobile (tap selection), show controls when selected too */
+        .part.selected .control-btn {
             display: flex !important;
             pointer-events: auto;
         }
@@ -2602,7 +2610,13 @@ function closeKeywordsPopup() {
                 part.style.top = posY + 'px';
                 
                 const existingParts = document.querySelectorAll('.part');
-                const newLayer = existingParts.length + 1;
+                // Find max current layer to avoid duplicates if there are gaps or collisions
+                let maxLayer = 0;
+                existingParts.forEach(p => {
+                    const l = parseInt(p.getAttribute('data-layer')) || 0;
+                    if (l > maxLayer) maxLayer = l;
+                });
+                const newLayer = maxLayer + 1;
                 part.style.zIndex = newLayer + 10;
                 
                 const assignedColor = partColors[colorIndex % partColors.length];
@@ -2731,7 +2745,7 @@ function closeKeywordsPopup() {
 				armParts.forEach(arm => arm.style.background = darkerColor);
 				legParts.forEach(leg => leg.style.background = darkerColor);
                 
-                part.addEventListener('mousedown', startDrag);
+                part.addEventListener('pointerdown', startDrag);
                 part.addEventListener('click', selectPart);
                 part.addEventListener('dragstart', (e) => e.preventDefault());
                 
@@ -2800,6 +2814,8 @@ function closeKeywordsPopup() {
                         p.style.zIndex = newLayer + 10;
                     }
                 });
+                // Ensure layers are unique and compact after delete
+                normalizeLayers();
                 // Auto-save after delete
                 saveCharactersToShared();
                 
@@ -2825,6 +2841,17 @@ function closeKeywordsPopup() {
                     }
                 });
                 
+                // If there is a gap or duplicate layers, normalize and retry
+                if (!targetPart) {
+                    normalizeLayers();
+                    const refreshedParts = document.querySelectorAll('.part');
+                    refreshedParts.forEach(p => {
+                        if (parseInt(p.getAttribute('data-layer')) === currentLayer + 1) {
+                            targetPart = p;
+                        }
+                    });
+                }
+
                 if (targetPart) {
                     part.setAttribute('data-layer', targetLayer.toString());
                     part.style.zIndex = targetLayer + 10;
@@ -2854,6 +2881,17 @@ function closeKeywordsPopup() {
                     }
                 });
                 
+                // If there is a gap or duplicate layers, normalize and retry
+                if (!targetPart) {
+                    normalizeLayers();
+                    const refreshedParts = document.querySelectorAll('.part');
+                    refreshedParts.forEach(p => {
+                        if (parseInt(p.getAttribute('data-layer')) === targetLayer) {
+                            targetPart = p;
+                        }
+                    });
+                }
+
                 if (targetPart) {
                     part.setAttribute('data-layer', targetLayer.toString());
                     part.style.zIndex = targetLayer + 10;
@@ -2864,6 +2902,26 @@ function closeKeywordsPopup() {
                 saveCharactersToShared();
             } catch (error) {
                 console.error('Fejl i moveToBack:', error);
+            }
+        }
+
+        // Ensure unique, compact layers (1..N) with matching z-index
+        function normalizeLayers() {
+            try {
+                const parts = Array.from(document.querySelectorAll('.part'));
+                // Sort by current data-layer asc; fall back to DOM order
+                parts.sort((a, b) => {
+                    const la = parseInt(a.getAttribute('data-layer')) || 0;
+                    const lb = parseInt(b.getAttribute('data-layer')) || 0;
+                    return la - lb;
+                });
+                parts.forEach((p, idx) => {
+                    const layer = idx + 1;
+                    p.setAttribute('data-layer', layer.toString());
+                    p.style.zIndex = layer + 10;
+                });
+            } catch (error) {
+                console.error('Fejl i normalizeLayers:', error);
             }
         }
         
@@ -2958,8 +3016,8 @@ function closeKeywordsPopup() {
 					
 					dragState.animationId = requestAnimationFrame(animate);
 					
-					document.addEventListener('mousemove', drag);
-					document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('pointermove', drag, { passive: false });
+                document.addEventListener('pointerup', stopDrag, { passive: false });
 				} catch (error) {
 					console.error('Fejl i startDrag:', error);
 				}
@@ -2968,6 +3026,7 @@ function closeKeywordsPopup() {
         function drag(e) {
             try {
                 if (!draggedElement || !dragState) return;
+                if (e && typeof e.preventDefault === 'function') e.preventDefault();
                 
                 const workspace = document.getElementById('workspace');
                 const workspaceRect = workspace.getBoundingClientRect();
@@ -3064,8 +3123,8 @@ function closeKeywordsPopup() {
 					
 					dragState.animationId = requestAnimationFrame(settleAnimation);
 				}
-				document.removeEventListener('mousemove', drag);
-				document.removeEventListener('mouseup', stopDrag);
+                document.removeEventListener('pointermove', drag);
+                document.removeEventListener('pointerup', stopDrag);
 			} catch (error) {
 				console.error('Fejl i stopDrag:', error);
 			}
@@ -3360,6 +3419,8 @@ function closeKeywordsPopup() {
 					}
 				});
 
+                // Ensure layers are consistent after load
+                normalizeLayers();
                 return true;
             } catch (error) {
                 console.error('Fejl ved indlæsning fra localStorage:', error);
@@ -4182,6 +4243,8 @@ function closeKeywordsPopup() {
 
                             // Indlæsning fuldført (silent)
                             // Persist sizes/positions after complete load
+                            // Ensure layers are consistent after CSV load
+                            normalizeLayers();
                             isLoadingSetup = false;
                             try { saveCharactersToShared(); } catch(_){}
                                 

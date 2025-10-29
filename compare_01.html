@@ -1512,16 +1512,16 @@
     <script>
         // Wait for script to load and then check
         window.addEventListener('load', function() {
-            console.log('Page loaded, checking coaching functions...');
-            console.log('openCoachingOverlayFromFile type:', typeof window.openCoachingOverlayFromFile);
-            console.log('CoachEngine type:', typeof window.CoachEngine);
-            console.log('CoachEngine class:', typeof CoachEngine);
+            (window.__APP_DEBUG__ && console.log('Page loaded, checking coaching functions...'));
+            (window.__APP_DEBUG__ && console.log('openCoachingOverlayFromFile type:', typeof window.openCoachingOverlayFromFile));
+            (window.__APP_DEBUG__ && console.log('CoachEngine type:', typeof window.CoachEngine));
+            (window.__APP_DEBUG__ && console.log('CoachEngine class:', typeof CoachEngine));
             
             if (typeof openCoachingOverlayFromFile === 'undefined') {
-                console.log('Coaching functions not loaded, adding fallback...');
+                (window.__APP_DEBUG__ && console.log('Coaching functions not loaded, adding fallback...'));
                 // Simple fallback function
                 window.openCoachingOverlayFromFile = function(filename) {
-                    console.log('Fallback: Opening coaching overlay from file:', filename);
+                    (window.__APP_DEBUG__ && console.log('Fallback: Opening coaching overlay from file:', filename));
                     if (typeof openCoachingOverlay !== 'undefined') {
                         openCoachingOverlay('myCoachingProject');
                     } else {
@@ -1529,7 +1529,7 @@
                     }
                 };
             } else {
-                console.log('Coaching functions loaded successfully!');
+                (window.__APP_DEBUG__ && console.log('Coaching functions loaded successfully!'));
             }
         });
     </script>
@@ -1879,7 +1879,7 @@ async function loadPoseLibrary() {
         const response = await fetch('Standard_new_poses.json');
         if (response.ok) {
             poseLibrary = await response.json();
-            console.log('Loaded pose library with', poseLibrary.length, 'poses');
+            (window.__APP_DEBUG__ && console.log('Loaded pose library with', poseLibrary.length, 'poses'));
         } else {
             console.error('Failed to load pose library');
             // Fallback to basic poses
@@ -1946,7 +1946,7 @@ async function loadPoseLibrary() {
 function runAnimation(side, animName) {
     const animation = animations[animName];
     if (!animation || !animation.slides) {
-        console.log(`Animation "${animName}" not found`);
+        (window.__APP_DEBUG__ && console.log(`Animation "${animName}" not found`));
         return;
     }
     
@@ -2469,7 +2469,7 @@ function closePosePicker() {
         }
         
         function handleStorageUpdate() {
-            console.log('Handling storage update in comparison tool...');
+            (window.__APP_DEBUG__ && console.log('Handling storage update in comparison tool...'));
             
             // Store current selections
             const leftDropdown = document.getElementById('leftDropdown');
@@ -2524,13 +2524,13 @@ function closePosePicker() {
             setStatus(`Dropdowns opdateret - ${updatedCount} karakterer tilgængelige`);
             
             // Log what happened for debugging
-            console.log('Comparison storage update handled:', {
+            (window.__APP_DEBUG__ && console.log('Comparison storage update handled:', {
                 leftWasValid: leftStillValid,
                 rightWasValid: rightStillValid,
                 leftSelected: leftDropdown.value,
                 rightSelected: rightDropdown.value,
                 availableCharacters: updatedCount
-            });
+            }));
         }
 		
 		
@@ -3362,7 +3362,7 @@ function resetPose(side) {
         }
 
         function saveComparison() {
-            console.log('saveComparison kaldt');
+            (window.__APP_DEBUG__ && console.log('saveComparison kaldt'));
             
             const leftSelected = document.getElementById('leftDropdown').value;
             const rightSelected = document.getElementById('rightDropdown').value;
@@ -3375,7 +3375,7 @@ function resetPose(side) {
             const leftName = document.getElementById('leftName').textContent || 'Venstre del';
             const rightName = document.getElementById('rightName').textContent || 'Højre del';
             
-            console.log('Gemmer sammenligning for:', leftName, rightName);
+            (window.__APP_DEBUG__ && console.log('Gemmer sammenligning for:', leftName, rightName));
             
             // Collect stikord data
             const leftStikord = [];
@@ -3406,7 +3406,7 @@ function resetPose(side) {
             const timestamp = now.toISOString();
             const defaultFileName = 'Sammenligning_' + now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0');
             
-            console.log('Forbereder CSV data...');
+            (window.__APP_DEBUG__ && console.log('Forbereder CSV data...'));
             
             const csvData = [];
             csvData.push(['#metadata']);
@@ -3451,7 +3451,7 @@ function resetPose(side) {
                 }).join(',');
             }).join('\r\n');
             
-            console.log('CSV content genereret, starter download...');
+            (window.__APP_DEBUG__ && console.log('CSV content genereret, starter download...'));
             
             try {
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -3459,12 +3459,12 @@ function resetPose(side) {
                 
                 if (window.navigator && window.navigator.msSaveOrOpenBlob) {
                     // IE/Edge
-                    console.log('Bruger IE/Edge download');
+                    (window.__APP_DEBUG__ && console.log('Bruger IE/Edge download'));
                     window.navigator.msSaveOrOpenBlob(blob, fileName + '.csv');
                     setStatus('Sammenligning gemt som ' + fileName + '.csv');
                 } else {
                     // Moderne browsere
-                    console.log('Bruger moderne browser download');
+                    (window.__APP_DEBUG__ && console.log('Bruger moderne browser download'));
                     
                     const link = document.createElement('a');
                     if (link.download !== undefined) {
@@ -3478,7 +3478,7 @@ function resetPose(side) {
                         
                         setTimeout(() => {
                             URL.revokeObjectURL(url);
-                            console.log('Cleanup udført');
+                            (window.__APP_DEBUG__ && console.log('Cleanup udført'));
                         }, 100);
                         
                         setStatus('Sammenligning gemt som ' + fileName + '.csv');
@@ -3968,7 +3968,7 @@ function adjustDistance(direction) {
             // Listen for localStorage changes (cross-tab synchronization)
             window.addEventListener('storage', function(e) {
                 if (e.key === 'relationsSetupData') {
-                    console.log('localStorage relationsSetupData updated, refreshing comparison dropdowns...');
+                    (window.__APP_DEBUG__ && console.log('localStorage relationsSetupData updated, refreshing comparison dropdowns...'));
                     handleStorageUpdate();
                 }
             });
