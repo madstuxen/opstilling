@@ -1256,6 +1256,18 @@
 		
 		
 		
+    
+    /* Touch devices adjustments */
+    @media (hover: none) and (pointer: coarse) {
+        body { padding: 5px; }
+        .header { padding: 5px; }
+        .comparison-container { border-radius: 12px; }
+        .controls-bar { padding: 8px 12px; gap: 10px; }
+        .participant-dropdown { font-size: 13px; padding: 6px 10px; }
+        .btn { padding: 6px 12px; font-size: 13px; }
+        /* Hide side info panels on touch for more space */
+        .info-left, .info-right { display: none; }
+    }
     </style>
 </head>
 <body>

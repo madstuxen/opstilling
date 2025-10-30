@@ -1090,7 +1090,7 @@
 		
 		
     	/* Mobile adjustments */
-    	@media (max-width: 640px) {
+	@media (hover: none) and (pointer: coarse) {
 		body {
 			padding: 5px;
 		}
@@ -1120,6 +1120,18 @@
 		.notes-title h3 { font-size: 16px; }
 		.groups-section h4, .keywords-section h4, .notes-container h4 { font-size: 14px; }
 		.keyword-input, .group-input, .group-dropdown { font-size: 13px; }
+		/* Make notes section horizontally scrollable on touch */
+		.notes-section {
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+		}
+		.notes-content {
+			min-width: 900px; /* ensure content wider than viewport so it can scroll */
+			gap: 20px;
+		}
+		.groups-section, .keywords-section, .notes-container {
+			flex: 0 0 auto; /* prevent shrinking so horizontal scroll works */
+		}
 		/* Scale pose picker on mobile to half size */
 		.pose-picker {
 			transform: scale(0.5);
