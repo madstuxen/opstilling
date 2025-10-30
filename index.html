@@ -76,6 +76,11 @@
             min-width: 200px;
             background: white;
         }
+
+        /* Limit part name input width */
+        #partName {
+            max-width: 250px;
+        }
         
         .toolbar input[type="text"]:focus, .toolbar select:focus {
             outline: none;
@@ -908,6 +913,7 @@
         .keywords-section {
             flex: 0 0 300px;
             min-width: 300px;
+            max-width: 300px;
         }
         
         .keywords-section h4 {
@@ -1116,6 +1122,9 @@
 		}
 		.workspace {
 			height: 65vh;
+			overflow: auto;
+			-webkit-overflow-scrolling: touch;
+			touch-action: pan-x pan-y;
 		}
 		.notes-title h3 { font-size: 16px; }
 		.groups-section h4, .keywords-section h4, .notes-container h4 { font-size: 14px; }
