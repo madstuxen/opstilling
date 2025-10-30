@@ -7,6 +7,7 @@ let coachingOverlay = null;
 let currentEngine = null;
 let currentQuestion = null;
 let overlayTranscript = [];
+let overlayListenersBound = false;
 
 // Debug helper (toggle with window.__COACH_DEBUG__ = true)
 function debugLog() {
@@ -1541,6 +1542,8 @@ function submitSliderValue() {
  * Set up event listeners for coaching
  */
 function setupCoachingEventListeners(contentElement) {
+    // Prevent multiple bindings across restarts
+    if (overlayListenersBound) return;
     // Start coaching button
     const startBtn = contentElement.querySelector('#startCoachingBtn');
     if (startBtn) {
@@ -1665,6 +1668,7 @@ function setupCoachingEventListeners(contentElement) {
             }
         });
     }
+    overlayListenersBound = true;
 }
 
 /**
@@ -1967,6 +1971,7 @@ function closeCoachingOverlay() {
         coachingOverlay = null;
         currentEngine = null;
         currentQuestion = null;
+        overlayListenersBound = false;
     }
 }
 

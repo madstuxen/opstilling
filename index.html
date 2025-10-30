@@ -31,12 +31,12 @@
         .header {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: white;
-            padding: 30px;
+            padding: 5px;
             text-align: center;
         }
         
         .header h1 {
-            font-size: 2.5em;
+            font-size: 2.0em;
             margin-bottom: 10px;
             font-weight: 300;
         }
@@ -1088,13 +1088,44 @@
 		
 		
 		
+    	/* Mobile adjustments */
+    	@media (max-width: 640px) {
+		body {
+			padding: 5px;
+		}
+		.container {
+			border-radius: 12px;
+		}
+    		.header {
+			padding: 5px;
+    		}
+		.header h1 {
+			font-size: 2.0em;
+			margin-bottom: 0;
+		}
+		.toolbar {
+			padding: 8px 12px;
+			gap: 10px;
+		}
+		.toolbar select, .toolbar input, .toolbar button {
+			padding: 6px 10px;
+			font-size: 13px;
+			border-radius: 8px;
+			min-width: auto;
+		}
+		.workspace {
+			height: 65vh;
+		}
+		.notes-title h3 { font-size: 16px; }
+		.groups-section h4, .keywords-section h4, .notes-container h4 { font-size: 14px; }
+		.keyword-input, .group-input, .group-dropdown { font-size: 13px; }
+    	}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Relations Opstilling</h1>
-            <p>Visualiser og udforsk relationer </p>
+            <h1>Opstilling</h1>
         </div>
         
         <div class="toolbar">
