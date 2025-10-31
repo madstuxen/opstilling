@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Body Map</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 40px);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 5px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.0em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .toolbar {
+            background: #f8fafc;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar button {
+            padding: 8px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            min-width: 120px;
+        }
+        
+        .toolbar button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-new-map {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        }
+        
+        .btn-new-index {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+        }
+        
+        .btn-new-label {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        }
+        
+        .btn-save-image {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+        }
+        
+        .btn-back {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        }
+        
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .workspace-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .workspace {
+            flex: 1;
+            position: relative;
+            background: #fafafa;
+            overflow: auto;
+            cursor: default;
+            touch-action: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .history-sidebar {
+            width: 250px;
+            background: #f8fafc;
+            border-left: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .history-header {
+            background: #e2e8f0;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: #374151;
+            border-bottom: 2px solid #d1d5db;
+        }
+        
+        .history-navigation {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #e2e8f0;
+            border-bottom: 1px solid #d1d5db;
+        }
+        
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: white;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            color: #4f46e5;
+            transition: all 0.2s;
+        }
+        
+        .nav-btn:hover {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .nav-btn:disabled {
+            background: #d1d5db;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .history-item {
+            padding: 12px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .history-item:hover {
+            background: #e2e8f0;
+        }
+        
+        .history-item.active {
+            background: #4f46e5;
+            color: white;
+            border-color: #6366f1;
+        }
+        
+        .history-item-date {
+            font-weight: bold;
+            font-size: 14px;
+            border: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            color: inherit;
+        }
+        
+        .history-item:focus-within .history-item-date {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        .history-item-time {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        /* Part/Figure styles */
+        .part {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            cursor: default;
+            transition: transform 0.44s ease-in-out, filter 0.44s ease-in-out;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            z-index: 10;
+            will-change: transform;
+            backface-visibility: hidden;
+        }
+        
+        /* Guide figure is 2x bigger */
+        #guideFigure .body {
+            transform: scale(2) translateX(-50%);
+        }
+        
+        .part.onion-layer {
+            pointer-events: none;
+        }
+        
+        .part.dragging {
+            transition: none !important;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25)) brightness(1.0);
+            z-index: 1000;
+        }
+        
+        .head {
+            position: absolute;
+            top: -74px; left: 50%; 
+            transform: translateX(-50%);
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            padding: 10px;
+            line-height: 1.2;
+            z-index: 5;
+            pointer-events: auto;
+        }
+        
+        /* Krop (underkomponent af part) */
+        .body {
+            position: absolute;
+            top: 77px;
+            left: 50%;
+            transform: translateX(-50%);
+            transform-origin: 40px -77px;
+            transition: none !important;
+            z-index: -1;
+            pointer-events: none;
+            will-change: transform;
+            backface-visibility: hidden;
+        }
+        
+        /* Torso */
+        .torso {
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            margin: 0 auto;
+            border-radius: 30px 30px 20px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            position: relative;
+            z-index: 5;
+        }
+        
+        .torso::after {
+            content: '';
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background: #d97706;
+            border-radius: 50%;
+        }
+        
+        /* Højre arm hierarki */
+        .skulder_translate_right {
+            position: absolute;
+            top: 2px;
+            left: 41px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0.0);
+            z-index: 3;
+        }
+        
+        .skulder_translate_right.front-arm {
+            z-index: 15;
+        }
+        
+        .skulder_rotate_right {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.0);
+            transform-origin: center center;
+        }
+        
+        .arm_geo_right {
+            width: 50px;
+            height: 18px;
+            background: #f59e0b;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -1px;
+        }
+        
+        .albue_rotate_right {
+            position: relative;
+            top: 1px;
+            left: 34px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0.0);
+            transform-origin: center center;
+        }
+        
+        .albue_geo_right {
+            position: relative;
+            top: -1px;
+            left: 1px;
+            width: 50px;
+            height: 18px;
+            background: #f59e0b;
+            border-radius: 9px;
+            z-index: 4;
+        }
+        
+        /* Venstre arm hierarki */
+        .skulder_translate_left {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0.0);
+            z-index: 3;
+        }
+        
+        .skulder_translate_left.front-arm {
+            z-index: 15;
+        }
+        
+        .skulder_rotate_left {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.0);
+            transform-origin: center center;
+        }
+        
+        .arm_geo_left {
+            width: 50px;
+            height: 18px;
+            background: #f59e0b;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -34px;
+        }
+        
+        .albue_rotate_left {
+            position: relative;
+            top: 1px;
+            left: 0px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0.0);
+            transform-origin: center center;
+        }
+        
+        .albue_geo_left {
+            position: relative;
+            top: -1px;
+            left: -33px;
+            width: 50px;
+            height: 18px;
+            background: #f59e0b;
+            border-radius: 9px;
+            z-index: 4;
+        }
+        
+        /* Højre ben hierarki */
+        .hofte_translate_right {
+            position: absolute;
+            top: 68px;
+            left: 40px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0.0);
+        }
+        
+        .hofte_rotate_right {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.0);
+            transform-origin: center center;
+        }
+        
+        .laar_geo_right {
+            width: 18px;
+            height: 55px;
+            background: #f59e0b;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -1px;
+        }
+        
+        .knae_rotate_right {
+            position: relative;
+            top: 38px;
+            left: 1px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0.0);
+            transform-origin: center center;
+        }
+        
+        .skinneben_geo_right {
+            position: relative;
+            top: -1px;
+            left: -1px;
+            width: 18px;
+            height: 50px;
+            background: #f59e0b;
+            border-radius: 9px;
+        }
+        
+        /* Venstre ben hierarki */
+        .hofte_translate_left {
+            position: absolute;
+            top: 68px;
+            left: 4px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0.0);
+        }
+        
+        .hofte_rotate_left {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0.0);
+            transform-origin: center center;
+        }
+        
+        .laar_geo_left {
+            width: 18px;
+            height: 55px;
+            background: #f59e0b;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -1px;
+        }
+        
+        .knae_rotate_left {
+            position: relative;
+            top: 38px;
+            left: 1px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0.0);
+            transform-origin: center center;
+        }
+        
+        .skinneben_geo_left {
+            position: relative;
+            top: -1px;
+            left: -1px;
+            width: 18px;
+            height: 50px;
+            background: #f59e0b;
+            border-radius: 9px;
+        }
+        
+        /* Label styles */
+        .label-container {
+            position: absolute;
+            cursor: move;
+            z-index: 20;
+            transform-origin: center center;
+        }
+        
+        .label-input {
+            background: #6366f1;
+            border: none;
+            border-radius: 12px;
+            padding: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            width: 130px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            position: relative;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .label-input::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .label-input::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 2px;
+        }
+        
+        .label-input.label-active {
+            border: 2px solid #818cf8;
+        }
+        
+        .label-text-input {
+            border: none;
+            background: transparent;
+            outline: none;
+            text-align: left;
+            flex: 1;
+            font-size: 15px;
+            font-weight: 500;
+            padding: 0;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            resize: none;
+            line-height: 1.2;
+            min-height: 19px;
+            field-sizing: content;
+        }
+        
+        .label-text-input:focus {
+            outline: none;
+        }
+        
+        .label-text-input::placeholder {
+            color: #9ca3af;
+            font-weight: 400;
+        }
+        
+        .label-delete-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            opacity: 0;
+            pointer-events: none;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 14px;
+            line-height: 18px;
+            cursor: pointer;
+            padding: 0;
+            text-align: center;
+            transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
+            z-index: 1;
+        }
+        
+        .label-container:hover .label-delete-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .label-delete-btn:hover {
+            background: #dc2626;
+            transform: scale(1.2);
+        }
+        
+        .label-number {
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            line-height: 1;
+            align-self: flex-end;
+        }
+        
+        .label-input:focus-within {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Body Map</h1>
+        </div>
+        
+        <div class="toolbar">
+            <button class="btn-new-map" onclick="newMap()">Nyt bodymap</button>
+            <button class="btn-new-index" onclick="newIndex()">Nyt lag</button>
+            <button class="btn-new-label" onclick="newLabel()">Ny label</button>
+            <button class="btn-save-image" onclick="saveImage()">Gem billede</button>
+            <button class="btn-back" onclick="window.location.href='index.html'">Tilbage til opstilling</button>
+        </div>
+        
+        <div class="main-content">
+            <div class="workspace-container">
+                <div class="workspace" id="workspace"></div>
+            </div>
+            
+            <div class="history-sidebar">
+                <div class="history-header">Historie</div>
+                <div class="history-navigation">
+                    <button class="nav-btn" id="navUp" onclick="navigateHistory(1)">↑</button>
+                    <button class="nav-btn" id="navDown" onclick="navigateHistory(-1)">↓</button>
+                </div>
+                <div class="history-list" id="historyList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Pose library for "kram" pose
+        const kramPose = {
+            name: "kram",
+            pose: {
+                translate_x_left: -4,
+                translate_y_left: 4,
+                skulder_rot_left: -28,
+                albue_rot_left: 11,
+                translate_x: 3,
+                translate_y: 3,
+                skulder_rot: 27,
+                albue_rot: -13,
+                translate_x_left_leg: 0,
+                translate_y_left_leg: 0,
+                hofte_rot_left: 4,
+                knae_rot_left: -4,
+                translate_x_right_leg: 0,
+                translate_y_right_leg: 0,
+                hofte_rot_right: -4,
+                knae_rot_right: 3,
+                left_arm_front: false,
+                right_arm_front: false
+            }
+        };
+        
+        // Data structure
+        let dataIndexes = []; // Array of index objects: {id, date, time, title, labels: [{id, text, x, y, labelNumber}]}
+        let activeIndexId = null;
+        let indexCounter = 1; // Counter for index IDs
+        let labelIdCounter = 1; // Counter for label IDs
+        
+        // Initialize
+        function init() {
+            // Create first index
+            createNewIndex();
+        }
+        
+        function createNewIndex() {
+            const now = new Date();
+            const index = {
+                id: indexCounter++,
+                date: now.toLocaleDateString('da-DK'),
+                time: now.toLocaleTimeString('da-DK', {hour: '2-digit', minute: '2-digit'}),
+                title: '',
+                labels: []
+            };
+            
+            dataIndexes.push(index);
+            activeIndexId = index.id;
+            
+            renderHistory();
+            renderWorkspace();
+        }
+        
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+            
+            // Sort by id (oldest first)
+            const sortedIndexes = [...dataIndexes].sort((a, b) => a.id - b.id);
+            
+            sortedIndexes.forEach((index, idx) => {
+                const item = document.createElement('div');
+                item.className = `history-item ${index.id === activeIndexId ? 'active' : ''}`;
+                const titleDisplay = index.title || `Lag ${index.id}`;
+                item.innerHTML = `
+                    <input type="text" class="history-item-date" value="${titleDisplay}" data-id="${index.id}">
+                    <div class="history-item-time">${index.date} ${index.time}</div>
+                `;
+                item.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('history-item-date')) return;
+                    activeIndexId = index.id;
+                    renderHistory();
+                    renderWorkspace();
+                });
+                const titleInput = item.querySelector('.history-item-date');
+                titleInput.addEventListener('change', (e) => {
+                    const indexId = parseFloat(e.target.dataset.id);
+                    const indexObj = dataIndexes.find(idx => idx.id === indexId);
+                    if (indexObj) {
+                        indexObj.title = e.target.value;
+                    }
+                });
+                list.appendChild(item);
+            });
+            
+            // Update navigation buttons
+            document.getElementById('navUp').disabled = dataIndexes.length === 0;
+            document.getElementById('navDown').disabled = dataIndexes.length === 0;
+        }
+        
+        function renderWorkspace() {
+            const workspace = document.getElementById('workspace');
+            workspace.innerHTML = '';
+            
+            if (!activeIndexId) return;
+            
+            // Find active index
+            const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
+            if (!activeIndex) return;
+            
+            // Get the 7 layers to show (active + 6 older)
+            const sortedIndexes = [...dataIndexes].sort((a, b) => a.id - b.id);
+            const activePosition = sortedIndexes.findIndex(idx => idx.id === activeIndexId);
+            const layersToShow = sortedIndexes.slice(Math.max(0, activePosition - 6), activePosition + 1);
+            
+            // Render guide figure in center
+            const guideFigure = createGuideFigure();
+            workspace.appendChild(guideFigure);
+            
+            // Render onion layers (oldest first so newest is on top)
+            layersToShow.forEach((layerIndex, idx) => {
+                const layerNum = layersToShow.length - 1 - idx;
+                renderOnionLayer(layerIndex, layerNum, workspace);
+            });
+        }
+        
+        function createGuideFigure() {
+            const figure = document.createElement('div');
+            figure.className = 'part';
+            figure.id = 'guideFigure';
+            
+            // Position guide figure
+            figure.style.left = '450px';
+            figure.style.top = '140px';
+            figure.style.transform = 'translate(-50%, -50%)';
+            
+            figure.innerHTML = `
+                <div class="body">
+                    <div class="head"></div>
+                    <div class="torso"></div>
+                    
+                    <!-- Venstre arm hierarki -->
+                    <div class="skulder_translate_left">
+                        <div class="skulder_rotate_left">
+                            <div class="arm_geo_left">
+                                <div class="albue_rotate_left">
+                                    <div class="albue_geo_left"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Højre arm hierarki -->
+                    <div class="skulder_translate_right">
+                        <div class="skulder_rotate_right">
+                            <div class="arm_geo_right">
+                                <div class="albue_rotate_right">
+                                    <div class="albue_geo_right"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Venstre ben hierarki -->
+                    <div class="hofte_translate_left">
+                        <div class="hofte_rotate_left">
+                            <div class="laar_geo_left">
+                                <div class="knae_rotate_left">
+                                    <div class="skinneben_geo_left"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Højre ben hierarki -->
+                    <div class="hofte_translate_right">
+                        <div class="hofte_rotate_right">
+                            <div class="laar_geo_right">
+                                <div class="knae_rotate_right">
+                                    <div class="skinneben_geo_right"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Apply kram pose
+            applyPoseToFigure(figure);
+            
+            return figure;
+        }
+        
+        function applyPoseToFigure(figure) {
+            const poseData = kramPose.pose;
+            
+            const skulderLeft = figure.querySelector('.skulder_translate_left');
+            const skulderRight = figure.querySelector('.skulder_translate_right');
+            const hofteLeft = figure.querySelector('.hofte_translate_left');
+            const hofteRight = figure.querySelector('.hofte_translate_right');
+            
+            if (skulderLeft) {
+                skulderLeft.style.transform = `translate(${poseData.translate_x_left || 0}px, ${poseData.translate_y_left || 0}px)`;
+                const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+                if (skulderRotLeft) {
+                    skulderRotLeft.style.transform = `rotate(${poseData.skulder_rot_left || 0}deg)`;
+                    const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+                    if (albueRotLeft) {
+                        albueRotLeft.style.transform = `rotate(${poseData.albue_rot_left || 0}deg)`;
+                    }
+                }
+            }
+            
+            if (skulderRight) {
+                skulderRight.style.transform = `translate(${poseData.translate_x || 0}px, ${poseData.translate_y || 0}px)`;
+                const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+                if (skulderRotRight) {
+                    skulderRotRight.style.transform = `rotate(${poseData.skulder_rot || 0}deg)`;
+                    const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+                    if (albueRotRight) {
+                        albueRotRight.style.transform = `rotate(${poseData.albue_rot || 0}deg)`;
+                    }
+                }
+            }
+            
+            if (hofteLeft) {
+                hofteLeft.style.transform = `translate(${poseData.translate_x_left_leg || 0}px, ${poseData.translate_y_left_leg || 0}px)`;
+                const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+                if (hofteRotLeft) {
+                    hofteRotLeft.style.transform = `rotate(${poseData.hofte_rot_left || 0}deg)`;
+                    const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+                    if (knaeRotLeft) {
+                        knaeRotLeft.style.transform = `rotate(${poseData.knae_rot_left || 0}deg)`;
+                    }
+                }
+            }
+            
+            if (hofteRight) {
+                hofteRight.style.transform = `translate(${poseData.translate_x_right_leg || 0}px, ${poseData.translate_y_right_leg || 0}px)`;
+                const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+                if (hofteRotRight) {
+                    hofteRotRight.style.transform = `rotate(${poseData.hofte_rot_right || 0}deg)`;
+                    const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+                    if (knaeRotRight) {
+                        knaeRotRight.style.transform = `rotate(${poseData.knae_rot_right || 0}deg)`;
+                    }
+                }
+            }
+        }
+        
+        function renderOnionLayer(layerIndex, layerNum, workspace) {
+            // Calculate opacity and scale based on distance from active
+            // First layer gets big jump, then linear
+            const opacity = layerNum === 0 ? 1 : 0.6 - (layerNum - 1) * 0.1;
+            const scale = 1 - (layerNum * 0.08); // More aggressive scale down
+            
+            const isActive = layerIndex.id === activeIndexId;
+            
+            // Get guide figure center for calculating displacement vector
+            const guideFigure = workspace.querySelector('#guideFigure');
+            let guideCenterX = 450; // Default
+            let guideCenterY = 140;
+            if (guideFigure) {
+                const torso = guideFigure.querySelector('.torso');
+                if (torso) {
+                    const rect = torso.getBoundingClientRect();
+                    const workspaceRect = workspace.getBoundingClientRect();
+                    guideCenterX = rect.left - workspaceRect.left + rect.width / 2;
+                    guideCenterY = rect.top - workspaceRect.top + rect.height / 2;
+                }
+            }
+            
+            // Only render labels for onion layers (not the guide figure itself)
+            layerIndex.labels.forEach(label => {
+                // Calculate displacement vector from guide center to label position
+                const dx = label.x - guideCenterX;
+                const dy = label.y - guideCenterY;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                
+                // Normalize and scale by layerNum
+                const offsetX = length > 0 ? (dx / length) * layerNum * 20 : 0;
+                const offsetY = length > 0 ? (dy / length) * layerNum * 20 : 0;
+                
+                const labelEl = createLabelElement(label, isActive, opacity, scale, offsetX, offsetY);
+                workspace.appendChild(labelEl);
+            });
+        }
+        
+        function createLabelElement(label, isActive, opacity, scale, offsetX = 0, offsetY = 0) {
+            const container = document.createElement('div');
+            container.className = 'label-container';
+            if (!isActive) {
+                container.classList.add('onion-layer');
+            }
+            
+            container.style.left = (label.x + offsetX) + 'px';
+            container.style.top = (label.y + offsetY) + 'px';
+            container.style.opacity = opacity;
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            
+            // Create label with number badge and delete button
+            const deleteBtnHtml = isActive ? '<button class="label-delete-btn" title="Slet label">×</button>' : '';
+            const placeholderText = label.text === '' ? 'Skriv her' : '';
+            const activeClass = isActive ? 'label-active' : '';
+            container.innerHTML = `
+                <div class="label-input ${activeClass}">
+                    <textarea class="label-text-input" placeholder="${placeholderText}">${label.text}</textarea>
+                    <span class="label-number">${label.labelNumber}</span>
+                    ${deleteBtnHtml}
+                </div>
+            `;
+            
+            const inputEl = container.querySelector('.label-text-input');
+            
+            if (isActive) {
+                // Make editable and draggable if active
+                inputEl.addEventListener('input', () => {
+                    label.text = inputEl.value;
+                });
+                
+                inputEl.addEventListener('change', () => {
+                    const newText = inputEl.value.trim();
+                    if (newText !== '' && label.text === '') {
+                        // This is a newly created label getting its text for the first time
+                        // Need to recalculate labelNumber based on the actual text
+                        let maxLabelNumber = 0;
+                        dataIndexes.forEach(idx => {
+                            idx.labels.forEach(lab => {
+                                if (lab.text === newText && lab.labelNumber > maxLabelNumber && lab.id !== label.id) {
+                                    maxLabelNumber = lab.labelNumber;
+                                }
+                            });
+                        });
+                        label.labelNumber = maxLabelNumber + 1;
+                        // Update the display of the number
+                        const numberSpan = container.querySelector('.label-number');
+                        if (numberSpan) {
+                            numberSpan.textContent = `${label.labelNumber}`;
+                        }
+                    }
+                    label.text = newText;
+                });
+                
+                // Add delete button functionality
+                const deleteBtn = container.querySelector('.label-delete-btn');
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteLabel(label.id);
+                    });
+                }
+                
+                let isDragging = false;
+                container.addEventListener('mousedown', (e) => {
+                    // Only don't drag when clicking on the input itself or delete button
+                    if (e.target === inputEl || e.target === deleteBtn) return;
+                    isDragging = true;
+                    const startX = e.clientX - label.x;
+                    const startY = e.clientY - label.y;
+                    
+                    const onMouseMove = (e) => {
+                        if (!isDragging) return;
+                        label.x = e.clientX - startX;
+                        label.y = e.clientY - startY;
+                        container.style.left = label.x + 'px';
+                        container.style.top = label.y + 'px';
+                    };
+                    
+                    const onMouseUp = () => {
+                        isDragging = false;
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    };
+                    
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                    e.preventDefault();
+                });
+            } else {
+                // Make read-only for onion layers
+                inputEl.readOnly = true;
+            }
+            
+            return container;
+        }
+        
+        // Button functions
+        function newMap() {
+            if (confirm('Er du sikker på du vil starte et nyt bodymap? Dette vil slette alle data.')) {
+                dataIndexes = [];
+                labelCounter = 1;
+                uniqueIdCounter = 1;
+                createNewIndex();
+            }
+        }
+        
+        function newIndex() {
+            if (dataIndexes.length === 0) {
+                alert('Der er ingen tidligere index at kopiere fra.');
+                return;
+            }
+            
+            const sortedIndexes = [...dataIndexes].sort((a, b) => b.id - a.id);
+            const previousIndex = sortedIndexes[0]; // Most recent
+            
+            const now = new Date();
+            const index = {
+                id: indexCounter++,
+                date: now.toLocaleDateString('da-DK'),
+                time: now.toLocaleTimeString('da-DK', {hour: '2-digit', minute: '2-digit'}),
+                title: '',
+                labels: []
+            };
+            
+            // Copy all labels from previous index with incremented labelNumber
+            previousIndex.labels.forEach(origLabel => {
+                // Find the highest labelNumber for this text in all previous indexes
+                let maxLabelNumber = origLabel.labelNumber;
+                // Find the original position (from the first occurrence)
+                let originalX = origLabel.x;
+                let originalY = origLabel.y;
+                
+                dataIndexes.forEach(idx => {
+                    idx.labels.forEach(lab => {
+                        if (lab.text === origLabel.text && lab.labelNumber > maxLabelNumber) {
+                            maxLabelNumber = lab.labelNumber;
+                        }
+                        // Find original position from first label with this text
+                        if (lab.text === origLabel.text && lab.labelNumber === 1) {
+                            originalX = lab.x;
+                            originalY = lab.y;
+                        }
+                    });
+                });
+                
+                index.labels.push({
+                    id: labelIdCounter++,
+                    text: origLabel.text,
+                    x: originalX, // Keep original position
+                    y: originalY, // Keep original position
+                    labelNumber: maxLabelNumber + 1 // Increment number
+                });
+            });
+            
+            dataIndexes.push(index);
+            activeIndexId = index.id;
+            
+            renderHistory();
+            renderWorkspace();
+        }
+        
+        function newLabel() {
+            if (!activeIndexId) return;
+            
+            const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
+            if (!activeIndex) return;
+            
+            const workspace = document.getElementById('workspace');
+            const x = workspace.offsetWidth / 2 + Math.random() * 200 - 100;
+            const y = workspace.offsetHeight / 2 + Math.random() * 200 - 100;
+            
+            // Create new label with placeholder text
+            const newLabel = {
+                id: labelIdCounter++,
+                text: '',
+                x: x,
+                y: y,
+                labelNumber: 1 // Always start with 1 for new labels
+            };
+            
+            activeIndex.labels.push(newLabel);
+            renderWorkspace();
+            
+            // Focus the newly created textarea after a short delay
+            setTimeout(() => {
+                const labels = workspace.querySelectorAll('.label-text-input');
+                if (labels.length > 0) {
+                    const lastLabel = labels[labels.length - 1];
+                    lastLabel.focus();
+                }
+            }, 100);
+        }
+        
+        function deleteLabel(labelId) {
+            if (!activeIndexId) return;
+            
+            const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
+            if (!activeIndex) return;
+            
+            // Find and remove the label
+            const labelIndex = activeIndex.labels.findIndex(l => l.id === labelId);
+            if (labelIndex !== -1) {
+                activeIndex.labels.splice(labelIndex, 1);
+                renderWorkspace();
+            }
+        }
+        
+        function saveImage() {
+            alert('Gem billede funktion - ikke implementeret endnu');
+        }
+        
+        function navigateHistory(direction) {
+            const sortedIndexes = [...dataIndexes].sort((a, b) => a.id - b.id);
+            const currentPos = sortedIndexes.findIndex(idx => idx.id === activeIndexId);
+            
+            if (direction > 0) {
+                // Go to older (lower index in sorted array - going backward in time)
+                if (currentPos > 0) {
+                    activeIndexId = sortedIndexes[currentPos - 1].id;
+                }
+            } else {
+                // Go to newer (higher index in sorted array - going forward in time)
+                if (currentPos < sortedIndexes.length - 1) {
+                    activeIndexId = sortedIndexes[currentPos + 1].id;
+                }
+            }
+            
+            renderHistory();
+            renderWorkspace();
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
+
