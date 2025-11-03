@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Picker Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 32px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .add-button {
+            width: 100%;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .add-button:hover {
+            background: #2563eb;
+        }
+
+        .picker-container {
+            background: #f9fafb;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .picker-viewport {
+            height: 480px;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .arrow-buttons {
+            position: absolute;
+            left: 16px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .arrow-button {
+            background: white;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s;
+        }
+
+        .arrow-button:hover:not(:disabled) {
+            background: #f3f4f6;
+        }
+
+        .arrow-button:disabled {
+            background: #f3f4f6;
+            border-color: #e5e7eb;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .arrow-button svg {
+            display: block;
+            width: 24px;
+            height: 24px;
+        }
+
+        .highlight-box {
+            position: absolute;
+            width: 100%;
+            height: 64px;
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .layers-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layer-item {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease-out;
+        }
+
+        .layer-item:hover {
+            opacity: 1 !important;
+        }
+
+        .counter {
+            text-align: center;
+            margin-top: 16px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Picker Interface</h1>
+        
+        <button class="add-button" onclick="addLayer()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Tilføj nyt lag
+        </button>
+
+        <div class="picker-container">
+            <div class="picker-viewport">
+                <div class="arrow-buttons">
+                    <button class="arrow-button" id="upButton" onclick="moveUp()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                    </button>
+                    <button class="arrow-button" id="downButton" onclick="moveDown()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="highlight-box"></div>
+
+                <div class="layers-container" id="layersContainer">
+                </div>
+            </div>
+        </div>
+
+        <div class="counter" id="counter">Viser 1 af 3</div>
+    </div>
+
+    <script>
+        let layers = ['Lag 1', 'Lag 2', 'Lag 3'];
+        let currentIndex = 0;
+
+        function addLayer() {
+            const newLayer = `Lag ${layers.length + 1}`;
+            layers.push(newLayer);
+            currentIndex = layers.length - 1;
+            render();
+        }
+
+        function moveUp() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                render();
+            }
+        }
+
+        function moveDown() {
+            if (currentIndex < layers.length - 1) {
+                currentIndex++;
+                render();
+            }
+        }
+
+        function selectLayer(index) {
+            currentIndex = index;
+            render();
+        }
+
+        function render() {
+            const container = document.getElementById('layersContainer');
+            container.innerHTML = '';
+
+            for (let i = -7; i <= 2; i++) {
+                const index = currentIndex + i;
+                if (index >= 0 && index < layers.length) {
+                    const layerDiv = document.createElement('div');
+                    layerDiv.className = 'layer-item';
+                    layerDiv.textContent = layers[index];
+                    layerDiv.onclick = () => selectLayer(index);
+                    
+                    const translateY = i * 48;
+                    const opacity = Math.max(0.2, 1 - Math.abs(i) * 0.15);
+                    
+                    layerDiv.style.transform = `translateY(${translateY}px)`;
+                    layerDiv.style.opacity = opacity;
+                    
+                    container.appendChild(layerDiv);
+                }
+            }
+
+            document.getElementById('upButton').disabled = currentIndex === 0;
+            document.getElementById('downButton').disabled = currentIndex === layers.length - 1;
+            document.getElementById('counter').textContent = `Viser ${currentIndex + 1} af ${layers.length}`;
+        }
+
+        render();
+    </script>
+</body>
+</html>

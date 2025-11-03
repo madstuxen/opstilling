@@ -1216,7 +1216,7 @@
         <div class="notes-section">
             <div class="notes-content">
                 <div class="groups-section">
-                    <h4>Grupper</h4>
+                    <h4>Cirkler</h4>
                     <div id="groupFields">
                         <div class="group-input-container">
                             <input type="text" class="group-input" id="group1" placeholder="Gruppe 1" value="Manager" maxlength="50">
@@ -1282,7 +1282,7 @@
         </div>
         
         <div class="instructions">
-            <p><strong>Sådan bruger du værktøjet:</strong> Vælg baggrund fra dropdown, tilføj dele ved at skrive navn og klikke "Tilføj Del" eller trykke Enter. Træk delene rundt for at se deres forhold til hinanden. Hold musen over en del for at se kontrolknapperne: × for at slette, T for at redigere navn, ↑↓ for lag, +− for størrelse, C for farve. Klik på en del for at vælge den og redigere dens stikord og noter. Definer grupper i venstre kolonne og tildel valgte dele til grupper. Gem din opstilling som CSV-fil og indlæs den senere. <strong>NYT:</strong> Hver baggrund gemmer sine egne positioner og størrelser - skift mellem baggrunde for forskellige visninger af samme dele!</p>
+            <p><strong>Sådan bruger du værktøjet:</strong> Vælg baggrund fra dropdown, tilføj dele ved at skrive navn og klikke "Tilføj Del" eller trykke Enter. Træk delene rundt for at se deres forhold til hinanden. Hold musen over en del for at se kontrolknapperne: × for at slette, T for at redigere navn, ↑↓ for lag, +− for størrelse, C for farve. Klik på en del for at vælge den og redigere dens stikord og noter. Definer cirkler i venstre kolonne og tildel valgte dele til cirkler. Gem din opstilling som CSV-fil og indlæs den senere. <strong>NYT:</strong> Hver baggrund gemmer sine egne positioner og størrelser - skift mellem baggrunde for forskellige visninger af samme dele!</p>
         </div>
     </div>
 
@@ -1811,15 +1811,19 @@ async function loadPoseLibrary() {
     // Position picker
     picker.style.position = 'absolute';
     picker.style.left = (btnRect.right + 10) + 'px';
-    picker.style.top = (btnRect.top - 20) + 'px';
+    // Center vertically with button
+    picker.style.top = (btnRect.top + btnRect.height / 2 - pickerRect.height / 2) + 'px';
     
     // Adjust if goes off screen
     const pickerRect = picker.getBoundingClientRect();
     if (pickerRect.right > window.innerWidth) {
         picker.style.left = (btnRect.left - pickerRect.width - 10) + 'px';
     }
+    if (pickerRect.top < 0) {
+        picker.style.top = '10px';
+    }
     if (pickerRect.bottom > window.innerHeight) {
-        picker.style.top = (btnRect.bottom - pickerRect.height - 10) + 'px';
+        picker.style.top = (window.innerHeight - pickerRect.height - 10) + 'px';
     }
 }
 
