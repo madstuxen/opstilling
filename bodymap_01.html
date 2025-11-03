@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
+	<script src="https://cdn.jsdelivr.net/npm/modern-screenshot@4.4.39/dist/index.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Body Map</title>
@@ -94,6 +95,10 @@
         
         .btn-back {
             background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        }
+        
+        .btn-help {
+            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%) !important;
         }
         
         .main-content {
@@ -217,6 +222,12 @@
         .history-item-time {
             font-size: 10px;
             opacity: 0.8;
+        }
+        
+        .history-item-labels {
+            font-size: 10px;
+            opacity: 0.8;
+            white-space: nowrap;
         }
         
         .history-item-delete {
@@ -649,6 +660,27 @@
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
         }
         
+        /* Label pointer line and point styles */
+        .label-pointer-line {
+            position: absolute;
+            pointer-events: none;
+            z-index: 15;
+            stroke: black;
+            stroke-width: 2;
+        }
+        
+        .label-pointer-point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: black;
+            border-radius: 50%;
+            cursor: move;
+            transform: translate(-50%, -50%);
+            z-index: 16;
+            pointer-events: auto;
+        }
+        
         /* Mobile adjustments */
         @media (hover: none) and (pointer: coarse) {
             body {
@@ -702,6 +734,7 @@
             <button class="btn-new-index" onclick="newIndex()">Nyt lag</button>
             <button class="btn-save-image" onclick="saveImage()">Gem billede</button>
             <button class="btn-back" onclick="window.location.href='index.html'">Tilbage til opstilling</button>
+            <button class="btn-help" onclick="showHelp()">Hjælp</button>
         </div>
         
         <div class="main-content">
@@ -720,6 +753,8 @@
         </div>
     </div>
     
+    <script src="coaching_engine.js"></script>
+    <script src="coaching_overlay_complete.js"></script>
     <script>
         // Pose library for "kram" pose
         const kramPose = {
@@ -806,8 +841,12 @@
                 item.style.backgroundColor = `rgba(79, 70, 229, ${backgroundOpacity})`;
                 
                 const titleDisplay = index.title || `Lag ${index.id}`;
+                const labelCount = index.labels.length;
                 item.innerHTML = `
-                    <input type="text" class="history-item-date" value="${titleDisplay}" data-id="${index.id}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        <input type="text" class="history-item-date" value="${titleDisplay}" data-id="${index.id}">
+                        <div class="history-item-labels">Labels: ${labelCount}</div>
+                    </div>
                     <div class="history-item-time">${index.date} ${index.time}</div>
                     <button class="history-item-delete" data-id="${index.id}">×</button>
                 `;
@@ -1023,6 +1062,131 @@
                 const offsetX = length > 0 ? (dx / length) * layerNum * 20 : 0;
                 const offsetY = length > 0 ? (dy / length) * layerNum * 20 : 0;
                 
+                // Render pointer line and point only for active layer
+                if (isActive && label.pointerX !== undefined && label.pointerY !== undefined) {
+                    const lineX1 = label.x + offsetX;
+                    const lineY1 = label.y + offsetY;
+                    const lineX2 = label.pointerX;
+                    const lineY2 = label.pointerY;
+                    
+                    // Create SVG line
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.style.position = 'absolute';
+                    svg.style.left = '0';
+                    svg.style.top = '0';
+                    svg.style.width = '100%';
+                    svg.style.height = '100%';
+                    svg.style.pointerEvents = 'none';
+                    svg.style.zIndex = '15';
+                    
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', lineX1);
+                    line.setAttribute('y1', lineY1);
+                    line.setAttribute('x2', lineX2);
+                    line.setAttribute('y2', lineY2);
+                    line.setAttribute('stroke', '#a67c52');
+                    line.setAttribute('stroke-width', '2');
+                    line.setAttribute('data-label-id', label.id);
+                    svg.appendChild(line);
+                    workspace.appendChild(svg);
+                    
+                    // Create draggable point
+                    const point = document.createElement('div');
+                    point.className = 'label-pointer-point';
+                    point.dataset.labelId = label.id;
+                    point.style.left = lineX2 + 'px';
+                    point.style.top = lineY2 + 'px';
+                    point.style.opacity = opacity;
+                    point.style.background = '#a67c52';
+                    
+                    // Add dragging functionality
+                    let isDragging = false;
+                    point.addEventListener('mousedown', (e) => {
+                        isDragging = true;
+                        const startX = e.clientX - label.pointerX;
+                        const startY = e.clientY - label.pointerY;
+                        
+                        const onMouseMove = (e) => {
+                            if (!isDragging) return;
+                            label.pointerX = e.clientX - startX;
+                            label.pointerY = e.clientY - startY;
+                            point.style.left = label.pointerX + 'px';
+                            point.style.top = label.pointerY + 'px';
+                            
+                            // Update line
+                            line.setAttribute('x2', label.pointerX);
+                            line.setAttribute('y2', label.pointerY);
+                            e.preventDefault();
+                        };
+                        
+                        const onMouseUp = () => {
+                            isDragging = false;
+                            document.removeEventListener('mousemove', onMouseMove);
+                            document.removeEventListener('mouseup', onMouseUp);
+                            
+                            // Update all labels with the same text across all indexes to match the new pointer position
+                            dataIndexes.forEach(idx => {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === label.text && lab.id !== label.id) {
+                                        lab.pointerX = label.pointerX;
+                                        lab.pointerY = label.pointerY;
+                                    }
+                                });
+                            });
+                        };
+                        
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('mouseup', onMouseUp);
+                        e.preventDefault();
+                    });
+                    
+                    // Touch support for mobile dragging
+                    point.addEventListener('touchstart', (e) => {
+                        if (!e.touches || e.touches.length === 0) return;
+                        isDragging = true;
+                        const touch = e.touches[0];
+                        const startX = touch.clientX - label.pointerX;
+                        const startY = touch.clientY - label.pointerY;
+
+                        const onTouchMove = (ev) => {
+                            if (!isDragging) return;
+                            const touch = ev.touches && ev.touches[0];
+                            if (!touch) return;
+                            label.pointerX = touch.clientX - startX;
+                            label.pointerY = touch.clientY - startY;
+                            point.style.left = label.pointerX + 'px';
+                            point.style.top = label.pointerY + 'px';
+                            
+                            // Update line
+                            line.setAttribute('x2', label.pointerX);
+                            line.setAttribute('y2', label.pointerY);
+                            ev.preventDefault();
+                        };
+
+                        const onTouchEnd = () => {
+                            isDragging = false;
+                            document.removeEventListener('touchmove', onTouchMove, { passive: false });
+                            document.removeEventListener('touchend', onTouchEnd);
+                            
+                            // Update all labels with the same text across all indexes to match the new pointer position
+                            dataIndexes.forEach(idx => {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === label.text && lab.id !== label.id) {
+                                        lab.pointerX = label.pointerX;
+                                        lab.pointerY = label.pointerY;
+                                    }
+                                });
+                            });
+                        };
+
+                        document.addEventListener('touchmove', onTouchMove, { passive: false });
+                        document.addEventListener('touchend', onTouchEnd);
+                        e.preventDefault();
+                    }, { passive: true });
+                    
+                    workspace.appendChild(point);
+                }
+                
                 const labelEl = createLabelElement(label, isActive, opacity, scale, offsetX, offsetY);
                 workspace.appendChild(labelEl);
             });
@@ -1146,6 +1310,13 @@
                         label.y = e.clientY - startY;
                         container.style.left = label.x + 'px';
                         container.style.top = label.y + 'px';
+                        
+                        // Update line if it exists
+                        const svgLine = workspace.querySelector(`svg line[data-label-id="${label.id}"]`);
+                        if (svgLine) {
+                            svgLine.setAttribute('x1', label.x + offsetX);
+                            svgLine.setAttribute('y1', label.y + offsetY);
+                        }
                     };
                     
                     const onMouseUp = () => {
@@ -1189,6 +1360,14 @@
                         label.y = touch.clientY - startY;
                         container.style.left = label.x + 'px';
                         container.style.top = label.y + 'px';
+                        
+                        // Update line if it exists
+                        const svgLine = workspace.querySelector(`svg line[data-label-id="${label.id}"]`);
+                        if (svgLine) {
+                            svgLine.setAttribute('x1', label.x + offsetX);
+                            svgLine.setAttribute('y1', label.y + offsetY);
+                        }
+                        
                         ev.preventDefault();
                     };
 
@@ -1226,8 +1405,8 @@
         function newMap() {
             if (confirm('Er du sikker på du vil starte et nyt bodymap? Dette vil slette alle data.')) {
                 dataIndexes = [];
-                labelCounter = 1;
-                uniqueIdCounter = 1;
+                indexCounter = 1;
+                labelIdCounter = 1;
                 createNewIndex();
             }
         }
@@ -1271,11 +1450,17 @@
                     });
                 });
                 
+                // Copy pointer position if it exists, otherwise use default
+                const pointerX = origLabel.pointerX !== undefined ? origLabel.pointerX : 450;
+                const pointerY = origLabel.pointerY !== undefined ? origLabel.pointerY : 140;
+                
                 index.labels.push({
                     id: labelIdCounter++,
                     text: origLabel.text,
                     x: originalX, // Keep original position
                     y: originalY, // Keep original position
+                    pointerX: pointerX,
+                    pointerY: pointerY,
                     labelNumber: maxLabelNumber + 1 // Increment number
                 });
             });
@@ -1348,9 +1533,38 @@
             const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
             if (!activeIndex) return;
             
+            // Check if there's already a label without text
+            const hasEmptyLabel = activeIndex.labels.some(lab => !lab.text || lab.text.trim() === '');
+            if (hasEmptyLabel) {
+                return; // Don't create new label if there's already one without text
+            }
+            
             const workspace = document.getElementById('workspace');
             const x = workspace.offsetWidth / 2 + Math.random() * 200 - 100;
             const y = workspace.offsetHeight / 2 + Math.random() * 200 - 100;
+            
+            // Get guide figure center for calculating pointer position
+            const guideFigure = workspace.querySelector('#guideFigure');
+            let guideCenterX = 450; // Default
+            let guideCenterY = 140;
+            if (guideFigure) {
+                const torso = guideFigure.querySelector('.torso');
+                if (torso) {
+                    const rect = torso.getBoundingClientRect();
+                    const workspaceRect = workspace.getBoundingClientRect();
+                    guideCenterX = rect.left - workspaceRect.left + rect.width / 2;
+                    guideCenterY = rect.top - workspaceRect.top + rect.height / 2;
+                }
+            }
+            
+            // Calculate displacement vector from guide center to label position
+            const dx = x - guideCenterX;
+            const dy = y - guideCenterY;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            
+            // Normalize and set pointer position on the surface (layerNum = 0)
+            const pointerX = length > 0 ? guideCenterX - (dx / length) * 35 : guideCenterX;
+            const pointerY = length > 0 ? guideCenterY - (dy / length) * 35 : guideCenterY;
             
             // Create new label with placeholder text
             const newLabel = {
@@ -1358,10 +1572,13 @@
                 text: '',
                 x: x,
                 y: y,
+                pointerX: pointerX,
+                pointerY: pointerY,
                 labelNumber: 1 // Always start with 1 for new labels
             };
             
             activeIndex.labels.push(newLabel);
+            renderHistory();
             renderWorkspace();
             
             // Focus the newly created textarea after a short delay
@@ -1413,11 +1630,48 @@
                 });
             }
             
+            renderHistory();
             renderWorkspace();
         }
         
         function saveImage() {
-            alert('Gem billede funktion - ikke implementeret endnu');
+            try {
+                const workspace = document.getElementById('workspace');
+                
+                // Hide delete buttons
+                const deleteBtns = workspace.querySelectorAll('.label-delete-btn');
+                deleteBtns.forEach(btn => btn.style.opacity = '0');
+                
+                // Modern-screenshot
+                modernScreenshot.domToPng(workspace, {
+                    width: workspace.offsetWidth,
+                    height: workspace.offsetHeight,
+                    scale: 2,
+                    quality: 1
+                }).then(dataUrl => {
+                    // Restore UI
+                    deleteBtns.forEach(btn => btn.style.opacity = '');
+                    
+                    // Download
+                    const link = document.createElement('a');
+                    const dato = new Date().toISOString().slice(0, 10);
+                    link.download = `BodyMap-${dato}.png`;
+                    link.href = dataUrl;
+                    link.click();
+                }).catch(error => {
+                    console.error('Fejl:', error);
+                    
+                    // Restore UI on error
+                    deleteBtns.forEach(btn => btn.style.opacity = '');
+                });
+            } catch (error) {
+                console.error('Fejl ved gem af billede:', error);
+                alert('Kunne ikke gemme billede. Prøv igen.');
+            }
+        }
+        
+        function showHelp() {
+            openCoachingOverlayFromFile('Body_help_coaching.json');
         }
         
         function navigateHistory(direction) {

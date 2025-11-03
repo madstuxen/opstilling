@@ -604,6 +604,9 @@ async function startCoachingSession(contentElement, dataSource) {
             } catch (e) {
                 debugLog('Error merging external data:', e);
             }
+        } else if (project.variables && (project.variables.You_color || project.variables.You_pose !== undefined)) {
+            // If You_color or You_pose are directly in project.variables, use them for UI
+            loadExternalDataForUI(contentElement, project.variables);
         }
         
         // Create engine with session and merged variables
@@ -1876,10 +1879,6 @@ function addToTranscript(contentElement, type, text) {
     messageDiv.appendChild(messageTextDiv);
     messageDiv.appendChild(timestampDiv);
     
-    // Append and smart auto-scroll (only if user is near the bottom)
-    const nearBottomThresholdPx = 40;
-    const isNearBottom = (transcriptContent.scrollHeight - transcriptContent.scrollTop - transcriptContent.clientHeight) < nearBottomThresholdPx;
-    
     transcriptContent.appendChild(messageDiv);
     // Track transcript entries for export
     try {
@@ -1888,12 +1887,10 @@ function addToTranscript(contentElement, type, text) {
         overlayTranscript.push({ speaker: speakerLabel, message: text, side, timestamp: new Date().toISOString() });
     } catch (_) {}
     
-    if (isNearBottom) {
-        // Smooth scroll to newest message
-        requestAnimationFrame(() => {
-            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        });
-    }
+    // Always scroll to newest message
+    requestAnimationFrame(() => {
+        messageDiv.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
 }
 
 /**

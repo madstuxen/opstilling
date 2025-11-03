@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "saved_at": "2025-11-03T18:20:39.919Z",
+  "session": {
+    "start_node": "start",
+    "nodes": [
+      {
+        "id": "start",
+        "type": "all",
+        "questions": [
+          "Velkommen til body mapping! \nBody mapping giver dig mulihed for at lave en dagbog for din krop. Den består af forskellige lag, som svarer til en dag på hvert lag kan du lave labels med små noter. <<m>>",
+          "Du kan navngive lagene som du vil, og når du har lavet flere lag kan du bladre os se hvordan du følte i din krop på den givne dag. <<m>>",
+          "Du registrer det du vil om din krop, ved at lave labels. Nå du har lavet en label kan du skrive i den. <<m>>",
+          "Du kan for eksempel lave et kort over hvad du godt kan lide ved din krop, eller et kort over kropsfornemmelser du har, eller hvis du har ondt en dag. <<m>>",
+          "Du kan vende tilbage og tilføje nye lag, så kan du over tid følge med i hvad der sker i din krop. <<m>>",
+          "Hvis du får lyst kan du lave en opstilling med dine kropsdele eller snakke med dem og høre om der er noget de vil sige til dig ved at gøre sig bemærkede. <<m>>",
+          "Du kan gemme forskellige bodymaps. Prøv at leg lidt med det :)\nGod fornøjelse. <<m>>"
+        ],
+        "next": ""
+      }
+    ]
+  },
+  "variables": {
+    "You": "Help me",
+    "You_color": "#db8a39",
+    "You_pose": 6,
+    "You_pose_flipped": "false"
+  }
+}

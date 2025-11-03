@@ -1811,11 +1811,11 @@ async function loadPoseLibrary() {
     // Position picker
     picker.style.position = 'absolute';
     picker.style.left = (btnRect.right + 10) + 'px';
-    // Center vertically with button
-    picker.style.top = (btnRect.top + btnRect.height / 2 - pickerRect.height / 2) + 'px';
     
     // Adjust if goes off screen
     const pickerRect = picker.getBoundingClientRect();
+    // Center vertically with button
+    picker.style.top = (btnRect.top + btnRect.height / 2 - pickerRect.height / 2) + 'px';
     if (pickerRect.right > window.innerWidth) {
         picker.style.left = (btnRect.left - pickerRect.width - 10) + 'px';
     }
@@ -2844,13 +2844,6 @@ function closeKeywordsPopup() {
 				
 				// Update shared data
 				saveCharactersToShared();
-				
-				// Open keywords popup for new part (unless loading from file)
-				if (!skipPopup) {
-					openKeywordsPopup(part);
-				}
-
-
                 
                 document.getElementById('partName').value = '';
                 document.getElementById('partName').placeholder = "Navn på del (f.eks. Beskytteren, Den Kritiske, Det Sårede Barn...)";
