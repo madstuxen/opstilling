@@ -1924,22 +1924,50 @@ animatedElements.forEach(selector => {
         return;
     }
     
+    const animationName = prompt('Hvad skal animationen hedde?', 'myAnimation');
+    if (!animationName) return;
+    
+    // Clean name for filename
+    const cleanName = animationName.replace(/[^a-zA-Z0-9æøåÆØÅ]/g, '_').toLowerCase();
+    
     const exportData = {
         version: "1.0",
         type: "timeline",
         created: new Date().toISOString(),
-        slides: timelineSlides
+        slides: timelineSlides.map(slide => ({
+            translate_x_left: slide.translate_x_left || 0,
+            translate_y_left: slide.translate_y_left || 0,
+            skulder_rot_left: slide.skulder_rot_left || 0,
+            albue_rot_left: slide.albue_rot_left || 0,
+            translate_x: slide.translate_x || 0,
+            translate_y: slide.translate_y || 0,
+            skulder_rot: slide.skulder_rot || 0,
+            albue_rot: slide.albue_rot || 0,
+            translate_x_left_leg: slide.translate_x_left_leg || 0,
+            translate_y_left_leg: slide.translate_y_left_leg || 0,
+            hofte_rot_left: slide.hofte_rot_left || 0,
+            knae_rot_left: slide.knae_rot_left || 0,
+            translate_x_right_leg: slide.translate_x_right_leg || 0,
+            translate_y_right_leg: slide.translate_y_right_leg || 0,
+            hofte_rot_right: slide.hofte_rot_right || 0,
+            knae_rot_right: slide.knae_rot_right || 0,
+            left_arm_front: slide.left_arm_front || false,
+            right_arm_front: slide.right_arm_front || false,
+            duration: slide.duration || 0.1
+        }))
     };
     
+    // Format JSON to match Animations folder style
     const dataStr = JSON.stringify(exportData, null, 2);
+    
     const dataBlob = new Blob([dataStr], {type: 'application/json'});
     
     const link = document.createElement('a');
     link.href = URL.createObjectURL(dataBlob);
-    link.download = 'timeline.json';
+    link.download = `${cleanName}.json`;
     link.click();
     
-    alert(`${timelineSlides.length} slides eksporteret!`);
+    alert(`${timelineSlides.length} slides eksporteret som "${cleanName}.json"!\n\nDu kan nu flytte filen til Animations mappen.`);
 }
 
 function importTimelineSlides(event) {
@@ -1955,7 +1983,7 @@ function importTimelineSlides(event) {
             let importedSlides = [];
             
             if (data.slides && Array.isArray(data.slides)) {
-                // Timeline format
+                // Timeline format (matches Animations folder format)
                 importedSlides = data.slides;
             } else if (Array.isArray(data)) {
                 // Simple array format
@@ -1965,22 +1993,43 @@ function importTimelineSlides(event) {
                 return;
             }
             
-            // Validate slides have required properties
-            let validSlides = 0;
+            // Normalize and validate slides - ensure all properties are present
+            let validSlides = [];
             importedSlides.forEach(slide => {
                 if (slide.duration !== undefined) {
-                    validSlides++;
+                    // Normalize slide data to match expected format
+                    validSlides.push({
+                        translate_x_left: slide.translate_x_left || 0,
+                        translate_y_left: slide.translate_y_left || 0,
+                        skulder_rot_left: slide.skulder_rot_left || 0,
+                        albue_rot_left: slide.albue_rot_left || 0,
+                        translate_x: slide.translate_x || 0,
+                        translate_y: slide.translate_y || 0,
+                        skulder_rot: slide.skulder_rot || 0,
+                        albue_rot: slide.albue_rot || 0,
+                        translate_x_left_leg: slide.translate_x_left_leg || 0,
+                        translate_y_left_leg: slide.translate_y_left_leg || 0,
+                        hofte_rot_left: slide.hofte_rot_left || 0,
+                        knae_rot_left: slide.knae_rot_left || 0,
+                        translate_x_right_leg: slide.translate_x_right_leg || 0,
+                        translate_y_right_leg: slide.translate_y_right_leg || 0,
+                        hofte_rot_right: slide.hofte_rot_right || 0,
+                        knae_rot_right: slide.knae_rot_right || 0,
+                        left_arm_front: slide.left_arm_front || false,
+                        right_arm_front: slide.right_arm_front || false,
+                        duration: slide.duration || 0.1
+                    });
                 }
             });
             
-            if (validSlides > 0) {
-                timelineSlides = importedSlides;
+            if (validSlides.length > 0) {
+                timelineSlides = validSlides;
                 currentSlideIndex = 0;
                 updateTimelineDisplay();
                 if (timelineSlides.length > 0) {
                     selectTimelineSlide(0);
                 }
-                alert(`${validSlides} slides indlæst succesfuldt!`);
+                alert(`${validSlides.length} slides indlæst succesfuldt!`);
             } else {
                 alert('Ingen gyldige slides fundet i filen.');
             }
@@ -2007,8 +2056,31 @@ function exportForJavaScript() {
     // Fjern mellemrum og specialtegn fra navn
     const cleanName = animationName.replace(/[^a-zA-Z0-9æøåÆØÅ]/g, '_').toLowerCase();
     
+    // Normalize slides to match format
+    const normalizedSlides = timelineSlides.map(slide => ({
+        translate_x_left: slide.translate_x_left || 0,
+        translate_y_left: slide.translate_y_left || 0,
+        skulder_rot_left: slide.skulder_rot_left || 0,
+        albue_rot_left: slide.albue_rot_left || 0,
+        translate_x: slide.translate_x || 0,
+        translate_y: slide.translate_y || 0,
+        skulder_rot: slide.skulder_rot || 0,
+        albue_rot: slide.albue_rot || 0,
+        translate_x_left_leg: slide.translate_x_left_leg || 0,
+        translate_y_left_leg: slide.translate_y_left_leg || 0,
+        hofte_rot_left: slide.hofte_rot_left || 0,
+        knae_rot_left: slide.knae_rot_left || 0,
+        translate_x_right_leg: slide.translate_x_right_leg || 0,
+        translate_y_right_leg: slide.translate_y_right_leg || 0,
+        hofte_rot_right: slide.hofte_rot_right || 0,
+        knae_rot_right: slide.knae_rot_right || 0,
+        left_arm_front: slide.left_arm_front || false,
+        right_arm_front: slide.right_arm_front || false,
+        duration: slide.duration || 0.1
+    }));
+    
     const jsCode = `    ${cleanName}: {
-        slides: ${JSON.stringify(timelineSlides, null, 12)}
+        slides: ${JSON.stringify(normalizedSlides, null, 12)}
     },`;
     
     const dataBlob = new Blob([jsCode], {type: 'text/javascript'});

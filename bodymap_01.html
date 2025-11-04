@@ -85,6 +85,24 @@
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
         }
         
+        .bodymap-title-input {
+            padding: 8px 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            min-width: 200px;
+            color: #374151;
+            margin-right: 10px;
+        }
+        
+        .bodymap-title-input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
         .btn-new-label {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
         }
@@ -131,6 +149,35 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            transition: width 0.3s ease;
+        }
+        
+        .history-sidebar.collapsed {
+            width: 50px;
+        }
+        
+        .history-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0; /* Important for flex scrolling */
+            overflow: hidden;
+        }
+        
+        .history-sidebar.collapsed .history-content {
+            display: none;
+        }
+        
+        .history-sidebar.collapsed .history-header {
+            justify-content: center;
+        }
+        
+        .history-sidebar.collapsed .history-header .onion-layer-toggle {
+            display: none;
+        }
+        
+        .history-sidebar.collapsed .history-header {
+            font-size: 0;
         }
         
         .history-header {
@@ -140,6 +187,58 @@
             font-weight: bold;
             color: #374151;
             border-bottom: 2px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            height: 50px;
+            min-height: 50px;
+            max-height: 50px;
+            box-sizing: border-box;
+        }
+        
+        .onion-layer-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: normal;
+            cursor: pointer;
+        }
+        
+        .onion-layer-toggle input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        
+        .collapse-toggle {
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            z-index: 100;
+            padding: 0;
+        }
+        
+        .collapse-toggle:hover {
+            background: #4338ca;
+            transform: scale(1.1);
+        }
+        
+        .history-header {
+            position: relative;
         }
         
         .history-navigation {
@@ -157,15 +256,41 @@
             border: none;
             background: white;
             cursor: pointer;
-            font-size: 18px;
-            font-weight: bold;
-            color: #4f46e5;
+            font-size: 0; /* Hide text */
+            color: black;
             transition: all 0.2s;
+            position: relative;
+            padding: 0;
+        }
+        
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .nav-btn#navUp::before {
+            border-bottom: 12px solid black;
+            border-top: none;
+        }
+        
+        .nav-btn#navDown::before {
+            border-top: 12px solid black;
+            border-bottom: none;
         }
         
         .nav-btn:hover {
-            background: #4f46e5;
-            color: white;
+            background: #f3f4f6;
+        }
+        
+        .nav-btn:hover::before {
+            opacity: 0.7;
         }
         
         .nav-btn:disabled {
@@ -177,7 +302,9 @@
         .history-list {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 10px;
+            min-height: 0; /* Important for flex scrolling */
         }
         
         .history-item {
@@ -232,15 +359,15 @@
         
         .history-item-delete {
             position: absolute;
-            top: 6px;
-            right: 6px;
-            width: 16px;
-            height: 16px;
+            top: 2px;
+            right: 2px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             border: none;
             background: #ef4444;
             color: white;
-            font-size: 10px;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             opacity: 0;
@@ -729,9 +856,12 @@
         </div>
         
         <div class="toolbar">
+            <input type="text" class="bodymap-title-input" id="bodymapTitle" placeholder="Bodymap titel..." onchange="updateBodymapTitle()">
             <button class="btn-new-map" onclick="newMap()">Nyt bodymap</button>
             <button class="btn-new-label" onclick="newLabel()">Ny label</button>
             <button class="btn-new-index" onclick="newIndex()">Nyt lag</button>
+            <button class="btn-save-image" onclick="saveMap()">Gem map</button>
+            <button class="btn-save-image" onclick="loadMap()">Læs map</button>
             <button class="btn-save-image" onclick="saveImage()">Gem billede</button>
             <button class="btn-back" onclick="window.location.href='index.html'">Tilbage til opstilling</button>
             <button class="btn-help" onclick="showHelp()">Hjælp</button>
@@ -742,13 +872,22 @@
                 <div class="workspace" id="workspace"></div>
             </div>
             
-            <div class="history-sidebar">
-                <div class="history-header">Historie</div>
-                <div class="history-navigation">
-                    <button class="nav-btn" id="navUp" onclick="navigateHistory(1)">↑</button>
-                    <button class="nav-btn" id="navDown" onclick="navigateHistory(-1)">↓</button>
+            <div class="history-sidebar" id="historySidebar">
+                <div class="history-header">
+                    <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
+                    Historie
+                    <label class="onion-layer-toggle">
+                        <input type="checkbox" id="onionLayerToggle" checked onchange="toggleOnionLayers()">
+                        Vis lag
+                    </label>
                 </div>
-                <div class="history-list" id="historyList"></div>
+                <div class="history-content">
+                    <div class="history-navigation">
+                        <button class="nav-btn" id="navUp" onclick="navigateHistory(1)" title="Gå op"></button>
+                        <button class="nav-btn" id="navDown" onclick="navigateHistory(-1)" title="Gå ned"></button>
+                    </div>
+                    <div class="history-list" id="historyList"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -786,11 +925,361 @@
         let activeIndexId = null;
         let indexCounter = 1; // Counter for index IDs
         let labelIdCounter = 1; // Counter for label IDs
+        let totalLabelsCreated = 0; // Total count of all labels ever created
+        let bodymapTitle = ''; // Title of the current bodymap
+        let showOnionLayers = true; // Toggle for showing onion layers
+        
+        // Main data structure for saving/loading
+        let BodyMapData = {
+            version: "1.0",
+            metadata: {
+                title: "",
+                created: null,
+                updated: null,
+                showOnionLayers: true,
+                activeIndexId: null
+            },
+            dataIndexes: []
+        };
+        
+        // Animations library - loaded from JSON files
+        let animationsLibrary = {};
+        
+        // Load animations from JSON files - dynamically loads from manifest.json
+        async function loadAnimations() {
+            // Try to load manifest.json first (most reliable method)
+            try {
+                const manifestResponse = await fetch('Animations/manifest.json');
+                if (manifestResponse.ok) {
+                    const manifest = await manifestResponse.json();
+                    if (manifest.files && Array.isArray(manifest.files)) {
+                        for (const fileName of manifest.files) {
+                            try {
+                                const fileResponse = await fetch(`Animations/${fileName}`);
+                                if (fileResponse.ok) {
+                                    const animationData = await fileResponse.json();
+                                    const animName = fileName.replace('.json', '');
+                                    animationsLibrary[animName] = animationData;
+                                }
+                            } catch (error) {
+                                console.error(`Failed to load animation ${fileName}:`, error);
+                            }
+                        }
+                        return; // Successfully loaded from manifest
+                    }
+                }
+            } catch (error) {
+                // Manifest not available, try directory listing
+            }
+            
+            // Fallback: Try directory listing
+            try {
+                const response = await fetch('Animations/');
+                if (response.ok) {
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const links = doc.querySelectorAll('a[href$=".json"]');
+                    const jsonFiles = Array.from(links)
+                        .map(link => link.getAttribute('href'))
+                        .filter(file => file !== 'manifest.json'); // Exclude manifest itself
+                    
+                    if (jsonFiles.length > 0) {
+                        for (const fileName of jsonFiles) {
+                            try {
+                                const fileResponse = await fetch(`Animations/${fileName}`);
+                                if (fileResponse.ok) {
+                                    const animationData = await fileResponse.json();
+                                    const animName = fileName.replace('.json', '');
+                                    animationsLibrary[animName] = animationData;
+                                }
+                            } catch (error) {
+                                console.error(`Failed to load animation ${fileName}:`, error);
+                            }
+                        }
+                        return; // Successfully loaded from directory listing
+                    }
+                }
+            } catch (error) {
+                // Directory listing not available
+            }
+        }
         
         // Initialize
-        function init() {
-            // Create first index
-            createNewIndex();
+        async function init() {
+            // Load animations
+            await loadAnimations();
+            // Try to load from localStorage first
+            if (!loadFromLocalStorage()) {
+                // If no saved data, create first index
+                createNewIndex();
+            }
+            // Load history sidebar collapsed state
+            const isCollapsed = localStorage.getItem('historySidebarCollapsed') === 'true';
+            const sidebar = document.getElementById('historySidebar');
+            if (sidebar) {
+                const toggleBtn = sidebar.querySelector('.collapse-toggle');
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    if (toggleBtn) toggleBtn.textContent = '<';
+                } else {
+                    if (toggleBtn) toggleBtn.textContent = '>';
+                }
+            }
+        }
+        
+        // Update BodyMapData structure with current state
+        function updateBodyMapData() {
+            const now = new Date().toISOString();
+            
+            BodyMapData.metadata.title = bodymapTitle;
+            BodyMapData.metadata.updated = now;
+            BodyMapData.metadata.showOnionLayers = showOnionLayers;
+            BodyMapData.metadata.activeIndexId = activeIndexId;
+            if (!BodyMapData.metadata.created) {
+                BodyMapData.metadata.created = now;
+            }
+            BodyMapData.dataIndexes = dataIndexes.map(index => ({
+                id: index.id,
+                date: index.date,
+                time: index.time,
+                title: index.title || '',
+                labels: index.labels.map(label => ({
+                    id: label.id,
+                    text: label.text,
+                    x: label.x,
+                    y: label.y,
+                    pointerX: label.pointerX,
+                    pointerY: label.pointerY,
+                    labelNumber: label.labelNumber
+                }))
+            }));
+        }
+        
+        // Save to localStorage
+        function saveToLocalStorage() {
+            updateBodyMapData();
+            try {
+                localStorage.setItem('bodymapData', JSON.stringify(BodyMapData));
+                return true;
+            } catch (error) {
+                console.error('Error saving to localStorage:', error);
+                return false;
+            }
+        }
+        
+        // Load from localStorage
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('bodymapData');
+                if (!savedData) {
+                    return false;
+                }
+                
+                const parsed = JSON.parse(savedData);
+                
+                // Restore title
+                bodymapTitle = parsed.metadata?.title || '';
+                document.getElementById('bodymapTitle').value = bodymapTitle;
+                
+                // Restore metadata
+                if (parsed.metadata) {
+                    BodyMapData.metadata = {
+                        title: parsed.metadata.title || '',
+                        created: parsed.metadata.created || null,
+                        updated: parsed.metadata.updated || null,
+                        showOnionLayers: parsed.metadata.showOnionLayers !== undefined ? parsed.metadata.showOnionLayers : true,
+                        activeIndexId: parsed.metadata.activeIndexId || null
+                    };
+                    // Restore onion layer toggle state
+                    showOnionLayers = BodyMapData.metadata.showOnionLayers;
+                    document.getElementById('onionLayerToggle').checked = showOnionLayers;
+                }
+                
+                // Restore dataIndexes
+                if (parsed.dataIndexes && Array.isArray(parsed.dataIndexes)) {
+                    dataIndexes = parsed.dataIndexes;
+                    
+                    // Regenerate counters based on existing data
+                    if (dataIndexes.length > 0) {
+                        const maxIndexId = Math.max(...dataIndexes.map(idx => idx.id));
+                        indexCounter = maxIndexId + 1;
+                        
+                        let maxLabelId = 0;
+                        dataIndexes.forEach(idx => {
+                            if (idx.labels && idx.labels.length > 0) {
+                                const maxInIndex = Math.max(...idx.labels.map(l => l.id));
+                                maxLabelId = Math.max(maxLabelId, maxInIndex);
+                            }
+                        });
+                        labelIdCounter = maxLabelId + 1;
+                    }
+                    
+                    // Restore active index from saved data, or use most recent as fallback
+                    if (dataIndexes.length > 0) {
+                        const savedActiveIndexId = BodyMapData.metadata.activeIndexId;
+                        // Verify that the saved activeIndexId exists in dataIndexes
+                        if (savedActiveIndexId !== null && dataIndexes.find(idx => idx.id === savedActiveIndexId)) {
+                            activeIndexId = savedActiveIndexId;
+                        } else {
+                            // Fallback to most recent index
+                            activeIndexId = dataIndexes[dataIndexes.length - 1].id;
+                        }
+                    }
+                } else {
+                    return false;
+                }
+                
+                // Re-render everything
+                renderHistory();
+                renderWorkspace();
+                
+                return true;
+            } catch (error) {
+                console.error('Error loading from localStorage:', error);
+                return false;
+            }
+        }
+        
+        // Update bodymap title
+        function updateBodymapTitle() {
+            bodymapTitle = document.getElementById('bodymapTitle').value.trim();
+            saveToLocalStorage();
+        }
+        
+        // Export map to JSON file
+        function saveMap() {
+            updateBodyMapData();
+            
+            const dataStr = JSON.stringify(BodyMapData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const fileName = bodymapTitle 
+                ? bodymapTitle.replace(/[^a-zA-Z0-9æøåÆØÅ]/g, '_').toLowerCase() + '_bodymap.json'
+                : 'bodymap_' + new Date().getFullYear() + '-' + 
+                  (new Date().getMonth()+1).toString().padStart(2,'0') + '-' + 
+                  new Date().getDate().toString().padStart(2,'0') + '.json';
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = fileName;
+            link.click();
+            
+            alert('Bodymap gemt som ' + fileName);
+        }
+        
+        // Import map from JSON file
+        function loadMap() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json';
+            fileInput.style.display = 'none';
+            
+            fileInput.onchange = function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        
+                        // Validate structure
+                        if (!parsed.dataIndexes || !Array.isArray(parsed.dataIndexes)) {
+                            throw new Error('Ugyldig bodymap fil format');
+                        }
+                        
+                        // Restore title
+                        bodymapTitle = parsed.metadata?.title || '';
+                        document.getElementById('bodymapTitle').value = bodymapTitle;
+                        
+                        // Restore metadata
+                        if (parsed.metadata) {
+                            BodyMapData.metadata = {
+                                title: parsed.metadata.title || '',
+                                created: parsed.metadata.created || new Date().toISOString(),
+                                updated: parsed.metadata.updated || new Date().toISOString(),
+                                showOnionLayers: parsed.metadata.showOnionLayers !== undefined ? parsed.metadata.showOnionLayers : true,
+                                activeIndexId: parsed.metadata.activeIndexId || null
+                            };
+                            // Restore onion layer toggle state
+                            showOnionLayers = BodyMapData.metadata.showOnionLayers;
+                            document.getElementById('onionLayerToggle').checked = showOnionLayers;
+                        }
+                        
+                        // Restore dataIndexes
+                        dataIndexes = parsed.dataIndexes;
+                        
+                        // Regenerate counters
+                        if (dataIndexes.length > 0) {
+                            const maxIndexId = Math.max(...dataIndexes.map(idx => idx.id));
+                            indexCounter = maxIndexId + 1;
+                            
+                            let maxLabelId = 0;
+                            dataIndexes.forEach(idx => {
+                                if (idx.labels && idx.labels.length > 0) {
+                                    const maxInIndex = Math.max(...idx.labels.map(l => l.id));
+                                    maxLabelId = Math.max(maxLabelId, maxInIndex);
+                                }
+                            });
+                            labelIdCounter = maxLabelId + 1;
+                        }
+                        
+                        // Restore active index from saved data, or use most recent as fallback
+                        if (dataIndexes.length > 0) {
+                            const savedActiveIndexId = BodyMapData.metadata.activeIndexId;
+                            // Verify that the saved activeIndexId exists in dataIndexes
+                            if (savedActiveIndexId !== null && dataIndexes.find(idx => idx.id === savedActiveIndexId)) {
+                                activeIndexId = savedActiveIndexId;
+                            } else {
+                                // Fallback to most recent index
+                                activeIndexId = dataIndexes[dataIndexes.length - 1].id;
+                            }
+                        }
+                        
+                        // Re-render everything
+                        renderHistory();
+                        renderWorkspace();
+                        
+                        // Save to localStorage
+                        saveToLocalStorage();
+                        
+                        alert('Bodymap indlæst succesfuldt!');
+                    } catch (error) {
+                        alert('Fejl ved indlæsning: ' + error.message);
+                        console.error('Load error:', error);
+                    }
+                };
+                
+                reader.readAsText(file, 'UTF-8');
+            };
+            
+            document.body.appendChild(fileInput);
+            fileInput.click();
+            setTimeout(() => {
+                if (fileInput.parentNode) {
+                    document.body.removeChild(fileInput);
+                }
+            }, 1000);
+        }
+        
+        // Toggle onion layers visibility
+        function toggleOnionLayers() {
+            showOnionLayers = document.getElementById('onionLayerToggle').checked;
+            renderWorkspace();
+            saveToLocalStorage();
+        }
+        
+        // Toggle history sidebar collapse/expand
+        function toggleHistorySidebar() {
+            const sidebar = document.getElementById('historySidebar');
+            const toggleBtn = sidebar.querySelector('.collapse-toggle');
+            sidebar.classList.toggle('collapsed');
+            // Save state to localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('historySidebarCollapsed', isCollapsed);
+            // Update arrow direction: > when expanded, < when collapsed
+            toggleBtn.textContent = isCollapsed ? '<' : '>';
         }
         
         function createNewIndex() {
@@ -808,6 +1297,7 @@
             
             renderHistory();
             renderWorkspace();
+            saveToLocalStorage();
         }
         
         function renderHistory() {
@@ -843,11 +1333,13 @@
                 const titleDisplay = index.title || `Lag ${index.id}`;
                 const labelCount = index.labels.length;
                 item.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div>
                         <input type="text" class="history-item-date" value="${titleDisplay}" data-id="${index.id}">
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        <div class="history-item-time">${index.date} ${index.time}</div>
                         <div class="history-item-labels">Labels: ${labelCount}</div>
                     </div>
-                    <div class="history-item-time">${index.date} ${index.time}</div>
                     <button class="history-item-delete" data-id="${index.id}">×</button>
                 `;
                 item.addEventListener('click', (e) => {
@@ -856,6 +1348,7 @@
                     activeIndexId = index.id;
                     renderHistory();
                     renderWorkspace();
+                    saveToLocalStorage();
                 });
                 const titleInput = item.querySelector('.history-item-date');
                 titleInput.addEventListener('change', (e) => {
@@ -863,6 +1356,7 @@
                     const indexObj = dataIndexes.find(idx => idx.id === indexId);
                     if (indexObj) {
                         indexObj.title = e.target.value;
+                        saveToLocalStorage();
                     }
                 });
                 const deleteBtn = item.querySelector('.history-item-delete');
@@ -877,6 +1371,9 @@
             // Update navigation buttons
             document.getElementById('navUp').disabled = dataIndexes.length === 0;
             document.getElementById('navDown').disabled = dataIndexes.length === 0;
+            
+            // Scroll to bottom to show newest items
+            list.scrollTop = list.scrollHeight;
         }
         
         function renderWorkspace() {
@@ -901,7 +1398,11 @@
             // Render onion layers (oldest first so newest is on top)
             layersToShow.forEach((layerIndex, idx) => {
                 const layerNum = layersToShow.length - 1 - idx;
-                renderOnionLayer(layerIndex, layerNum, workspace);
+                const isActive = layerIndex.id === activeIndexId;
+                // Always render active layer, only render onion layers if toggle is on
+                if (isActive || showOnionLayers) {
+                    renderOnionLayer(layerIndex, layerNum, workspace);
+                }
             });
         }
         
@@ -975,10 +1476,12 @@
         function applyPoseToFigure(figure) {
             const poseData = kramPose.pose;
             
-            const skulderLeft = figure.querySelector('.skulder_translate_left');
-            const skulderRight = figure.querySelector('.skulder_translate_right');
-            const hofteLeft = figure.querySelector('.hofte_translate_left');
-            const hofteRight = figure.querySelector('.hofte_translate_right');
+            // Find .body first, then search within it (structure: .part > .body > .skulder_translate_left)
+            const body = figure.querySelector('.body') || figure;
+            const skulderLeft = body.querySelector('.skulder_translate_left');
+            const skulderRight = body.querySelector('.skulder_translate_right');
+            const hofteLeft = body.querySelector('.hofte_translate_left');
+            const hofteRight = body.querySelector('.hofte_translate_right');
             
             if (skulderLeft) {
                 skulderLeft.style.transform = `translate(${poseData.translate_x_left || 0}px, ${poseData.translate_y_left || 0}px)`;
@@ -1025,6 +1528,23 @@
                     if (knaeRotRight) {
                         knaeRotRight.style.transform = `rotate(${poseData.knae_rot_right || 0}deg)`;
                     }
+                }
+            }
+            
+            // Handle arm layering
+            if (skulderLeft) {
+                if (poseData.left_arm_front) {
+                    skulderLeft.classList.add('front-arm');
+                } else {
+                    skulderLeft.classList.remove('front-arm');
+                }
+            }
+            
+            if (skulderRight) {
+                if (poseData.right_arm_front) {
+                    skulderRight.classList.add('front-arm');
+                } else {
+                    skulderRight.classList.remove('front-arm');
                 }
             }
         }
@@ -1133,6 +1653,7 @@
                                     }
                                 });
                             });
+                            saveToLocalStorage();
                         };
                         
                         document.addEventListener('mousemove', onMouseMove);
@@ -1177,6 +1698,7 @@
                                     }
                                 });
                             });
+                            saveToLocalStorage();
                         };
 
                         document.addEventListener('touchmove', onTouchMove, { passive: false });
@@ -1222,6 +1744,7 @@
                 // Make editable and draggable if active
                 inputEl.addEventListener('input', () => {
                     label.text = inputEl.value;
+                    saveToLocalStorage();
                 });
                 
                 inputEl.addEventListener('change', () => {
@@ -1284,6 +1807,7 @@
                         
                         // Re-render to show updated numbers
                         renderWorkspace();
+                        saveToLocalStorage();
                     }
                 });
                 
@@ -1336,6 +1860,7 @@
                         
                         // Re-render workspace to show updated positions
                         renderWorkspace();
+                        saveToLocalStorage();
                     };
                     
                     document.addEventListener('mousemove', onMouseMove);
@@ -1407,6 +1932,14 @@
                 dataIndexes = [];
                 indexCounter = 1;
                 labelIdCounter = 1;
+                totalLabelsCreated = 0;
+                activeIndexId = null;
+                bodymapTitle = '';
+                document.getElementById('bodymapTitle').value = '';
+                BodyMapData.metadata.title = '';
+                BodyMapData.metadata.created = null;
+                BodyMapData.metadata.updated = null;
+                BodyMapData.metadata.activeIndexId = null;
                 createNewIndex();
             }
         }
@@ -1470,6 +2003,7 @@
             
             renderHistory();
             renderWorkspace();
+            saveToLocalStorage();
         }
         
         function deleteIndex(indexId) {
@@ -1525,6 +2059,210 @@
             
             renderHistory();
             renderWorkspace();
+            saveToLocalStorage();
+        }
+        
+        // Reset figure to default pose
+        function resetFigurePose(guideFigure) {
+            const defaultPose = {
+                translate_x_left: -3,
+                translate_y_left: 0,
+                skulder_rot_left: -70,
+                albue_rot_left: 0,
+                translate_x: 3,
+                translate_y: 0,
+                skulder_rot: 70,
+                albue_rot: 0,
+                translate_x_left_leg: 0,
+                translate_y_left_leg: 0,
+                hofte_rot_left: 6,
+                knae_rot_left: 0,
+                translate_x_right_leg: 0,
+                translate_y_right_leg: 0,
+                hofte_rot_right: -6,
+                knae_rot_right: 0,
+                left_arm_front: false,
+                right_arm_front: false
+            };
+            
+            // Set slow transition for visible reset to default pose
+            const body = guideFigure.querySelector('.body') || guideFigure;
+            const animatedElements = body.querySelectorAll(
+                '.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+                '.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+                '.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+                '.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+            );
+            // Use slow transition so user can see the reset happening
+            animatedElements.forEach(element => {
+                element.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            });
+            
+            // Apply default pose (this will animate smoothly)
+            applyDirectSlideData(defaultPose, guideFigure);
+            
+            // Force reflow
+            guideFigure.offsetHeight;
+        }
+        
+        // Animation functions
+        function runAnimation(animName) {
+            const animation = animationsLibrary[animName];
+            if (!animation || !animation.slides) {
+                return;
+            }
+            
+            const workspace = document.getElementById('workspace');
+            const guideFigure = workspace.querySelector('#guideFigure');
+            if (!guideFigure) {
+                return;
+            }
+            
+            // Reset figure to default pose first
+            resetFigurePose(guideFigure);
+            
+            // Wait a moment before starting animation
+            setTimeout(() => {
+                // Find body and all animated elements
+                const body = guideFigure.querySelector('.body') || guideFigure;
+                const animatedElements = body.querySelectorAll(
+                    '.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+                    '.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+                    '.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+                    '.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+                );
+                
+                // Ensure all elements are visible and have block display (only once at start)
+                animatedElements.forEach(element => {
+                    element.style.display = 'block';
+                });
+                
+                // Disable transition on .part container during animation to avoid conflicts
+                const partContainer = guideFigure;
+                const originalPartTransition = partContainer.style.transition || '';
+                partContainer.style.transition = 'none';
+                
+                let slideIndex = 0;
+                
+                function playNextSlide() {
+                    if (slideIndex < animation.slides.length) {
+                        const slide = animation.slides[slideIndex];
+                        
+                        // Set transition duration for this slide (BEFORE applying transforms)
+                        animatedElements.forEach((element) => {
+                            const transitionStr = `transform ${slide.duration}s cubic-bezier(0.25, 0.1, 0.25, 1)`;
+                            element.style.transition = transitionStr;
+                        });
+                        
+                        // Apply transforms (this should trigger the transition)
+                        applyDirectSlideData(slide, guideFigure);
+                        
+                        // Force reflow to ensure transform is applied
+                        guideFigure.offsetHeight;
+                        
+                        slideIndex++;
+                        setTimeout(playNextSlide, slide.duration * 1000);
+                    } else {
+                        // Remove transitions when animation is done
+                        animatedElements.forEach(element => {
+                            element.style.transition = '';
+                        });
+                        // Restore original transition on .part container
+                        if (typeof originalPartTransition !== 'undefined') {
+                            partContainer.style.transition = originalPartTransition || '';
+                        }
+                        // Return figure to original kram pose with smooth transition
+                        setTimeout(() => {
+                            animatedElements.forEach(element => {
+                                element.style.transition = 'transform 0.5s ease';
+                            });
+                            applyPoseToFigure(guideFigure);
+                            // Remove transitions after pose is restored
+                            setTimeout(() => {
+                                animatedElements.forEach(element => {
+                                    element.style.transition = '';
+                                });
+                            }, 500);
+                        }, 50);
+                    }
+                }
+                
+                playNextSlide();
+            }, 1000); // Wait for reset animation (0.8s) to complete, plus a bit more so user can see the pose
+        }
+        
+        function applyDirectSlideData(slideData, guideFigure) {
+            // Find .body first, then search within it (structure: .part > .body > .skulder_translate_left)
+            const body = guideFigure.querySelector('.body') || guideFigure;
+            const skulderLeft = body.querySelector('.skulder_translate_left');
+            const skulderRight = body.querySelector('.skulder_translate_right');
+            const hofteLeft = body.querySelector('.hofte_translate_left');
+            const hofteRight = body.querySelector('.hofte_translate_right');
+            
+            if (skulderLeft) {
+                skulderLeft.style.transform = `translate(${slideData.translate_x_left || 0}px, ${slideData.translate_y_left || 0}px)`;
+                const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+                if (skulderRotLeft) {
+                    skulderRotLeft.style.transform = `rotate(${slideData.skulder_rot_left || 0}deg)`;
+                    const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+                    if (albueRotLeft) {
+                        albueRotLeft.style.transform = `rotate(${slideData.albue_rot_left || 0}deg)`;
+                    }
+                }
+            }
+            
+            if (skulderRight) {
+                skulderRight.style.transform = `translate(${slideData.translate_x || 0}px, ${slideData.translate_y || 0}px)`;
+                const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+                if (skulderRotRight) {
+                    skulderRotRight.style.transform = `rotate(${slideData.skulder_rot || 0}deg)`;
+                    const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+                    if (albueRotRight) {
+                        albueRotRight.style.transform = `rotate(${slideData.albue_rot || 0}deg)`;
+                    }
+                }
+            }
+            
+            if (hofteLeft) {
+                hofteLeft.style.transform = `translate(${slideData.translate_x_left_leg || 0}px, ${slideData.translate_y_left_leg || 0}px)`;
+                const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+                if (hofteRotLeft) {
+                    hofteRotLeft.style.transform = `rotate(${slideData.hofte_rot_left || 0}deg)`;
+                    const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+                    if (knaeRotLeft) {
+                        knaeRotLeft.style.transform = `rotate(${slideData.knae_rot_left || 0}deg)`;
+                    }
+                }
+            }
+            
+            if (hofteRight) {
+                hofteRight.style.transform = `translate(${slideData.translate_x_right_leg || 0}px, ${slideData.translate_y_right_leg || 0}px)`;
+                const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+                if (hofteRotRight) {
+                    hofteRotRight.style.transform = `rotate(${slideData.hofte_rot_right || 0}deg)`;
+                    const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+                    if (knaeRotRight) {
+                        knaeRotRight.style.transform = `rotate(${slideData.knae_rot_right || 0}deg)`;
+                    }
+                }
+            }
+            
+            // Handle arm layering
+            if (skulderLeft) {
+                if (slideData.left_arm_front) {
+                    skulderLeft.classList.add('front-arm');
+                } else {
+                    skulderLeft.classList.remove('front-arm');
+                }
+            }
+            
+            if (skulderRight) {
+                if (slideData.right_arm_front) {
+                    skulderRight.classList.add('front-arm');
+                } else {
+                    skulderRight.classList.remove('front-arm');
+                }
+            }
         }
         
         function newLabel() {
@@ -1540,12 +2278,10 @@
             }
             
             const workspace = document.getElementById('workspace');
-            const x = workspace.offsetWidth / 2 + Math.random() * 200 - 100;
-            const y = workspace.offsetHeight / 2 + Math.random() * 200 - 100;
             
-            // Get guide figure center for calculating pointer position
+            // Get torso center for label placement and pointer calculation
             const guideFigure = workspace.querySelector('#guideFigure');
-            let guideCenterX = 450; // Default
+            let guideCenterX = 450; // Default fallback
             let guideCenterY = 140;
             if (guideFigure) {
                 const torso = guideFigure.querySelector('.torso');
@@ -1557,14 +2293,19 @@
                 }
             }
             
+            // Place label in 300x500 pixel rectangle centered on torso center
+            const x = guideCenterX + Math.random() * 300 - 150; // 300px wide (150 each side)
+            const y = guideCenterY + Math.random() * 500 - 250; // 500px tall (250 each side)
+            
             // Calculate displacement vector from guide center to label position
             const dx = x - guideCenterX;
             const dy = y - guideCenterY;
             const length = Math.sqrt(dx * dx + dy * dy);
             
-            // Normalize and set pointer position on the surface (layerNum = 0)
-            const pointerX = length > 0 ? guideCenterX - (dx / length) * 35 : guideCenterX;
-            const pointerY = length > 0 ? guideCenterY - (dy / length) * 35 : guideCenterY;
+            // Normalize and set pointer position 100 pixels away from label, towards the figure
+            // Start from label position (x, y) and move 100 pixels in the direction towards guide center
+            const pointerX = length > 0 ? x - (dx / length) * 100 : x;
+            const pointerY = length > 0 ? y - (dy / length) * 100 : y;
             
             // Create new label with placeholder text
             const newLabel = {
@@ -1578,8 +2319,25 @@
             };
             
             activeIndex.labels.push(newLabel);
+            
+            // Increment total labels counter
+            totalLabelsCreated++;
+            
             renderHistory();
             renderWorkspace();
+            
+            // Play random animation every 11th label (surprise!)
+            // Must be AFTER renderWorkspace() so guideFigure exists and isn't replaced
+            if (totalLabelsCreated % 11 === 0) {
+                const animationNames = Object.keys(animationsLibrary);
+                if (animationNames.length > 0) {
+                    const randomAnimName = animationNames[Math.floor(Math.random() * animationNames.length)];
+                    // Wait a moment for renderWorkspace to complete and DOM to update
+                    setTimeout(() => {
+                        runAnimation(randomAnimName);
+                    }, 100);
+                }
+            }
             
             // Focus the newly created textarea after a short delay
             setTimeout(() => {
@@ -1589,6 +2347,7 @@
                     lastLabel.focus();
                 }
             }, 100);
+            saveToLocalStorage();
         }
         
         function deleteLabel(labelId) {
@@ -1632,6 +2391,7 @@
             
             renderHistory();
             renderWorkspace();
+            saveToLocalStorage();
         }
         
         function saveImage() {
@@ -1692,6 +2452,7 @@
             
             renderHistory();
             renderWorkspace();
+            saveToLocalStorage();
         }
         
         // Initialize on load
