@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "saved_at": "2025-11-05T14:47:12.782Z",
+  "session": {
+    "start_node": "start",
+    "nodes": [
+      {
+        "id": "start",
+        "type": "all",
+        "questions": [
+          "Hej {{You}}, dejligt at se dig :).  <<m>>",
+          "Her er din daglige bekræftelse: <<m>>",
+          "-\n\"{{tekst}}\" <<m>>\n-"
+        ],
+        "next": "svar_mig"
+      },
+      {
+        "id": "svar_mig",
+        "type": "choice",
+        "next": "taknem",
+        "question": "Hvordan har du det i dag? <<status>>",
+        "input_type": "slider",
+        "labels": [
+          "Dårligt",
+          "Godt"
+        ]
+      },
+      {
+        "id": "taknem",
+        "type": "save",
+        "next": "slut",
+        "question": "Hvad er du taknemmelig for?\nTag dig lidt tid til at mærke efter. ",
+        "save_as": "taknem"
+      },
+      {
+        "id": "slut",
+        "type": "all",
+        "questions": [
+          "Tak {{You}}! \nHav en dejlig dag :) <<m>>"
+        ],
+        "next": ""
+      }
+    ]
+  },
+  "variables": {
+    "Data": "forsideData",
+    "You": "Mig",
+    "You_color": "#d97706",
+    "You_pose": 0,
+    "You_pose_flipped": "false",
+    "Other_pose": 18,
+    "Other_pose_flipped": "true"
+  }
+}

@@ -31,12 +31,12 @@
         .header {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: white;
-            padding: 30px;
+            padding: 5px;
             text-align: center;
         }
         
         .header h1 {
-            font-size: 2.5em;
+            font-size: 2.0em;
             margin-bottom: 10px;
             font-weight: 300;
         }
@@ -75,6 +75,11 @@
             flex: 1;
             min-width: 200px;
             background: white;
+        }
+
+        /* Limit part name input width */
+        #partName {
+            max-width: 250px;
         }
         
         .toolbar input[type="text"]:focus, .toolbar select:focus {
@@ -146,6 +151,14 @@
             box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3) !important;
         }
         
+        .nav-btn-pink {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%) !important;
+        }
+        
+        .nav-btn-pink:hover {
+            box-shadow: 0 5px 15px rgba(236, 72, 153, 0.3) !important;
+        }
+        
         .toolbar-separator {
             width: 1px;
             height: 30px;
@@ -158,8 +171,10 @@
             height: 600px;
             position: relative;
             background: #fafafa;
-            overflow: hidden;
+            overflow: auto;
             cursor: crosshair;
+            touch-action: auto;
+            -webkit-overflow-scrolling: touch;
         }
         
         .background-layer {
@@ -210,6 +225,8 @@
 				cursor: move;
                 transition: transform 0.44s ease-in-out, filter 0.44s ease-in-out;
 				user-select: none;
+                -webkit-user-select: none;
+				touch-action: none;
 				z-index: 10;
 				will-change: transform;
 				backface-visibility: hidden;
@@ -273,6 +290,10 @@
 			pointer-events: auto;
 			cursor: text;
 			font-size: 12px;
+			display: inline-block;
+			min-width: 20px;
+			min-height: 16px;
+			padding: 2px 4px;
 		}
 		.part-name:hover {
 			text-decoration: underline;
@@ -573,6 +594,12 @@
         }
 
         .part:hover .control-btn {
+            display: flex !important;
+            pointer-events: auto;
+        }
+
+        /* On mobile (tap selection), show controls when selected too */
+        .part.selected .control-btn {
             display: flex !important;
             pointer-events: auto;
         }
@@ -897,8 +924,9 @@
         }
         
         .keywords-section {
-            flex: 0 0 300px;
-            min-width: 300px;
+            flex: 0 0 auto;
+            min-width: 150px;
+            max-width: 200px;
         }
         
         .keywords-section h4 {
@@ -1080,13 +1108,64 @@
 		
 		
 		
+    	/* Mobile adjustments */
+	@media (hover: none) and (pointer: coarse) {
+		body {
+			padding: 5px;
+		}
+		.container {
+			border-radius: 12px;
+		}
+    		.header {
+			padding: 5px;
+    		}
+		.header h1 {
+			font-size: 2.0em;
+			margin-bottom: 0;
+		}
+		.toolbar {
+			padding: 8px 12px;
+			gap: 10px;
+		}
+		.toolbar select, .toolbar input, .toolbar button {
+			padding: 6px 10px;
+			font-size: 13px;
+			border-radius: 8px;
+			min-width: auto;
+		}
+		.workspace {
+			height: 65vh;
+			overflow: auto;
+			-webkit-overflow-scrolling: touch;
+			touch-action: pan-x pan-y;
+		}
+		.notes-title h3 { font-size: 16px; }
+		.groups-section h4, .keywords-section h4, .notes-container h4 { font-size: 14px; }
+		.keyword-input, .group-input, .group-dropdown { font-size: 13px; }
+		/* Make notes section horizontally scrollable on touch */
+		.notes-section {
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+		}
+		.notes-content {
+			min-width: 900px; /* ensure content wider than viewport so it can scroll */
+			gap: 20px;
+		}
+		.groups-section, .keywords-section, .notes-container {
+			flex: 0 0 auto; /* prevent shrinking so horizontal scroll works */
+		}
+		/* Scale pose picker on mobile to half size */
+		.pose-picker {
+			transform: scale(0.5);
+			transform-origin: top left;
+		}
+    	}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Relations Opstilling</h1>
-            <p>Visualiser og udforsk relationer </p>
+            <h1>Opstilling</h1>
         </div>
         
         <div class="toolbar">
@@ -1112,10 +1191,15 @@
             <button onclick="saveSetup()" class="save-btn">Gem Opstilling</button>
             <button onclick="loadSetup()" class="load-btn">Indlæs Opstilling</button>
             <button onclick="exportAsImage()" class="export-btn">Gem Billede</button>
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 14px; color: #475569; cursor: pointer;">
+                <input type="checkbox" id="transparentBackground" style="width: 16px; height: 16px; cursor: pointer;">
+                Transparent baggrund
+            </label>
             <button onclick="clearAll()" class="clear-btn">Ryd Alt</button>
             <div class="toolbar-separator"></div>
             <button onclick="window.location.href='compare_01.html'" class="nav-btn">Forskelle</button>
             <button onclick="window.location.href='dialog_01.html'" class="nav-btn-yellow">Samtale</button>
+            <button onclick="window.location.href='bodymap_01.html'" class="nav-btn-pink">Body Map</button>
             <input type="file" id="fileInput" accept=".csv" style="display: none;">
         </div>
         
@@ -1140,7 +1224,7 @@
         <div class="notes-section">
             <div class="notes-content">
                 <div class="groups-section">
-                    <h4>Grupper</h4>
+                    <h4>Cirkler</h4>
                     <div id="groupFields">
                         <div class="group-input-container">
                             <input type="text" class="group-input" id="group1" placeholder="Gruppe 1" value="Manager" maxlength="50">
@@ -1206,7 +1290,7 @@
         </div>
         
         <div class="instructions">
-            <p><strong>Sådan bruger du værktøjet:</strong> Vælg baggrund fra dropdown, tilføj dele ved at skrive navn og klikke "Tilføj Del" eller trykke Enter. Træk delene rundt for at se deres forhold til hinanden. Hold musen over en del for at se kontrolknapperne: × for at slette, T for at redigere navn, ↑↓ for lag, +− for størrelse, C for farve. Klik på en del for at vælge den og redigere dens stikord og noter. Definer grupper i venstre kolonne og tildel valgte dele til grupper. Gem din opstilling som CSV-fil og indlæs den senere. <strong>NYT:</strong> Hver baggrund gemmer sine egne positioner og størrelser - skift mellem baggrunde for forskellige visninger af samme dele!</p>
+            <p><strong>Sådan bruger du værktøjet:</strong> Vælg baggrund fra dropdown, tilføj dele ved at skrive navn og klikke "Tilføj Del" eller trykke Enter. Træk delene rundt for at se deres forhold til hinanden. Hold musen over en del for at se kontrolknapperne: × for at slette, T for at redigere navn, ↑↓ for lag, +− for størrelse, C for farve. Klik på en del for at vælge den og redigere dens stikord og noter. Definer cirkler i venstre kolonne og tildel valgte dele til cirkler. Gem din opstilling som CSV-fil og indlæs den senere. <strong>NYT:</strong> Hver baggrund gemmer sine egne positioner og størrelser - skift mellem baggrunde for forskellige visninger af samme dele!</p>
         </div>
     </div>
 
@@ -1735,15 +1819,19 @@ async function loadPoseLibrary() {
     // Position picker
     picker.style.position = 'absolute';
     picker.style.left = (btnRect.right + 10) + 'px';
-    picker.style.top = (btnRect.top - 20) + 'px';
     
     // Adjust if goes off screen
     const pickerRect = picker.getBoundingClientRect();
+    // Center vertically with button
+    picker.style.top = (btnRect.top + btnRect.height / 2 - pickerRect.height / 2) + 'px';
     if (pickerRect.right > window.innerWidth) {
         picker.style.left = (btnRect.left - pickerRect.width - 10) + 'px';
     }
+    if (pickerRect.top < 0) {
+        picker.style.top = '10px';
+    }
     if (pickerRect.bottom > window.innerHeight) {
-        picker.style.top = (btnRect.bottom - pickerRect.height - 10) + 'px';
+        picker.style.top = (window.innerHeight - pickerRect.height - 10) + 'px';
     }
 }
 
@@ -2578,17 +2666,9 @@ function closeKeywordsPopup() {
         
         function addPart(name = null, x = null, y = null, skipPopup = false) {
             try {
-                const partName = name || document.getElementById('partName').value.trim();
-                if (!partName) {
-                    const commonParts = [
-                        "Det Sårede Barn", "Beskytteren", "Den Kritiske", "Den Perfektionistiske", 
-                        "Den Bekymrede", "Den Vrede", "Den Glade", "Den Kreative", 
-                        "Manager-delen", "Firewall-delen", "Det Elskede Barn", "Den Ansvarlige"
-                    ];
-                    const suggestion = commonParts[Math.floor(Math.random() * commonParts.length)];
-                    document.getElementById('partName').placeholder = `Prøv f.eks: ${suggestion}`;
-                    return;
-                }
+                // Allow empty names or just whitespace - use the value as-is (trimmed or empty)
+                const partName = name !== null ? name : (document.getElementById('partName').value.trim() || '');
+                // No validation - allow empty names
                 
                 const workspace = document.getElementById('workspace');
                 const part = document.createElement('div');
@@ -2602,7 +2682,13 @@ function closeKeywordsPopup() {
                 part.style.top = posY + 'px';
                 
                 const existingParts = document.querySelectorAll('.part');
-                const newLayer = existingParts.length + 1;
+                // Find max current layer to avoid duplicates if there are gaps or collisions
+                let maxLayer = 0;
+                existingParts.forEach(p => {
+                    const l = parseInt(p.getAttribute('data-layer')) || 0;
+                    if (l > maxLayer) maxLayer = l;
+                });
+                const newLayer = maxLayer + 1;
                 part.style.zIndex = newLayer + 10;
                 
                 const assignedColor = partColors[colorIndex % partColors.length];
@@ -2731,7 +2817,7 @@ function closeKeywordsPopup() {
 				armParts.forEach(arm => arm.style.background = darkerColor);
 				legParts.forEach(leg => leg.style.background = darkerColor);
                 
-                part.addEventListener('mousedown', startDrag);
+                part.addEventListener('pointerdown', startDrag);
                 part.addEventListener('click', selectPart);
                 part.addEventListener('dragstart', (e) => e.preventDefault());
                 
@@ -2758,13 +2844,6 @@ function closeKeywordsPopup() {
 				
 				// Update shared data
 				saveCharactersToShared();
-				
-				// Open keywords popup for new part (unless loading from file)
-				if (!skipPopup) {
-					openKeywordsPopup(part);
-				}
-
-
                 
                 document.getElementById('partName').value = '';
                 document.getElementById('partName').placeholder = "Navn på del (f.eks. Beskytteren, Den Kritiske, Det Sårede Barn...)";
@@ -2800,6 +2879,8 @@ function closeKeywordsPopup() {
                         p.style.zIndex = newLayer + 10;
                     }
                 });
+                // Ensure layers are unique and compact after delete
+                normalizeLayers();
                 // Auto-save after delete
                 saveCharactersToShared();
                 
@@ -2825,6 +2906,17 @@ function closeKeywordsPopup() {
                     }
                 });
                 
+                // If there is a gap or duplicate layers, normalize and retry
+                if (!targetPart) {
+                    normalizeLayers();
+                    const refreshedParts = document.querySelectorAll('.part');
+                    refreshedParts.forEach(p => {
+                        if (parseInt(p.getAttribute('data-layer')) === currentLayer + 1) {
+                            targetPart = p;
+                        }
+                    });
+                }
+
                 if (targetPart) {
                     part.setAttribute('data-layer', targetLayer.toString());
                     part.style.zIndex = targetLayer + 10;
@@ -2854,6 +2946,17 @@ function closeKeywordsPopup() {
                     }
                 });
                 
+                // If there is a gap or duplicate layers, normalize and retry
+                if (!targetPart) {
+                    normalizeLayers();
+                    const refreshedParts = document.querySelectorAll('.part');
+                    refreshedParts.forEach(p => {
+                        if (parseInt(p.getAttribute('data-layer')) === targetLayer) {
+                            targetPart = p;
+                        }
+                    });
+                }
+
                 if (targetPart) {
                     part.setAttribute('data-layer', targetLayer.toString());
                     part.style.zIndex = targetLayer + 10;
@@ -2864,6 +2967,26 @@ function closeKeywordsPopup() {
                 saveCharactersToShared();
             } catch (error) {
                 console.error('Fejl i moveToBack:', error);
+            }
+        }
+
+        // Ensure unique, compact layers (1..N) with matching z-index
+        function normalizeLayers() {
+            try {
+                const parts = Array.from(document.querySelectorAll('.part'));
+                // Sort by current data-layer asc; fall back to DOM order
+                parts.sort((a, b) => {
+                    const la = parseInt(a.getAttribute('data-layer')) || 0;
+                    const lb = parseInt(b.getAttribute('data-layer')) || 0;
+                    return la - lb;
+                });
+                parts.forEach((p, idx) => {
+                    const layer = idx + 1;
+                    p.setAttribute('data-layer', layer.toString());
+                    p.style.zIndex = layer + 10;
+                });
+            } catch (error) {
+                console.error('Fejl i normalizeLayers:', error);
             }
         }
         
@@ -2958,8 +3081,8 @@ function closeKeywordsPopup() {
 					
 					dragState.animationId = requestAnimationFrame(animate);
 					
-					document.addEventListener('mousemove', drag);
-					document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('pointermove', drag, { passive: false });
+                document.addEventListener('pointerup', stopDrag, { passive: false });
 				} catch (error) {
 					console.error('Fejl i startDrag:', error);
 				}
@@ -2968,6 +3091,7 @@ function closeKeywordsPopup() {
         function drag(e) {
             try {
                 if (!draggedElement || !dragState) return;
+                if (e && typeof e.preventDefault === 'function') e.preventDefault();
                 
                 const workspace = document.getElementById('workspace');
                 const workspaceRect = workspace.getBoundingClientRect();
@@ -3064,8 +3188,8 @@ function closeKeywordsPopup() {
 					
 					dragState.animationId = requestAnimationFrame(settleAnimation);
 				}
-				document.removeEventListener('mousemove', drag);
-				document.removeEventListener('mouseup', stopDrag);
+                document.removeEventListener('pointermove', drag);
+                document.removeEventListener('pointerup', stopDrag);
 			} catch (error) {
 				console.error('Fejl i stopDrag:', error);
 			}
@@ -3360,6 +3484,8 @@ function closeKeywordsPopup() {
 					}
 				});
 
+                // Ensure layers are consistent after load
+                normalizeLayers();
                 return true;
             } catch (error) {
                 console.error('Fejl ved indlæsning fra localStorage:', error);
@@ -3456,7 +3582,8 @@ function closeKeywordsPopup() {
 					if (isFinishing) return;
 					isFinishing = true;
 					
-					const newName = input.value.trim() || currentName;
+					// Allow empty names - use trimmed value or empty string
+					const newName = input.value.trim();
 					nameSpan.textContent = newName;
 					nameSpan.style.display = 'block';
 					
@@ -3465,7 +3592,8 @@ function closeKeywordsPopup() {
 					}
 					
 					if (selectedPart && selectedPart === part) {
-						document.getElementById('partNotes').placeholder = `Detaljerede noter til "${newName}"`;
+						const displayName = newName || '(uden navn)';
+						document.getElementById('partNotes').placeholder = `Detaljerede noter til "${displayName}"`;
 					}
 					// Auto-save after name change
 					saveCharactersToShared();
@@ -3708,6 +3836,7 @@ function closeKeywordsPopup() {
 		function exportAsImage() {
     try {
         const workspace = document.getElementById('workspace');
+        const transparentBg = document.getElementById('transparentBackground').checked;
         
         // Skjul control buttons
         const controlBtns = workspace.querySelectorAll('.control-btn');
@@ -3717,6 +3846,20 @@ function closeKeywordsPopup() {
         const wasSelected = selectedPart;
         if (selectedPart) {
             selectedPart.classList.remove('selected');
+        }
+        
+        // Håndter transparent baggrund
+        const backgroundLayer = document.getElementById('backgroundLayer');
+        const backgroundLabels = document.getElementById('backgroundLabels');
+        const originalBgColor = workspace.style.backgroundColor || '';
+        const originalBgDisplay = backgroundLayer ? (backgroundLayer.style.display || '') : '';
+        const originalLabelsDisplay = backgroundLabels ? (backgroundLabels.style.display || '') : '';
+        
+        if (transparentBg) {
+            // Skjul baggrund og labels
+            workspace.style.backgroundColor = 'transparent';
+            if (backgroundLayer) backgroundLayer.style.display = 'none';
+            if (backgroundLabels) backgroundLabels.style.display = 'none';
         }
         
         // Modern-screenshot
@@ -3733,10 +3876,18 @@ function closeKeywordsPopup() {
                 wasSelected.classList.add('selected');
             }
             
+            // Gendan baggrund hvis den blev skjult
+            if (transparentBg) {
+                workspace.style.backgroundColor = originalBgColor || '';
+                if (backgroundLayer) backgroundLayer.style.display = originalBgDisplay || '';
+                if (backgroundLabels) backgroundLabels.style.display = originalLabelsDisplay || '';
+            }
+            
             // Download
             const link = document.createElement('a');
             const dato = new Date().toISOString().slice(0, 10);
-            link.download = `Opstilling-${dato}.png`;
+            const bgText = transparentBg ? '_transparent' : '';
+            link.download = `Opstilling-${dato}${bgText}.png`;
             link.href = dataUrl;
             link.click();
             
@@ -3747,6 +3898,13 @@ function closeKeywordsPopup() {
             controlBtns.forEach(btn => btn.style.display = '');
             if (wasSelected) {
                 wasSelected.classList.add('selected');
+            }
+            
+            // Gendan baggrund ved fejl
+            if (transparentBg) {
+                workspace.style.backgroundColor = originalBgColor || '';
+                if (backgroundLayer) backgroundLayer.style.display = originalBgDisplay || '';
+                if (backgroundLabels) backgroundLabels.style.display = originalLabelsDisplay || '';
             }
             
             alert('Eksport fejlede');
@@ -4182,6 +4340,8 @@ function closeKeywordsPopup() {
 
                             // Indlæsning fuldført (silent)
                             // Persist sizes/positions after complete load
+                            // Ensure layers are consistent after CSV load
+                            normalizeLayers();
                             isLoadingSetup = false;
                             try { saveCharactersToShared(); } catch(_){}
                                 

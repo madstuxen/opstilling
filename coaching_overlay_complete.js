@@ -33,7 +33,8 @@ function saveOverlayDialogCSV(contentElement) {
         const coachName = 'Coach';
         const coachColor = '#667eea';
         const coachPose = 'tænke';
-        const coachMirror = false;
+        // Get coach flipped state from pendingCoachFlipped, default to false
+        const coachMirror = window.pendingCoachFlipped === true;
         const emptyStikord = ['', '', '', '', '', ''];
 
         const clientName = (window.loadedExternalData && window.loadedExternalData.You) ? window.loadedExternalData.You : 'Klient';
@@ -49,7 +50,8 @@ function saveOverlayDialogCSV(contentElement) {
                 clientPoseName = poseLib[val].name;
             }
         } catch(_) {}
-        const clientMirror = false;
+        // Get client flipped state from pendingClientFlipped, default to false
+        const clientMirror = window.pendingClientFlipped === true;
 
         const csvData = [];
         csvData.push(['#metadata']);
@@ -597,15 +599,18 @@ async function startCoachingSession(contentElement, dataSource) {
                         });
                         debugLog('Merged external data into variables:', variables);
                         
+                        // Merge project.variables with loaded data for UI (project.variables takes precedence for You_pose, You_color, etc.)
+                        const uiData = { ...loaded, ...project.variables };
+                        
                         // Load external data for UI (colors, poses, names)
-                        loadExternalDataForUI(contentElement, loaded);
+                        loadExternalDataForUI(contentElement, uiData);
                     }
                 }
             } catch (e) {
                 debugLog('Error merging external data:', e);
             }
-        } else if (project.variables && (project.variables.You_color || project.variables.You_pose !== undefined)) {
-            // If You_color or You_pose are directly in project.variables, use them for UI
+        } else if (project.variables && (project.variables.You_color || project.variables.You_pose !== undefined || project.variables.Other_pose !== undefined || project.variables.You_pose_flipped !== undefined || project.variables.Other_pose_flipped !== undefined)) {
+            // If You_color, You_pose, Other_pose, You_pose_flipped, or Other_pose_flipped are directly in project.variables, use them for UI
             loadExternalDataForUI(contentElement, project.variables);
         }
         
@@ -659,6 +664,27 @@ function loadExternalDataForUI(contentElement, loaded) {
             debugLog('Setting client pose to:', loaded.You_pose);
             // Store pose for later use when poseLibrary is loaded
             window.pendingClientPose = loaded.You_pose;
+        }
+        
+        // Apply client flipped if available
+        if (loaded.You_pose_flipped !== undefined) {
+            debugLog('Setting client flipped to:', loaded.You_pose_flipped);
+            // Convert string "true"/"false" to boolean
+            window.pendingClientFlipped = loaded.You_pose_flipped === true || loaded.You_pose_flipped === "true";
+        }
+        
+        // Apply coach pose if available (Other_pose)
+        if (loaded.Other_pose !== undefined) {
+            debugLog('Setting coach pose to:', loaded.Other_pose);
+            // Store pose for later use when poseLibrary is loaded
+            window.pendingCoachPose = loaded.Other_pose;
+        }
+        
+        // Apply coach flipped if available (Other_pose_flipped)
+        if (loaded.Other_pose_flipped !== undefined) {
+            debugLog('Setting coach flipped to:', loaded.Other_pose_flipped);
+            // Convert string "true"/"false" to boolean
+            window.pendingCoachFlipped = loaded.Other_pose_flipped === true || loaded.Other_pose_flipped === "true";
         }
         
         // Store loaded data globally for use in coaching engine
@@ -974,6 +1000,124 @@ function applyPose(side, poseIndex) {
     if (participant) {
         participant.setAttribute('data-pose', poseIndex);
     }
+    
+    // Apply flipped/mirror if needed
+    applyFlipped(side, circle);
+}
+
+/**
+ * Apply flipped/mirror transform to figure
+ */
+function applyFlipped(side, circle) {
+    let shouldFlip = false;
+    
+    if (side === 'client' && window.pendingClientFlipped !== undefined) {
+        shouldFlip = window.pendingClientFlipped;
+    } else if (side === 'coach' && window.pendingCoachFlipped !== undefined) {
+        shouldFlip = window.pendingCoachFlipped;
+    }
+    
+    // Store original transform on first call if not already stored
+    if (!circle.dataset.originalTransform) {
+        // Get the original transform from inline style or CSS
+        const inlineTransform = circle.style.transform;
+        if (inlineTransform && inlineTransform !== 'none') {
+            circle.dataset.originalTransform = inlineTransform;
+        } else {
+            // Get from computed style (will have CSS variables resolved)
+            const computedStyle = window.getComputedStyle(circle);
+            const computedTransform = computedStyle.transform;
+            // If it's a matrix, construct from CSS variables instead
+            if (computedTransform && computedTransform !== 'none' && !computedTransform.includes('matrix')) {
+                circle.dataset.originalTransform = computedTransform;
+            } else {
+                // Get from CSS variables
+                const root = circle.getRootNode();
+                const dialogPopup = root instanceof ShadowRoot ? 
+                    (root.host ? root.host.closest('.dialog-popup') : root.querySelector('.dialog-popup')) : 
+                    document.querySelector('.dialog-popup');
+                
+                if (dialogPopup) {
+                    const style = window.getComputedStyle(dialogPopup);
+                    if (side === 'coach') {
+                        const offsetX = style.getPropertyValue('--left-figure-offset-x').trim() || '-90px';
+                        const offsetY = style.getPropertyValue('--left-figure-offset-y').trim() || '-20px';
+                        circle.dataset.originalTransform = `translate(${offsetX}, ${offsetY})`;
+                    } else {
+                        const offsetX = style.getPropertyValue('--right-figure-offset-x').trim() || '90px';
+                        const offsetY = style.getPropertyValue('--right-figure-offset-y').trim() || '-20px';
+                        circle.dataset.originalTransform = `translate(${offsetX}, ${offsetY})`;
+                    }
+                } else {
+                    // Last resort: use default values
+                    if (side === 'coach') {
+                        circle.dataset.originalTransform = 'translate(-90px, -20px)';
+                    } else {
+                        circle.dataset.originalTransform = 'translate(90px, -20px)';
+                    }
+                }
+            }
+        }
+    }
+    
+    // Use stored original transform as base
+    const baseTransform = circle.dataset.originalTransform || '';
+    
+    // Apply flip on top of base transform
+    if (shouldFlip) {
+        // Remove any existing scaleX first
+        const cleanTransform = baseTransform.replace(/\s*scaleX\([^)]+\)/g, '').trim();
+        circle.style.transform = cleanTransform ? `${cleanTransform} scaleX(-1)` : 'scaleX(-1)';
+    } else {
+        // Just use base transform without scaleX
+        const cleanTransform = baseTransform.replace(/\s*scaleX\([^)]+\)/g, '').trim();
+        circle.style.transform = cleanTransform || 'none';
+    }
+    
+    // Counter-flip the head element so text doesn't flip
+    const head = circle.querySelector('.head');
+    if (head) {
+        // Store original head transform on first call if not already stored
+        if (!head.dataset.originalTransform) {
+            const headInlineTransform = head.style.transform || '';
+            if (headInlineTransform && headInlineTransform !== 'none') {
+                // Remove any existing scaleX from original
+                head.dataset.originalTransform = headInlineTransform.replace(/\s*scaleX\([^)]+\)/g, '').trim();
+            } else {
+                // Get from computed style
+                const computedStyle = window.getComputedStyle(head);
+                const computedTransform = computedStyle.transform;
+                if (computedTransform && computedTransform !== 'none') {
+                    // Extract translateX if it's a matrix, or use as-is
+                    const translateXMatch = computedTransform.match(/translateX\([^)]+\)/);
+                    if (translateXMatch) {
+                        head.dataset.originalTransform = translateXMatch[0];
+                    } else {
+                        // Default to translateX(-50%) which is common for centered heads
+                        head.dataset.originalTransform = 'translateX(-50%)';
+                    }
+                } else {
+                    // Default to translateX(-50%) which is common for centered heads
+                    head.dataset.originalTransform = 'translateX(-50%)';
+                }
+            }
+        }
+        
+        // Use stored original head transform as base
+        const headBaseTransform = head.dataset.originalTransform || '';
+        
+        // Remove any existing scaleX from head
+        const cleanHeadTransform = headBaseTransform.replace(/\s*scaleX\([^)]+\)/g, '').trim();
+        
+        // Counter-flip head when parent is flipped
+        if (shouldFlip) {
+            head.style.transform = cleanHeadTransform ? `${cleanHeadTransform} scaleX(-1)` : 'scaleX(-1)';
+        } else {
+            head.style.transform = cleanHeadTransform || 'none';
+        }
+    }
+    
+    debugLog('Applied flipped to', side, ':', shouldFlip, 'base transform:', baseTransform, 'final:', circle.style.transform);
 }
 
 // Make applyPose globally available for debugging
@@ -1079,14 +1223,34 @@ function waitForPoseLibraryAndApplyPoses() {
             debugLog('poseLibrary loaded! Applying initial poses...');
             debugLog('Available poses:', poseLib.map(p => p.name));
             
-            // Set initial coach pose to "tænke" (thinking) - use index 2
-            applyPose('coach', 2);
-            debugLog('Set coach to tænke pose (index 2)');
+            // Set initial coach pose - use Other_pose if available, otherwise default to "tænke" (index 2)
+            if (window.pendingCoachPose !== undefined && window.pendingCoachPose !== null) {
+                applyPose('coach', window.pendingCoachPose);
+                debugLog('Set coach to Other_pose:', window.pendingCoachPose);
+            } else {
+                applyPose('coach', 2);
+                debugLog('Set coach to tænke pose (index 2)');
+            }
             
             // Apply client pose if pending (but don't hide client again)
             if (window.pendingClientPose !== undefined && window.pendingClientPose !== null) {
                 applyPose('client', window.pendingClientPose);
                 debugLog('Applied pending client pose');
+            }
+            
+            // Apply flipped states after poses are applied
+            const coachCircle = document.querySelector('#coachingOverlay #coachCircle') || 
+                              (coachingOverlay && coachingOverlay.content && coachingOverlay.content.shadowRoot && 
+                               coachingOverlay.content.shadowRoot.querySelector('#coachCircle'));
+            if (coachCircle && window.pendingCoachFlipped !== undefined) {
+                applyFlipped('coach', coachCircle);
+            }
+            
+            const clientCircle = document.querySelector('#coachingOverlay #clientCircle') || 
+                               (coachingOverlay && coachingOverlay.content && coachingOverlay.content.shadowRoot && 
+                                coachingOverlay.content.shadowRoot.querySelector('#clientCircle'));
+            if (clientCircle && window.pendingClientFlipped !== undefined) {
+                applyFlipped('client', clientCircle);
             }
             
         } else if (attempts >= maxAttempts) {
@@ -1160,6 +1324,14 @@ function waitForPoseLibraryAndApplyCoachPose(poseName) {
             applyPose('coach', poseIndex);
             debugLog('Coach transitioned to', poseName, 'pose (index', poseIndex, ')');
             
+            // Re-apply flipped state after pose is applied
+            const coachCircle = document.querySelector('#coachingOverlay #coachCircle') || 
+                              (coachingOverlay && coachingOverlay.content && coachingOverlay.content.shadowRoot && 
+                               coachingOverlay.content.shadowRoot.querySelector('#coachCircle'));
+            if (coachCircle && window.pendingCoachFlipped !== undefined) {
+                applyFlipped('coach', coachCircle);
+            }
+            
         } else if (attempts >= maxAttempts) {
             debugLog('Timeout waiting for poseLibrary for coach pose');
         } else {
@@ -1197,6 +1369,14 @@ function waitForPoseLibraryAndApplyClientPose(poseIndex) {
             }
             applyPose('client', finalIndex);
             debugLog('Applied client pose:', poseIndex);
+            
+            // Re-apply flipped state after pose is applied
+            const clientCircle = document.querySelector('#coachingOverlay #clientCircle') || 
+                               (coachingOverlay && coachingOverlay.content && coachingOverlay.content.shadowRoot && 
+                                coachingOverlay.content.shadowRoot.querySelector('#clientCircle'));
+            if (clientCircle && window.pendingClientFlipped !== undefined) {
+                applyFlipped('client', clientCircle);
+            }
             
         } else if (attempts >= maxAttempts) {
             debugLog('Timeout waiting for poseLibrary for client pose');
@@ -1259,7 +1439,35 @@ function showCoachingQuestion(contentElement, question) {
     // Always show coach bubble with question
     const leftBubble = contentElement.querySelector('#leftBubble');
     if (leftBubble) {
+        // Get current transform from computed style or use default
+        const computed = window.getComputedStyle(leftBubble);
+        const computedTransform = computed.transform;
+        let transformBase = 'translate(calc(var(--left-bubble-shift-x, 0px)), -50%)';
+        
+        // Extract translate part from computed transform if it exists
+        if (computedTransform && computedTransform !== 'none' && computedTransform.includes('translate')) {
+            const match = computedTransform.match(/(translate\([^)]+\))/);
+            if (match) {
+                transformBase = match[1];
+            }
+        }
+        
+        // Ensure transition is set (same as dialog)
+        leftBubble.style.transition = 'all 0.35s cubic-bezier(0.4, 1.3, 0.7, 1)';
+        
+        // Start animation state: small and invisible
+        leftBubble.style.opacity = '0';
+        leftBubble.style.transform = transformBase + ' scale(0.85)';
         leftBubble.style.display = 'block';
+        
+        // Animate to full size after a short delay (same pattern as dialog)
+        setTimeout(() => {
+            leftBubble.style.transform = transformBase.replace(/\s*scale\([^)]+\)/g, '') + ' scale(1)';
+            leftBubble.style.opacity = '1';
+        }, 10);
+        
+        // Force reflow to trigger animation
+        leftBubble.offsetHeight;
     }
     
     // Show coach question in coach bubble (clean text without placeholders)
@@ -1279,30 +1487,61 @@ function showCoachingQuestion(contentElement, question) {
     if (!question.done && window.coachingActive !== false) {
         debugLog('Question not done, showing client input area');
         
-        // Show client bubble for input
+        // Show client bubble for input with animation, but after a short delay (after coach bubble appears)
         const rightBubble = contentElement.querySelector('#rightBubble');
         if (rightBubble) {
-            rightBubble.style.display = 'block';
-        }
-        
-        // Handle different question types
-        if (question.mmm) {
-            // Show single Mmmm button
-            showMmmButton(contentElement);
-        } else if (question.type === 'choice' && question.choices && question.input_type !== 'slider') {
-            // Show choice buttons
-            showChoiceQuestion(contentElement, question);
-        } else if (question.type === 'slider' || 
-                   (question.type === 'choice' && question.input_type === 'slider')) {
-            // Show slider
-            showSliderQuestion(contentElement, question);
-        } else {
-            // Regular text input
-            const textarea = contentElement.querySelector('#rightTextarea');
-            if (textarea) {
-                textarea.style.display = 'block';
-                textarea.focus();
-            }
+            // Wait 200ms before showing client bubble (so coach appears first)
+            setTimeout(() => {
+                // Get current transform from computed style or use default
+                const computed = window.getComputedStyle(rightBubble);
+                const computedTransform = computed.transform;
+                let transformBase = 'translateY(-50%)';
+                
+                // Extract translate part from computed transform if it exists
+                if (computedTransform && computedTransform !== 'none' && computedTransform.includes('translate')) {
+                    const match = computedTransform.match(/(translateY\([^)]+\))/);
+                    if (match) {
+                        transformBase = match[1];
+                    }
+                }
+                
+                // Ensure transition is set (same as dialog)
+                rightBubble.style.transition = 'all 0.35s cubic-bezier(0.4, 1.3, 0.7, 1)';
+                
+                // Start animation state: small and invisible
+                rightBubble.style.opacity = '0';
+                rightBubble.style.transform = transformBase + ' scale(0.85)';
+                rightBubble.style.display = 'block';
+                
+                // Animate to full size after a short delay (same pattern as dialog)
+                setTimeout(() => {
+                    rightBubble.style.transform = transformBase.replace(/\s*scale\([^)]+\)/g, '') + ' scale(1)';
+                    rightBubble.style.opacity = '1';
+                }, 10);
+                
+                    // Force reflow to trigger animation
+                    rightBubble.offsetHeight;
+                    
+                    // Handle different question types after bubble is shown
+                    if (question.mmm) {
+                        // Show single Mmmm button
+                        showMmmButton(contentElement);
+                    } else if (question.type === 'choice' && question.choices && question.input_type !== 'slider') {
+                        // Show choice buttons
+                        showChoiceQuestion(contentElement, question);
+                    } else if (question.type === 'slider' || 
+                               (question.type === 'choice' && question.input_type === 'slider')) {
+                        // Show slider
+                        showSliderQuestion(contentElement, question);
+                    } else {
+                        // Regular text input
+                        const textarea = contentElement.querySelector('#rightTextarea');
+                        if (textarea) {
+                            textarea.style.display = 'block';
+                            textarea.focus();
+                        }
+                    }
+            }, 200);
         }
     } else if (question.done || window.coachingActive === false) {
         // Hide client input area when session is done
@@ -1471,22 +1710,70 @@ function showSliderQuestion(contentElement, question) {
     const min = question.min || 0;
     const max = question.max || 100;
     const value = question.value || Math.round((min + max) / 2);
+    const step = question.step || 1;
+    const labels = question.labels || null;
+    
+    // Labels - show them above the slider
+    if (labels && labels.length >= 2) {
+        const leftLabel = currentEngine ? currentEngine.replaceVars(labels[0]) : labels[0];
+        const rightLabel = currentEngine ? currentEngine.replaceVars(labels[1]) : labels[1];
+        
+        const labelsDiv = document.createElement('div');
+        labelsDiv.style.display = 'flex';
+        labelsDiv.style.justifyContent = 'space-between';
+        labelsDiv.style.fontSize = '12px';
+        labelsDiv.style.color = '#666';
+        labelsDiv.style.marginBottom = '10px';
+        labelsDiv.innerHTML = `<span>${leftLabel}</span><span>${rightLabel}</span>`;
+        container.appendChild(labelsDiv);
+    }
     
     const slider = document.createElement('input');
     slider.type = 'range';
     slider.min = String(min);
     slider.max = String(max);
+    slider.step = String(step);
     slider.value = String(value);
     slider.className = 'slider';
     slider.id = 'coachingSlider';
+    slider.style.width = '100%';
+    slider.style.marginBottom = '10px';
     
     const valueDiv = document.createElement('div');
     valueDiv.className = 'slider-value';
     valueDiv.id = 'sliderValue';
     valueDiv.textContent = String(value);
+    valueDiv.style.textAlign = 'center';
+    valueDiv.style.fontWeight = 'bold';
+    valueDiv.style.fontSize = '18px';
+    valueDiv.style.marginBottom = '10px';
     
     const okBtn = document.createElement('button');
     okBtn.textContent = 'OK';
+    okBtn.className = 'choice-btn';
+    // Apply same visual style as other buttons (Mmm and choice buttons)
+    okBtn.style.padding = '6px 12px';
+    okBtn.style.borderRadius = '8px';
+    okBtn.style.border = 'none';
+    okBtn.style.background = '#667eea';
+    okBtn.style.color = '#ffffff';
+    okBtn.style.fontFamily = 'Arial, sans-serif';
+    okBtn.style.fontWeight = '500';
+    okBtn.style.fontSize = '14px';
+    okBtn.style.cursor = 'pointer';
+    okBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+    okBtn.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease';
+    okBtn.style.marginTop = '6px';
+    okBtn.onmouseenter = () => {
+        okBtn.style.boxShadow = '0 2px 6px rgba(0,0,0,0.18)';
+        okBtn.style.transform = 'translateY(-1px)';
+        okBtn.style.filter = 'brightness(1.05)';
+    };
+    okBtn.onmouseleave = () => {
+        okBtn.style.boxShadow = '0 1px 2px rgba(0,0,0,0.06)';
+        okBtn.style.transform = 'none';
+        okBtn.style.filter = 'none';
+    };
     okBtn.addEventListener('click', () => {
         const valNum = Number(slider.value);
         try {
@@ -1720,16 +2007,30 @@ function sendResponse(response) {
         
         debugLog('Coaching session finished');
     } else {
-        // Show next question
+        // Show next question after a short pause
         const rootEl2 = (window.coachingOverlay && window.coachingOverlay.contentRoot) ? window.coachingOverlay.contentRoot : coachingOverlay.content;
-        showCoachingQuestion(rootEl2, currentQuestion);
-        // Ensure textarea starts from standard size for new input
-        try {
-            const rt2 = rootEl2.querySelector('#rightTextarea');
-            if (rt2) {
-                rt2.style.height = '';
-            }
-        } catch (_) {}
+        
+        // Hide both coach and client bubbles during pause
+        const leftBubble = rootEl2.querySelector('#leftBubble');
+        const rightBubble = rootEl2.querySelector('#rightBubble');
+        if (leftBubble) {
+            leftBubble.style.display = 'none';
+        }
+        if (rightBubble) {
+            rightBubble.style.display = 'none';
+        }
+        
+        // Wait 500ms before showing next question (shorter pause)
+        setTimeout(() => {
+            showCoachingQuestion(rootEl2, currentQuestion);
+            // Ensure textarea starts from standard size for new input
+            try {
+                const rt2 = rootEl2.querySelector('#rightTextarea');
+                if (rt2) {
+                    rt2.style.height = '';
+                }
+            } catch (_) {}
+        }, 500);
     }
 }
 
