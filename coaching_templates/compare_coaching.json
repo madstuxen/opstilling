@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "saved_at": "2025-10-23T13:59:45.349Z",
+  "session": {
+    "start_node": "start",
+    "nodes": [
+      {
+        "id": "start",
+        "type": "all",
+        "questions": [
+          "Velkommen {{You}}, lad os kigge lidt på hvordan din score lå."
+        ],
+        "next": "aa_bb_abba_logic"
+      },
+      {
+        "id": "aa_bb_abba_logic",
+        "type": "branch",
+        "next": "",
+        "rules": "if {{You_slider}} >= 0 -> set:<<You_mest>> = {{right_label}},<<opp_value>>= {{left_label}}\nelse -> set:<<You_mest>> = {{left_label}},<<opp_value>>= {{right_label}}\n\nif {{Other_slider}} >= 0 -> set:<<Other_mest>> = {{right_label}}\nelse -> set:<<Other_mest>> = {{left_label}}\n\nif {{You_mest}} == {{right_label}} && {{Other_mest}} == {{right_label}} -> next:bb_logic\n\nif {{You_mest}} == {{left_label}} && {{Other_mest}} == {{left_label}} -> next:aa_logic\n\nif {{You_mest}} != {{Other_mest}} -> next:abba_logic"
+      },
+      {
+        "id": "aa_logic",
+        "type": "branch",
+        "next": "aa_text",
+        "rules": "if {{You_slider}} >= {{Other_slider}} -> set:<<forskel>> = {{You_slider-Other_slider}}, <<forskel_verbum_duer_ens>> = mindre, <<forskel_verbum_duer_modsat>> = mere\nelse -> set: <<forskel>> = {{Other_slider-You_slider}},<<forskel_verbum_duer_ens>> = mere, <<forskel_verbum_duer_modsat>> = mindre\n\nif {{forskel}}  > 0 -> set: <<forskel_ord>> = næsten ikke\nif {{forskel}} > 10 -> set: <<forskel_ord>> = lidt\nif {{forskel}} > 20 -> set: <<forskel_ord>> = noget\nif {{forskel}} > 30 -> set: <<forskel_ord>> = ret meget"
+      },
+      {
+        "id": "bb_logic",
+        "type": "branch",
+        "next": "bb_text",
+        "rules": "if {{You_slider}} >= {{Other_slider}} -> set:<<forskel>> = {{You_slider-Other_slider}}, <<forskel_verbum_duer_ens>> = mere, <<forskel_verbum_duer_modsat>> = mindre\nelse -> set: <<forskel>> = {{Other_slider-You_slider}},<<forskel_verbum_duer_ens>> = mindre, <<forskel_verbum_duer_modsat>> = mere\n\nif {{forskel}}  >= 0 -> set: <<forskel_ord>> = næsten ikke\nif {{forskel}} > 10 -> set: <<forskel_ord>> = lidt\nif {{forskel}} > 20 -> set: <<forskel_ord>> = noget\nif {{forskel}} > 30 -> set: <<forskel_ord>> = ret meget"
+      },
+      {
+        "id": "abba_logic",
+        "type": "branch",
+        "next": "abba_text",
+        "rules": "if {{You_slider}} >= {{Other_slider}} -> set:<<forskel>> = {{You_slider-Other_slider}}\nelse -> set: <<forskel>> = {{Other_slider-You_slider}}\n\n\nif {{You_slider}} >= 0 -> set: <<du_til_midten>> = {{You_slider}}\nelse -> set: <<du_til_midten>> = 0 - {{You_slider}}\n\nif {{Other_slider}} >= 0 -> set: <<andet_til_midten>> = {{Other_slider}}\nelse -> set: <<andet_til_midten>> = 0 - {{Other_slider}}\n\nif {{forskel}} >= 0 -> set: <<forskel_ord>> = ikke ret\nif {{forskel}} > 20 -> set: <<forskel_ord>> = lidt\nif {{forskel}} > 40 -> set: <<forskel_ord>> = noget\nif {{forskel}} > 60 -> set: <<forskel_ord>> = meget\n\nif {{du_til_midten}} < 15 -> set: <<du_midt_ord>> = tæt på\nelse -> set: <<du_midt_ord>> = langt fra\n\nif {{andet_til_midten}} < 15 -> set: <<andet_midt_ord>> = tæt på\nelse -> set: <<andet_midt_ord>> = langt fra"
+      },
+      {
+        "id": "aa_text",
+        "type": "all",
+        "questions": [
+          "i er begge mest {{left_label}}e, ingen af jer er {{opp_value}}e.\nDu er {{forskel_ord}} {{forskel_verbum_duer_ens}} {{You_mest}} end {{Other}}. Du er {{forskel_ord}} {{forskel_verbum_duer_modsat}} {{opp_value}} end {{Other}}."
+        ],
+        "next": "general_talk_text"
+      },
+      {
+        "id": "bb_text",
+        "type": "all",
+        "questions": [
+          "i er begge mest {{right_label}}, ingen af jer er {{opp_value}}.\nDu er {{forskel_ord}} {{forskel_verbum_duer_ens}} {{You_mest}} end {{Other}}. Du er {{forskel_ord}} {{forskel_verbum_duer_modsat}} {{opp_value}} end {{Other}}."
+        ],
+        "next": "general_talk_text"
+      },
+      {
+        "id": "abba_text",
+        "type": "all",
+        "questions": [
+          "Du er {{You_mest}}, og {{Other}} er {{Other_mest}}. Der er en klar forskel mellem jer her.\nI er {{forskel_ord}} forskellige.\nDu er {{du_midt_ord}} midten, og {{Other}} er {{andet_midt_ord}} midten."
+        ],
+        "next": "general_talk_text"
+      },
+      {
+        "id": "general_talk_text",
+        "type": "all",
+        "questions": [
+          "Hvordan ville det være for dig hvis du var mere {{opp_value}}?",
+          "Kunne det styrke dig eller forbedre dine relationer andre steder i dit liv at være mere {{opp_value}}?",
+          "Hvordan var din mor og far med hensyn til {{left_label}} og {{right_label}}?",
+          "Tak for dine svar!"
+        ],
+        "next": ""
+      }
+    ]
+  },
+  "variables": {
+    "Data": "comparisonData"
+  }
+}

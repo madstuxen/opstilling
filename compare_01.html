@@ -20,7 +20,7 @@
         
         .comparison-container {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
@@ -38,10 +38,21 @@
             border-radius: 20px 20px 0 0;
         }
         
+        .header h1 {
+            font-size: 2.0em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
         .controls-bar {
-            background: #e5e7eb;
-            padding: 15px;
-            border-bottom: 2px solid #d1d5db;
+            background: #f8fafc;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e2e8f0;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -63,27 +74,154 @@
         }
         
         .participant-dropdown {
-            padding: 8px 12px;
-            border: 2px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 8px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
             font-family: inherit;
             background: white;
             min-width: 160px;
             color: #374151;
+            transition: all 0.3s ease;
+        }
+        
+        .participant-dropdown:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
         
         .controls-divider {
-            width: 2px;
+            width: 1px;
             height: 30px;
-            background: #d1d5db;
+            background: #e2e8f0;
+            margin: 0 8px;
+            flex-shrink: 0;
+        }
+        
+        /* Navigation overlay */
+        .nav-toggle-btn {
+            padding: 8px 16px !important;
+            border: none !important;
+            border-radius: 10px !important;
+            font-size: 15px !important;
+            cursor: pointer !important;
+            font-weight: 500 !important;
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+            color: white !important;
+            transition: all 0.3s ease !important;
+            margin-right: 10px !important;
+            min-width: auto !important;
+            width: auto !important;
+        }
+        
+        .nav-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(107, 114, 128, 0.3);
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+        }
+        
+        .nav-overlay {
+            display: none !important;
+        }
+        
+        .nav-box {
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: white;
+            border-radius: 20px;
+            padding: 20px 25px;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 200px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .nav-box.show {
+            display: flex;
+        }
+        
+        .nav-button {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            display: block;
+            min-width: auto;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+        }
+        
+        .nav-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .nav-button.active {
+            background: #9ca3af !important;
+            cursor: default;
+            pointer-events: none;
+        }
+        
+        .nav-button:nth-child(1) {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .nav-button:nth-child(1):hover:not(.active) {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .nav-button:nth-child(2) {
+            background: linear-gradient(135deg, #E6B94F 0%, #d97706 100%);
+        }
+        
+        .nav-button:nth-child(2):hover:not(.active) {
+            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3);
+        }
+        
+        .nav-button:nth-child(3) {
+            background: linear-gradient(135deg, #3368AE 0%, #1e40af 100%);
+        }
+        
+        .nav-button:nth-child(3):hover:not(.active) {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+        }
+        
+        .nav-button:nth-child(4) {
+            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+        }
+        
+        .nav-button:nth-child(4):hover:not(.active) {
+            background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+            box-shadow: 0 5px 15px rgba(236, 72, 153, 0.3);
+        }
+        
+        .nav-button:nth-child(5) {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+        }
+        
+        .nav-button:nth-child(5):hover:not(.active) {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            box-shadow: 0 5px 15px rgba(71, 85, 105, 0.3);
         }
         
         .btn {
             padding: 8px 16px;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 10px;
+            font-size: 15px;
             cursor: pointer;
             font-weight: 500;
             transition: all 0.3s ease;
@@ -1261,10 +1399,11 @@
     @media (hover: none) and (pointer: coarse) {
         body { padding: 5px; }
         .header { padding: 5px; }
+        .header h1 { font-size: 2.0em; margin-bottom: 0; }
         .comparison-container { border-radius: 20px; }
         .controls-bar { padding: 8px 12px; gap: 10px; }
-        .participant-dropdown { font-size: 13px; padding: 6px 10px; }
-        .btn { padding: 6px 12px; font-size: 13px; }
+        .participant-dropdown { font-size: 13px; padding: 6px 10px; border-radius: 8px; }
+        .btn { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
         /* Hide side info panels on touch for more space */
         .info-left, .info-right { display: none; }
     }
@@ -1273,10 +1412,11 @@
 <body>
     <div class="comparison-container">
         <div class="header">
-            <h1 style="font-size: 2.0em; margin-bottom: 0; font-weight: 300;">Forskelle og ligheder</h1>
+            <h1>Forskelle og ligheder</h1>
         </div>
         
         <div class="controls-bar">
+            <button class="nav-toggle-btn" onclick="toggleNavBox()" title="Navigation">☰</button>
             <div class="controls-divider"></div>
             
             <div class="dropdown-group">
@@ -3005,7 +3145,7 @@ function resetPose(side) {
                 setStatus('Skrev comparisonData for trait #' + traitIndex);
                 
                 // Open coaching overlay with compare_coaching.json
-                openCoachingOverlayFromFile('compare_coaching.json');
+                openCoachingOverlayFromFile('coaching_templates/compare_coaching.json');
             } catch (e) {
                 console.error('writeComparisonDataLeft error:', e);
             }
@@ -3065,7 +3205,7 @@ function resetPose(side) {
                 setStatus('Skrev comparisonData (højre) for trait #' + traitIndex);
                 
                 // Open coaching overlay with compare_coaching.json
-                openCoachingOverlayFromFile('compare_coaching.json');
+                openCoachingOverlayFromFile('coaching_templates/compare_coaching.json');
             } catch (e) {
                 console.error('writeComparisonDataRight error:', e);
             }
@@ -3867,7 +4007,61 @@ function adjustDistance(direction) {
 			document.getElementById('decreaseDistance').addEventListener('click', () => adjustDistance('decrease'));
             
             updateButtonStates();
+            
+            // Navigation overlay functionality
+            const navBox = document.getElementById('navBox');
+            
+            if (navBox) {
+                // Mark current page as active
+                const currentPage = 'compare_01.html';
+                const navButtons = document.querySelectorAll('.nav-button');
+                navButtons.forEach(btn => {
+                    if (btn.getAttribute('href') === currentPage || btn.textContent.trim() === 'Ligheder') {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+        });
+        
+        // Navigation overlay toggle function
+        function toggleNavBox() {
+            const navBox = document.getElementById('navBox');
+            const navToggleBtn = document.querySelector('.nav-toggle-btn');
+            
+            if (navBox && navToggleBtn) {
+                const isShowing = navBox.classList.contains('show');
+                if (isShowing) {
+                    navBox.classList.remove('show');
+                } else {
+                    // Position nav-box at top-left corner of toggle button
+                    const rect = navToggleBtn.getBoundingClientRect();
+                    navBox.style.top = rect.top + 'px';
+                    navBox.style.left = rect.left + 'px';
+                    navBox.classList.add('show');
+                }
+            }
+        }
+        
+        // Close nav box when clicking outside
+        document.addEventListener('click', function(e) {
+            const navBox = document.getElementById('navBox');
+            const navToggleBtn = document.querySelector('.nav-toggle-btn');
+            
+            if (navBox && navBox.classList.contains('show')) {
+                if (!navBox.contains(e.target) && e.target !== navToggleBtn) {
+                    navBox.classList.remove('show');
+                }
+            }
         });
     </script>
+    <!-- Navigation overlay -->
+    <div class="nav-overlay" id="navOverlay"></div>
+    <div class="nav-box" id="navBox">
+        <a href="opstilling_01.html" class="nav-button">Opstilling</a>
+        <a href="dialog_01.html" class="nav-button">Dialog</a>
+        <a href="compare_01.html" class="nav-button">Ligheder</a>
+        <a href="bodymap_01.html" class="nav-button">BodyMap</a>
+        <button class="nav-button" onclick="return false;">Logbog</button>
+    </div>
 </body>
 </html>

@@ -280,6 +280,14 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
  */
 function closeCoachingOverlay() {
     if (coachingOverlay) {
+        // Dispatch custom event before closing so pages can save data if needed
+        const closeEvent = new CustomEvent('coachingOverlayClosing', {
+            detail: {
+                engine: currentEngine
+            }
+        });
+        window.dispatchEvent(closeEvent);
+        
         coachingOverlay.overlay.remove();
         coachingOverlay = null;
         currentEngine = null;
@@ -1969,6 +1977,12 @@ function sendResponse(response) {
     
     debugLog('Sending response:', response);
     
+    // Save response to blackboard if this is a save type question
+    if (currentQuestion.type === 'save' && currentQuestion.saveAs) {
+        currentEngine.blackboard[currentQuestion.saveAs] = response;
+        debugLog('Saved response to blackboard:', currentQuestion.saveAs, '=', response);
+    }
+    
     // Add to transcript (prefer shadow root if available)
     const rootEl = (window.coachingOverlay && window.coachingOverlay.contentRoot) ? window.coachingOverlay.contentRoot : coachingOverlay.content;
     addToTranscript(rootEl, 'user', response);
@@ -2081,7 +2095,7 @@ function restartCoaching(contentElement) {
         }
 
         // Restart engine with same data source
-        const dataSource = window.currentDataSource || 'compare_coaching.json';
+        const dataSource = window.currentDataSource || 'coaching_templates/compare_coaching.json';
         startCoachingSession(contentElement, dataSource);
     } catch (e) {
         debugLog('Error restarting coaching:', e);
@@ -2262,6 +2276,14 @@ function makeDraggable(element, handle) {
  */
 function closeCoachingOverlay() {
     if (coachingOverlay) {
+        // Dispatch custom event before closing so pages can save data if needed
+        const closeEvent = new CustomEvent('coachingOverlayClosing', {
+            detail: {
+                engine: currentEngine
+            }
+        });
+        window.dispatchEvent(closeEvent);
+        
         if (coachingOverlay.overlay && coachingOverlay.overlay.parentNode) {
             coachingOverlay.overlay.parentNode.removeChild(coachingOverlay.overlay);
         }

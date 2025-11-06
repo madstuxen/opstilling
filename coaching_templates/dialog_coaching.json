@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "saved_at": "2025-10-28T14:16:34.903Z",
+  "session": {
+    "start_node": "start",
+    "nodes": [
+      {
+        "id": "start",
+        "type": "all",
+        "questions": [
+          "Hej {{You}}!\nJeg kan se at du har en dialog med {{Other}}. <<m>>"
+        ],
+        "next": "valg_knap"
+      },
+      {
+        "id": "valg_knap",
+        "type": "choice",
+        "next": "knap_logik",
+        "question": "Jeg kan hjælpe dig på følgende måder: <<knap_svar>>\n\n",
+        "items": [
+          "Tips",
+          "Samtaleemner"
+        ]
+      },
+      {
+        "id": "knap_logik",
+        "type": "branch",
+        "next": "",
+        "rules": "if {{knap_svar}} == Tips-> next:Generel_text\nelse -> next:Samtale_text"
+      },
+      {
+        "id": "Generel_text",
+        "type": "random",
+        "next": "aflsut",
+        "questions": [
+          "Hvis du gerne vil have samtalen til at flyde så start med at varme lidt op. Tal om noget der er nemt og ufarligt og gerne noget i har til fælles. <<m>>",
+          "Spørg ind til hvordan {{Other}} har det. <<m>>",
+          "Giv den anden tid til at svare. Det er jo dybest set dig selv der svarer men gå med på legen. <<m>>",
+          "Hvis {{Other}} står i en lukket pose, kan du måske skifte pose. Du kan også gøre din egen pose mere åben :) <<m>>",
+          "Held og lykke.<<m>>"
+        ]
+      },
+      {
+        "id": "Samtale_text",
+        "type": "random",
+        "questions": [
+          "Som opvarmning kan du snakke med {{Other}} om vejret, hvordan det går, om en fælles oplevelse i har haft.<<m>>",
+          "Prøv at spørge ind til noget som {{Other}} godt kan lide. <<m>>",
+          "Varm op med at spørge {{Other}} om det er ok at i snakker sammen. Måske vil {{Other}} bare lytte. <<m>>",
+          "Prøv at fortælle noget sårbart om dig selv, det er ofte en god måde at få andre til at åbne sig på og skaber tillid. <<m>>"
+        ],
+        "next": "aflsut"
+      },
+      {
+        "id": "aflsut",
+        "type": "all",
+        "questions": [
+          "Jeg håber du kunne bruge noget af det. Ellers sid lidt og vent og det kan være i skal snakke mere en anden dag.<<m>>"
+        ],
+        "next": ""
+      }
+    ]
+  },
+  "variables": {
+    "Data": "dialogData"
+  }
+}
