@@ -1505,6 +1505,26 @@
             const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
             if (!activeIndex) return;
             
+            // Get workspace actual size (scrollWidth/scrollHeight) to ensure SVG covers entire scrollable area
+            // We need to ensure workspace has content first, so we'll create SVG after initial content is added
+            // For now, use a minimum size that covers typical workspace dimensions
+            const minWorkspaceWidth = Math.max(workspace.offsetWidth || 1600, 1600);
+            const minWorkspaceHeight = Math.max(workspace.offsetHeight || 800, 800);
+            
+            // Create a single SVG container for all pointer lines
+            const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svgContainer.id = 'labelLinesSvg';
+            svgContainer.style.position = 'absolute';
+            svgContainer.style.left = '0';
+            svgContainer.style.top = '0';
+            svgContainer.style.width = minWorkspaceWidth + 'px';
+            svgContainer.style.height = minWorkspaceHeight + 'px';
+            svgContainer.style.pointerEvents = 'none';
+            svgContainer.style.zIndex = '15';
+            svgContainer.setAttribute('viewBox', `0 0 ${minWorkspaceWidth} ${minWorkspaceHeight}`);
+            svgContainer.setAttribute('preserveAspectRatio', 'none');
+            workspace.appendChild(svgContainer);
+            
             // Get the 6 layers to show (active + 5 older)
             const sortedIndexes = [...dataIndexes].sort((a, b) => a.id - b.id);
             const activePosition = sortedIndexes.findIndex(idx => idx.id === activeIndexId);
@@ -1514,13 +1534,22 @@
             const guideFigure = createGuideFigure();
             workspace.appendChild(guideFigure);
             
+            // Update SVG size after content is added to ensure it covers entire scrollable area
+            requestAnimationFrame(() => {
+                const workspaceWidth = workspace.scrollWidth || workspace.offsetWidth || minWorkspaceWidth;
+                const workspaceHeight = workspace.scrollHeight || workspace.offsetHeight || minWorkspaceHeight;
+                svgContainer.style.width = workspaceWidth + 'px';
+                svgContainer.style.height = workspaceHeight + 'px';
+                svgContainer.setAttribute('viewBox', `0 0 ${workspaceWidth} ${workspaceHeight}`);
+            });
+            
             // Render onion layers (oldest first so newest is on top)
             layersToShow.forEach((layerIndex, idx) => {
                 const layerNum = layersToShow.length - 1 - idx;
                 const isActive = layerIndex.id === activeIndexId;
                 // Always render active layer, only render onion layers if toggle is on
                 if (isActive || showOnionLayers) {
-                    renderOnionLayer(layerIndex, layerNum, workspace);
+                    renderOnionLayer(layerIndex, layerNum, workspace, svgContainer);
                 }
             });
         }
@@ -1668,7 +1697,7 @@
             }
         }
         
-        function renderOnionLayer(layerIndex, layerNum, workspace) {
+        function renderOnionLayer(layerIndex, layerNum, workspace, svgContainer) {
             // Calculate opacity and scale based on distance from active
             // First layer gets big jump, then linear
             const opacity = layerNum === 0 ? 1 : 0.6 - (layerNum - 1) * 0.1;
@@ -1677,6 +1706,7 @@
             const isActive = layerIndex.id === activeIndexId;
             
             // Get guide figure center for calculating displacement vector
+            // Use workspace coordinates (accounting for scroll)
             const guideFigure = workspace.querySelector('#guideFigure');
             let guideCenterX = 450; // Default
             let guideCenterY = 140;
@@ -1685,8 +1715,9 @@
                 if (torso) {
                     const rect = torso.getBoundingClientRect();
                     const workspaceRect = workspace.getBoundingClientRect();
-                    guideCenterX = rect.left - workspaceRect.left + rect.width / 2;
-                    guideCenterY = rect.top - workspaceRect.top + rect.height / 2;
+                    // Account for scroll offset when calculating position in workspace coordinates
+                    guideCenterX = rect.left - workspaceRect.left + workspace.scrollLeft + rect.width / 2;
+                    guideCenterY = rect.top - workspaceRect.top + workspace.scrollTop + rect.height / 2;
                 }
             }
             
@@ -1708,26 +1739,18 @@
                     const lineX2 = label.pointerX;
                     const lineY2 = label.pointerY;
                     
-                    // Create SVG line
-                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                    svg.style.position = 'absolute';
-                    svg.style.left = '0';
-                    svg.style.top = '0';
-                    svg.style.width = '100%';
-                    svg.style.height = '100%';
-                    svg.style.pointerEvents = 'none';
-                    svg.style.zIndex = '15';
-                    
-                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    line.setAttribute('x1', lineX1);
-                    line.setAttribute('y1', lineY1);
-                    line.setAttribute('x2', lineX2);
-                    line.setAttribute('y2', lineY2);
-                    line.setAttribute('stroke', '#a67c52');
-                    line.setAttribute('stroke-width', '2');
-                    line.setAttribute('data-label-id', label.id);
-                    svg.appendChild(line);
-                    workspace.appendChild(svg);
+                    // Use the shared SVG container for all lines
+                    if (svgContainer) {
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', lineX1);
+                        line.setAttribute('y1', lineY1);
+                        line.setAttribute('x2', lineX2);
+                        line.setAttribute('y2', lineY2);
+                        line.setAttribute('stroke', '#a67c52');
+                        line.setAttribute('stroke-width', '2');
+                        line.setAttribute('data-label-id', label.id);
+                        svgContainer.appendChild(line);
+                    }
                     
                     // Create draggable point
                     const point = document.createElement('div');
@@ -1742,19 +1765,31 @@
                     let isDragging = false;
                     point.addEventListener('mousedown', (e) => {
                         isDragging = true;
-                        const startX = e.clientX - label.pointerX;
-                        const startY = e.clientY - label.pointerY;
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        // Calculate initial offset in workspace coordinates
+                        const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
+                        const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
+                        const startX = cursorX - label.pointerX;
+                        const startY = cursorY - label.pointerY;
                         
                         const onMouseMove = (e) => {
                             if (!isDragging) return;
-                            label.pointerX = e.clientX - startX;
-                            label.pointerY = e.clientY - startY;
+                            // Convert cursor position to workspace coordinates
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            label.pointerX = e.clientX - workspaceRect.left + workspace.scrollLeft - startX;
+                            label.pointerY = e.clientY - workspaceRect.top + workspace.scrollTop - startY;
                             point.style.left = label.pointerX + 'px';
                             point.style.top = label.pointerY + 'px';
                             
-                            // Update line
-                            line.setAttribute('x2', label.pointerX);
-                            line.setAttribute('y2', label.pointerY);
+                            // Update line in SVG container
+                            const svgContainer = workspace.querySelector('#labelLinesSvg');
+                            if (svgContainer) {
+                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                                if (svgLine) {
+                                    svgLine.setAttribute('x2', label.pointerX);
+                                    svgLine.setAttribute('y2', label.pointerY);
+                                }
+                            }
                             e.preventDefault();
                         };
                         
@@ -1785,21 +1820,33 @@
                         if (!e.touches || e.touches.length === 0) return;
                         isDragging = true;
                         const touch = e.touches[0];
-                        const startX = touch.clientX - label.pointerX;
-                        const startY = touch.clientY - label.pointerY;
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        // Calculate initial offset in workspace coordinates
+                        const cursorX = touch.clientX - workspaceRect.left + workspace.scrollLeft;
+                        const cursorY = touch.clientY - workspaceRect.top + workspace.scrollTop;
+                        const startX = cursorX - label.pointerX;
+                        const startY = cursorY - label.pointerY;
 
                         const onTouchMove = (ev) => {
                             if (!isDragging) return;
                             const touch = ev.touches && ev.touches[0];
                             if (!touch) return;
-                            label.pointerX = touch.clientX - startX;
-                            label.pointerY = touch.clientY - startY;
+                            // Convert cursor position to workspace coordinates
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            label.pointerX = touch.clientX - workspaceRect.left + workspace.scrollLeft - startX;
+                            label.pointerY = touch.clientY - workspaceRect.top + workspace.scrollTop - startY;
                             point.style.left = label.pointerX + 'px';
                             point.style.top = label.pointerY + 'px';
                             
-                            // Update line
-                            line.setAttribute('x2', label.pointerX);
-                            line.setAttribute('y2', label.pointerY);
+                            // Update line in SVG container
+                            const svgContainer = workspace.querySelector('#labelLinesSvg');
+                            if (svgContainer) {
+                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                                if (svgLine) {
+                                    svgLine.setAttribute('x2', label.pointerX);
+                                    svgLine.setAttribute('y2', label.pointerY);
+                                }
+                            }
                             ev.preventDefault();
                         };
 
@@ -1944,21 +1991,30 @@
                     // Only don't drag when clicking on the input itself or delete button
                     if (e.target === inputEl || e.target === deleteBtn) return;
                     isDragging = true;
-                    const startX = e.clientX - label.x;
-                    const startY = e.clientY - label.y;
+                    const workspaceRect = workspace.getBoundingClientRect();
+                    // Calculate initial offset in workspace coordinates
+                    const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
+                    const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
+                    const startX = cursorX - label.x;
+                    const startY = cursorY - label.y;
                     
                     const onMouseMove = (e) => {
                         if (!isDragging) return;
-                        label.x = e.clientX - startX;
-                        label.y = e.clientY - startY;
+                        // Convert cursor position to workspace coordinates
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - startX;
+                        label.y = e.clientY - workspaceRect.top + workspace.scrollTop - startY;
                         container.style.left = label.x + 'px';
                         container.style.top = label.y + 'px';
                         
                         // Update line if it exists
-                        const svgLine = workspace.querySelector(`svg line[data-label-id="${label.id}"]`);
-                        if (svgLine) {
-                            svgLine.setAttribute('x1', label.x + offsetX);
-                            svgLine.setAttribute('y1', label.y + offsetY);
+                        const svgContainer = workspace.querySelector('#labelLinesSvg');
+                        if (svgContainer) {
+                            const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                            if (svgLine) {
+                                svgLine.setAttribute('x1', label.x + offsetX);
+                                svgLine.setAttribute('y1', label.y + offsetY);
+                            }
                         }
                     };
                     
@@ -1993,23 +2049,32 @@
                     if (!e.touches || e.touches.length === 0) return;
                     isDragging = true;
                     const t = e.touches[0];
-                    const startX = t.clientX - label.x;
-                    const startY = t.clientY - label.y;
+                    const workspaceRect = workspace.getBoundingClientRect();
+                    // Calculate initial offset in workspace coordinates
+                    const cursorX = t.clientX - workspaceRect.left + workspace.scrollLeft;
+                    const cursorY = t.clientY - workspaceRect.top + workspace.scrollTop;
+                    const startX = cursorX - label.x;
+                    const startY = cursorY - label.y;
 
                     const onTouchMove = (ev) => {
                         if (!isDragging) return;
                         const touch = ev.touches && ev.touches[0];
                         if (!touch) return;
-                        label.x = touch.clientX - startX;
-                        label.y = touch.clientY - startY;
+                        // Convert cursor position to workspace coordinates
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        label.x = touch.clientX - workspaceRect.left + workspace.scrollLeft - startX;
+                        label.y = touch.clientY - workspaceRect.top + workspace.scrollTop - startY;
                         container.style.left = label.x + 'px';
                         container.style.top = label.y + 'px';
                         
                         // Update line if it exists
-                        const svgLine = workspace.querySelector(`svg line[data-label-id="${label.id}"]`);
-                        if (svgLine) {
-                            svgLine.setAttribute('x1', label.x + offsetX);
-                            svgLine.setAttribute('y1', label.y + offsetY);
+                        const svgContainer = workspace.querySelector('#labelLinesSvg');
+                        if (svgContainer) {
+                            const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                            if (svgLine) {
+                                svgLine.setAttribute('x1', label.x + offsetX);
+                                svgLine.setAttribute('y1', label.y + offsetY);
+                            }
                         }
                         
                         ev.preventDefault();
@@ -2399,6 +2464,7 @@
             const workspace = document.getElementById('workspace');
             
             // Get torso center for label placement and pointer calculation
+            // Use workspace coordinates (accounting for scroll)
             const guideFigure = workspace.querySelector('#guideFigure');
             let guideCenterX = 450; // Default fallback
             let guideCenterY = 140;
@@ -2407,8 +2473,9 @@
                 if (torso) {
                     const rect = torso.getBoundingClientRect();
                     const workspaceRect = workspace.getBoundingClientRect();
-                    guideCenterX = rect.left - workspaceRect.left + rect.width / 2;
-                    guideCenterY = rect.top - workspaceRect.top + rect.height / 2;
+                    // Account for scroll offset when calculating position in workspace coordinates
+                    guideCenterX = rect.left - workspaceRect.left + workspace.scrollLeft + rect.width / 2;
+                    guideCenterY = rect.top - workspaceRect.top + workspace.scrollTop + rect.height / 2;
                 }
             }
             

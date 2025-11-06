@@ -286,12 +286,29 @@
         
         .workspace {
             height: 600px;
+            max-height: 600px;
+            min-height: 600px;
+            width: 100%;
+            max-width: 1600px;
+            min-width: 0;
             position: relative;
             background: #fafafa;
             overflow: auto;
             cursor: crosshair;
             touch-action: auto;
             -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
+            /* Force workspace to respect max-width and not grow with viewport */
+            display: block;
+        }
+        
+        /* Create a fixed-size scrollable content area */
+        .workspace-content {
+            position: relative;
+            width: 1600px;
+            height: 600px;
+            min-width: 1600px;
+            min-height: 600px;
         }
         
         .background-layer {
@@ -1252,9 +1269,15 @@
 		}
 		.workspace {
 			height: 65vh;
+			max-height: 65vh;
+			min-height: 65vh;
+			width: 100%;
+			max-width: 100%;
+			min-width: 0;
 			overflow: auto;
 			-webkit-overflow-scrolling: touch;
 			touch-action: pan-x pan-y;
+			box-sizing: border-box;
 		}
 		.notes-title h3 { font-size: 16px; }
 		.groups-section h4, .keywords-section h4, .notes-container h4 { font-size: 14px; }
@@ -1322,8 +1345,10 @@
         </div>
         
         <div class="workspace" id="workspace">
-            <div class="background-layer" id="backgroundLayer"></div>
-            <div class="background-labels" id="backgroundLabels"></div>
+            <div class="workspace-content">
+                <div class="background-layer" id="backgroundLayer"></div>
+                <div class="background-labels" id="backgroundLabels"></div>
+            </div>
         </div>
         
         <div class="notes-title">
@@ -2832,12 +2857,13 @@ function closeKeywordsPopup() {
                 // No validation - allow empty names
                 
                 const workspace = document.getElementById('workspace');
+                const workspaceContent = workspace.querySelector('.workspace-content');
                 const part = document.createElement('div');
                 part.className = 'part';
                 partCounter++;
                 
-                const posX = x !== null ? x : Math.random() * (workspace.offsetWidth - 120);
-                const posY = y !== null ? y : Math.random() * (workspace.offsetHeight - 120);
+                const posX = x !== null ? x : Math.random() * (workspaceContent.offsetWidth - 120);
+                const posY = y !== null ? y : Math.random() * (workspaceContent.offsetHeight - 120);
                 
                 part.style.left = posX + 'px';
                 part.style.top = posY + 'px';
@@ -3000,7 +3026,7 @@ function closeKeywordsPopup() {
                 colorBtn.addEventListener('click', (e) => { e.stopPropagation(); changeColor(colorBtn); });
                 poseBtn.addEventListener('click', (e) => { e.stopPropagation(); openPosePicker(poseBtn); });
 				
-                workspace.appendChild(part);
+                workspaceContent.appendChild(part);
 				resetPose(part);
 				
 				// Update shared data
@@ -3303,12 +3329,14 @@ function closeKeywordsPopup() {
                 let newY = cursorY - offset.y;
 
                 // Fixed-margin clamp based on part's top-left (independent of size)
+                // Use workspace-content for size calculations to prevent workspace growth
+                const workspaceContent = workspace.querySelector('.workspace-content');
                 const minLeft = 1;   // target approx left edge
                 const minTop  = 6;   // target approx top edge
-                const rightMargin = 86; // workspace.width - maxLeft (≈1600-1514)
-                const bottomMargin = 78; // workspace.height - maxTop (≈600-522)
-                const maxLeft = workspace.scrollWidth - rightMargin;
-                const maxTop  = workspace.scrollHeight - bottomMargin;
+                const rightMargin = 86; // workspace-content.width - maxLeft (≈1600-1514)
+                const bottomMargin = 78; // workspace-content.height - maxTop (≈600-522)
+                const maxLeft = workspaceContent.offsetWidth - rightMargin;
+                const maxTop  = workspaceContent.offsetHeight - bottomMargin;
 
                 newX = Math.max(minLeft, Math.min(newX, maxLeft));
                 newY = Math.max(minTop,  Math.min(newY, maxTop));
@@ -3382,7 +3410,8 @@ function closeKeywordsPopup() {
                 
                 // Clear existing parts but preserve groups
                 const workspace = document.getElementById('workspace');
-                workspace.innerHTML = `
+                const workspaceContent = workspace.querySelector('.workspace-content');
+                workspaceContent.innerHTML = `
                     <div class="background-layer" id="backgroundLayer"></div>
                     <div class="background-labels" id="backgroundLabels"></div>
                 `;
@@ -3673,7 +3702,8 @@ function closeKeywordsPopup() {
         function clearAll() {
             try {
                 const workspace = document.getElementById('workspace');
-                workspace.innerHTML = `
+                const workspaceContent = workspace.querySelector('.workspace-content');
+                workspaceContent.innerHTML = `
                     <div class="background-layer" id="backgroundLayer"></div>
                     <div class="background-labels" id="backgroundLabels"></div>
                 `;
@@ -4039,10 +4069,11 @@ function closeKeywordsPopup() {
             if (backgroundLabels) backgroundLabels.style.display = 'none';
         }
         
-        // Modern-screenshot
-        modernScreenshot.domToPng(workspace, {
-            width: workspace.offsetWidth,
-            height: workspace.offsetHeight,
+        // Modern-screenshot - use workspace-content for export
+        const workspaceContent = workspace.querySelector('.workspace-content');
+        modernScreenshot.domToPng(workspaceContent, {
+            width: workspaceContent.offsetWidth,
+            height: workspaceContent.offsetHeight,
             scale: 2,
 			quality: 1 
 			
