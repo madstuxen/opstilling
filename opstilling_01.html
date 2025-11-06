@@ -1930,27 +1930,49 @@ async function loadPoseLibrary() {
     const currentMirror = currentPosePart.getAttribute('data-mirror') === 'true';
     document.getElementById('posePickerMirror').checked = currentMirror;
     
-    // Show modal
-    const btnRect = btn.getBoundingClientRect();
+    // Show modal first so we can get accurate dimensions
     modal.classList.add('show');
     
     // Position picker
     picker.style.position = 'absolute';
-    picker.style.left = (btnRect.right + 10) + 'px';
     
-    // Adjust if goes off screen
-    const pickerRect = picker.getBoundingClientRect();
-    // Center vertically with button
-    picker.style.top = (btnRect.top + btnRect.height / 2 - pickerRect.height / 2) + 'px';
-    if (pickerRect.right > window.innerWidth) {
-        picker.style.left = (btnRect.left - pickerRect.width - 10) + 'px';
-    }
-    if (pickerRect.top < 0) {
-        picker.style.top = '10px';
-    }
-    if (pickerRect.bottom > window.innerHeight) {
-        picker.style.top = (window.innerHeight - pickerRect.height - 10) + 'px';
-    }
+    // Get button dimensions
+    const btnRect = btn.getBoundingClientRect();
+    
+    // Use requestAnimationFrame to ensure element is rendered before getting dimensions
+    requestAnimationFrame(() => {
+        // Get picker dimensions (use offsetHeight/offsetWidth for accurate size)
+        const pickerHeight = picker.offsetHeight;
+        const pickerWidth = picker.offsetWidth;
+        
+        // Calculate button center
+        const btnCenterY = btnRect.top + btnRect.height / 2;
+        
+        // Position picker to the right of button, centered vertically
+        // Use larger offset (50px) so user can see the figure being posed
+        let pickerLeft = btnRect.right + 50;
+        let pickerTop = btnCenterY - pickerHeight / 2;
+        
+        // Adjust if goes off screen to the right
+        if (pickerLeft + pickerWidth > window.innerWidth) {
+            // If on left side, move further left (50px) so user can see the figure
+            pickerLeft = btnRect.left - pickerWidth - 50;
+        }
+        
+        // Adjust if goes off screen at top
+        if (pickerTop < 0) {
+            pickerTop = 10;
+        }
+        
+        // Adjust if goes off screen at bottom
+        if (pickerTop + pickerHeight > window.innerHeight) {
+            pickerTop = window.innerHeight - pickerHeight - 10;
+        }
+        
+        // Apply final position
+        picker.style.left = pickerLeft + 'px';
+        picker.style.top = pickerTop + 'px';
+    });
 }
 
 function populatePoseGrid() {
@@ -2185,28 +2207,49 @@ function closeKeywordsPopup() {
             const modal = document.getElementById('colorPickerModal');
             const picker = modal.querySelector('.picker');
 
-            // Beregn position ved siden af knappen
+            // Get button dimensions
             const btnRect = btn.getBoundingClientRect();
 
-            // Vis modal først så vi kan beregne picker størrelse
+            // Show modal first so we can get accurate dimensions
             modal.classList.add('show');
 
-            // Positioner picker ved siden af knappen
+            // Position picker
             picker.style.position = 'absolute';
-            picker.style.left = (btnRect.right + 10) + 'px';
-            picker.style.top = (btnRect.top - 20) + 'px';
 
-            // Sørg for at picker ikke går uden for skærmen
-            const pickerRect = picker.getBoundingClientRect();
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
+            // Use requestAnimationFrame to ensure element is rendered before getting dimensions
+            requestAnimationFrame(() => {
+                // Get picker dimensions (use offsetHeight/offsetWidth for accurate size)
+                const pickerHeight = picker.offsetHeight;
+                const pickerWidth = picker.offsetWidth;
 
-            if (pickerRect.right > viewportWidth) {
-                picker.style.left = (btnRect.left - pickerRect.width - 10) + 'px';
-            }
-            if (pickerRect.bottom > viewportHeight) {
-                picker.style.top = (btnRect.bottom - pickerRect.height - 10) + 'px';
-            }
+                // Calculate button center
+                const btnCenterY = btnRect.top + btnRect.height / 2;
+
+                // Position picker to the right of button, centered vertically
+                // Use larger offset (50px) so user can see the figure being colored
+                let pickerLeft = btnRect.right + 50;
+                let pickerTop = btnCenterY - pickerHeight / 2;
+
+                // Adjust if goes off screen to the right
+                if (pickerLeft + pickerWidth > window.innerWidth) {
+                    // If on left side, move further left (50px) so user can see the figure
+                    pickerLeft = btnRect.left - pickerWidth - 50;
+                }
+
+                // Adjust if goes off screen at top
+                if (pickerTop < 0) {
+                    pickerTop = 10;
+                }
+
+                // Adjust if goes off screen at bottom
+                if (pickerTop + pickerHeight > window.innerHeight) {
+                    pickerTop = window.innerHeight - pickerHeight - 10;
+                }
+
+                // Apply final position
+                picker.style.left = pickerLeft + 'px';
+                picker.style.top = pickerTop + 'px';
+            });
         }
         
         function closeColorPicker() {
@@ -3166,9 +3209,20 @@ function closeKeywordsPopup() {
 					
 					draggedElement.classList.add('dragging');
 					
-					const rect = draggedElement.getBoundingClientRect();
-					offset.x = e.clientX - rect.left;
-					offset.y = e.clientY - rect.top;
+					const workspace = document.getElementById('workspace');
+					const workspaceRect = workspace.getBoundingClientRect();
+					
+					// Get current element position in workspace coordinates
+					const elementLeft = parseFloat(draggedElement.style.left) || 0;
+					const elementTop = parseFloat(draggedElement.style.top) || 0;
+					
+					// Calculate cursor position in workspace coordinates (accounting for scroll)
+					const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
+					const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
+					
+					// Calculate offset in workspace coordinates
+					offset.x = cursorX - elementLeft;
+					offset.y = cursorY - elementTop;
 					
 					// Initialize simple drag state
 					dragState = {
@@ -3240,16 +3294,21 @@ function closeKeywordsPopup() {
                     }, 200);
                 }
                 
-                let newX = e.clientX - workspaceRect.left - offset.x;
-                let newY = e.clientY - workspaceRect.top - offset.y;
+                // Calculate cursor position in workspace coordinates (accounting for scroll)
+                const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
+                const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
+                
+                // Calculate new position in workspace coordinates
+                let newX = cursorX - offset.x;
+                let newY = cursorY - offset.y;
 
                 // Fixed-margin clamp based on part's top-left (independent of size)
                 const minLeft = 1;   // target approx left edge
                 const minTop  = 6;   // target approx top edge
                 const rightMargin = 86; // workspace.width - maxLeft (≈1600-1514)
                 const bottomMargin = 78; // workspace.height - maxTop (≈600-522)
-                const maxLeft = workspace.offsetWidth - rightMargin;
-                const maxTop  = workspace.offsetHeight - bottomMargin;
+                const maxLeft = workspace.scrollWidth - rightMargin;
+                const maxTop  = workspace.scrollHeight - bottomMargin;
 
                 newX = Math.max(minLeft, Math.min(newX, maxLeft));
                 newY = Math.max(minTop,  Math.min(newY, maxTop));
