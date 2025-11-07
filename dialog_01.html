@@ -1148,17 +1148,10 @@
             
             <div class="controls-divider"></div>
             
-            <button class="btn start-btn" id="startBtn" disabled>Start Dialog</button>
-            <button class="btn" id="loadBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs Dialog</button>
-            <button class="btn continue-btn" id="continueBtn" disabled>Fortsæt Dialog</button>
-            <button class="btn play-btn" id="playBtn" disabled>Afspil</button>
-            <button class="btn pause-btn" id="pauseBtn" disabled style="display: none;">Pause</button>
-            <button class="btn step-btn" id="nextBtn" disabled>Næste</button>
-            <button class="btn" id="copyBtn" disabled style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white;">Kopier Dialog</button>
-			<button class="btn" id="saveBtn" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white;">Gem Dialog</button>
-            <button class="btn clear-btn">Ryd Alt</button>
-            <button class="btn back-btn" onclick="confirmBackToOpstilling()">Tilbage til Opstilling</button>
-			
+            <button class="btn save-btn" id="saveBtn" disabled>Gem Dialog</button>
+            <button class="btn load-btn" id="loadDialogBtn" disabled>Indlæs Dialog</button>
+            <button class="btn random-btn" id="randomBtn" disabled>Random</button>
+            <button class="btn clear-btn" id="clearBtn">Ryd Alt</button>
         </div>
         
         <div class="status" id="status">Vælg to dele og start dialog</div>
@@ -3589,12 +3582,6 @@ if (rightPoseDropdown && rightPart.pose) {
                 messageId: messageId,
                 timestamp: timestamp
             });
-        }
-
-        function confirmBackToOpstilling() {
-            if (confirm('Brug "Gem Dialog" hvis du vil beholde dit arbejde.\n\nVil du fortsætte til Relations Opstilling?')) {
-                window.location.href = 'opstilling_01.html';
-            }
         }
 
         document.addEventListener('DOMContentLoaded', async function() {
