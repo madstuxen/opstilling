@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>Forside</title>
     <script src="coaching_engine.js" defer></script>
     <script src="coaching_overlay_complete.js" defer></script>
@@ -534,7 +535,7 @@
             <a href="dialog_01.html" class="nav-button">Dialog</a>
             <a href="compare_01.html" class="nav-button">Ligheder</a>
             <a href="bodymap_01.html" class="nav-button">BodyMap</a>
-            <button class="nav-button" onclick="return false;">Logbog</button>
+            <a href="logbog_01.html" class="nav-button">Logbog</a>
         </div>
     </div>
     
@@ -1054,6 +1055,17 @@
                         const navBox = document.getElementById('navBox');
                         if (navBox) {
                             navBox.classList.add('show');
+                            const navLinks = navBox.querySelectorAll('a.nav-button');
+                            navLinks.forEach(link => {
+                                link.addEventListener('click', (linkEvent) => {
+                                    linkEvent.stopPropagation();
+                                    navBox.classList.remove('show');
+                                    const href = link.getAttribute('href');
+                                    if (href) {
+                                        window.location.href = href;
+                                    }
+                                });
+                            });
                         }
                     }, 300);
                 });
