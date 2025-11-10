@@ -943,21 +943,6 @@
             outline-offset: 1px;
         }
         
-        @media (max-width: 768px) {
-            .controls-bar {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .dropdown-group {
-                order: -1;
-            }
-            
-            .controls-divider {
-                display: none;
-            }
-        }
-		
 		/* Pose Picker Styles */
 .pose-picker-modal {
     position: fixed;
@@ -1139,25 +1124,23 @@
             <div class="controls-divider"></div>
             
             <div class="dropdown-group">
-                <span class="dropdown-label">Venstre del:</span>
                 <select class="participant-dropdown" id="leftDropdown"></select>
             </div>
             
             <div class="dropdown-group">
-                <span class="dropdown-label">Højre del:</span>
                 <select class="participant-dropdown" id="rightDropdown"></select>
             </div>
             
             <div class="controls-divider"></div>
             
             <button class="btn start-btn" id="startBtn" disabled>Start Dialog</button>
-            <button class="btn" id="loadBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs Dialog</button>
-            <button class="btn continue-btn" id="continueBtn" disabled>Fortsæt Dialog</button>
+            <button class="btn" id="loadBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs</button>
+            <button class="btn continue-btn" id="continueBtn" disabled>Fortsæt</button>
             <button class="btn play-btn" id="playBtn" disabled>Afspil</button>
             <button class="btn pause-btn" id="pauseBtn" disabled style="display: none;">Pause</button>
             <button class="btn step-btn" id="nextBtn" disabled>Næste</button>
-            <button class="btn" id="copyBtn" disabled style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white;">Kopier Dialog</button>
-            <button class="btn save-btn" id="saveBtn" disabled>Gem Dialog</button>
+            <button class="btn" id="copyBtn" disabled style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white;">Kopier</button>
+            <button class="btn save-btn" id="saveBtn" disabled>Gem</button>
             <button class="btn clear-btn" id="clearBtn">Ryd Alt</button>
         </div>
         
@@ -2372,10 +2355,10 @@ function resetPose(side) {
             leftDropdown.innerHTML = '';
             rightDropdown.innerHTML = '';
             
-            [leftDropdown, rightDropdown].forEach(dropdown => {
+            [leftDropdown, rightDropdown].forEach((dropdown, index) => {
                 const defaultOption = document.createElement('option');
                 defaultOption.value = '';
-                defaultOption.textContent = 'Vælg del...';
+                defaultOption.textContent = index === 0 ? 'Venstre del...' : 'Højre del...';
                 dropdown.appendChild(defaultOption);
             });
             

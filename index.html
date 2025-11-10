@@ -188,6 +188,101 @@
             background: linear-gradient(135deg, #475569 0%, #334155 100%);
             box-shadow: 0 5px 15px rgba(71, 85, 105, 0.3);
         }
+
+        .night-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9990;
+        }
+
+        .night-overlay.show {
+            display: flex;
+        }
+
+        .night-overlay-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .night-overlay-panel {
+            position: relative;
+            z-index: 1;
+            width: min(90vw, 480px);
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(124, 58, 237, 0.16) 100%);
+            border: 1px solid rgba(124, 58, 237, 0.35);
+            border-radius: 22px;
+            padding: 28px 30px;
+            box-shadow: 0 24px 50px rgba(15, 23, 42, 0.45);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            min-height: 560px;
+        }
+
+        .night-overlay-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .night-overlay-header h2 {
+            font-size: 1.25rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #f472b6;
+        }
+
+        .night-overlay-close {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(244, 114, 182, 0.85);
+            color: #1f1026;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .night-overlay-close:hover {
+            transform: scale(1.08);
+            background: rgba(244, 114, 182, 1);
+        }
+
+        .night-overlay textarea {
+            width: 100%;
+            min-height: 450px;
+            border-radius: 14px;
+            border: 1px solid rgba(124, 58, 237, 0.35);
+            background: rgba(23, 23, 35, 0.82);
+            color: rgba(231, 214, 226, 0.72);
+            padding: 18px;
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: vertical;
+            font-family: 'Arial', sans-serif;
+            box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.12);
+        }
+
+        .night-overlay textarea::placeholder {
+            color: rgba(226, 232, 240, 0.6);
+        }
+
+        .night-overlay textarea:focus {
+            outline: none;
+            border-color: rgba(167, 139, 250, 0.75);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
+            background: rgba(23, 23, 35, 0.9);
+        }
         
         /* Figure container */
         .figure-container {
@@ -538,6 +633,17 @@
             <a href="logbog_01.html" class="nav-button">Logbog</a>
         </div>
     </div>
+
+<div class="night-overlay" id="nightOverlay">
+    <div class="night-overlay-backdrop"></div>
+    <div class="night-overlay-panel">
+        <div class="night-overlay-header">
+            <h2>Drømme</h2>
+            <button class="night-overlay-close" id="nightOverlayClose" title="Luk">×</button>
+        </div>
+        <textarea id="nightDreamEntry" placeholder="Nedskriv dine drømme, fantasier og indskydelser ..."></textarea>
+    </div>
+</div>
     
     <script>
         // Animations library
@@ -1015,10 +1121,90 @@
                 saveCheckinData(event.detail.engine);
             }
         });
+
+    const LOGBOOK_STORAGE_KEY = 'logbogData';
+
+    function getTodayDateKey() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    function getLogbookEntries() {
+        try {
+            const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+            console.warn('Kunne ikke læse logbogData:', error);
+            return [];
+        }
+    }
+
+    function saveLogbookEntries(entries) {
+        try {
+            localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
+        } catch (error) {
+            console.error('Kunne ikke gemme logbogData:', error);
+        }
+    }
+
+    function upsertLogEntry(dateKey, partial) {
+        const entries = getLogbookEntries();
+        let entry = entries.find(item => item.date === dateKey);
+        if (!entry) {
+            entry = {
+                date: dateKey,
+                dagbog: '',
+                dreams: ''
+            };
+            entries.push(entry);
+        }
+        Object.assign(entry, partial);
+        saveLogbookEntries(entries);
+        return entry;
+    }
+
+    function ensureTodayLogEntry() {
+        const todayKey = getTodayDateKey();
+        const entries = getLogbookEntries();
+        let entry = entries.find(item => item.date === todayKey);
+        if (!entry) {
+            entry = {
+                date: todayKey,
+                dagbog: '',
+                dreams: ''
+            };
+            entries.push(entry);
+            saveLogbookEntries(entries);
+        }
+        return entry;
+    }
+
+    function hydrateNightOverlay() {
+        const overlay = document.getElementById('nightOverlay');
+        const textarea = document.getElementById('nightDreamEntry');
+        const closeBtn = document.getElementById('nightOverlayClose');
+
+        if (!overlay || !textarea || !closeBtn) return;
+
+        const entry = ensureTodayLogEntry();
+        textarea.value = entry.dreams || '';
+
+        textarea.addEventListener('input', () => {
+            upsertLogEntry(getTodayDateKey(), { dreams: textarea.value });
+        });
+
+        closeBtn.addEventListener('click', () => {
+            overlay.classList.remove('show');
+        });
+
+        overlay.classList.add('show');
+    }
         
         // Make logo container clickable - shows navigation box and opens coaching overlay
         document.addEventListener('DOMContentLoaded', () => {
             const logoContainer = document.getElementById('logoContainer');
+        hydrateNightOverlay();
             
             if (logoContainer) {
                 logoContainer.addEventListener('click', (e) => {

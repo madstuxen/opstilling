@@ -1134,7 +1134,7 @@
                 createNewIndex();
             }
             // Load history sidebar collapsed state
-            const isCollapsed = localStorage.getItem('historySidebarCollapsed') === 'true';
+            const isCollapsed = localStorage.getItem('body_historySidebarCollapsed') === 'true';
             const sidebar = document.getElementById('historySidebar');
             if (sidebar) {
                 const toggleBtn = sidebar.querySelector('.collapse-toggle');
@@ -1396,7 +1396,7 @@
             sidebar.classList.toggle('collapsed');
             // Save state to localStorage
             const isCollapsed = sidebar.classList.contains('collapsed');
-            localStorage.setItem('historySidebarCollapsed', isCollapsed);
+            localStorage.setItem('body_historySidebarCollapsed', isCollapsed);
             // Update arrow direction: > when expanded, < when collapsed
             toggleBtn.textContent = isCollapsed ? '<' : '>';
         }

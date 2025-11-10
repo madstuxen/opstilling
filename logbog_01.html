@@ -175,9 +175,10 @@
 
         .content {
             padding: 24px;
-            display: grid;
-            grid-template-columns: 1fr;
+            display: flex;
+            flex-direction: column;
             gap: 24px;
+            width: 100%;
         }
 
         .card {
@@ -185,6 +186,214 @@
             border-radius: 18px;
             padding: 20px 24px;
             box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+        }
+
+        .log-layout {
+            position: relative;
+            display: block;
+        }
+
+        .log-primary {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            width: 100%;
+            padding-right: 24px;
+        }
+
+        .log-history-sidebar {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 260px;
+            height: 100%;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+            z-index: 5;
+        }
+
+        .log-history-sidebar.collapsed {
+            transform: translateX(230px);
+        }
+
+        .log-history-header {
+            background: #e2e8f0;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 600;
+            color: #374151;
+            position: relative;
+        }
+
+        .log-history-sidebar.collapsed .log-history-header {
+            justify-content: center;
+        }
+
+        .log-history-sidebar.collapsed .log-history-header span {
+            display: none;
+        }
+
+        .log-collapse-toggle {
+            position: absolute;
+            left: 8px;
+            top: 8px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            z-index: 100;
+            padding: 0;
+        }
+
+        .log-collapse-toggle:hover {
+            background: #4338ca;
+            transform: scale(1.1);
+        }
+
+        .log-collapse-toggle-bottom {
+            top: auto;
+            bottom: 8px;
+        }
+
+        .log-history-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .log-history-sidebar.collapsed .log-history-content {
+            display: none;
+        }
+
+        .log-history-navigation {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #e2e8f0;
+            border-bottom: 1px solid #d1d5db;
+        }
+
+        .log-nav-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            border: none;
+            background: white;
+            cursor: pointer;
+            font-size: 0;
+            color: black;
+            transition: all 0.2s;
+            position: relative;
+            padding: 0;
+        }
+
+        .log-nav-btn::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .log-nav-btn#logHistoryPrev::before {
+            border-top: 12px solid black;
+            border-bottom: none;
+        }
+
+        .log-nav-btn#logHistoryNext::before {
+            border-bottom: 12px solid black;
+            border-top: none;
+        }
+
+        .log-nav-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .log-nav-btn:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+
+        .log-history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            padding-bottom: 60px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .log-history-item {
+            padding: 12px;
+            border-radius: 14px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+        }
+
+        .log-history-item:hover {
+            transform: translateX(-2px);
+            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+        }
+
+        .log-history-item.active {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 12px 22px rgba(79, 70, 229, 0.25);
+        }
+
+        .log-history-item-date {
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-transform: capitalize;
+        }
+
+        .log-history-item-weekday {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .log-history-item-snippet {
+            font-size: 0.82rem;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+
+        .log-history-item-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            opacity: 0.7;
         }
 
         .activities-card {
@@ -200,6 +409,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
+            padding-left: 18px;
         }
 
         .card-title span {
@@ -210,8 +420,9 @@
 
         .activities-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, 200px);
             gap: 16px;
+            justify-content: center;
         }
 
         .activity-link {
@@ -230,6 +441,7 @@
             gap: 10px;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 200px;
         }
 
         .activity-tile::after {
@@ -240,12 +452,35 @@
             mix-blend-mode: screen;
         }
 
+        .activity-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
         .activity-label {
-            font-size: 0.75rem;
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 1.1rem;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.8;
+            line-height: 1.3;
+            text-transform: none;
+            letter-spacing: 0.02em;
+            opacity: 1;
+        }
+
+        .activity-time {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            opacity: 0.85;
+            white-space: nowrap;
+        }
+
+        .activity-time svg {
+            flex-shrink: 0;
         }
 
         .activity-tile:hover {
@@ -253,15 +488,9 @@
             box-shadow: 0 18px 30px rgba(15, 23, 42, 0.25);
         }
 
-        .activity-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            line-height: 1.3;
-        }
-
         .activity-meta {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 8px;
             font-size: 0.85rem;
             opacity: 0.85;
@@ -299,7 +528,7 @@
 
         .journal-entry label,
         .dreams-entry label {
-            font-size: 0.9rem;
+            font-size: 1.25rem;
             font-weight: 600;
             color: #475569;
             text-transform: uppercase;
@@ -319,6 +548,8 @@
             font-size: 1rem;
             line-height: 1.6;
             resize: vertical;
+            overflow-y: auto;
+            max-height: 620px;
         }
 
         .journal-entry textarea:focus {
@@ -345,7 +576,7 @@
         }
 
         .dreams-title {
-            font-size: 0.95rem;
+            font-size: 1.25rem;
             font-weight: 600;
             color: #475569;
             text-transform: uppercase;
@@ -371,29 +602,31 @@
         }
 
         .collapse-btn {
-            position: relative;
+            background: #4f46e5;
             border: none;
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
             color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            flex-shrink: 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0;
+            position: relative;
         }
 
         .collapse-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.28);
+            background: #4338ca;
+            transform: scale(1.1);
         }
 
-        .collapse-btn svg {
-            width: 12px;
-            height: 12px;
+        .collapse-btn .arrow {
+            display: inline-block;
+            transition: transform 0.3s ease;
+            font-size: 14px;
+            line-height: 1;
         }
 
         .checkins-body {
@@ -447,19 +680,7 @@
             font-size: 1rem;
         }
 
-        @media (min-width: 900px) {
-            .content {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .journal-card {
-                grid-column: 1 / 2;
-            }
-
-            .checkins-card {
-                grid-column: 2 / 3;
-            }
-        }
+        @media (min-width: 900px) { }
 
         @media (max-width: 768px) {
             body {
@@ -484,9 +705,18 @@
                 padding: 18px 20px;
             }
 
-            .journal-grid textarea {
-                min-height: 180px;
+            .log-layout {
+                display: flex;
+                flex-direction: column;
             }
+
+        .log-history-sidebar {
+            position: relative;
+            width: 100%;
+            height: auto;
+            transform: none !important;
+            margin-top: 16px;
+        }
         }
     </style>
 </head>
@@ -507,54 +737,70 @@
                     <a href="logbog_01.html" class="nav-button active">Logbog</a>
                 </div>
             </div>
-            <section class="card activities-card">
-                <div class="card-title">
-                    <strong>Aktiviteter</strong>
-                    <span id="activityDateLabel">Dagens overblik</span>
-                </div>
-                <div class="activities-grid" id="activitiesGrid"></div>
-            </section>
+            <div class="log-layout">
+                <div class="log-primary">
+                    <section class="card activities-card">
+                        <div class="card-title">
+                            <strong>AKTIVITETER</strong>
+                            <span id="activityDateLabel">Dagens overblik</span>
+                        </div>
+                        <div class="activities-grid" id="activitiesGrid"></div>
+                    </section>
 
-            <section class="card journal-card">
-                <div class="journal-grid">
-                    <div class="journal-entry">
-                        <label for="logbookEntry">Dagbog</label>
-                        <textarea id="logbookEntry" placeholder="Skriv din dagbogsnotat her..."></textarea>
-                    </div>
-                    <div class="dreams-entry">
-                        <label class="dreams-title" for="dreamEntry">Drømme</label>
-                        <textarea id="dreamEntry" placeholder="Nedskriv dine drømme, symboler eller intuitive beskeder..."></textarea>
-                    </div>
-                </div>
-            </section>
+                    <section class="card journal-card">
+                        <div class="journal-grid">
+                            <div class="journal-entry">
+                                <label for="logbookEntry">Dagbog</label>
+                                <textarea id="logbookEntry" placeholder="Skriv dit dagbogsnotat her..."></textarea>
+                            </div>
+                            <div class="dreams-entry">
+                                <label class="dreams-title" for="dreamEntry">Drømme</label>
+                                <textarea id="dreamEntry" placeholder="Nedskriv dine drømme, fantasier og indskydelser ..."></textarea>
+                            </div>
+                        </div>
+                    </section>
 
-            <section class="card checkins-card">
-                <div class="checkins-header">
-                    <div class="card-title">
-                        <strong>Checkins</strong>
-                    </div>
-                    <button class="collapse-btn" id="toggleCheckins">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
+                    <section class="card checkins-card">
+                        <div class="checkins-header">
+                            <div class="card-title">
+                                <strong>CHECKINS</strong>
+                            </div>
+                    <button class="collapse-btn" id="toggleCheckins" title="Fold checkins">
+                        <span class="arrow">&gt;</span>
                     </button>
+                        </div>
+                        <div class="checkins-body" id="checkinsBody">
+                            <div class="chart-wrapper">
+                                <canvas class="chart-canvas" id="checkinChart"></canvas>
+                            </div>
+                            <div class="chart-legend">
+                                <span class="legend-item">
+                                    <span class="legend-swatch" style="background: #10b981;"></span>
+                                    Gennemsnit
+                                </span>
+                                <span class="legend-item">
+                                    <span class="legend-swatch" style="background: #8b5cf6;"></span>
+                                    Registreringer
+                                </span>
+                            </div>
+                        </div>
+                    </section>
                 </div>
-                <div class="checkins-body" id="checkinsBody">
-                    <div class="chart-wrapper">
-                        <canvas class="chart-canvas" id="checkinChart"></canvas>
+                <aside class="log-history-sidebar" id="logHistorySidebar">
+                    <div class="log-history-header">
+                        <button class="log-collapse-toggle" onclick="toggleLogHistorySidebar()" title="Fold historik">></button>
+                        <span>Historik</span>
                     </div>
-                    <div class="chart-legend">
-                        <span class="legend-item">
-                            <span class="legend-swatch" style="background: #10b981;"></span>
-                            Gennemsnit
-                        </span>
-                        <span class="legend-item">
-                            <span class="legend-swatch" style="background: #8b5cf6;"></span>
-                            Registreringer
-                        </span>
+                    <div class="log-history-content">
+                        <div class="log-history-navigation">
+                            <button class="log-nav-btn" id="logHistoryNext" onclick="navigateLogHistory(1)" title="Nyere"></button>
+                            <button class="log-nav-btn" id="logHistoryPrev" onclick="navigateLogHistory(-1)" title="Ældre"></button>
+                        </div>
+                        <div class="log-history-list" id="logHistoryList"></div>
                     </div>
-                </div>
-            </section>
+                    <button class="log-collapse-toggle log-collapse-toggle-bottom" onclick="toggleLogHistorySidebar()" title="Fold historik">></button>
+                </aside>
+            </div>
         </div>
     </div>
     <div class="nav-overlay" id="navOverlay"></div>
@@ -617,6 +863,264 @@
                 summary: 'Sammenlign min chef og mig'
             }
         ];
+
+        const LOGBOOK_STORAGE_KEY = 'logbogData';
+        const LOG_HISTORY_COLLAPSED_KEY = 'logbog_historySidebarCollapsed';
+
+        function getTodayDateKey() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function getLogbookData() {
+            try {
+                const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                console.warn('Kunne ikke læse logbogData:', error);
+                return [];
+            }
+        }
+
+        function ensureSeedLogbookData() {
+            return getLogbookData();
+        }
+
+        function saveLogbookData(entries) {
+            try {
+                localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
+            } catch (error) {
+                console.error('Kunne ikke gemme logbogData:', error);
+            }
+        }
+
+        let activeLogDate = getTodayDateKey();
+
+        function upsertLogbookEntry(dateKey, partial) {
+            const entries = getLogbookData();
+            let entry = entries.find(item => item.date === dateKey);
+            if (!entry) {
+                entry = { date: dateKey, dagbog: '', dreams: '' };
+                entries.push(entry);
+            }
+
+            Object.assign(entry, partial);
+            saveLogbookData(entries);
+            return entry;
+        }
+
+        function getSortedLogEntries() {
+            return getLogbookData()
+                .slice()
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+        }
+
+        function formatLogHistoryDate(dateStr, options) {
+            const date = new Date(`${dateStr}T00:00:00`);
+            return date.toLocaleDateString('da-DK', options);
+        }
+
+        function renderLogHistory() {
+            const listEl = document.getElementById('logHistoryList');
+            if (!listEl) return;
+
+            const entries = getSortedLogEntries();
+            listEl.innerHTML = '';
+
+            let activeItemEl = null;
+
+            entries.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'log-history-item';
+                if (entry.date === activeLogDate) {
+                    item.classList.add('active');
+                    activeItemEl = item;
+                }
+
+                const dateLabelEl = document.createElement('div');
+                dateLabelEl.className = 'log-history-item-date';
+                dateLabelEl.textContent = formatLogHistoryDate(entry.date, { day: '2-digit', month: 'long' });
+
+                const weekDayEl = document.createElement('div');
+                weekDayEl.className = 'log-history-item-weekday';
+                weekDayEl.textContent = formatLogHistoryDate(entry.date, { weekday: 'long' });
+
+                const snippetEl = document.createElement('div');
+                snippetEl.className = 'log-history-item-snippet';
+                const snippetSource = (entry.dagbog || entry.dreams || '').trim();
+                if (snippetSource.length === 0) {
+                    snippetEl.textContent = 'Ingen noter endnu.';
+                } else {
+                    const shortened = snippetSource.length > 60 ? `${snippetSource.slice(0, 60)}…` : snippetSource;
+                    snippetEl.textContent = shortened;
+                }
+
+                const metaEl = document.createElement('div');
+                metaEl.className = 'log-history-item-meta';
+                const dateMeta = document.createElement('span');
+                dateMeta.textContent = entry.date;
+                const charCount = document.createElement('span');
+                const totalChars = (entry.dagbog || '').length + (entry.dreams || '').length;
+                charCount.textContent = `${totalChars} tegn`;
+                metaEl.append(dateMeta, charCount);
+
+                item.append(dateLabelEl, weekDayEl, snippetEl, metaEl);
+
+                item.addEventListener('click', () => {
+                    setActiveLogDate(entry.date);
+                });
+
+                listEl.appendChild(item);
+            });
+
+            updateLogHistoryNavState();
+
+            if (activeItemEl) {
+                requestAnimationFrame(() => {
+                    const listRect = listEl.getBoundingClientRect();
+                    const itemRect = activeItemEl.getBoundingClientRect();
+                    if (itemRect.top < listRect.top || itemRect.bottom > listRect.bottom) {
+                        listEl.scrollTop = activeItemEl.offsetTop - listEl.offsetHeight / 2;
+                    }
+                });
+            }
+        }
+
+        function setActiveLogDate(dateKey) {
+            activeLogDate = dateKey;
+            const entries = getLogbookData();
+            let entry = entries.find(item => item.date === activeLogDate);
+            if (!entry) {
+                entry = { date: activeLogDate, dagbog: '', dreams: '' };
+                entries.push(entry);
+                saveLogbookData(entries);
+            }
+
+            const logbookEntryEl = document.getElementById('logbookEntry');
+            const dreamEntryEl = document.getElementById('dreamEntry');
+            if (logbookEntryEl) {
+                logbookEntryEl.value = entry.dagbog || '';
+            }
+            if (dreamEntryEl) {
+                dreamEntryEl.value = entry.dreams || '';
+            }
+
+            renderLogHistory();
+        }
+
+        function updateActiveLogEntry(field, value) {
+            const entries = getLogbookData();
+            let entry = entries.find(item => item.date === activeLogDate);
+            if (!entry) {
+                entry = { date: activeLogDate, dagbog: '', dreams: '' };
+                entries.push(entry);
+            }
+            entry[field] = value;
+            saveLogbookData(entries);
+            renderLogHistory();
+        }
+
+        function refreshActiveLogEntry(externalEntries) {
+            const logbookEntryEl = document.getElementById('logbookEntry');
+            const dreamEntryEl = document.getElementById('dreamEntry');
+            if (!logbookEntryEl || !dreamEntryEl) return;
+
+            const entries = Array.isArray(externalEntries) ? externalEntries : getLogbookData();
+            const entry = entries.find(item => item.date === activeLogDate);
+            if (!entry) return;
+
+            if (document.activeElement !== logbookEntryEl) {
+                logbookEntryEl.value = entry.dagbog || '';
+            }
+            if (document.activeElement !== dreamEntryEl) {
+                dreamEntryEl.value = entry.dreams || '';
+            }
+        }
+
+        function handleLogbookStorageEvent(event) {
+            if (event.key !== LOGBOOK_STORAGE_KEY) return;
+
+            let latestEntries = [];
+            if (event.newValue) {
+                try {
+                    const parsed = JSON.parse(event.newValue);
+                    if (Array.isArray(parsed)) {
+                        latestEntries = parsed;
+                    }
+                } catch (error) {
+                    console.warn('Kunne ikke parse logbogData fra storage event:', error);
+                }
+            }
+
+            refreshActiveLogEntry(latestEntries);
+            renderLogHistory();
+        }
+
+        function updateLogHistoryNavState() {
+            const entries = getSortedLogEntries();
+            const prevBtn = document.getElementById('logHistoryPrev');
+            const nextBtn = document.getElementById('logHistoryNext');
+            if (!prevBtn || !nextBtn) return;
+
+            if (!entries.length) {
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                return;
+            }
+
+            const activeIndex = entries.findIndex(entry => entry.date === activeLogDate);
+            prevBtn.disabled = activeIndex === entries.length - 1 || activeIndex === -1;
+            nextBtn.disabled = activeIndex <= 0;
+        }
+
+        function navigateLogHistory(direction) {
+            const entries = getSortedLogEntries();
+            if (!entries.length) return;
+
+            let index = entries.findIndex(entry => entry.date === activeLogDate);
+            if (index === -1) {
+                index = 0;
+            }
+
+            if (direction < 0 && index < entries.length - 1) {
+                setActiveLogDate(entries[index + 1].date);
+            } else if (direction > 0 && index > 0) {
+                setActiveLogDate(entries[index - 1].date);
+            }
+        }
+
+        function toggleLogHistorySidebar() {
+            const sidebar = document.getElementById('logHistorySidebar');
+            const toggleBtns = document.querySelectorAll('.log-collapse-toggle');
+            if (!sidebar || !toggleBtns.length) return;
+
+            const collapsed = sidebar.classList.toggle('collapsed');
+            toggleBtns.forEach(btn => {
+                btn.textContent = collapsed ? '<' : '>';
+            });
+            try {
+                localStorage.setItem(LOG_HISTORY_COLLAPSED_KEY, String(collapsed));
+            } catch (error) {
+                console.warn('Kunne ikke gemme historiktilstand:', error);
+            }
+        }
+
+        function hydrateLogbookFields() {
+            const logbookEntryEl = document.getElementById('logbookEntry');
+            const dreamEntryEl = document.getElementById('dreamEntry');
+            if (!logbookEntryEl || !dreamEntryEl) return;
+
+            logbookEntryEl.addEventListener('input', () => {
+                updateActiveLogEntry('dagbog', logbookEntryEl.value);
+            });
+
+            dreamEntryEl.addEventListener('input', () => {
+                updateActiveLogEntry('dreams', dreamEntryEl.value);
+            });
+
+            setActiveLogDate(activeLogDate);
+        }
 
         const navBox = document.getElementById('navBox');
         const navOverlay = document.getElementById('navOverlay');
@@ -699,16 +1203,17 @@
                 const labelText = activity.label || activity.type;
 
                 tile.innerHTML = `
-                    <div class="activity-label">${labelText}</div>
-                    <div class="activity-title">${activity.title}</div>
-                    <div class="activity-meta">
-                        <span>
+                    <div class="activity-header">
+                        <div class="activity-label">${labelText}</div>
+                        <div class="activity-time">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <polyline points="12 6 12 12 16 14"></polyline>
                             </svg>
-                            ${activity.time}
-                        </span>
+                            <span>${activity.time}</span>
+                        </div>
+                    </div>
+                    <div class="activity-meta">
                         <span>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 1 1 18 0z"></path>
@@ -867,17 +1372,21 @@
         function initCollapsible() {
             const button = document.getElementById('toggleCheckins');
             const body = document.getElementById('checkinsBody');
-            let expanded = false;
+            const arrowEl = button.querySelector('.arrow');
+            let expanded = true;
+
+            const updateArrowRotation = () => {
+                if (!arrowEl) return;
+                arrowEl.style.transform = expanded ? 'rotate(-90deg)' : 'rotate(90deg)';
+            };
+
+            updateArrowRotation();
+            body.classList.add('expanded');
+            setTimeout(renderCheckinChart, 180);
 
             button.addEventListener('click', () => {
                 expanded = !expanded;
-            button.innerHTML = expanded
-                ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="18 15 12 9 6 15"></polyline>
-                       </svg>`
-                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                       </svg>`;
+                updateArrowRotation();
 
                 if (expanded) {
                     body.classList.add('expanded');
@@ -900,6 +1409,9 @@
             renderActivities(mockActivities);
             initCollapsible();
             renderCheckinChart();
+            ensureSeedLogbookData();
+            activeLogDate = getTodayDateKey();
+            hydrateLogbookFields();
 
             const navLinks = document.querySelectorAll('.nav-box a.nav-button');
             navLinks.forEach(link => {
@@ -908,6 +1420,22 @@
                     link.classList.add('active');
                 }
             });
+
+            window.addEventListener('storage', handleLogbookStorageEvent);
+
+            const historySidebar = document.getElementById('logHistorySidebar');
+            if (historySidebar) {
+                const collapsedState = localStorage.getItem(LOG_HISTORY_COLLAPSED_KEY) === 'true';
+                if (collapsedState) {
+                    historySidebar.classList.add('collapsed');
+                } else {
+                    historySidebar.classList.remove('collapsed');
+                }
+                const toggleBtns = historySidebar.querySelectorAll('.log-collapse-toggle');
+                toggleBtns.forEach(btn => {
+                    btn.textContent = collapsedState ? '<' : '>';
+                });
+            }
 
             window.addEventListener('resize', () => {
                 const checkinsOpen = document.getElementById('checkinsBody').classList.contains('expanded');

@@ -986,12 +986,26 @@
         
         .single-trait-item {
     display: flex;
-    align-items: center;
-    gap: 20px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
     padding: 15px;
     background: #f8fafc;
     border-radius: 8px;
     border: 1px solid #e2e8f0;
+    width: 100%;
+    max-width: 430px;
+    margin: 0 auto;
+}
+
+#step1 .single-trait-item {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+#step2 .single-trait-item {
+    margin-left: auto;
+    margin-right: 0;
 }
         
   #leftTraits .single-trait-item {
@@ -1036,20 +1050,33 @@
     width: fit-content;
 }
 
+.comparison-slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
 .comparison-labels {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     gap: 15px;
-    margin: 0 auto;
-    width: fit-content;
+    width: 100%;
 }    
         
 .single-slider-container {
-    
     display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.single-slider-labels {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 15px;
+    width: 100%;
 }
 
 .trait-left-label {
@@ -1069,13 +1096,15 @@
 }
         
         .single-slider {
-    flex: 0 0 400px;
+    width: 100%;
+    max-width: 400px;
     height: 6px;
     border-radius: 3px;
     background: #e2e8f0;
     outline: none;
     cursor: pointer;
     -webkit-appearance: none;
+    appearance: none;
 }
         
         .single-slider::-webkit-slider-thumb {
@@ -1195,11 +1224,11 @@
             color: #ef4444;
         }
         
-        .comparison-slider-container {
+.comparison-slider-container {
     position: relative;
-    width: 400px;
+    width: 100%;
+    max-width: 400px;
     height: 20px;
-    flex: 0 0 400px;
 }
 
 .compare-color-btn {
@@ -1246,7 +1275,7 @@
     font-weight: 500;
 }
         
-.comparison-slider {
+        .comparison-slider {
             position: absolute;
             width: 100%;
             height: 6px;
@@ -1256,6 +1285,7 @@
             cursor: default;
             -webkit-appearance: none;
             pointer-events: none;
+            appearance: none;
         }
         
         .comparison-slider::-webkit-slider-thumb {
@@ -1421,19 +1451,17 @@
             <div class="controls-divider"></div>
             
             <div class="dropdown-group">
-                <span class="dropdown-label">Venstre del:</span>
                 <select class="participant-dropdown" id="leftDropdown"></select>
             </div>
             
             <div class="dropdown-group">
-                <span class="dropdown-label">Højre del:</span>
                 <select class="participant-dropdown" id="rightDropdown"></select>
             </div>
             
             <div class="controls-divider"></div>
             
-            <button class="btn save-btn" id="saveBtn" disabled>Gem Sammenligning</button>
-            <button class="btn" id="loadComparisonBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs Sammenligning</button>
+            <button class="btn save-btn" id="saveBtn" disabled>Gem</button>
+            <button class="btn" id="loadComparisonBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs</button>
             <button class="btn random-btn" id="randomBtn" disabled>Random</button>
             <button class="btn clear-btn">Ryd Alt</button>
         </div>
@@ -1793,6 +1821,51 @@ const partsData = {
 			
 			
         ];
+        const ACTIVE_TRAIT_COUNT = 6;
+        let activeTraitIndices = [];
+        let currentTraitSelectionKey = null;
+        function ensureActiveTraits(forceReselect = false) {
+            const leftDropdown = document.getElementById('leftDropdown');
+            const rightDropdown = document.getElementById('rightDropdown');
+            const leftSelected = leftDropdown ? leftDropdown.value : '';
+            const rightSelected = rightDropdown ? rightDropdown.value : '';
+
+            if (!leftSelected || !rightSelected) {
+                if (activeTraitIndices.length > 0 || currentTraitSelectionKey !== null) {
+                    activeTraitIndices = [];
+                    currentTraitSelectionKey = null;
+                    leftScores = {};
+                    rightScores = {};
+                }
+                return;
+            }
+
+            const key = `${leftSelected}|${rightSelected}`;
+            if (forceReselect || key !== currentTraitSelectionKey || activeTraitIndices.length === 0) {
+                currentTraitSelectionKey = key;
+
+                const indices = Array.from({ length: defaultTraits.length }, (_, idx) => idx);
+                for (let i = indices.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [indices[i], indices[j]] = [indices[j], indices[i]];
+                }
+                activeTraitIndices = indices
+                    .slice(0, Math.min(ACTIVE_TRAIT_COUNT, defaultTraits.length))
+                    .sort((a, b) => a - b);
+                leftScores = {};
+                rightScores = {};
+            }
+        }
+
+        function getActiveTraits() {
+            if (activeTraitIndices.length === 0) {
+                return defaultTraits.map((trait, index) => ({ trait, index }));
+            }
+            return activeTraitIndices.map(index => ({
+                index,
+                trait: defaultTraits[index]
+            }));
+        }
 		
 		
 		
@@ -2396,10 +2469,10 @@ function closePosePicker() {
             leftDropdown.innerHTML = '';
             rightDropdown.innerHTML = '';
             
-            [leftDropdown, rightDropdown].forEach(dropdown => {
+            [leftDropdown, rightDropdown].forEach((dropdown, index) => {
                 const defaultOption = document.createElement('option');
                 defaultOption.value = '';
-                defaultOption.textContent = 'Vælg del...';
+                defaultOption.textContent = index === 0 ? 'Venstre del...' : 'Højre del...';
                 dropdown.appendChild(defaultOption);
             });
             
@@ -2909,6 +2982,8 @@ function resetPose(side) {
             const rightSelected = document.getElementById('rightDropdown').value;
             const content = document.getElementById('comparisonContent');
             
+            ensureActiveTraits();
+            
             if (!leftSelected || !rightSelected) {
                 content.innerHTML = `
                     <div class="empty-state">
@@ -2926,6 +3001,7 @@ function resetPose(side) {
 
             const leftName = document.getElementById('leftName').textContent || 'Venstre del';
             const rightName = document.getElementById('rightName').textContent || 'Højre del';
+            const activeTraits = getActiveTraits();
             
             content.innerHTML = `
                 <div class="step-container">
@@ -2947,14 +3023,14 @@ function resetPose(side) {
                     <div class="step-content ${currentStep === 1 ? 'active' : ''}" id="step1">
                         <p style="margin-bottom: 20px; color: #6b7280; font-style: italic;">Vurder hvor meget ${leftName} har af hver egenskab. Fokuser kun på denne del.</p>
                         <div class="single-side-traits" id="leftTraits">
-                            ${defaultTraits.map((trait, index) => createSingleTraitHTML(trait, index, 'left', leftName)).join('')}
+                            ${activeTraits.map(({ trait, index }) => createSingleTraitHTML(trait, index, 'left', leftName)).join('')}
                         </div>
                     </div>
                     
                     <div class="step-content ${currentStep === 2 ? 'active' : ''}" id="step2">
                         <p style="margin-bottom: 20px; color: #6b7280; font-style: italic;">Vurder hvor meget ${rightName} har af hver egenskab. Fokuser kun på denne del.</p>
                         <div class="single-side-traits" id="rightTraits">
-                            ${defaultTraits.map((trait, index) => createSingleTraitHTML(trait, index, 'right', rightName)).join('')}
+                            ${activeTraits.map(({ trait, index }) => createSingleTraitHTML(trait, index, 'right', rightName)).join('')}
                         </div>
                     </div>
                     
@@ -3006,13 +3082,15 @@ function resetPose(side) {
 			return `
 				<div class="single-trait-item">
 					<div class="single-slider-container">
-						<span class="trait-left-label">${trait.left}</span>
+                        <div class="single-slider-labels">
+						    <span class="trait-left-label">${trait.left}</span>
+						    <span class="trait-right-label">${trait.right}</span>
+                        </div>
 						<input type="range" min="-50" max="50" value="${currentScore}" 
 							   class="single-slider ${side}-color" 
 							   data-trait-id="${index}" 
 							   data-side="${side}"
 							   oninput="setSingleTraitScore(${index}, '${side}', this.value)">
-						<span class="trait-right-label">${trait.right}</span>
 					</div>
 				</div>
 			`;
@@ -3020,23 +3098,21 @@ function resetPose(side) {
 
        function createComparisonResultsHTML(leftName, rightName) {
 				const traitsWithSimilarity = [];
+				const activeTraits = getActiveTraits();
 				
-				for (let i = 0; i < defaultTraits.length; i++) {
-					const trait = defaultTraits[i];
-					const leftScore = leftScores[i] || 0;
-					const rightScore = rightScores[i] || 0;
+				activeTraits.forEach(({ trait, index }) => {
+					const leftScore = leftScores[index] || 0;
+					const rightScore = rightScores[index] || 0;
 					const similarity = 100 - Math.abs(leftScore - rightScore);
 					
 					traitsWithSimilarity.push({
-						index: i,
-						trait: trait,
-						leftScore: leftScore,
-						rightScore: rightScore,
-						similarity: similarity
+						index,
+						trait,
+						leftScore,
+						rightScore,
+						similarity
 					});
-				}
-				
-				traitsWithSimilarity.sort((a, b) => b.similarity - a.similarity);
+				});
 				
 				let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
 				
@@ -3066,14 +3142,16 @@ function resetPose(side) {
 					}
 					
                     html += `
-                        <div style="display: flex; align-items: center; padding: 12px; background: #f8fafc; border-radius: 6px; gap: 10px;">
-                            <div class="comparison-labels">
-                                <span class="comparison-left-label">${displayLeft}</span>
+                        <div style="display: flex; align-items: flex-end; padding: 12px; background: #f8fafc; border-radius: 6px; gap: 10px;">
+                            <div class="comparison-slider-group">
+                                <div class="comparison-labels">
+                                    <span class="comparison-left-label">${displayLeft}</span>
+                                    <span class="comparison-right-label">${displayRight}</span>
+                                </div>
                                 <div class="comparison-slider-container">
                                     <input type="range" min="-50" max="50" value="${leftPosition}" class="comparison-slider left-color" disabled>
                                     <input type="range" min="-50" max="50" value="${rightPosition}" class="comparison-slider right-color" disabled>
                                 </div>
-                                <span class="comparison-right-label">${displayRight}</span>
                             </div>
                             <div style="flex: 0 0 60px; text-align: right; font-weight: bold; color: ${percentColor};">
                                 ${Math.round(similarity)}%
@@ -3285,7 +3363,8 @@ function resetPose(side) {
             let totalDifference = 0;
             let count = 0;
             
-            defaultTraits.forEach((trait, index) => {
+            const activeTraits = getActiveTraits();
+            activeTraits.forEach(({ index }) => {
                 const leftScore = leftScores[index];
                 const rightScore = rightScores[index];
                 
@@ -3305,6 +3384,9 @@ function resetPose(side) {
                 
                 updateSpeedometer('similarity', avgSimilarity);
                 updateSpeedometer('difference', avgDifference);
+            } else {
+                updateSpeedometer('similarity', 0);
+                updateSpeedometer('difference', 0);
             }
         }
 
@@ -3328,21 +3410,24 @@ function resetPose(side) {
             const side = currentStep === 1 ? 'left' : 'right';
             
             // Generate random values for all traits (-50 to 50)
-            for (let i = 0; i < defaultTraits.length; i++) {
-                const randomValue = Math.floor(Math.random() * 101) - 50; // -50 to 50
+            const activeTraits = getActiveTraits();
+            if (activeTraits.length === 0) {
+                return;
+            }
+            activeTraits.forEach(({ index }) => {
+                const randomValue = Math.floor(Math.random() * 101) - 50;
                 
                 if (side === 'left') {
-                    leftScores[i] = randomValue;
+                    leftScores[index] = randomValue;
                 } else {
-                    rightScores[i] = randomValue;
+                    rightScores[index] = randomValue;
                 }
                 
-                // Update the slider visually
-                const slider = document.querySelector(`input[data-trait-id="${i}"][data-side="${side}"]`);
+                const slider = document.querySelector(`input[data-trait-id="${index}"][data-side="${side}"]`);
                 if (slider) {
                     slider.value = randomValue;
                 }
-            }
+            });
             
             // Update comparison view if we're on step 3
             if (currentStep === 3) {
@@ -3403,9 +3488,20 @@ function resetPose(side) {
             (window.__APP_DEBUG__ && console.log('Forbereder CSV data...'));
             
             const csvData = [];
+            const activeTraits = getActiveTraits();
+            const activeIndices = activeTraits.map(({ index }) => index);
             csvData.push(['#metadata']);
             csvData.push(['timestamp', timestamp]);
             csvData.push(['distance', String(currentDistance)]);
+            csvData.push(['']);
+            
+            csvData.push(['#active_traits']);
+            csvData.push(['trait_index']);
+            if (activeIndices.length > 0) {
+                activeIndices.forEach(idx => csvData.push([idx]));
+            } else {
+                defaultTraits.forEach((_, idx) => csvData.push([idx]));
+            }
             csvData.push(['']);
             
             csvData.push(['#cirkler']);
@@ -3417,23 +3513,19 @@ function resetPose(side) {
             csvData.push(['#del1_scores']);
             csvData.push(['trait_index', 'trait_left', 'trait_right', 'score']);
             
-            // Export left scores (unsorted)
-            for (let i = 0; i < defaultTraits.length; i++) {
-                const trait = defaultTraits[i];
-                const score = leftScores[i] || 0;
-                csvData.push([i, trait.left, trait.right, score]);
-            }
+            activeTraits.forEach(({ trait, index }) => {
+                const score = leftScores[index] || 0;
+                csvData.push([index, trait.left, trait.right, score]);
+            });
             csvData.push(['']);
             
             csvData.push(['#del2_scores']);
             csvData.push(['trait_index', 'trait_left', 'trait_right', 'score']);
             
-            // Export right scores (unsorted)
-            for (let i = 0; i < defaultTraits.length; i++) {
-                const trait = defaultTraits[i];
-                const score = rightScores[i] || 0;
-                csvData.push([i, trait.left, trait.right, score]);
-            }
+            activeTraits.forEach(({ trait, index }) => {
+                const score = rightScores[index] || 0;
+                csvData.push([index, trait.left, trait.right, score]);
+            });
             
             const csvContent = csvData.map(function(row) {
                 return row.map(function(field) {
@@ -3531,6 +3623,7 @@ function resetPose(side) {
             let del1Scores = [];
             let del2Scores = [];
             let metaDistance = null;
+            let activeTraitList = [];
             
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
@@ -3540,6 +3633,9 @@ function resetPose(side) {
                     continue;
                 } else if (line === '#cirkler') {
                     currentSection = 'cirkler';
+                    continue;
+                } else if (line === '#active_traits') {
+                    currentSection = 'active_traits';
                     continue;
                 } else if (line === '#del1_scores') {
                     currentSection = 'del1_scores';
@@ -3557,6 +3653,15 @@ function resetPose(side) {
                         if (key === 'distance') {
                             const num = parseInt(value, 10);
                             if (!isNaN(num)) metaDistance = num;
+                        }
+                    }
+                } else if (currentSection === 'active_traits') {
+                    const parts = parseComparisonCSVLine(line);
+                    if (parts[0] === 'trait_index') continue;
+                    if (parts.length >= 1 && parts[0] !== '') {
+                        const traitIndex = parseInt(parts[0], 10);
+                        if (!Number.isNaN(traitIndex)) {
+                            activeTraitList.push(traitIndex);
                         }
                     }
                 } else if (currentSection === 'cirkler') {
@@ -3609,7 +3714,7 @@ function resetPose(side) {
                 throw new Error('Ikke nok deltager-data fundet');
             }
             
-            applyLoadedComparison(cirkelData[0], cirkelData[1], del1Scores, del2Scores);
+            applyLoadedComparison(cirkelData[0], cirkelData[1], del1Scores, del2Scores, activeTraitList);
 
             if (metaDistance !== null) {
                 currentDistance = metaDistance;
@@ -3645,7 +3750,7 @@ function resetPose(side) {
             return result;
         }
 
-        function applyLoadedComparison(leftPart, rightPart, leftScoresData, rightScoresData) {
+        function applyLoadedComparison(leftPart, rightPart, leftScoresData, rightScoresData, traitIndices = []) {
             // Clear current state first
             clearAll();
             
@@ -3658,6 +3763,24 @@ function resetPose(side) {
             // Update dropdowns to "Lav Ny Del" since we're loading custom data
             document.getElementById('leftDropdown').value = 'lav_ny_left';
             document.getElementById('rightDropdown').value = 'lav_ny_right';
+            currentTraitSelectionKey = 'lav_ny_left|lav_ny_right';
+            if (Array.isArray(traitIndices) && traitIndices.length > 0) {
+                activeTraitIndices = traitIndices
+                    .map(idx => parseInt(idx, 10))
+                    .filter(idx => !Number.isNaN(idx) && idx >= 0 && idx < defaultTraits.length);
+                activeTraitIndices.sort((a, b) => a - b);
+            } else {
+                const collectedIndices = new Set([
+                    ...Object.keys(leftScoresData || {}).map(k => parseInt(k, 10)),
+                    ...Object.keys(rightScoresData || {}).map(k => parseInt(k, 10))
+                ].filter(idx => !Number.isNaN(idx) && idx >= 0 && idx < defaultTraits.length));
+
+                if (collectedIndices.size > 0) {
+                    activeTraitIndices = Array.from(collectedIndices).sort((a, b) => a - b);
+                } else {
+                    activeTraitIndices = Array.from({ length: Math.min(ACTIVE_TRAIT_COUNT, defaultTraits.length) }, (_, idx) => idx);
+                }
+            }
             
             // Show circles and set names
             const leftCircle = document.getElementById('leftCircle');
@@ -3751,6 +3874,8 @@ function resetPose(side) {
     leftScores = {};
     rightScores = {};
     currentStep = 1;
+    activeTraitIndices = [];
+    currentTraitSelectionKey = null;
     
     document.getElementById('leftCircle').style.display = 'none';
     document.getElementById('rightCircle').style.display = 'none';
