@@ -1180,6 +1180,73 @@
         return entry;
     }
 
+    const OVERLAY_STATE_KEY = 'forside_overlay_data';
+    const OVERLAY_SHOW_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+    function loadOverlayState() {
+        try {
+            const raw = localStorage.getItem(OVERLAY_STATE_KEY);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            return typeof parsed === 'object' && parsed !== null ? parsed : {};
+        } catch (error) {
+            console.warn('Kunne ikke læse forside_overlay_data:', error);
+            return {};
+        }
+    }
+
+    function saveOverlayState(state) {
+        try {
+            localStorage.setItem(OVERLAY_STATE_KEY, JSON.stringify(state));
+        } catch (error) {
+            console.warn('Kunne ikke gemme forside_overlay_data:', error);
+        }
+    }
+
+    function shouldShowOverlay() {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const isNightTime = (currentHour >= 18 && currentHour <= 23) || (currentHour >= 0 && currentHour < 8);
+        if (!isNightTime) {
+            return false;
+        }
+
+        const state = loadOverlayState();
+        if (state.closedAt) {
+            const closedAt = new Date(state.closedAt);
+            if (!Number.isNaN(closedAt.getTime())) {
+                const timeSinceClosed = now.getTime() - closedAt.getTime();
+                if (timeSinceClosed < OVERLAY_SHOW_INTERVAL_MS) {
+                    return false;
+                }
+            }
+        }
+
+        if (state.lastShownAt) {
+            const lastShownAt = new Date(state.lastShownAt);
+            if (!Number.isNaN(lastShownAt.getTime())) {
+                const timeSinceShown = now.getTime() - lastShownAt.getTime();
+                if (timeSinceShown < OVERLAY_SHOW_INTERVAL_MS) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    function recordOverlayShown() {
+        const state = loadOverlayState();
+        state.lastShownAt = new Date().toISOString();
+        saveOverlayState(state);
+    }
+
+    function recordOverlayClosed() {
+        const state = loadOverlayState();
+        state.closedAt = new Date().toISOString();
+        saveOverlayState(state);
+    }
+
     function hydrateNightOverlay() {
         const overlay = document.getElementById('nightOverlay');
         const textarea = document.getElementById('nightDreamEntry');
@@ -1196,67 +1263,105 @@
 
         closeBtn.addEventListener('click', () => {
             overlay.classList.remove('show');
+            recordOverlayClosed();
         });
 
-        overlay.classList.add('show');
+        if (shouldShowOverlay()) {
+            overlay.classList.add('show');
+            recordOverlayShown();
+        }
     }
         
-        // Make logo container clickable - shows navigation box and opens coaching overlay
-        document.addEventListener('DOMContentLoaded', () => {
-            const logoContainer = document.getElementById('logoContainer');
+    // Make logo container clickable - shows navigation box and opens coaching overlay
+    document.addEventListener('DOMContentLoaded', () => {
+        const logoContainer = document.getElementById('logoContainer');
         hydrateNightOverlay();
-            
-            if (logoContainer) {
-                logoContainer.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    
-                    // Open coaching overlay first
-                    function openCoaching() {
-                        if (typeof window.openCoachingOverlay === 'function') {
-                            window.openCoachingOverlay('coaching_templates/forside_coaching.json');
-                        } else if (typeof openCoachingOverlay === 'function') {
-                            openCoachingOverlay('coaching_templates/forside_coaching.json');
-                        } else {
-                            // Wait for script to load
-                            const checkInterval = setInterval(() => {
-                                if (typeof window.openCoachingOverlay === 'function' || typeof openCoachingOverlay === 'function') {
-                                    clearInterval(checkInterval);
-                                    const openFunc = window.openCoachingOverlay || openCoachingOverlay;
-                                    openFunc('coaching_templates/forside_coaching.json');
-                                }
-                            }, 100);
-                            
-                            // Timeout after 5 seconds
-                            setTimeout(() => {
+        setupOverlayActivityListeners();
+        
+        if (logoContainer) {
+            logoContainer.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Open coaching overlay first
+                function openCoaching() {
+                    if (typeof window.openCoachingOverlay === 'function') {
+                        window.openCoachingOverlay('coaching_templates/forside_coaching.json');
+                    } else if (typeof openCoachingOverlay === 'function') {
+                        openCoachingOverlay('coaching_templates/forside_coaching.json');
+                    } else {
+                        // Wait for script to load
+                        const checkInterval = setInterval(() => {
+                            if (typeof window.openCoachingOverlay === 'function' || typeof openCoachingOverlay === 'function') {
                                 clearInterval(checkInterval);
-                                console.error('Coaching overlay funktion ikke tilgængelig');
-                            }, 5000);
-                        }
+                                const openFunc = window.openCoachingOverlay || openCoachingOverlay;
+                                openFunc('coaching_templates/forside_coaching.json');
+                            }
+                        }, 100);
+                        
+                        // Timeout after 5 seconds
+                        setTimeout(() => {
+                            clearInterval(checkInterval);
+                            console.error('Coaching overlay funktion ikke tilgængelig');
+                        }, 5000);
                     }
-                    
-                    openCoaching();
-                    
-                    // Show navigation box after a short delay to let coaching overlay cover it first
-                    setTimeout(() => {
-                        const navBox = document.getElementById('navBox');
-                        if (navBox) {
-                            navBox.classList.add('show');
-                            const navLinks = navBox.querySelectorAll('a.nav-button');
-                            navLinks.forEach(link => {
-                                link.addEventListener('click', (linkEvent) => {
-                                    linkEvent.stopPropagation();
-                                    navBox.classList.remove('show');
-                                    const href = link.getAttribute('href');
-                                    if (href) {
-                                        window.location.href = href;
-                                    }
-                                });
+                }
+                
+                openCoaching();
+                
+                // Show navigation box after a short delay to let coaching overlay cover it first
+                setTimeout(() => {
+                    const navBox = document.getElementById('navBox');
+                    if (navBox) {
+                        navBox.classList.add('show');
+                        const navLinks = navBox.querySelectorAll('a.nav-button');
+                        navLinks.forEach(link => {
+                            link.addEventListener('click', (linkEvent) => {
+                                linkEvent.stopPropagation();
+                                navBox.classList.remove('show');
+                                const href = link.getAttribute('href');
+                                if (href) {
+                                    window.location.href = href;
+                                }
                             });
-                        }
-                    }, 300);
-                });
+                        });
+                    }
+                }, 300);
+            });
+        }
+    });
+
+    let overlayActivityTimeoutId = null;
+
+    function setupOverlayActivityListeners() {
+        const activityEvents = ['mousemove', 'keydown', 'touchstart', 'click'];
+
+        function handleActivity() {
+            const overlay = document.getElementById('nightOverlay');
+            if (!overlay || overlay.classList.contains('show')) {
+                resetOverlayActivityTimeout();
+                return;
             }
+            if (overlayActivityTimeoutId !== null) {
+                // If a timeout is already pending, don't schedule another
+                return;
+            }
+            overlayActivityTimeoutId = window.setTimeout(() => {
+                overlayActivityTimeoutId = null;
+                hydrateNightOverlay();
+            }, 500);
+        }
+
+        activityEvents.forEach(eventName => {
+            window.addEventListener(eventName, handleActivity, { passive: true });
         });
+    }
+
+    function resetOverlayActivityTimeout() {
+        if (overlayActivityTimeoutId !== null) {
+            clearTimeout(overlayActivityTimeoutId);
+            overlayActivityTimeoutId = null;
+        }
+    }
     </script>
 </body>
 </html>
