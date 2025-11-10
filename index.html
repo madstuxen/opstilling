@@ -235,6 +235,14 @@
             letter-spacing: 0.08em;
             text-transform: uppercase;
             color: #f472b6;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .night-overlay-header h2 img {
+            width: 28px;
+            height: auto;
         }
 
         .night-overlay-close {
@@ -638,7 +646,10 @@
     <div class="night-overlay-backdrop"></div>
     <div class="night-overlay-panel">
         <div class="night-overlay-header">
-            <h2>Drømme</h2>
+            <h2>
+                Drømme
+                <img src="imagefiles/moon.svg" alt="Måne ikon">
+            </h2>
             <button class="night-overlay-close" id="nightOverlayClose" title="Luk">×</button>
         </div>
         <textarea id="nightDreamEntry" placeholder="Nedskriv dine drømme, fantasier og indskydelser ..."></textarea>
@@ -1206,7 +1217,7 @@
     function shouldShowOverlay() {
         const now = new Date();
         const currentHour = now.getHours();
-        const isNightTime = (currentHour >= 18 && currentHour <= 23) || (currentHour >= 0 && currentHour < 8);
+        const isNightTime = (currentHour >= 22 && currentHour <= 23) || (currentHour >= 0 && currentHour < 8);
         if (!isNightTime) {
             return false;
         }

@@ -533,6 +533,19 @@
             color: #475569;
             text-transform: uppercase;
             letter-spacing: 0.08em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .journal-title img {
+            width: 28px;
+            height: auto;
+        }
+
+        .dreams-title img {
+            width: 28px;
+            height: auto;
         }
 
 
@@ -640,6 +653,7 @@
         }
 
         .chart-wrapper {
+            position: relative;
             padding: 24px 0 8px;
         }
 
@@ -649,6 +663,24 @@
             border-radius: 16px;
             background: white;
             box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+        }
+
+        .checkins-side-icons {
+            position: absolute;
+            left: 8px;
+            top: 24px;
+            width: 42px;
+            height: 240px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .checkins-side-icons img {
+            width: 42px;
+            height: auto;
         }
 
         .chart-legend {
@@ -704,19 +736,6 @@
             .card {
                 padding: 18px 20px;
             }
-
-            .log-layout {
-                display: flex;
-                flex-direction: column;
-            }
-
-        .log-history-sidebar {
-            position: relative;
-            width: 100%;
-            height: auto;
-            transform: none !important;
-            margin-top: 16px;
-        }
         }
     </style>
 </head>
@@ -750,11 +769,17 @@
                     <section class="card journal-card">
                         <div class="journal-grid">
                             <div class="journal-entry">
-                                <label for="logbookEntry">Dagbog</label>
+                                <label class="journal-title" for="logbookEntry">
+                                    Dagbog
+                                    <img src="imagefiles/sun.svg" alt="Sol ikon">
+                                </label>
                                 <textarea id="logbookEntry" placeholder="Skriv dit dagbogsnotat her..."></textarea>
                             </div>
                             <div class="dreams-entry">
-                                <label class="dreams-title" for="dreamEntry">Drømme</label>
+                                <label class="dreams-title" for="dreamEntry">
+                                    Drømme
+                                    <img src="imagefiles/moon.svg" alt="Måne ikon">
+                                </label>
                                 <textarea id="dreamEntry" placeholder="Nedskriv dine drømme, fantasier og indskydelser ..."></textarea>
                             </div>
                         </div>
@@ -771,17 +796,11 @@
                         </div>
                         <div class="checkins-body" id="checkinsBody">
                             <div class="chart-wrapper">
+                                <div class="checkins-side-icons">
+                                    <img src="imagefiles/sun.svg" alt="Høj energi" style="margin-top: 70%;">
+                                    <img src="imagefiles/cloud.svg" alt="Lav energi" style="margin-bottom: 70%;">
+                                </div>
                                 <canvas class="chart-canvas" id="checkinChart"></canvas>
-                            </div>
-                            <div class="chart-legend">
-                                <span class="legend-item">
-                                    <span class="legend-swatch" style="background: #10b981;"></span>
-                                    Gennemsnit
-                                </span>
-                                <span class="legend-item">
-                                    <span class="legend-swatch" style="background: #8b5cf6;"></span>
-                                    Registreringer
-                                </span>
                             </div>
                         </div>
                     </section>
@@ -1274,6 +1293,16 @@
             const chartWidth = width - padding.left - padding.right;
             const chartHeight = height - padding.top - padding.bottom;
 
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(padding.left, padding.top, chartWidth, chartHeight);
+            ctx.clip();
+            ctx.fillStyle = '#FCE68A';
+            ctx.fillRect(padding.left, padding.top, chartWidth, chartHeight / 2);
+            ctx.fillStyle = '#BAE6FD';
+            ctx.fillRect(padding.left, padding.top + chartHeight / 2, chartWidth, chartHeight / 2);
+            ctx.restore();
+
             // Background grid
             ctx.lineWidth = 1;
             ctx.strokeStyle = '#e5e7eb';
@@ -1299,28 +1328,23 @@
             const yAverage = padding.top + chartHeight - (average / 100) * chartHeight;
 
             // Average zone
-            const zoneThickness = 40;
+            const zoneThickness = 25;
             const topZone = Math.max(padding.top, yAverage - zoneThickness);
             const bottomZone = Math.min(padding.top + chartHeight, yAverage + zoneThickness);
 
-            const gradient = ctx.createLinearGradient(0, topZone, 0, bottomZone);
-            gradient.addColorStop(0, 'rgba(16, 185, 129, 0)');
-            gradient.addColorStop(0.4, 'rgba(16, 185, 129, 1)');
-            gradient.addColorStop(0.5, 'rgba(16, 185, 129, 1)');
-            gradient.addColorStop(0.6, 'rgba(16, 185, 129, 1)');
-            gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
-
-            ctx.fillStyle = gradient;
+            ctx.fillStyle = '#10b981';
             ctx.beginPath();
             ctx.rect(padding.left, topZone, chartWidth, bottomZone - topZone);
             ctx.fill();
 
-            ctx.strokeStyle = '#10b981';
+            ctx.strokeStyle = '#34d399';
             ctx.lineWidth = 3;
+            ctx.setLineDash([6, 6]);
             ctx.beginPath();
             ctx.moveTo(padding.left, yAverage);
             ctx.lineTo(width - padding.right, yAverage);
             ctx.stroke();
+            ctx.setLineDash([]);
 
             // Lilla graf
             const step = chartWidth / Math.max(data.length - 1, 1);
