@@ -749,34 +749,18 @@
             }
 
             const state = loadOverlayState();
-            if (state.closedAt) {
-                const closedAt = new Date(state.closedAt);
-                if (!Number.isNaN(closedAt.getTime())) {
-                    const timeSinceClosed = now.getTime() - closedAt.getTime();
-                    if (timeSinceClosed < OVERLAY_SHOW_INTERVAL_MS) {
-                        return false;
-                    }
+        if (state.closedAt) {
+            const closedAt = new Date(state.closedAt);
+            if (!Number.isNaN(closedAt.getTime())) {
+                const timeSinceClosed = now.getTime() - closedAt.getTime();
+                if (timeSinceClosed < OVERLAY_SHOW_INTERVAL_MS) {
+                    return false;
                 }
             }
-
-            if (state.lastShownAt) {
-                const lastShownAt = new Date(state.lastShownAt);
-                if (!Number.isNaN(lastShownAt.getTime())) {
-                    const timeSinceShown = now.getTime() - lastShownAt.getTime();
-                    if (timeSinceShown < OVERLAY_SHOW_INTERVAL_MS) {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
         }
 
-        function recordOverlayShown() {
-            const state = loadOverlayState();
-            state.lastShownAt = new Date().toISOString();
-            saveOverlayState(state);
-        }
+        return true;
+    }
 
         function recordOverlayClosed() {
             const state = loadOverlayState();
@@ -803,10 +787,9 @@
                 recordOverlayClosed();
             });
 
-            if (shouldShowOverlay()) {
-                overlay.classList.add('show');
-                recordOverlayShown();
-            }
+        if (shouldShowOverlay()) {
+            overlay.classList.add('show');
+        }
         }
 
         let overlayActivityTimeoutId = null;
