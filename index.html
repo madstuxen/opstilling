@@ -658,6 +658,243 @@
 </div>
     
     <script>
+        // Helper to ensure today's log entry exists
+        const LOGBOOK_STORAGE_KEY = 'logbogData';
+
+        function getTodayDateKey() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function getLogbookEntries() {
+            try {
+                const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                console.warn('Kunne ikke læse logbogData:', error);
+                return [];
+            }
+        }
+
+        function saveLogbookEntries(entries) {
+            try {
+                localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
+            } catch (error) {
+                console.error('Kunne ikke gemme logbogData:', error);
+            }
+        }
+
+        function upsertLogEntry(dateKey, partial) {
+            const entries = getLogbookEntries();
+            let entry = entries.find(item => item.date === dateKey);
+            if (!entry) {
+                entry = {
+                    date: dateKey,
+                    dagbog: '',
+                    dreams: ''
+                };
+                entries.push(entry);
+            }
+            Object.assign(entry, partial);
+            saveLogbookEntries(entries);
+            return entry;
+        }
+
+        function ensureTodayLogEntry() {
+            const todayKey = getTodayDateKey();
+            const entries = getLogbookEntries();
+            let entry = entries.find(item => item.date === todayKey);
+            if (!entry) {
+                entry = {
+                    date: todayKey,
+                    dagbog: '',
+                    dreams: ''
+                };
+                entries.push(entry);
+                saveLogbookEntries(entries);
+            }
+            return entry;
+        }
+
+        const OVERLAY_STATE_KEY = 'forside_overlay_data';
+        const OVERLAY_SHOW_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+        function loadOverlayState() {
+            try {
+                const raw = localStorage.getItem(OVERLAY_STATE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return typeof parsed === 'object' && parsed !== null ? parsed : {};
+            } catch (error) {
+                console.warn('Kunne ikke læse forside_overlay_data:', error);
+                return {};
+            }
+        }
+
+        function saveOverlayState(state) {
+            try {
+                localStorage.setItem(OVERLAY_STATE_KEY, JSON.stringify(state));
+            } catch (error) {
+                console.warn('Kunne ikke gemme forside_overlay_data:', error);
+            }
+        }
+
+        function shouldShowOverlay() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const isNightTime = (currentHour >= 22 && currentHour <= 23) || (currentHour >= 0 && currentHour < 8);
+            if (!isNightTime) {
+                return false;
+            }
+
+            const state = loadOverlayState();
+            if (state.closedAt) {
+                const closedAt = new Date(state.closedAt);
+                if (!Number.isNaN(closedAt.getTime())) {
+                    const timeSinceClosed = now.getTime() - closedAt.getTime();
+                    if (timeSinceClosed < OVERLAY_SHOW_INTERVAL_MS) {
+                        return false;
+                    }
+                }
+            }
+
+            if (state.lastShownAt) {
+                const lastShownAt = new Date(state.lastShownAt);
+                if (!Number.isNaN(lastShownAt.getTime())) {
+                    const timeSinceShown = now.getTime() - lastShownAt.getTime();
+                    if (timeSinceShown < OVERLAY_SHOW_INTERVAL_MS) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        function recordOverlayShown() {
+            const state = loadOverlayState();
+            state.lastShownAt = new Date().toISOString();
+            saveOverlayState(state);
+        }
+
+        function recordOverlayClosed() {
+            const state = loadOverlayState();
+            state.closedAt = new Date().toISOString();
+            saveOverlayState(state);
+        }
+
+        function hydrateNightOverlay() {
+            const overlay = document.getElementById('nightOverlay');
+            const textarea = document.getElementById('nightDreamEntry');
+            const closeBtn = document.getElementById('nightOverlayClose');
+
+            if (!overlay || !textarea || !closeBtn) return;
+
+            const entry = ensureTodayLogEntry();
+            textarea.value = entry.dreams || '';
+
+            textarea.addEventListener('input', () => {
+                upsertLogEntry(getTodayDateKey(), { dreams: textarea.value });
+            });
+
+            closeBtn.addEventListener('click', () => {
+                overlay.classList.remove('show');
+                recordOverlayClosed();
+            });
+
+            if (shouldShowOverlay()) {
+                overlay.classList.add('show');
+                recordOverlayShown();
+            }
+        }
+
+        let overlayActivityTimeoutId = null;
+
+        function setupOverlayActivityListeners() {
+            const activityEvents = ['mousemove', 'keydown', 'touchstart', 'click'];
+
+            function handleActivity() {
+                const overlay = document.getElementById('nightOverlay');
+                if (!overlay || overlay.classList.contains('show')) {
+                    resetOverlayActivityTimeout();
+                    return;
+                }
+                if (overlayActivityTimeoutId !== null) {
+                    return;
+                }
+                overlayActivityTimeoutId = window.setTimeout(() => {
+                    overlayActivityTimeoutId = null;
+                    hydrateNightOverlay();
+                }, 500);
+            }
+
+            activityEvents.forEach(eventName => {
+                window.addEventListener(eventName, handleActivity, { passive: true });
+            });
+        }
+
+        function resetOverlayActivityTimeout() {
+            if (overlayActivityTimeoutId !== null) {
+                clearTimeout(overlayActivityTimeoutId);
+                overlayActivityTimeoutId = null;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            hydrateNightOverlay();
+            setupOverlayActivityListeners();
+
+            const logoContainer = document.getElementById('logoContainer');
+            if (logoContainer) {
+                logoContainer.addEventListener('click', (e) => {
+                    e.stopPropagation();
+
+                    const launchCoaching = () => {
+                        const openFunc =
+                            typeof window.openCoachingOverlay === 'function'
+                                ? window.openCoachingOverlay
+                                : (typeof openCoachingOverlay === 'function' ? openCoachingOverlay : null);
+                        if (openFunc) {
+                            openFunc('coaching_templates/forside_coaching.json');
+                        } else {
+                            console.error('Coaching overlay funktion ikke tilgængelig');
+                        }
+                    };
+
+                    if (typeof window.openCoachingOverlay === 'function' || typeof openCoachingOverlay === 'function') {
+                        launchCoaching();
+                    } else {
+                        const retryInterval = setInterval(() => {
+                            if (typeof window.openCoachingOverlay === 'function' || typeof openCoachingOverlay === 'function') {
+                                clearInterval(retryInterval);
+                                launchCoaching();
+                            }
+                        }, 100);
+                        setTimeout(() => clearInterval(retryInterval), 5000);
+                    }
+
+                    setTimeout(() => {
+                        const navBox = document.getElementById('navBox');
+                        if (navBox) {
+                            navBox.classList.add('show');
+                            const navLinks = navBox.querySelectorAll('a.nav-button');
+                            navLinks.forEach(link => {
+                                link.addEventListener('click', (linkEvent) => {
+                                    linkEvent.stopPropagation();
+                                    navBox.classList.remove('show');
+                                    const href = link.getAttribute('href');
+                                    if (href) {
+                                        window.location.href = href;
+                                    }
+                                });
+                            });
+                        }
+                    }, 300);
+                });
+            }
+        });
+
         // Animations library
         let animationsLibrary = {};
         
@@ -1134,246 +1371,6 @@
             }
         });
 
-    const LOGBOOK_STORAGE_KEY = 'logbogData';
-
-    function getTodayDateKey() {
-        return new Date().toISOString().split('T')[0];
-    }
-
-    function getLogbookEntries() {
-        try {
-            const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed : [];
-        } catch (error) {
-            console.warn('Kunne ikke læse logbogData:', error);
-            return [];
-        }
-    }
-
-    function saveLogbookEntries(entries) {
-        try {
-            localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
-        } catch (error) {
-            console.error('Kunne ikke gemme logbogData:', error);
-        }
-    }
-
-    function upsertLogEntry(dateKey, partial) {
-        const entries = getLogbookEntries();
-        let entry = entries.find(item => item.date === dateKey);
-        if (!entry) {
-            entry = {
-                date: dateKey,
-                dagbog: '',
-                dreams: ''
-            };
-            entries.push(entry);
-        }
-        Object.assign(entry, partial);
-        saveLogbookEntries(entries);
-        return entry;
-    }
-
-    function ensureTodayLogEntry() {
-        const todayKey = getTodayDateKey();
-        const entries = getLogbookEntries();
-        let entry = entries.find(item => item.date === todayKey);
-        if (!entry) {
-            entry = {
-                date: todayKey,
-                dagbog: '',
-                dreams: ''
-            };
-            entries.push(entry);
-            saveLogbookEntries(entries);
-        }
-        return entry;
-    }
-
-    const OVERLAY_STATE_KEY = 'forside_overlay_data';
-    const OVERLAY_SHOW_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-
-    function loadOverlayState() {
-        try {
-            const raw = localStorage.getItem(OVERLAY_STATE_KEY);
-            if (!raw) return {};
-            const parsed = JSON.parse(raw);
-            return typeof parsed === 'object' && parsed !== null ? parsed : {};
-        } catch (error) {
-            console.warn('Kunne ikke læse forside_overlay_data:', error);
-            return {};
-        }
-    }
-
-    function saveOverlayState(state) {
-        try {
-            localStorage.setItem(OVERLAY_STATE_KEY, JSON.stringify(state));
-        } catch (error) {
-            console.warn('Kunne ikke gemme forside_overlay_data:', error);
-        }
-    }
-
-    function shouldShowOverlay() {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const isNightTime = (currentHour >= 22 && currentHour <= 23) || (currentHour >= 0 && currentHour < 8);
-        if (!isNightTime) {
-            return false;
-        }
-
-        const state = loadOverlayState();
-        if (state.closedAt) {
-            const closedAt = new Date(state.closedAt);
-            if (!Number.isNaN(closedAt.getTime())) {
-                const timeSinceClosed = now.getTime() - closedAt.getTime();
-                if (timeSinceClosed < OVERLAY_SHOW_INTERVAL_MS) {
-                    return false;
-                }
-            }
-        }
-
-        if (state.lastShownAt) {
-            const lastShownAt = new Date(state.lastShownAt);
-            if (!Number.isNaN(lastShownAt.getTime())) {
-                const timeSinceShown = now.getTime() - lastShownAt.getTime();
-                if (timeSinceShown < OVERLAY_SHOW_INTERVAL_MS) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    function recordOverlayShown() {
-        const state = loadOverlayState();
-        state.lastShownAt = new Date().toISOString();
-        saveOverlayState(state);
-    }
-
-    function recordOverlayClosed() {
-        const state = loadOverlayState();
-        state.closedAt = new Date().toISOString();
-        saveOverlayState(state);
-    }
-
-    function hydrateNightOverlay() {
-        const overlay = document.getElementById('nightOverlay');
-        const textarea = document.getElementById('nightDreamEntry');
-        const closeBtn = document.getElementById('nightOverlayClose');
-
-        if (!overlay || !textarea || !closeBtn) return;
-
-        const entry = ensureTodayLogEntry();
-        textarea.value = entry.dreams || '';
-
-        textarea.addEventListener('input', () => {
-            upsertLogEntry(getTodayDateKey(), { dreams: textarea.value });
-        });
-
-        closeBtn.addEventListener('click', () => {
-            overlay.classList.remove('show');
-            recordOverlayClosed();
-        });
-
-        if (shouldShowOverlay()) {
-            overlay.classList.add('show');
-            recordOverlayShown();
-        }
-    }
-        
-    // Make logo container clickable - shows navigation box and opens coaching overlay
-    document.addEventListener('DOMContentLoaded', () => {
-        const logoContainer = document.getElementById('logoContainer');
-        hydrateNightOverlay();
-        setupOverlayActivityListeners();
-        
-        if (logoContainer) {
-            logoContainer.addEventListener('click', (e) => {
-                e.stopPropagation();
-                
-                // Open coaching overlay first
-                function openCoaching() {
-                    if (typeof window.openCoachingOverlay === 'function') {
-                        window.openCoachingOverlay('coaching_templates/forside_coaching.json');
-                    } else if (typeof openCoachingOverlay === 'function') {
-                        openCoachingOverlay('coaching_templates/forside_coaching.json');
-                    } else {
-                        // Wait for script to load
-                        const checkInterval = setInterval(() => {
-                            if (typeof window.openCoachingOverlay === 'function' || typeof openCoachingOverlay === 'function') {
-                                clearInterval(checkInterval);
-                                const openFunc = window.openCoachingOverlay || openCoachingOverlay;
-                                openFunc('coaching_templates/forside_coaching.json');
-                            }
-                        }, 100);
-                        
-                        // Timeout after 5 seconds
-                        setTimeout(() => {
-                            clearInterval(checkInterval);
-                            console.error('Coaching overlay funktion ikke tilgængelig');
-                        }, 5000);
-                    }
-                }
-                
-                openCoaching();
-                
-                // Show navigation box after a short delay to let coaching overlay cover it first
-                setTimeout(() => {
-                    const navBox = document.getElementById('navBox');
-                    if (navBox) {
-                        navBox.classList.add('show');
-                        const navLinks = navBox.querySelectorAll('a.nav-button');
-                        navLinks.forEach(link => {
-                            link.addEventListener('click', (linkEvent) => {
-                                linkEvent.stopPropagation();
-                                navBox.classList.remove('show');
-                                const href = link.getAttribute('href');
-                                if (href) {
-                                    window.location.href = href;
-                                }
-                            });
-                        });
-                    }
-                }, 300);
-            });
-        }
-    });
-
-    let overlayActivityTimeoutId = null;
-
-    function setupOverlayActivityListeners() {
-        const activityEvents = ['mousemove', 'keydown', 'touchstart', 'click'];
-
-        function handleActivity() {
-            const overlay = document.getElementById('nightOverlay');
-            if (!overlay || overlay.classList.contains('show')) {
-                resetOverlayActivityTimeout();
-                return;
-            }
-            if (overlayActivityTimeoutId !== null) {
-                // If a timeout is already pending, don't schedule another
-                return;
-            }
-            overlayActivityTimeoutId = window.setTimeout(() => {
-                overlayActivityTimeoutId = null;
-                hydrateNightOverlay();
-            }, 500);
-        }
-
-        activityEvents.forEach(eventName => {
-            window.addEventListener(eventName, handleActivity, { passive: true });
-        });
-    }
-
-    function resetOverlayActivityTimeout() {
-        if (overlayActivityTimeoutId !== null) {
-            clearTimeout(overlayActivityTimeoutId);
-            overlayActivityTimeoutId = null;
-        }
-    }
     </script>
 </body>
 </html>
