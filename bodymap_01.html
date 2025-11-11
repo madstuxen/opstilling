@@ -290,46 +290,343 @@
         
         .history-sidebar.collapsed .history-header {
             justify-content: center;
-        }
-        
-        .history-sidebar.collapsed .history-header .onion-layer-toggle {
-            display: none;
-        }
-        
-        .history-sidebar.collapsed .history-header {
             font-size: 0;
         }
         
         .history-header {
             background: #e2e8f0;
-            padding: 15px;
+            padding: 10px 12px 10px 40px;
             text-align: center;
             font-weight: bold;
             color: #374151;
             border-bottom: 2px solid #d1d5db;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
+            gap: 8px;
             height: 50px;
             min-height: 50px;
             max-height: 50px;
             box-sizing: border-box;
+            position: relative;
+        }
+
+        .history-filter {
+            flex: 1;
+            min-width: 180px;
+            padding: 6px 14px 6px 16px;
+            border-radius: 8px;
+            border: 1px solid #cbd5f5;
+            background: #ffffff;
+            color: #1f2937;
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            appearance: none;
+            margin: 0 8px 0 0;
+            position: relative;
+            background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%);
+            background-position: calc(100% - 16px) 50%, calc(100% - 9px) 50%;
+            background-size: 7px 7px, 7px 7px;
+            background-repeat: no-repeat;
+        }
+
+        .history-filter:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .layer-toggle-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #cbd5f5;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 6px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+            margin-left: auto;
+        }
+
+        .layer-toggle-btn img {
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .layer-toggle-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+            border-color: #94a3f1;
+            background: rgba(238, 242, 255, 0.95);
+        }
+
+        .layer-toggle-btn.active {
+            box-shadow: 0 8px 22px rgba(79, 70, 229, 0.35);
+            border-color: #4f46e5;
+            background: linear-gradient(135deg, rgba(224, 231, 255, 0.95), rgba(199, 210, 254, 0.95));
+        }
+
+        .history-sidebar.collapsed .history-filter,
+        .history-sidebar.collapsed .layer-toggle-btn {
+            display: none;
         }
         
         .onion-layer-toggle {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-            font-weight: normal;
-            cursor: pointer;
+            display: none;
         }
         
         .onion-layer-toggle input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
+            display: none;
+        }
+
+        .map-manager-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2500;
+        }
+
+        .map-manager-overlay.show {
+            display: flex;
+        }
+
+        .map-manager-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(4px);
+        }
+
+        .map-manager-panel {
+            position: relative;
+            width: min(520px, 90vw);
+            max-height: 80vh;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25);
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            z-index: 1;
+        }
+
+        .map-manager-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .map-manager-header h2 {
+            font-size: 1.25rem;
+            color: #111827;
+        }
+
+        .map-manager-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 10px;
+            background: #e2e8f0;
+            color: #1f2937;
+            font-size: 18px;
             cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .map-manager-close:hover {
+            background: #cbd5f5;
+            transform: scale(1.05);
+        }
+
+        .map-manager-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .map-manager-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .map-name-btn {
+            flex: 1;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 15px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            color: #1f2937;
+        }
+
+        .map-name-input {
+            flex: 1;
+            border-radius: 10px;
+            border: 1px solid #cbd5f5;
+            padding: 10px 14px;
+            font-size: 15px;
+            font-weight: 600;
+            transition: box-shadow 0.2s ease;
+            color: #1f2937;
+            background: #f8fafc;
+        }
+
+        .map-name-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+        }
+
+        .map-name-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+        }
+
+        .map-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .map-action-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .map-action-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+        }
+
+        .map-action-btn.delete {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        }
+
+        .map-action-btn.color {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+
+        .map-manager-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 4px 0;
+        }
+
+        .map-manager-new {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .map-manager-new input {
+            flex: 1;
+            border-radius: 10px;
+            border: 1px solid #cbd5f5;
+            padding: 10px 14px;
+            font-size: 14px;
+        }
+
+        .map-manager-new input:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .map-manager-new .map-create-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .map-manager-new .map-create-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+        }
+
+        .map-color-picker-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.35);
+            z-index: 2600;
+        }
+
+        .map-color-picker-modal.show {
+            display: flex;
+        }
+
+        .map-color-picker {
+            width: calc(32px * 6 + 8px * 5 + 16px * 2);
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .map-color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 32px);
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .map-color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .map-color-swatch:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
         }
         
         .collapse-toggle {
@@ -364,7 +661,9 @@
         .history-navigation {
             display: flex;
             justify-content: space-between;
-            padding: 10px;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
             background: #e2e8f0;
             border-bottom: 1px solid #d1d5db;
         }
@@ -428,25 +727,37 @@
         }
         
         .history-item {
-            padding: 8px;
-            margin-bottom: 4px;
-            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
             border: 2px solid transparent;
             position: relative;
-            background: #4f46e5;
-            color: black;
         }
         
         .history-item:hover {
-            background: #4f46e5;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
         }
         
         .history-item.active {
-            background: #4f46e5;
-            color: white;
-            border-color: #6366f1;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
+        }
+
+        .history-item-map {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .history-item-title {
+            margin-bottom: 6px;
         }
         
         .history-item-date {
@@ -466,14 +777,16 @@
             border-radius: 4px;
         }
         
-        .history-item-time {
+        .history-item-meta {
+            display: flex;
+            justify-content: space-between;
             font-size: 10px;
-            opacity: 0.8;
+            opacity: 0.85;
+            gap: 10px;
         }
         
+        .history-item-time,
         .history-item-labels {
-            font-size: 10px;
-            opacity: 0.8;
             white-space: nowrap;
         }
         
@@ -507,6 +820,13 @@
             background: #dc2626;
             transform: scale(1.1);
         }
+
+        .nav-btn-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         
         
         /* Part/Figure styles */
@@ -977,8 +1297,7 @@
         
         <div class="toolbar">
             <button class="nav-toggle-btn" onclick="toggleNavBox()" title="Navigation">☰</button>
-            <input type="text" class="bodymap-title-input" id="bodymapTitle" placeholder="Bodymap titel..." onchange="updateBodymapTitle()">
-            <button class="btn-new-map" onclick="newMap()">Nyt bodymap</button>
+            <button class="btn-new-map" onclick="openMapManager()">Nyt bodymap</button>
             <button class="btn-new-label" onclick="newLabel()">Ny label</button>
             <button class="btn-new-index" onclick="newIndex()">Nyt lag</button>
             <button class="btn-save-image" onclick="saveMap()">Gem map</button>
@@ -995,16 +1314,17 @@
             <div class="history-sidebar" id="historySidebar">
                 <div class="history-header">
                     <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
-                    Historie
-                    <label class="onion-layer-toggle">
-                        <input type="checkbox" id="onionLayerToggle" checked onchange="toggleOnionLayers()">
-                        Vis lag
-                    </label>
+                    <select id="historyFilter" class="history-filter" onchange="setHistoryFilter(this.value)"></select>
                 </div>
                 <div class="history-content">
                     <div class="history-navigation">
-                        <button class="nav-btn" id="navUp" onclick="navigateHistory(1)" title="Gå op"></button>
-                        <button class="nav-btn" id="navDown" onclick="navigateHistory(-1)" title="Gå ned"></button>
+                        <div class="nav-btn-group">
+                            <button class="nav-btn" id="navUp" onclick="navigateHistory(-1)" title="Gå ned"></button>
+                            <button class="nav-btn" id="navDown" onclick="navigateHistory(1)" title="Gå op"></button>
+                        </div>
+                        <button type="button" class="layer-toggle-btn" id="layerToggleBtn" onclick="toggleOnionLayers()" aria-pressed="true" title="Skjul lag">
+                            <img src="imagefiles/lay_on.svg" alt="Lag vises" width="28" height="28">
+                        </button>
                     </div>
                     <div class="history-list" id="historyList"></div>
                 </div>
@@ -1041,26 +1361,529 @@
         };
         
         // Data structure
-        let dataIndexes = []; // Array of index objects: {id, date, time, title, labels: [{id, text, x, y, labelNumber}]}
+        let dataIndexes = []; // Array of index objects
+        let maps = []; // Array of map objects: {id, name, color}
+        let activeMapId = null;
         let activeIndexId = null;
+        let mapCounter = 1; // Counter for map IDs
         let indexCounter = 1; // Counter for index IDs
         let labelIdCounter = 1; // Counter for label IDs
         let totalLabelsCreated = 0; // Total count of all labels ever created
         let bodymapTitle = ''; // Title of the current bodymap
+        let shouldScrollHistoryToBottom = false;
         let showOnionLayers = true; // Toggle for showing onion layers
+        let historyFilterMapId = 'all'; // Current filter selection for history
         
         // Main data structure for saving/loading
         let BodyMapData = {
-            version: "1.0",
+            version: "2.0",
             metadata: {
                 title: "",
                 created: null,
                 updated: null,
                 showOnionLayers: true,
+                activeMapId: null,
                 activeIndexId: null
             },
+            maps: [],
             dataIndexes: []
         };
+        
+        const MAP_COLORS = [
+            '#f97316',
+            '#f59e0b',
+            '#10b981',
+            '#0ea5e9',
+            '#6366f1',
+            '#ec4899',
+            '#94a3b8',
+            '#14b8a6'
+        ];
+        
+        function getMapById(mapId) {
+            return maps.find(map => map.id === mapId) || null;
+        }
+        
+        function getMapColor(mapId) {
+            const map = getMapById(mapId);
+            return map ? map.color : '#e8dcc6';
+        }
+        
+        function hexToRgba(hex, alpha) {
+            if (!hex) {
+                return `rgba(232, 220, 198, ${alpha})`;
+            }
+            const normalized = hex.replace('#', '');
+            if (normalized.length === 3) {
+                const r = parseInt(normalized[0] + normalized[0], 16);
+                const g = parseInt(normalized[1] + normalized[1], 16);
+                const b = parseInt(normalized[2] + normalized[2], 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            if (normalized.length === 6) {
+                const r = parseInt(normalized.substring(0, 2), 16);
+                const g = parseInt(normalized.substring(2, 4), 16);
+                const b = parseInt(normalized.substring(4, 6), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            return hex;
+        }
+
+        function lightenHex(hex, amount = 0.5) {
+            if (!hex) return '#f2e7d2';
+            const normalized = hex.replace('#', '');
+            const expand = normalized.length === 3
+                ? normalized.split('').map(ch => ch + ch).join('')
+                : normalized.padEnd(6, '0');
+            const r = parseInt(expand.substring(0, 2), 16);
+            const g = parseInt(expand.substring(2, 4), 16);
+            const b = parseInt(expand.substring(4, 6), 16);
+            const clampAmount = Math.max(0, Math.min(1, amount));
+            const newR = Math.round(r + (255 - r) * clampAmount);
+            const newG = Math.round(g + (255 - g) * clampAmount);
+            const newB = Math.round(b + (255 - b) * clampAmount);
+            return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+        }
+        
+        function ensureDefaultMap() {
+            if (maps.length === 0) {
+                const defaultMap = {
+                    id: mapCounter++,
+                    name: bodymapTitle || 'BodyMap',
+                    color: MAP_COLORS[0]
+                };
+                maps.push(defaultMap);
+                activeMapId = defaultMap.id;
+            }
+            if (!activeMapId || !getMapById(activeMapId)) {
+                activeMapId = maps[0]?.id || null;
+            }
+        }
+        
+        function getIndexesForMap(mapId) {
+            return dataIndexes.filter(index => index.mapId === mapId);
+        }
+
+        function extractLayerNumber(title) {
+            if (!title) return null;
+            const match = title.trim().match(/^Lag\s+(\d+)$/i);
+            if (!match) return null;
+            const num = parseInt(match[1], 10);
+            return Number.isFinite(num) ? num : null;
+        }
+
+        function getNextLayerNumberForMap(mapId) {
+            const mapIndexes = getIndexesForMap(mapId);
+            let maxNumber = 0;
+            mapIndexes.forEach(idx => {
+                const num = extractLayerNumber(idx.title);
+                if (num !== null && num > maxNumber) {
+                    maxNumber = num;
+                }
+            });
+            return maxNumber + 1;
+        }
+
+        function generateDefaultLayerTitle(mapId) {
+            const nextNumber = getNextLayerNumberForMap(mapId);
+            return `Lag ${nextNumber}`;
+        }
+
+        function ensureLayerTitlesForMap(mapId) {
+            const mapIndexes = getIndexesForMap(mapId)
+                .sort((a, b) => new Date(ensureIndexTimestamp(a)) - new Date(ensureIndexTimestamp(b)));
+            let maxNumber = 0;
+            mapIndexes.forEach(idx => {
+                const currentTitle = (idx.title || '').trim();
+                const existingNumber = extractLayerNumber(currentTitle);
+                if (!currentTitle || currentTitle.toLowerCase() === 'lag') {
+                    const nextNumber = maxNumber + 1;
+                    idx.title = `Lag ${nextNumber}`;
+                    maxNumber = nextNumber;
+                } else if (existingNumber !== null) {
+                    maxNumber = Math.max(maxNumber, existingNumber);
+                }
+            });
+        }
+
+        function ensureLayerTitles() {
+            maps.forEach(map => ensureLayerTitlesForMap(map.id));
+        }
+
+        function ensureIndexTimestamp(index) {
+            if (!index.timestamp) {
+                const dateStr = index.date || '';
+                const timeStr = index.time || '00:00';
+                const parts = dateStr.split(/[\.\-/]/);
+                if (parts.length >= 3) {
+                    const day = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1;
+                    const year = parseInt(parts[2], 10);
+                    const [hour = '0', minute = '0'] = timeStr.split(':');
+                    const timestampDate = new Date(year, month, day, parseInt(hour, 10), parseInt(minute, 10));
+                    index.timestamp = timestampDate.toISOString();
+                } else {
+                    index.timestamp = new Date().toISOString();
+                }
+            }
+            return index.timestamp;
+        }
+
+        function getAllIndexesSorted() {
+            const enriched = dataIndexes.map(index => {
+                const map = getMapById(index.mapId);
+                ensureIndexTimestamp(index);
+                return {
+                    index,
+                    map,
+                    timestamp: new Date(index.timestamp)
+                };
+            });
+            enriched.sort((a, b) => a.timestamp - b.timestamp);
+            return enriched;
+        }
+
+        function getFilteredSortedEntries() {
+            const all = getAllIndexesSorted();
+            if (historyFilterMapId === 'all') {
+                return all;
+            }
+            return all.filter(entry => entry.map && entry.map.id === historyFilterMapId);
+        }
+
+        const MAP_COLOR_PRESETS = [
+            '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
+            '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
+        ];
+
+        let mapManagerOverlayEl = null;
+        let mapManagerListEl = null;
+        let newMapNameInputEl = null;
+        let newMapColorBtnEl = null;
+        let mapColorPickerModalEl = null;
+        let mapColorGridEl = null;
+        let mapColorPickerTarget = null; // { type: 'map' | 'new', mapId? }
+        let newMapDraftColor = MAP_COLOR_PRESETS[0];
+        let newMapDraftName = '';
+        let newMapColorDirty = false;
+        let mapManagerNewRowEl = null;
+
+        function openMapManager() {
+            if (!mapManagerOverlayEl) {
+                mapManagerOverlayEl = document.getElementById('mapManagerOverlay');
+                mapManagerListEl = document.getElementById('mapManagerList');
+                newMapNameInputEl = document.getElementById('newMapName');
+                newMapColorBtnEl = document.getElementById('newMapColorBtn');
+                mapManagerNewRowEl = document.getElementById('mapManagerNewRow');
+            }
+            if (!mapColorPickerModalEl) {
+                mapColorPickerModalEl = document.getElementById('mapColorPickerModal');
+            }
+            if (!mapColorGridEl) {
+                mapColorGridEl = document.getElementById('mapColorGrid');
+            }
+            if (newMapNameInputEl) {
+                newMapDraftName = newMapNameInputEl.value;
+            }
+            if (mapColorGridEl && mapColorGridEl.childElementCount === 0) {
+                buildMapColorGrid();
+            }
+            if (!mapManagerOverlayEl) return;
+            resetNewMapDraft();
+            renderMapManagerList();
+            mapManagerOverlayEl.classList.add('show');
+            setTimeout(() => {
+                if (newMapNameInputEl) {
+                    newMapNameInputEl.focus();
+                }
+            }, 80);
+        }
+
+        function closeMapManager() {
+            if (mapManagerOverlayEl) {
+                mapManagerOverlayEl.classList.remove('show');
+            }
+            closeMapColorPicker();
+        }
+
+        function resetNewMapDraft() {
+            newMapDraftColor = MAP_COLOR_PRESETS[0];
+            newMapDraftName = '';
+            newMapColorDirty = false;
+            if (newMapNameInputEl) {
+                newMapNameInputEl.value = '';
+            }
+            updateNewMapColorButton();
+        }
+
+        function updateNewMapColorButton() {
+            if (!newMapColorBtnEl) return;
+            if (newMapColorDirty) {
+                const baseColor = newMapDraftColor || MAP_COLOR_PRESETS[0];
+                newMapColorBtnEl.style.background = baseColor;
+                newMapColorBtnEl.style.color = '#ffffff';
+                newMapColorBtnEl.style.border = `2px solid ${baseColor}`;
+                if (newMapNameInputEl) {
+                    newMapNameInputEl.style.background = lightenHex(baseColor, 0.85);
+                    newMapNameInputEl.style.borderColor = baseColor;
+                }
+            } else {
+                newMapColorBtnEl.style.background = '';
+                newMapColorBtnEl.style.color = '';
+                newMapColorBtnEl.style.border = '';
+                if (newMapNameInputEl) {
+                    newMapNameInputEl.style.background = '';
+                    newMapNameInputEl.style.borderColor = '';
+                }
+            }
+        }
+
+        function renderMapManagerList() {
+            if (!mapManagerListEl) return;
+            mapManagerListEl.innerHTML = '';
+            maps.forEach(map => {
+                const item = document.createElement('div');
+                item.className = 'map-manager-item';
+
+                const nameBtn = document.createElement('button');
+                nameBtn.className = 'map-name-btn';
+                nameBtn.textContent = map.name;
+                const baseColor = map.color || '#4f46e5';
+                nameBtn.style.background = lightenHex(baseColor, 0.7);
+                nameBtn.style.border = `1px solid ${baseColor}`;
+                nameBtn.addEventListener('click', () => beginMapNameInlineEdit(map, nameBtn));
+
+                const actions = document.createElement('div');
+                actions.className = 'map-item-actions';
+
+                const colorBtn = document.createElement('button');
+                colorBtn.className = 'map-action-btn color';
+                colorBtn.textContent = 'C';
+                colorBtn.style.background = map.color || '#4f46e5';
+                colorBtn.onclick = () => openMapColorPicker({ type: 'map', mapId: map.id });
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'map-action-btn delete';
+                deleteBtn.textContent = '✕';
+                deleteBtn.onclick = () => deleteMap(map.id);
+
+                actions.appendChild(colorBtn);
+                actions.appendChild(deleteBtn);
+
+                item.appendChild(nameBtn);
+                item.appendChild(actions);
+                mapManagerListEl.appendChild(item);
+            });
+
+            mapManagerNewRowEl = document.getElementById('mapManagerNewRow');
+            newMapNameInputEl = document.getElementById('newMapName');
+            newMapColorBtnEl = document.getElementById('newMapColorBtn');
+            if (newMapNameInputEl) {
+                newMapNameInputEl.value = newMapDraftName;
+                newMapNameInputEl.addEventListener('input', (e) => {
+                    newMapDraftName = e.target.value;
+                });
+            }
+            updateNewMapColorButton();
+        }
+
+        function beginMapNameInlineEdit(map, buttonEl) {
+            if (!map || !buttonEl) return;
+            const baseColor = map.color || '#4f46e5';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'map-name-input';
+            input.value = map.name;
+            input.style.background = lightenHex(baseColor, 0.7);
+            input.style.borderColor = baseColor;
+
+            let finished = false;
+            const commit = (shouldSave) => {
+                if (finished) return;
+                finished = true;
+                const newName = input.value.trim();
+                if (shouldSave && newName && newName !== map.name) {
+                    map.name = newName;
+                    renderHistoryFilterOptions();
+                    renderHistory();
+                    saveToLocalStorage();
+                }
+                renderMapManagerList();
+            };
+
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    commit(true);
+                } else if (event.key === 'Escape') {
+                    commit(false);
+                }
+            });
+
+            input.addEventListener('blur', () => commit(true));
+
+            buttonEl.replaceWith(input);
+            input.focus();
+            input.select();
+        }
+
+        function openMapColorPicker(target) {
+            if (!mapColorPickerModalEl) {
+                mapColorPickerModalEl = document.getElementById('mapColorPickerModal');
+                mapColorGridEl = document.getElementById('mapColorGrid');
+            }
+            if (!mapColorPickerModalEl || !mapColorGridEl) return;
+            mapColorPickerTarget = target;
+            mapColorPickerModalEl.classList.add('show');
+        }
+
+        function closeMapColorPicker() {
+            mapColorPickerTarget = null;
+            if (mapColorPickerModalEl) {
+                mapColorPickerModalEl.classList.remove('show');
+            }
+        }
+
+        function handleMapColorSelected(color) {
+            if (!mapColorPickerTarget) return;
+            if (mapColorPickerTarget.type === 'map') {
+                applyMapColor(mapColorPickerTarget.mapId, color);
+                renderHistory();
+                renderWorkspace();
+                saveToLocalStorage();
+            } else if (mapColorPickerTarget.type === 'new') {
+                newMapDraftColor = color;
+                newMapColorDirty = true;
+                updateNewMapColorButton();
+            }
+        }
+
+        function applyMapColor(mapId, color) {
+            const map = getMapById(mapId);
+            if (!map) return;
+            map.color = color;
+            renderHistory();
+            renderWorkspace();
+            renderMapManagerList();
+            renderHistoryFilterOptions();
+            saveToLocalStorage();
+        }
+
+        function confirmCreateMap() {
+            if (!newMapNameInputEl) return;
+            const name = newMapNameInputEl.value.trim();
+            if (!name) {
+                newMapNameInputEl.focus();
+                return;
+            }
+            const color = newMapDraftColor || MAP_COLOR_PRESETS[0];
+            const newMap = {
+                id: mapCounter++,
+                name,
+                color
+            };
+            maps.push(newMap);
+            const createdIndex = createNewIndex({ mapId: newMap.id, skipRender: true });
+            activeMapId = newMap.id;
+            activeIndexId = createdIndex.id;
+            shouldScrollHistoryToBottom = true;
+            renderHistoryFilterOptions();
+            renderHistory();
+            renderWorkspace();
+            saveToLocalStorage();
+            if (newMapNameInputEl) {
+                newMapNameInputEl.value = '';
+                newMapNameInputEl.style.background = '#ffffff';
+                newMapNameInputEl.style.borderColor = '#cbd5f5';
+            }
+            resetNewMapDraft();
+            closeMapManager();
+        }
+
+        function deleteMap(mapId) {
+            const map = getMapById(mapId);
+            if (!map) return;
+            if (!confirm(`Vil du slette alle lag og labels på "${map.name}"?`)) {
+                return;
+            }
+            closeMapColorPicker();
+            maps = maps.filter(m => m.id !== mapId);
+            dataIndexes = dataIndexes.filter(idx => idx.mapId !== mapId);
+            if (activeMapId === mapId) {
+                activeMapId = null;
+            }
+            if (!dataIndexes.find(idx => idx.id === activeIndexId)) {
+                activeIndexId = null;
+            }
+            ensureDefaultMap();
+            if (!maps.find(m => m.id === activeMapId) && maps.length > 0) {
+                activeMapId = maps[maps.length - 1].id;
+            }
+            if (!dataIndexes.find(idx => idx.id === activeIndexId)) {
+                const activeMapIndexes = getIndexesForMap(activeMapId).sort((a, b) => new Date(ensureIndexTimestamp(a)) - new Date(ensureIndexTimestamp(b)));
+                if (activeMapIndexes.length > 0) {
+                    activeIndexId = activeMapIndexes[activeMapIndexes.length - 1].id;
+                } else {
+                    activeIndexId = dataIndexes.length ? dataIndexes[dataIndexes.length - 1].id : null;
+                }
+            }
+            renderHistoryFilterOptions();
+            renderHistory();
+            renderWorkspace();
+            renderMapManagerList();
+            saveToLocalStorage();
+        }
+        
+        function updateLayerToggleUI() {
+            const btn = document.getElementById('layerToggleBtn');
+            if (!btn) return;
+            const img = btn.querySelector('img');
+            const isActive = !!showOnionLayers;
+            if (img) {
+                img.src = isActive ? 'imagefiles/lay_on.svg' : 'imagefiles/lay_off.svg';
+                img.alt = isActive ? 'Lag vises' : 'Lag skjult';
+            }
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            btn.classList.toggle('active', isActive);
+            btn.title = isActive ? 'Skjul lag' : 'Vis lag';
+        }
+
+        function renderHistoryFilterOptions() {
+            const filterEl = document.getElementById('historyFilter');
+            if (!filterEl) return;
+
+            const desiredValue = historyFilterMapId === 'all' ? 'all' : String(historyFilterMapId);
+            const options = ['<option value="all">Show All</option>'];
+            const sortedMaps = [...maps].sort((a, b) => a.name.localeCompare(b.name, 'da', { sensitivity: 'base' }));
+            sortedMaps.forEach(map => {
+                options.push(`<option value="${map.id}">${map.name}</option>`);
+            });
+
+            filterEl.innerHTML = options.join('');
+            const allowedValues = ['all', ...sortedMaps.map(map => String(map.id))];
+            const nextValue = allowedValues.includes(desiredValue) ? desiredValue : 'all';
+            filterEl.value = nextValue;
+            historyFilterMapId = nextValue === 'all' ? 'all' : parseFloat(nextValue);
+        }
+
+        function setHistoryFilter(value) {
+            historyFilterMapId = value === 'all' ? 'all' : parseFloat(value);
+            ensureDefaultMap();
+            if (historyFilterMapId !== 'all') {
+                const filteredMapId = historyFilterMapId;
+                const mapIndexes = getIndexesForMap(filteredMapId).sort((a, b) => new Date(ensureIndexTimestamp(a)) - new Date(ensureIndexTimestamp(b)));
+                if (mapIndexes.length > 0) {
+                    const hasActiveInMap = mapIndexes.some(idx => idx.id === activeIndexId);
+                    if (!hasActiveInMap) {
+                        const latestIndex = mapIndexes[mapIndexes.length - 1];
+                        activeIndexId = latestIndex.id;
+                        activeMapId = filteredMapId;
+                    }
+                }
+            }
+            renderHistory();
+            renderWorkspace();
+            saveToLocalStorage();
+        }
         
         // Animations library - loaded from JSON files
         let animationsLibrary = {};
@@ -1131,7 +1954,9 @@
             await loadAnimations();
             // Try to load from localStorage first
             if (!loadFromLocalStorage()) {
-                // If no saved data, create first index
+                // If no saved data, create first index and default to showing layers
+                showOnionLayers = true;
+                updateLayerToggleUI();
                 createNewIndex();
             }
             // Load history sidebar collapsed state
@@ -1146,6 +1971,7 @@
                     if (toggleBtn) toggleBtn.textContent = '>';
                 }
             }
+            updateLayerToggleUI();
         }
         
         // Update BodyMapData structure with current state
@@ -1155,12 +1981,19 @@
             BodyMapData.metadata.title = bodymapTitle;
             BodyMapData.metadata.updated = now;
             BodyMapData.metadata.showOnionLayers = showOnionLayers;
+            BodyMapData.metadata.activeMapId = activeMapId;
             BodyMapData.metadata.activeIndexId = activeIndexId;
             if (!BodyMapData.metadata.created) {
                 BodyMapData.metadata.created = now;
             }
+            BodyMapData.maps = maps.map(map => ({
+                id: map.id,
+                name: map.name,
+                color: map.color
+            }));
             BodyMapData.dataIndexes = dataIndexes.map(index => ({
                 id: index.id,
+                mapId: index.mapId,
                 date: index.date,
                 time: index.time,
                 title: index.title || '',
@@ -1200,7 +2033,6 @@
                 
                 // Restore title
                 bodymapTitle = parsed.metadata?.title || '';
-                document.getElementById('bodymapTitle').value = bodymapTitle;
                 
                 // Restore metadata
                 if (parsed.metadata) {
@@ -1209,18 +2041,45 @@
                         created: parsed.metadata.created || null,
                         updated: parsed.metadata.updated || null,
                         showOnionLayers: parsed.metadata.showOnionLayers !== undefined ? parsed.metadata.showOnionLayers : true,
+                        activeMapId: parsed.metadata.activeMapId || null,
                         activeIndexId: parsed.metadata.activeIndexId || null
                     };
                     // Restore onion layer toggle state
                     showOnionLayers = BodyMapData.metadata.showOnionLayers;
-                    document.getElementById('onionLayerToggle').checked = showOnionLayers;
+                    updateLayerToggleUI();
+                }
+                
+                // Restore maps (if present) or create default
+                if (parsed.maps && Array.isArray(parsed.maps)) {
+                    maps = parsed.maps.map((map, idx) => ({
+                        id: map.id ?? (idx + 1),
+                        name: map.name || `BodyMap ${idx + 1}`,
+                        color: map.color || MAP_COLORS[idx % MAP_COLORS.length]
+                    }));
+                    if (maps.length > 0) {
+                        const maxMapId = Math.max(...maps.map(map => map.id));
+                        mapCounter = maxMapId + 1;
+                    } else {
+                        mapCounter = 1;
+                    }
+                } else {
+                    maps = [];
+                    mapCounter = 1;
                 }
                 
                 // Restore dataIndexes
                 if (parsed.dataIndexes && Array.isArray(parsed.dataIndexes)) {
-                    dataIndexes = parsed.dataIndexes;
-                    
-                    // Regenerate counters based on existing data
+                    dataIndexes = parsed.dataIndexes.map(index => {
+                        const mapped = {
+                            ...index,
+                            mapId: index.mapId
+                        };
+                        ensureIndexTimestamp(mapped);
+                        return mapped;
+                    });
+                }
+                
+                // Regenerate counters
                     if (dataIndexes.length > 0) {
                         const maxIndexId = Math.max(...dataIndexes.map(idx => idx.id));
                         indexCounter = maxIndexId + 1;
@@ -1235,22 +2094,40 @@
                         labelIdCounter = maxLabelId + 1;
                     }
                     
-                    // Restore active index from saved data, or use most recent as fallback
+                ensureDefaultMap();
+                dataIndexes.forEach(index => {
+                    if (!index.mapId || !getMapById(index.mapId)) {
+                        ensureDefaultMap();
+                        index.mapId = activeMapId;
+                    }
+                });
+                ensureLayerTitles();
+                saveToLocalStorage();
+                
+                // Restore active map/index
+                if (maps.length > 0) {
+                    const savedActiveMapId = BodyMapData.metadata.activeMapId;
+                    if (savedActiveMapId !== null && getMapById(savedActiveMapId)) {
+                        activeMapId = savedActiveMapId;
+                    } else {
+                        activeMapId = maps[0].id;
+                    }
+                } else {
+                    activeMapId = null;
+                }
+                
                     if (dataIndexes.length > 0) {
                         const savedActiveIndexId = BodyMapData.metadata.activeIndexId;
-                        // Verify that the saved activeIndexId exists in dataIndexes
                         if (savedActiveIndexId !== null && dataIndexes.find(idx => idx.id === savedActiveIndexId)) {
                             activeIndexId = savedActiveIndexId;
                         } else {
-                            // Fallback to most recent index
-                            activeIndexId = dataIndexes[dataIndexes.length - 1].id;
+                        const activeMapIndexes = getIndexesForMap(activeMapId);
+                        activeIndexId = activeMapIndexes.length ? activeMapIndexes[activeMapIndexes.length - 1].id : dataIndexes[dataIndexes.length - 1].id;
                         }
-                    }
-                } else {
-                    return false;
                 }
                 
                 // Re-render everything
+                updateLayerToggleUI();
                 renderHistory();
                 renderWorkspace();
                 
@@ -1259,12 +2136,6 @@
                 console.error('Error loading from localStorage:', error);
                 return false;
             }
-        }
-        
-        // Update bodymap title
-        function updateBodymapTitle() {
-            bodymapTitle = document.getElementById('bodymapTitle').value.trim();
-            saveToLocalStorage();
         }
         
         // Export map to JSON file
@@ -1304,33 +2175,51 @@
                     try {
                         const parsed = JSON.parse(e.target.result);
                         
-                        // Validate structure
                         if (!parsed.dataIndexes || !Array.isArray(parsed.dataIndexes)) {
                             throw new Error('Ugyldig bodymap fil format');
                         }
                         
-                        // Restore title
                         bodymapTitle = parsed.metadata?.title || '';
-                        document.getElementById('bodymapTitle').value = bodymapTitle;
                         
-                        // Restore metadata
                         if (parsed.metadata) {
                             BodyMapData.metadata = {
                                 title: parsed.metadata.title || '',
                                 created: parsed.metadata.created || new Date().toISOString(),
                                 updated: parsed.metadata.updated || new Date().toISOString(),
                                 showOnionLayers: parsed.metadata.showOnionLayers !== undefined ? parsed.metadata.showOnionLayers : true,
+                                activeMapId: parsed.metadata.activeMapId || null,
                                 activeIndexId: parsed.metadata.activeIndexId || null
                             };
-                            // Restore onion layer toggle state
                             showOnionLayers = BodyMapData.metadata.showOnionLayers;
-                            document.getElementById('onionLayerToggle').checked = showOnionLayers;
+                            updateLayerToggleUI();
                         }
-                        
-                        // Restore dataIndexes
-                        dataIndexes = parsed.dataIndexes;
-                        
-                        // Regenerate counters
+
+                        if (parsed.maps && Array.isArray(parsed.maps)) {
+                            maps = parsed.maps.map((map, idx) => ({
+                                id: map.id ?? (idx + 1),
+                                name: map.name || `BodyMap ${idx + 1}`,
+                                color: map.color || MAP_COLORS[idx % MAP_COLORS.length]
+                            }));
+                            if (maps.length > 0) {
+                                const maxMapId = Math.max(...maps.map(map => map.id));
+                                mapCounter = maxMapId + 1;
+                            } else {
+                                mapCounter = 1;
+                            }
+                        } else {
+                            maps = [];
+                            mapCounter = 1;
+                        }
+
+                        dataIndexes = parsed.dataIndexes.map(index => {
+                            const mapped = {
+                                ...index,
+                                mapId: index.mapId
+                            };
+                            ensureIndexTimestamp(mapped);
+                            return mapped;
+                        });
+
                         if (dataIndexes.length > 0) {
                             const maxIndexId = Math.max(...dataIndexes.map(idx => idx.id));
                             indexCounter = maxIndexId + 1;
@@ -1345,23 +2234,39 @@
                             labelIdCounter = maxLabelId + 1;
                         }
                         
-                        // Restore active index from saved data, or use most recent as fallback
+                        ensureDefaultMap();
+                        dataIndexes.forEach(index => {
+                            if (!index.mapId || !getMapById(index.mapId)) {
+                                ensureDefaultMap();
+                                index.mapId = activeMapId;
+                            }
+                        });
+                        ensureLayerTitles();
+                        saveToLocalStorage();
+
+                        if (maps.length > 0) {
+                            const savedActiveMapId = BodyMapData.metadata.activeMapId;
+                            if (savedActiveMapId !== null && getMapById(savedActiveMapId)) {
+                                activeMapId = savedActiveMapId;
+                            } else {
+                                activeMapId = maps[0].id;
+                            }
+                        } else {
+                            activeMapId = null;
+                        }
+
                         if (dataIndexes.length > 0) {
                             const savedActiveIndexId = BodyMapData.metadata.activeIndexId;
-                            // Verify that the saved activeIndexId exists in dataIndexes
                             if (savedActiveIndexId !== null && dataIndexes.find(idx => idx.id === savedActiveIndexId)) {
                                 activeIndexId = savedActiveIndexId;
                             } else {
-                                // Fallback to most recent index
-                                activeIndexId = dataIndexes[dataIndexes.length - 1].id;
+                                const activeMapIndexes = getIndexesForMap(activeMapId);
+                                activeIndexId = activeMapIndexes.length ? activeMapIndexes[activeMapIndexes.length - 1].id : dataIndexes[dataIndexes.length - 1].id;
                             }
                         }
                         
-                        // Re-render everything
                         renderHistory();
                         renderWorkspace();
-                        
-                        // Save to localStorage
                         saveToLocalStorage();
                         
                         alert('Bodymap indlæst succesfuldt!');
@@ -1384,8 +2289,13 @@
         }
         
         // Toggle onion layers visibility
-        function toggleOnionLayers() {
-            showOnionLayers = document.getElementById('onionLayerToggle').checked;
+        function toggleOnionLayers(forceState) {
+            if (typeof forceState === 'boolean') {
+                showOnionLayers = forceState;
+            } else {
+                showOnionLayers = !showOnionLayers;
+            }
+            updateLayerToggleUI();
             renderWorkspace();
             saveToLocalStorage();
         }
@@ -1402,74 +2312,102 @@
             toggleBtn.textContent = isCollapsed ? '<' : '>';
         }
         
-        function createNewIndex() {
+        function createNewIndex(options = {}) {
+            const { mapId = null, skipRender = false } = options;
+            ensureDefaultMap();
+            const targetMapId = mapId || activeMapId;
             const now = new Date();
+            const formatIsoDate = (dateObj) => {
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
             const index = {
                 id: indexCounter++,
-                date: now.toLocaleDateString('da-DK'),
+                mapId: targetMapId,
+                date: formatIsoDate(now),
                 time: now.toLocaleTimeString('da-DK', {hour: '2-digit', minute: '2-digit'}),
-                title: '',
-                labels: []
+                title: generateDefaultLayerTitle(targetMapId),
+                labels: [],
+                timestamp: now.toISOString()
             };
             
             dataIndexes.push(index);
+            activeMapId = targetMapId;
             activeIndexId = index.id;
             
+            if (!skipRender) {
+                shouldScrollHistoryToBottom = true;
             renderHistory();
             renderWorkspace();
             saveToLocalStorage();
+            }
+            
+            return index;
         }
         
         function renderHistory() {
             const list = document.getElementById('historyList');
             list.innerHTML = '';
             
-            // Sort by id (oldest first)
-            const sortedIndexes = [...dataIndexes].sort((a, b) => a.id - b.id);
+            ensureDefaultMap();
+            renderHistoryFilterOptions();
+            ensureLayerTitles();
             
-            sortedIndexes.forEach((index, idx) => {
+            const sortedEntries = getFilteredSortedEntries();
+
+            sortedEntries.forEach(({ index, map, timestamp }) => {
                 const item = document.createElement('div');
                 const isActive = index.id === activeIndexId;
                 item.className = `history-item ${isActive ? 'active' : ''}`;
                 
-                // Calculate distance from active index and apply opacity to background
-                let backgroundOpacity = 1;
-                if (!isActive && sortedIndexes.length > 1) {
-                    const activeIndex = sortedIndexes.findIndex(idx => idx.id === activeIndexId);
-                    const distanceFromActive = Math.abs(idx - activeIndex);
-                    
-                    // If distance > 5 or index is higher/newer than active, make completely transparent
-                    if (distanceFromActive > 5 || idx > activeIndex) {
-                        backgroundOpacity = 0;
-                    } else {
-                        // Use same opacity logic as labels: First layer gets big jump, then linear
-                        backgroundOpacity = distanceFromActive === 0 ? 1 : 0.6 - (distanceFromActive - 1) * 0.1;
-                        backgroundOpacity = Math.max(0.2, backgroundOpacity); // Minimum opacity
-                    }
-                }
-                
-                item.style.backgroundColor = `rgba(79, 70, 229, ${backgroundOpacity})`;
-                
-                const titleDisplay = index.title || `Lag ${index.id}`;
-                const labelCount = index.labels.length;
-                item.innerHTML = `
-                    <div>
-                        <input type="text" class="history-item-date" value="${titleDisplay}" data-id="${index.id}">
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                        <div class="history-item-time">${index.date} ${index.time}</div>
-                        <div class="history-item-labels">Labels: ${labelCount}</div>
-                    </div>
-                    <button class="history-item-delete" data-id="${index.id}">×</button>
+                const mapColor = map ? map.color : MAP_COLORS[0];
+                const mapName = map ? map.name : 'BodyMap';
+
+                const baseBackground = lightenHex(mapColor, isActive ? 0.35 : 0.7);
+                item.style.backgroundColor = baseBackground;
+                item.style.color = '#1f2937';
+                item.style.borderColor = isActive ? mapColor : 'transparent';
+
+                const mapBadge = document.createElement('div');
+                mapBadge.className = 'history-item-map';
+                mapBadge.textContent = mapName;
+                mapBadge.style.backgroundColor = mapColor;
+                mapBadge.style.color = '#ffffff';
+                item.appendChild(mapBadge);
+
+                const titleDisplay = index.title || 'Lag';
+                const titleWrapper = document.createElement('div');
+                titleWrapper.className = 'history-item-title';
+                titleWrapper.innerHTML = `<input type="text" class="history-item-date" value="${titleDisplay}" data-id="${index.id}">`;
+                item.appendChild(titleWrapper);
+
+                const metaWrapper = document.createElement('div');
+                metaWrapper.className = 'history-item-meta';
+                metaWrapper.innerHTML = `
+                    <span class="history-item-time">${index.date} ${index.time}</span>
+                    <span class="history-item-labels">Labels: ${index.labels.length}</span>
                 `;
+                item.appendChild(metaWrapper);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'history-item-delete';
+                deleteBtn.dataset.id = index.id;
+                deleteBtn.textContent = '×';
+                item.appendChild(deleteBtn);
+
                 item.addEventListener('click', (e) => {
                     if (e.target.classList.contains('history-item-date')) return;
                     if (e.target.classList.contains('history-item-delete')) return;
+                    activeMapId = map ? map.id : index.mapId;
                     activeIndexId = index.id;
                     renderHistory();
                     renderWorkspace();
                     saveToLocalStorage();
                 });
+
                 const titleInput = item.querySelector('.history-item-date');
                 titleInput.addEventListener('change', (e) => {
                     const indexId = parseFloat(e.target.dataset.id);
@@ -1479,40 +2417,48 @@
                         saveToLocalStorage();
                     }
                 });
-                const deleteBtn = item.querySelector('.history-item-delete');
+
                 deleteBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const indexId = parseFloat(e.target.dataset.id);
                     deleteIndex(indexId);
                 });
+
                 list.appendChild(item);
             });
             
-            // Update navigation buttons
-            document.getElementById('navUp').disabled = dataIndexes.length === 0;
-            document.getElementById('navDown').disabled = dataIndexes.length === 0;
-            
-            // Scroll to bottom to show newest items
+            const navUp = document.getElementById('navUp');
+            const navDown = document.getElementById('navDown');
+            const canNavigate = sortedEntries.length > 1;
+            navUp.disabled = !canNavigate;
+            navDown.disabled = !canNavigate;
+
+            if (shouldScrollHistoryToBottom) {
             list.scrollTop = list.scrollHeight;
+                shouldScrollHistoryToBottom = false;
+            }
         }
         
         function renderWorkspace() {
             const workspace = document.getElementById('workspace');
             workspace.innerHTML = '';
             
-            if (!activeIndexId) return;
-            
-            // Find active index
-            const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
-            if (!activeIndex) return;
-            
-            // Get workspace actual size (scrollWidth/scrollHeight) to ensure SVG covers entire scrollable area
-            // We need to ensure workspace has content first, so we'll create SVG after initial content is added
-            // For now, use a minimum size that covers typical workspace dimensions
+            ensureDefaultMap();
+            const activeMap = getMapById(activeMapId);
+            if (!activeMap) return;
+
+            const mapIndexes = getIndexesForMap(activeMap.id).sort((a, b) => a.id - b.id);
+            if (!mapIndexes.length) return;
+
+            let activeIndex = mapIndexes.find(idx => idx.id === activeIndexId);
+            if (!activeIndex) {
+                activeIndex = mapIndexes[mapIndexes.length - 1];
+                activeIndexId = activeIndex.id;
+            }
+
             const minWorkspaceWidth = Math.max(workspace.offsetWidth || 1600, 1600);
             const minWorkspaceHeight = Math.max(workspace.offsetHeight || 800, 800);
             
-            // Create a single SVG container for all pointer lines
             const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svgContainer.id = 'labelLinesSvg';
             svgContainer.style.position = 'absolute';
@@ -1526,16 +2472,12 @@
             svgContainer.setAttribute('preserveAspectRatio', 'none');
             workspace.appendChild(svgContainer);
             
-            // Get the 6 layers to show (active + 5 older)
-            const sortedIndexes = [...dataIndexes].sort((a, b) => a.id - b.id);
-            const activePosition = sortedIndexes.findIndex(idx => idx.id === activeIndexId);
-            const layersToShow = sortedIndexes.slice(Math.max(0, activePosition - 5), activePosition + 1);
-            
-            // Render guide figure in center
+            const activePosition = mapIndexes.findIndex(idx => idx.id === activeIndexId);
+            const layersToShow = mapIndexes.slice(Math.max(0, activePosition - 5), activePosition + 1);
+
             const guideFigure = createGuideFigure();
             workspace.appendChild(guideFigure);
             
-            // Update SVG size after content is added to ensure it covers entire scrollable area
             requestAnimationFrame(() => {
                 const workspaceWidth = workspace.scrollWidth || workspace.offsetWidth || minWorkspaceWidth;
                 const workspaceHeight = workspace.scrollHeight || workspace.offsetHeight || minWorkspaceHeight;
@@ -1544,14 +2486,12 @@
                 svgContainer.setAttribute('viewBox', `0 0 ${workspaceWidth} ${workspaceHeight}`);
             });
             
-            // Render onion layers (oldest first so newest is on top)
             layersToShow.forEach((layerIndex, idx) => {
-                const layerNum = layersToShow.length - 1 - idx;
-                const isActive = layerIndex.id === activeIndexId;
-                // Always render active layer, only render onion layers if toggle is on
-                if (isActive || showOnionLayers) {
-                    renderOnionLayer(layerIndex, layerNum, workspace, svgContainer);
+                if (!showOnionLayers && layerIndex.id !== activeIndexId) {
+                    return;
                 }
+                const layerNum = layersToShow.length - 1 - idx;
+                renderOnionLayer(layerIndex, layerNum, workspace, svgContainer, activeMap.color);
             });
         }
         
@@ -1698,13 +2638,14 @@
             }
         }
         
-        function renderOnionLayer(layerIndex, layerNum, workspace, svgContainer) {
+        function renderOnionLayer(layerIndex, layerNum, workspace, svgContainer, mapColor) {
             // Calculate opacity and scale based on distance from active
             // First layer gets big jump, then linear
             const opacity = layerNum === 0 ? 1 : 0.6 - (layerNum - 1) * 0.1;
             const scale = 1 - (layerNum * 0.08); // More aggressive scale down
             
             const isActive = layerIndex.id === activeIndexId;
+            const mapIndexes = getIndexesForMap(layerIndex.mapId);
             
             // Get guide figure center for calculating displacement vector
             // Use workspace coordinates (accounting for scroll)
@@ -1747,7 +2688,8 @@
                         line.setAttribute('y1', lineY1);
                         line.setAttribute('x2', lineX2);
                         line.setAttribute('y2', lineY2);
-                        line.setAttribute('stroke', '#a67c52');
+                        const pointerColorActive = mapColor || '#a67c52';
+                        line.setAttribute('stroke', pointerColorActive);
                         line.setAttribute('stroke-width', '2');
                         line.setAttribute('data-label-id', label.id);
                         svgContainer.appendChild(line);
@@ -1760,7 +2702,7 @@
                     point.style.left = lineX2 + 'px';
                     point.style.top = lineY2 + 'px';
                     point.style.opacity = opacity;
-                    point.style.background = '#a67c52';
+                    point.style.background = mapColor || '#a67c52';
                     
                     // Add dragging functionality
                     let isDragging = false;
@@ -1800,7 +2742,7 @@
                             document.removeEventListener('mouseup', onMouseUp);
                             
                             // Update all labels with the same text across all indexes to match the new pointer position
-                            dataIndexes.forEach(idx => {
+                            mapIndexes.forEach(idx => {
                                 idx.labels.forEach(lab => {
                                     if (lab.text === label.text && lab.id !== label.id) {
                                         lab.pointerX = label.pointerX;
@@ -1857,7 +2799,7 @@
                             document.removeEventListener('touchend', onTouchEnd);
                             
                             // Update all labels with the same text across all indexes to match the new pointer position
-                            dataIndexes.forEach(idx => {
+                            mapIndexes.forEach(idx => {
                                 idx.labels.forEach(lab => {
                                     if (lab.text === label.text && lab.id !== label.id) {
                                         lab.pointerX = label.pointerX;
@@ -1876,17 +2818,20 @@
                     workspace.appendChild(point);
                 }
                 
-                const labelEl = createLabelElement(label, isActive, opacity, scale, offsetX, offsetY);
+                const labelEl = createLabelElement(label, isActive, opacity, scale, offsetX, offsetY, mapColor, layerIndex.mapId);
                 workspace.appendChild(labelEl);
             });
         }
         
-        function createLabelElement(label, isActive, opacity, scale, offsetX = 0, offsetY = 0) {
+        function createLabelElement(label, isActive, opacity, scale, offsetX = 0, offsetY = 0, mapColor = '#e8dcc6', mapId = null) {
             const container = document.createElement('div');
             container.className = 'label-container';
             if (!isActive) {
                 container.classList.add('onion-layer');
             }
+
+            const relevantIndexes = mapId ? getIndexesForMap(mapId) : dataIndexes;
+            const workspace = document.getElementById('workspace');
             
             container.style.left = (label.x + offsetX) + 'px';
             container.style.top = (label.y + offsetY) + 'px';
@@ -1897,14 +2842,26 @@
             const deleteBtnHtml = isActive ? '<button class="label-delete-btn" title="Slet label">×</button>' : '';
             const placeholderText = label.text === '' ? 'Skriv her' : '';
             const activeClass = isActive ? 'label-active' : '';
+            const darkColor = mapColor || '#a67c52';
+            const lightColor = lightenHex(darkColor, 0.65);
+            const labelBackground = lightColor;
             container.innerHTML = `
-                <div class="label-input ${activeClass}">
+                <div class="label-input ${activeClass}" style="background:${labelBackground}; ${isActive ? `border:2px solid ${darkColor};` : ''}">
                     <textarea class="label-text-input" placeholder="${placeholderText}">${label.text}</textarea>
                     <span class="label-number">${label.labelNumber}</span>
                     ${deleteBtnHtml}
                 </div>
             `;
             
+            const labelInput = container.querySelector('.label-input');
+            if (labelInput) {
+                labelInput.style.background = labelBackground;
+                labelInput.style.border = isActive ? `2px solid ${darkColor}` : 'none';
+            }
+            const labelNumber = container.querySelector('.label-number');
+            if (labelNumber) {
+                labelNumber.style.color = isActive ? '#1f2937' : '#1f2937';
+            }
             const inputEl = container.querySelector('.label-text-input');
             
             if (isActive) {
@@ -1923,7 +2880,7 @@
                         // This is a newly created label getting its text for the first time
                         // Need to count how many times this label text appears
                         let count = 0;
-                        dataIndexes.forEach(idx => {
+                        relevantIndexes.forEach(idx => {
                             idx.labels.forEach(lab => {
                                 if (lab.text === newText && lab.id !== label.id) {
                                     count++;
@@ -1940,7 +2897,7 @@
                         // Text was changed - need to renumber both old and new text groups
                         // First, renumber the old text group (excluding this label)
                         const oldTextLabels = [];
-                        dataIndexes.forEach(idx => {
+                        relevantIndexes.forEach(idx => {
                             idx.labels.forEach(lab => {
                                 if (lab.text === oldText && lab.id !== label.id) {
                                     oldTextLabels.push({ id: lab.id, index: idx });
@@ -1958,7 +2915,7 @@
                         
                         // Now assign new number to this label
                         let count = 0;
-                        dataIndexes.forEach(idx => {
+                        relevantIndexes.forEach(idx => {
                             idx.labels.forEach(lab => {
                                 if (lab.text === newText && lab.id !== label.id) {
                                     count++;
@@ -2025,7 +2982,7 @@
                         document.removeEventListener('mouseup', onMouseUp);
                         
                         // Update all labels with the same text across all indexes to match the new position
-                        dataIndexes.forEach(idx => {
+                        relevantIndexes.forEach(idx => {
                             idx.labels.forEach(lab => {
                                 if (lab.text === label.text && lab.id !== label.id) {
                                     lab.x = label.x;
@@ -2077,7 +3034,6 @@
                                 svgLine.setAttribute('y1', label.y + offsetY);
                             }
                         }
-                        
                         ev.preventDefault();
                     };
 
@@ -2087,7 +3043,7 @@
                         document.removeEventListener('touchend', onTouchEnd);
 
                         // Update all labels with the same text across all indexes to match the new position
-                        dataIndexes.forEach(idx => {
+                        relevantIndexes.forEach(idx => {
                             idx.labels.forEach(lab => {
                                 if (lab.text === label.text && lab.id !== label.id) {
                                     lab.x = label.x;
@@ -2098,10 +3054,12 @@
 
                         // Re-render workspace to show updated positions
                         renderWorkspace();
+                        saveToLocalStorage();
                     };
 
                     document.addEventListener('touchmove', onTouchMove, { passive: false });
                     document.addEventListener('touchend', onTouchEnd);
+                    e.preventDefault();
                 }, { passive: true });
             } else {
                 // Make read-only for onion layers
@@ -2113,54 +3071,31 @@
         
         // Button functions
         function newMap() {
-            if (confirm('Er du sikker på du vil starte et nyt bodymap? Dette vil slette alle data.')) {
-                dataIndexes = [];
-                indexCounter = 1;
-                labelIdCounter = 1;
-                totalLabelsCreated = 0;
-                activeIndexId = null;
-                bodymapTitle = '';
-                document.getElementById('bodymapTitle').value = '';
-                BodyMapData.metadata.title = '';
-                BodyMapData.metadata.created = null;
-                BodyMapData.metadata.updated = null;
-                BodyMapData.metadata.activeIndexId = null;
-                createNewIndex();
-            }
+            openMapManager();
         }
         
         function newIndex() {
-            if (dataIndexes.length === 0) {
-                alert('Der er ingen tidligere index at kopiere fra.');
-                return;
+            ensureDefaultMap();
+            const currentMapId = activeMapId;
+            const mapIndexes = getIndexesForMap(currentMapId).sort((a, b) => a.id - b.id);
+            let copyFrom = null;
+            if (mapIndexes.length > 0) {
+                copyFrom = mapIndexes[mapIndexes.length - 1];
             }
             
-            const sortedIndexes = [...dataIndexes].sort((a, b) => b.id - a.id);
-            const previousIndex = sortedIndexes[0]; // Most recent
+            const index = createNewIndex({ mapId: currentMapId, skipRender: true });
             
-            const now = new Date();
-            const index = {
-                id: indexCounter++,
-                date: now.toLocaleDateString('da-DK'),
-                time: now.toLocaleTimeString('da-DK', {hour: '2-digit', minute: '2-digit'}),
-                title: '',
-                labels: []
-            };
-            
-            // Copy all labels from previous index with incremented labelNumber
-            previousIndex.labels.forEach(origLabel => {
-                // Find the highest labelNumber for this text in all previous indexes
+            if (copyFrom) {
+                copyFrom.labels.forEach(origLabel => {
                 let maxLabelNumber = origLabel.labelNumber;
-                // Find the original position (from the first occurrence)
                 let originalX = origLabel.x;
                 let originalY = origLabel.y;
                 
-                dataIndexes.forEach(idx => {
+                    mapIndexes.forEach(idx => {
                     idx.labels.forEach(lab => {
                         if (lab.text === origLabel.text && lab.labelNumber > maxLabelNumber) {
                             maxLabelNumber = lab.labelNumber;
                         }
-                        // Find original position from first label with this text
                         if (lab.text === origLabel.text && lab.labelNumber === 1) {
                             originalX = lab.x;
                             originalY = lab.y;
@@ -2168,24 +3103,22 @@
                     });
                 });
                 
-                // Copy pointer position if it exists, otherwise use default
                 const pointerX = origLabel.pointerX !== undefined ? origLabel.pointerX : 450;
                 const pointerY = origLabel.pointerY !== undefined ? origLabel.pointerY : 140;
                 
                 index.labels.push({
                     id: labelIdCounter++,
                     text: origLabel.text,
-                    x: originalX, // Keep original position
-                    y: originalY, // Keep original position
-                    pointerX: pointerX,
-                    pointerY: pointerY,
-                    labelNumber: maxLabelNumber + 1 // Increment number
+                        x: originalX,
+                        y: originalY,
+                        pointerX,
+                        pointerY,
+                        labelNumber: maxLabelNumber + 1
                 });
             });
+            }
             
-            dataIndexes.push(index);
-            activeIndexId = index.id;
-            
+            shouldScrollHistoryToBottom = true;
             renderHistory();
             renderWorkspace();
             saveToLocalStorage();
@@ -2193,7 +3126,11 @@
         
         function deleteIndex(indexId) {
             // Can't delete if it's the only index
-            if (dataIndexes.length <= 1) {
+            const indexToDelete = dataIndexes.find(idx => idx.id === indexId);
+            if (!indexToDelete) return;
+            const mapId = indexToDelete.mapId;
+            const mapIndexes = getIndexesForMap(mapId);
+            if (mapIndexes.length <= 1) {
                 alert('Du kan ikke slette det eneste lag.');
                 return;
             }
@@ -2205,40 +3142,37 @@
             // Remove from dataIndexes
             dataIndexes = dataIndexes.filter(idx => idx.id !== indexId);
             
-            // If the deleted index was active, switch to the most recent remaining index
+            const remainingMapIndexes = getIndexesForMap(mapId);
             if (activeIndexId === indexId) {
-                const sortedRemaining = [...dataIndexes].sort((a, b) => b.id - a.id);
-                activeIndexId = sortedRemaining[0].id;
+                if (remainingMapIndexes.length) {
+                    activeIndexId = remainingMapIndexes[remainingMapIndexes.length - 1].id;
+                } else {
+                    const fallbackIndex = dataIndexes[dataIndexes.length - 1];
+                    activeIndexId = fallbackIndex ? fallbackIndex.id : null;
+                }
             }
             
-            // Renumber all labels with the same text across all indexes to be consecutive
-            const allLabels = [];
-            dataIndexes.forEach(idx => {
-                idx.labels.forEach(lab => {
-                    allLabels.push({ text: lab.text, id: lab.id });
-                });
-            });
-            
-            // Group by text
-            const labelsByText = {};
-            allLabels.forEach(label => {
-                if (!labelsByText[label.text]) {
-                    labelsByText[label.text] = [];
+            if (!remainingMapIndexes.length) {
+                maps = maps.filter(map => map.id !== mapId);
+                if (activeMapId === mapId) {
+                    activeMapId = maps.length ? maps[0].id : null;
                 }
-                labelsByText[label.text].push(label.id);
-            });
+            }
             
-            // Renumber each group
-            Object.keys(labelsByText).forEach(text => {
-                let counter = 1;
-                labelsByText[text].forEach(id => {
-                    dataIndexes.forEach(idx => {
+            const labelsByText = {};
+            remainingMapIndexes.forEach(idx => {
                         idx.labels.forEach(lab => {
-                            if (lab.id === id) {
-                                lab.labelNumber = counter++;
+                    if (!labelsByText[lab.text]) {
+                        labelsByText[lab.text] = [];
                             }
+                    labelsByText[lab.text].push(lab);
                         });
                     });
+            
+            Object.values(labelsByText).forEach(labelGroup => {
+                labelGroup.sort((a, b) => a.labelNumber - b.labelNumber);
+                labelGroup.forEach((lab, idx) => {
+                    lab.labelNumber = idx + 1;
                 });
             });
             
@@ -2542,6 +3476,8 @@
             
             const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
             if (!activeIndex) return;
+
+            const mapIndexes = getIndexesForMap(activeIndex.mapId);
             
             // Find the label to delete
             const labelToDelete = activeIndex.labels.find(l => l.id === labelId);
@@ -2558,7 +3494,7 @@
             // Renumber all labels with the same text across all indexes to be consecutive
             if (labelText) {
                 const allLabels = [];
-                dataIndexes.forEach(idx => {
+                mapIndexes.forEach(idx => {
                     idx.labels.forEach(lab => {
                         if (lab.text === labelText) {
                             allLabels.push({ id: lab.id, index: idx });
@@ -2622,19 +3558,28 @@
         }
         
         function navigateHistory(direction) {
-            const sortedIndexes = [...dataIndexes].sort((a, b) => a.id - b.id);
-            const currentPos = sortedIndexes.findIndex(idx => idx.id === activeIndexId);
+            const sortedEntries = getFilteredSortedEntries();
+            if (!sortedEntries.length) return;
+
+            let currentPos = sortedEntries.findIndex(entry => entry.index.id === activeIndexId);
+            if (currentPos === -1) {
+                currentPos = 0;
+            }
             
             if (direction > 0) {
-                // Go to older (lower index in sorted array - going backward in time)
-                if (currentPos > 0) {
-                    activeIndexId = sortedIndexes[currentPos - 1].id;
+                if (currentPos < sortedEntries.length - 1) {
+                    currentPos += 1;
                 }
             } else {
-                // Go to newer (higher index in sorted array - going forward in time)
-                if (currentPos < sortedIndexes.length - 1) {
-                    activeIndexId = sortedIndexes[currentPos + 1].id;
+                if (currentPos > 0) {
+                    currentPos -= 1;
                 }
+            }
+
+            const targetEntry = sortedEntries[currentPos];
+            activeIndexId = targetEntry.index.id;
+            if (targetEntry.map) {
+                activeMapId = targetEntry.map.id;
             }
             
             renderHistory();
@@ -2644,6 +3589,26 @@
         
         // Initialize on load
         init();
+
+        function buildMapColorGrid() {
+            if (!mapColorGridEl) return;
+            mapColorGridEl.innerHTML = '';
+            MAP_COLOR_PRESETS.forEach(color => {
+                const swatch = document.createElement('button');
+                swatch.className = 'map-color-swatch';
+                swatch.style.background = color;
+                swatch.title = color;
+                swatch.onclick = () => handleMapColorSelected(color);
+                mapColorGridEl.appendChild(swatch);
+            });
+        }
+
+        if (dataIndexes.length === 0 && maps.length > 0) {
+            const newIndex = createNewIndex({ mapId: maps[0].id, skipRender: true });
+            activeMapId = maps[0].id;
+            activeIndexId = newIndex.id;
+            shouldScrollHistoryToBottom = true;
+        }
     </script>
     
     <script>
@@ -2693,6 +3658,23 @@
                 });
             }
         });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (mapColorPickerModalEl && mapColorPickerModalEl.classList.contains('show')) {
+                    closeMapColorPicker();
+                } else if (mapManagerOverlayEl && mapManagerOverlayEl.classList.contains('show')) {
+                    closeMapManager();
+                }
+            }
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (!mapColorPickerModalEl || !mapColorPickerModalEl.classList.contains('show')) return;
+            if (e.target.closest('.map-color-picker')) return;
+            if (e.target.closest('.map-action-btn.color')) return;
+            closeMapColorPicker();
+        });
     </script>
     <!-- Navigation overlay -->
     <div class="nav-overlay" id="navOverlay"></div>
@@ -2702,6 +3684,29 @@
         <a href="compare_01.html" class="nav-button">Ligheder</a>
         <a href="bodymap_01.html" class="nav-button">BodyMap</a>
         <a href="logbog_01.html" class="nav-button">Logbog</a>
+    </div>
+
+    <div class="map-manager-overlay" id="mapManagerOverlay">
+        <div class="map-manager-backdrop" onclick="closeMapManager()"></div>
+        <div class="map-manager-panel">
+            <div class="map-manager-header">
+                <h2>BodyMaps</h2>
+                <button class="map-manager-close" onclick="closeMapManager()" aria-label="Luk">×</button>
+            </div>
+            <div class="map-manager-list" id="mapManagerList"></div>
+            <div class="map-manager-divider"></div>
+            <div class="map-manager-new" id="mapManagerNewRow">
+                <input type="text" id="newMapName" placeholder="Nyt map-navn...">
+                <button class="map-action-btn color" id="newMapColorBtn" onclick="openMapColorPicker({ type: 'new' })">C</button>
+                <button class="map-create-btn" onclick="confirmCreateMap()">✔</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="map-color-picker-modal" id="mapColorPickerModal">
+        <div class="map-color-picker">
+            <div class="map-color-grid" id="mapColorGrid"></div>
+        </div>
     </div>
 </body>
 </html>

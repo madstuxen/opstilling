@@ -206,7 +206,7 @@
         .log-history-sidebar {
             position: absolute;
             top: 0;
-            right: 0;
+            right: -24px;
             width: 260px;
             height: 100%;
             background: #f8fafc;
@@ -421,7 +421,7 @@
 
         .activities-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, 200px);
+            grid-template-columns: repeat(auto-fit, 160px);
             gap: 16px;
             justify-content: center;
         }
@@ -433,16 +433,17 @@
 
         .activity-tile {
             border-radius: 16px;
-            padding: 16px;
+            padding: 14px;
             color: white;
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 6px;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            width: 200px;
+            width: 160px;
+            min-height: 100px;
         }
 
         .activity-tile::after {
@@ -451,13 +452,6 @@
             inset: 0;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
             mix-blend-mode: screen;
-        }
-
-        .activity-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 12px;
         }
 
         .activity-label {
@@ -489,18 +483,51 @@
             box-shadow: 0 18px 30px rgba(15, 23, 42, 0.25);
         }
 
-        .activity-meta {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            font-size: 0.85rem;
+        .activity-text {
+            font-size: 0.9rem;
             opacity: 0.85;
         }
 
-        .activity-meta span {
-            display: inline-flex;
+        .activity-tile.empty {
+            background: #ffffff;
+            box-shadow: none;
+            border: 3px dashed currentColor;
+            color: inherit;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
+            gap: 0;
+            text-align: center;
+        }
+
+        .activity-tile.empty .activity-label {
+            flex: 0 0 auto;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-transform: none;
+        }
+
+        .activity-empty-circle {
+            width: 29px;
+            height: 29px;
+            border: 2px solid currentColor;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .activity-empty-icon {
+            font-size: 2.4rem;
+            font-weight: 700;
+            line-height: 1;
+            transform: rotate(45deg);
+        }
+
+        .activity-empty-text {
+            font-size: 0.85rem;
+            opacity: 0.85;
+            letter-spacing: 0.02em;
         }
 
         .journal-grid {
@@ -829,23 +856,28 @@
         const activityStyles = {
             bodymap: {
                 gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-                url: 'bodymap_01.html'
+                url: 'bodymap_01.html',
+                accent: '#ec4899'
             },
             opstilling: {
                 gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                url: 'opstilling_01.html'
+                url: 'opstilling_01.html',
+                accent: '#10b981'
             },
             dialog: {
                 gradient: 'linear-gradient(135deg, #E6B94F 0%, #d97706 100%)',
-                url: 'dialog_01.html'
+                url: 'dialog_01.html',
+                accent: '#d97706'
             },
             relationer: {
                 gradient: 'linear-gradient(135deg, #3368AE 0%, #1e40af 100%)',
-                url: 'compare_01.html'
+                url: 'compare_01.html',
+                accent: '#1e40af'
             },
             default: {
                 gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
-                url: '#'
+                url: '#',
+                accent: '#475569'
             }
         };
 
@@ -854,41 +886,45 @@
                 id: 1,
                 type: 'bodymap',
                 label: 'BodyMap',
-                title: 'Body Map Session',
+                text: 'Min krop',
                 time: '09:30',
-                summary: 'Kortlagde kroppens fornemmelser'
             },
             {
                 id: 2,
                 type: 'dialog',
                 label: 'Dialog',
-                title: 'Dialog – indre team',
+                text: 'Far og mig',
                 time: '11:00',
-                summary: 'Fokus på indre kritikeren'
             },
             {
                 id: 3,
                 type: 'opstilling',
                 label: 'Opstilling',
-                title: 'Opstilling – relationer',
+                text: 'Familie',
                 time: '14:15',
-                summary: 'Visualiserede partnerens perspektiv'
             },
             {
                 id: 4,
                 type: 'relationer',
                 label: 'Forskelle',
-                title: 'Forskelle – refleksion',
+                text: 'Forskel far',
                 time: '18:45',
-                summary: 'Sammenlign min chef og mig'
             }
         ];
 
         const LOGBOOK_STORAGE_KEY = 'logbogData';
         const LOG_HISTORY_COLLAPSED_KEY = 'logbog_historySidebarCollapsed';
+        const BODYMAP_STORAGE_KEY = 'bodymapData';
 
         function getTodayDateKey() {
             return new Date().toISOString().split('T')[0];
+        }
+
+        function normalizeDateKey(dateStr) {
+            if (!dateStr) return null;
+            const parsed = parseDanishDateTime(dateStr) || new Date(dateStr);
+            if (!parsed || Number.isNaN(parsed.getTime())) return null;
+            return parsed.toISOString().split('T')[0];
         }
 
         function getLogbookData() {
@@ -896,7 +932,24 @@
                 const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
                 if (!raw) return [];
                 const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
+                if (!Array.isArray(parsed)) return [];
+
+                let mutated = false;
+                const normalizedEntries = parsed.map(entry => {
+                    if (!entry || typeof entry !== 'object') return entry;
+                    const normalizedKey = normalizeDateKey(entry.date);
+                    if (normalizedKey && normalizedKey !== entry.date) {
+                        mutated = true;
+                        return { ...entry, date: normalizedKey };
+                    }
+                    return entry;
+                });
+
+                if (mutated) {
+                    localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(normalizedEntries));
+                }
+
+                return normalizedEntries;
             } catch (error) {
                 console.warn('Kunne ikke læse logbogData:', error);
                 return [];
@@ -913,6 +966,189 @@
             } catch (error) {
                 console.error('Kunne ikke gemme logbogData:', error);
             }
+        }
+
+        function getBodymapData() {
+            try {
+                const raw = localStorage.getItem(BODYMAP_STORAGE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : null;
+            } catch (error) {
+                console.warn('Kunne ikke læse bodymapData:', error);
+                return null;
+            }
+        }
+
+        const DANISH_MONTHS = {
+            januar: 0,
+            februar: 1,
+            marts: 2,
+            april: 3,
+            maj: 4,
+            juni: 5,
+            juli: 6,
+            august: 7,
+            september: 8,
+            oktober: 9,
+            november: 10,
+            december: 11
+        };
+
+        function parseDanishDateTime(dateStr, timeStr) {
+            if (!dateStr) return null;
+
+            const normalizeClock = (d) => {
+                if (!timeStr) return d;
+                const cleaned = timeStr.replace(/kl\.?/i, '').trim();
+                const timeMatch = cleaned.match(/(\d{1,2})[:.](\d{1,2})/);
+                if (timeMatch) {
+                    d.setHours(parseInt(timeMatch[1], 10), parseInt(timeMatch[2], 10));
+                }
+                return d;
+            };
+
+            const trimmedDate = dateStr.trim();
+
+            // Attempt native Date parsing (handles ISO or locale the engine recognizes)
+            const nativeDate = new Date(trimmedDate);
+            if (!Number.isNaN(nativeDate.getTime())) {
+                return normalizeClock(nativeDate);
+            }
+
+            // Numeric formats: 09-11-2024, 09.11.2024, 09/11/2024
+            const numericMatch = trimmedDate.match(/(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2,4})/);
+            if (numericMatch) {
+                const day = parseInt(numericMatch[1], 10);
+                const month = parseInt(numericMatch[2], 10) - 1;
+                let year = parseInt(numericMatch[3], 10);
+                if (year < 100) {
+                    year += year >= 70 ? 1900 : 2000;
+                }
+                const date = new Date(year, month, day);
+                if (!Number.isNaN(date.getTime())) {
+                    return normalizeClock(date);
+                }
+            }
+
+            // Text formats: 9. november 2024, 9 november 2024, 9. nov 2024
+            const textMatch = trimmedDate
+                .toLowerCase()
+                .match(/(\d{1,2})[.\s]*([a-zæøå]+)\s+(\d{4})/i);
+
+            if (textMatch) {
+                const day = parseInt(textMatch[1], 10);
+                const monthName = textMatch[2].replace(/\.$/, '').toLowerCase();
+                const year = parseInt(textMatch[3], 10);
+
+                let monthIndex = DANISH_MONTHS[monthName];
+                if (monthIndex === undefined) {
+                    // Handle abbreviated month names (e.g., "nov")
+                    const matchedKey = Object.keys(DANISH_MONTHS).find(key => key.startsWith(monthName));
+                    if (matchedKey) {
+                        monthIndex = DANISH_MONTHS[matchedKey];
+                    }
+                }
+
+                if (monthIndex !== undefined) {
+                    const date = new Date(year, monthIndex, day);
+                    if (!Number.isNaN(date.getTime())) {
+                        return normalizeClock(date);
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function getBodymapEntryDate(entry) {
+            if (!entry) return null;
+            if (entry.timestamp) {
+                const ts = new Date(entry.timestamp);
+                if (!Number.isNaN(ts.getTime())) {
+                    return ts;
+                }
+            }
+            return parseDanishDateTime(entry.date, entry.time);
+        }
+
+        function formatDateKey(date) {
+            if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function summarizeMapNames(mapNames, mapCount) {
+            if (mapNames.length === 1) {
+                return mapNames[0];
+            }
+            if (mapNames.length > 1) {
+                return mapNames.join(', ');
+            }
+            if (mapCount === 1) return '1 map';
+            if (mapCount > 1) return `${mapCount} maps`;
+            return '';
+        }
+
+        function getBodymapActivityInfo(dateKey) {
+            if (!dateKey) {
+                return { hasEntries: false };
+            }
+
+            const bodymapData = getBodymapData();
+            if (!bodymapData || !Array.isArray(bodymapData.dataIndexes)) {
+                return { hasEntries: false };
+            }
+
+            const entriesForDate = [];
+            bodymapData.dataIndexes.forEach(index => {
+                const entryDate = getBodymapEntryDate(index);
+                if (!entryDate) return;
+                const normalizedDateKey = formatDateKey(entryDate);
+                if (normalizedDateKey === dateKey) {
+                    entriesForDate.push({ entry: index, timestamp: entryDate });
+                }
+            });
+
+            if (!entriesForDate.length) {
+                return { hasEntries: false };
+            }
+
+            const mapNameById = new Map();
+            if (Array.isArray(bodymapData.maps)) {
+                bodymapData.maps.forEach(map => {
+                    if (map && map.id !== undefined) {
+                        mapNameById.set(map.id, map.name || `Map ${map.id}`);
+                    }
+                });
+            }
+
+            const mapIds = new Set();
+            let latest = entriesForDate[0];
+
+            entriesForDate.forEach(wrapper => {
+                mapIds.add(wrapper.entry.mapId);
+                if (wrapper.timestamp > latest.timestamp) {
+                    latest = wrapper;
+                }
+            });
+
+            const mapNames = Array.from(mapIds)
+                .map(id => mapNameById.get(id))
+                .filter(Boolean);
+            const mapCount = mapIds.size;
+            const displayTextRaw = summarizeMapNames(mapNames, mapCount);
+            const displayText = displayTextRaw || (mapCount ? `${mapCount} map${mapCount === 1 ? '' : 's'}` : '');
+            const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+
+            return {
+                hasEntries: true,
+                displayText,
+                latestTime,
+                mapCount
+            };
         }
 
         let activeLogDate = getTodayDateKey();
@@ -937,8 +1173,9 @@
         }
 
         function formatLogHistoryDate(dateStr, options) {
-            const date = new Date(`${dateStr}T00:00:00`);
-            return date.toLocaleDateString('da-DK', options);
+            const parsed = parseDanishDateTime(dateStr) || new Date(`${dateStr}T00:00:00`);
+            if (!parsed || Number.isNaN(parsed.getTime())) return dateStr;
+            return parsed.toLocaleDateString('da-DK', options);
         }
 
         function renderLogHistory() {
@@ -960,7 +1197,7 @@
 
                 const dateLabelEl = document.createElement('div');
                 dateLabelEl.className = 'log-history-item-date';
-                dateLabelEl.textContent = formatLogHistoryDate(entry.date, { day: '2-digit', month: 'long' });
+                dateLabelEl.textContent = formatLogHistoryDate(entry.date, { day: '2-digit', month: 'long', year: 'numeric' });
 
                 const weekDayEl = document.createElement('div');
                 weekDayEl.className = 'log-history-item-weekday';
@@ -1008,7 +1245,8 @@
         }
 
         function setActiveLogDate(dateKey) {
-            activeLogDate = dateKey;
+            const normalizedKey = normalizeDateKey(dateKey) || getTodayDateKey();
+            activeLogDate = normalizedKey;
             const entries = getLogbookData();
             let entry = entries.find(item => item.date === activeLogDate);
             if (!entry) {
@@ -1026,6 +1264,7 @@
                 dreamEntryEl.value = entry.dreams || '';
             }
 
+            renderActivitiesForDate(activeLogDate);
             renderLogHistory();
         }
 
@@ -1075,6 +1314,11 @@
 
             refreshActiveLogEntry(latestEntries);
             renderLogHistory();
+        }
+
+        function handleBodymapStorageEvent(event) {
+            if (event.key && event.key !== BODYMAP_STORAGE_KEY) return;
+            renderActivitiesForDate(activeLogDate);
         }
 
         function updateLogHistoryNavState() {
@@ -1201,17 +1445,26 @@
             });
         }
 
-        function renderActivities(activities) {
+        const CLOCK_ICON_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>';
+
+        function renderActivitiesForDate(dateKey) {
+            const normalizedKey = normalizeDateKey(dateKey) || getTodayDateKey();
             const grid = document.getElementById('activitiesGrid');
+            if (!grid) return;
             grid.innerHTML = '';
 
-            if (!activities || activities.length === 0) {
-                grid.innerHTML = '<div class="empty-state">Ingen aktiviteter registreret for denne dag.</div>';
+            if (!mockActivities || mockActivities.length === 0) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                emptyState.textContent = 'Ingen aktiviteter registreret for denne dag.';
+                grid.appendChild(emptyState);
                 return;
             }
 
-            activities.forEach(activity => {
+            mockActivities.forEach(activity => {
                 const styleConfig = activityStyles[activity.type] || activityStyles.default;
+                const accentColor = styleConfig.accent || '#475569';
+
                 const link = document.createElement('a');
                 link.className = 'activity-link';
                 link.href = styleConfig.url || '#';
@@ -1219,30 +1472,62 @@
                 const tile = document.createElement('article');
                 tile.className = 'activity-tile';
                 tile.style.background = styleConfig.gradient;
+                tile.style.color = '#ffffff';
+                tile.style.border = 'none';
 
-                const labelText = activity.label || activity.type;
+                const labelEl = document.createElement('div');
+                labelEl.className = 'activity-label';
+                labelEl.textContent = activity.label || activity.type;
 
-                tile.innerHTML = `
-                    <div class="activity-header">
-                        <div class="activity-label">${labelText}</div>
-                        <div class="activity-time">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            <span>${activity.time}</span>
-                        </div>
-                    </div>
-                    <div class="activity-meta">
-                        <span>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 1 1 18 0z"></path>
-                                <circle cx="12" cy="10" r="3"></circle>
-                            </svg>
-                            ${activity.summary}
-                        </span>
-                    </div>
-                `;
+                const timeEl = document.createElement('div');
+                timeEl.className = 'activity-time';
+                timeEl.innerHTML = CLOCK_ICON_SVG;
+                const timeSpan = document.createElement('span');
+                const textEl = document.createElement('div');
+                textEl.className = 'activity-text';
+
+                let displayTime = activity.time || '--:--';
+                let displayText = activity.text || '';
+                let isEmptyState = false;
+
+                if (activity.type === 'bodymap') {
+                    const info = getBodymapActivityInfo(normalizedKey);
+                    if (info.hasEntries) {
+                        displayTime = info.latestTime || displayTime;
+                        displayText = info.displayText || displayText;
+                    } else {
+                        isEmptyState = true;
+                    }
+                }
+
+                if (isEmptyState) {
+                    tile.classList.add('empty');
+                    tile.style.background = '#ffffff';
+                    tile.style.backgroundImage = 'none';
+                    tile.style.color = accentColor;
+                tile.style.border = `3px dashed ${accentColor}`;
+                    tile.style.boxShadow = 'none';
+
+                    const emptyCircleEl = document.createElement('div');
+                    emptyCircleEl.className = 'activity-empty-circle';
+
+                    const emptyIconEl = document.createElement('div');
+                    emptyIconEl.className = 'activity-empty-icon';
+                    emptyIconEl.textContent = '×';
+
+                    emptyCircleEl.appendChild(emptyIconEl);
+
+                    const emptyTextEl = document.createElement('div');
+                    emptyTextEl.className = 'activity-empty-text';
+                    emptyTextEl.textContent = 'Lav et map';
+
+                    tile.append(labelEl, emptyCircleEl, emptyTextEl);
+                } else {
+                    timeSpan.textContent = displayTime;
+                    textEl.textContent = displayText;
+                    timeEl.appendChild(timeSpan);
+                    tile.append(labelEl, timeEl, textEl);
+                }
 
                 link.appendChild(tile);
                 grid.appendChild(link);
@@ -1394,6 +1679,159 @@
             });
         }
 
+        // DEBUG HELPERS - remove before production
+        async function read_debug_data() {
+            console.warn('read_debug_data is a temporary debugging helper and should be removed before release.');
+            try {
+                const response = await fetch('debug_logbog.json', { cache: 'no-cache' });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} ${response.statusText}`);
+                }
+                const payload = await response.json();
+                if (!Array.isArray(payload)) {
+                    throw new Error('debug_logbog.json does not contain an array');
+                }
+
+                const normalizedEntries = payload
+                    .filter(entry => entry && typeof entry === 'object')
+                    .map(entry => {
+                        const date = normalizeDateKey(entry.date) || getTodayDateKey();
+                        return {
+                            date,
+                            dagbog: entry.dagbog || '',
+                            dreams: entry.dreams || ''
+                        };
+                    });
+
+                localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(normalizedEntries));
+
+                const sorted = normalizedEntries.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+                const latestDate = sorted.length ? sorted[0].date : getTodayDateKey();
+                setActiveLogDate(latestDate);
+                console.info(`Loaded ${normalizedEntries.length} entries into logbogData from debug_logbog.json`);
+            } catch (error) {
+                console.error('Failed to load debug log data:', error);
+            }
+        }
+
+        async function read_debug_body() {
+            console.warn('read_debug_body is a temporary debugging helper and should be removed before release.');
+            try {
+                const response = await fetch('debug_body.json', { cache: 'no-cache' });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} ${response.statusText}`);
+                }
+                const payload = await response.json();
+                if (!Array.isArray(payload)) {
+                    throw new Error('debug_body.json does not contain an array');
+                }
+
+                const mapPalette = ['#ec4899', '#10b981', '#1d4ed8', '#f97316', '#8b5cf6', '#ef4444', '#14b8a6', '#f59e0b'];
+                const mapNameToId = new Map();
+                const maps = [];
+                let nextMapId = 1;
+
+                const acquireMapId = (name) => {
+                    const safeName = name && typeof name === 'string' ? name.trim() : 'Debug Map';
+                    if (mapNameToId.has(safeName)) {
+                        return mapNameToId.get(safeName);
+                    }
+                    const id = nextMapId++;
+                    mapNameToId.set(safeName, id);
+                    maps.push({
+                        id,
+                        name: safeName,
+                        color: mapPalette[(id - 1) % mapPalette.length]
+                    });
+                    return id;
+                };
+
+                let indexCounter = 1;
+                let labelCounter = 1;
+
+                const dataIndexes = payload
+                    .filter(entry => entry && typeof entry === 'object')
+                    .map(entry => {
+                        const normalizedDate = normalizeDateKey(entry.date) || getTodayDateKey();
+                        const time = typeof entry.time === 'string' && entry.time.trim().length ? entry.time.trim() : '08:00';
+                        const mapId = acquireMapId(entry.map);
+
+                        const timestampSource = parseDanishDateTime(`${normalizedDate} ${time}`) || new Date(`${normalizedDate}T${time}`);
+                        const timestamp = timestampSource && !Number.isNaN(timestampSource.getTime())
+                            ? timestampSource.toISOString()
+                            : new Date().toISOString();
+
+                        const labels = Array.isArray(entry.labels) && entry.labels.length
+                            ? entry.labels.map((label, idx) => {
+                                const textParts = [];
+                                if (label && typeof label.text === 'string') {
+                                    textParts.push(label.text.trim());
+                                }
+                                if (label && typeof label.notes === 'string' && label.notes.trim().length) {
+                                    textParts.push(label.notes.trim());
+                                }
+                                const text = textParts.length ? textParts.join(' – ') : `Notat ${idx + 1}`;
+                                const baseX = 420 + (idx * 14);
+                                const baseY = 220 + (idx * 18);
+                                const basePointerX = baseX - 40;
+                                const basePointerY = baseY + 30;
+                                return {
+                                    id: labelCounter++,
+                                    text,
+                                    x: baseX,
+                                    y: baseY,
+                                    pointerX: basePointerX,
+                                    pointerY: basePointerY,
+                                    labelNumber: idx + 1
+                                };
+                            })
+                            : [{
+                                id: labelCounter++,
+                                text: 'Ingen noter',
+                                x: 420,
+                                y: 220,
+                                pointerX: 380,
+                                pointerY: 250,
+                                labelNumber: 1
+                            }];
+
+                        return {
+                            id: indexCounter++,
+                            mapId,
+                            date: normalizedDate,
+                            time,
+                            title: typeof entry.map === 'string' && entry.map.trim().length ? entry.map.trim() : `Lag ${indexCounter}`,
+                            labels,
+                            timestamp
+                        };
+                    });
+
+                const nowIso = new Date().toISOString();
+                const activeIndexId = dataIndexes.length ? dataIndexes[dataIndexes.length - 1].id : null;
+                const activeMapId = dataIndexes.length ? dataIndexes[dataIndexes.length - 1].mapId : (maps[0] ? maps[0].id : null);
+
+                const bodymapData = {
+                    version: '2.0',
+                    metadata: {
+                        title: 'Debug Body Data',
+                        created: nowIso,
+                        updated: nowIso,
+                        showOnionLayers: true,
+                        activeMapId,
+                        activeIndexId
+                    },
+                    maps,
+                    dataIndexes
+                };
+
+                localStorage.setItem(BODYMAP_STORAGE_KEY, JSON.stringify(bodymapData));
+                renderActivitiesForDate(activeLogDate);
+                console.info(`Loaded ${dataIndexes.length} indexes across ${maps.length} maps into bodymapData from debug_body.json`);
+            } catch (error) {
+                console.error('Failed to load debug body data:', error);
+            }
+        }
+
         function initCollapsible() {
             const button = document.getElementById('toggleCheckins');
             const body = document.getElementById('checkinsBody');
@@ -1431,7 +1869,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             hydrateHeaderDates();
-            renderActivities(mockActivities);
+            renderActivitiesForDate(activeLogDate);
             initCollapsible();
             renderCheckinChart();
             ensureSeedLogbookData();
@@ -1447,6 +1885,7 @@
             });
 
             window.addEventListener('storage', handleLogbookStorageEvent);
+            window.addEventListener('storage', handleBodymapStorageEvent);
 
             const historySidebar = document.getElementById('logHistorySidebar');
             if (historySidebar) {

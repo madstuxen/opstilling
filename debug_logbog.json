@@ -1,0 +1,28 @@
+[
+  {
+    "date": "2024-11-05",
+    "dagbog": "Mødtes med coachen og lavede en kort kropsscanning. Følte mig lidt urolig inden, men kunne mærke roen sprede sig i løbet af sessionen. Noterede et par punkter til at arbejde videre med hjemme.",
+    "dreams": "Drømte at jeg stod på en gammel træbro over en tåget sø. Min mor stod på den anden side og vinkede, men jeg kunne ikke høre hvad hun sagde."
+  },
+  {
+    "date": "2024-11-06",
+    "dagbog": "Arbejdede videre med logbogsopgaverne. Fik styr på checkin-grafen og fik testet lokal lagring. Følte mig tilfreds med fremskridtene og tog en kort gåtur efter frokost.",
+    "dreams": "Var i en stor sal fyldt med instrumenter. Jeg forsøgte at spille på et klaver, men hver tangent udløste forskellige farver i loftet."
+  },
+  {
+    "date": "2024-11-08",
+    "dagbog": "Talte med Mads om nye funktioner til aktivitetsoverblikket. Vi blev enige om at gøre knapperne mere dynamiske. Afsluttede dagen med at rydde op i koden.",
+    "dreams": "Svimlende drøm hvor jeg kørte på cykel gennem et fremmed kvarter. En fremmed gav mig en blomsterkrans og sagde 'du er fremme'."
+  },
+  {
+    "date": "2024-11-09",
+    "dagbog": "Testede forbindelse til BodyMap og sikrede at datoformaterne matcher. Oplevede lidt modstand på funktionen, men fandt en elegant løsning. Slappede af med te om aftenen.",
+    "dreams": "Var på et bibliotek der aldrig lukkede. Hver bog havde et lys i ryggen, og når jeg åbnede en, blev jeg suget ind i en stille gade i Paris."
+  },
+  {
+    "date": "2024-11-11",
+    "dagbog": "Implementerede normalisering af logbogsdatoer og fik historikken til at matche BodyMap. Dagen sluttede med en lang samtale om næste iteration.",
+    "dreams": "Drømte at jeg stod på en strand, og tidevandet trak sig tilbage og afslørede et kæmpe kompas i sandet. Pilen pegede mod nordvest."
+  }
+]
+

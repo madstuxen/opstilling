@@ -1,0 +1,70 @@
+[
+  {
+    "date": "2024-11-05",
+    "time": "09:40",
+    "map": "Morgenro",
+    "labels": [
+      { "text": "Skulder venstre", "notes": "Let spænding efter træning" },
+      { "text": "Lænd", "notes": "Behagelig varme efter stræk" }
+    ]
+  },
+  {
+    "date": "2024-11-06",
+    "time": "13:10",
+    "map": "Frokostrefleksion",
+    "labels": [
+      { "text": "Nakce", "notes": "Mild ømhed fra skærmarbejde" }
+    ]
+  },
+  {
+    "date": "2024-11-07",
+    "time": "15:25",
+    "map": "Eftermiddagstjek",
+    "labels": [
+      { "text": "Højre hofte", "notes": "Stram efter længere gåtur" }
+    ]
+  },
+  {
+    "date": "2024-11-08",
+    "time": "08:50",
+    "map": "Fredagsbalance",
+    "labels": [
+      { "text": "Brystkasse", "notes": "Åben og fri vejrtrækning" },
+      { "text": "Mave", "notes": "Rolig uden uro" }
+    ]
+  },
+  {
+    "date": "2024-11-09",
+    "time": "11:05",
+    "map": "Weekendstart",
+    "labels": [
+      { "text": "Fødder", "notes": "Lidt tunge efter løb" }
+    ]
+  },
+  {
+    "date": "2024-11-10",
+    "time": "10:45",
+    "map": "Søndagstjek",
+    "labels": [
+      { "text": "Skuldre", "notes": "Afslappede efter yoga" }
+    ]
+  },
+  {
+    "date": "2024-11-11",
+    "time": "17:30",
+    "map": "Aftenafslutning",
+    "labels": [
+      { "text": "Nakke", "notes": "Let spænding fra koncentration" },
+      { "text": "Hænder", "notes": "Varme efter massage" }
+    ]
+  },
+  {
+    "date": "2024-11-12",
+    "time": "07:55",
+    "map": "Morgentjek",
+    "labels": [
+      { "text": "Rygsøjle", "notes": "Stærk og stabil" }
+    ]
+  }
+]
+
