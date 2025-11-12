@@ -1316,8 +1316,14 @@
     background: #0891b2;
 }	
 		
+.left-participant-circle:hover #leftPoseBtn,
+.left-participant-circle:hover #leftColorBtn,
+.right-participant-circle:hover #rightPoseBtn,
+.right-participant-circle:hover #rightColorBtn,
 .participant-circle:hover #leftPoseBtn,
-.participant-circle:hover #rightPoseBtn {
+.participant-circle:hover #leftColorBtn,
+.participant-circle:hover #rightPoseBtn,
+.participant-circle:hover #rightColorBtn {
     display: flex !important;
     opacity: 1;
 }		
@@ -1679,6 +1685,7 @@ let dialogHistoryCollapsed = false;
         let currentColorSide = null;
 		
 		let isLoadingDialog = false;
+        let newlyCreatedTitleInput = null;
         
         const partsData = {
     lav_ny_left: { 
@@ -1927,8 +1934,19 @@ let dialogHistoryCollapsed = false;
             const newerBtn = document.getElementById('dialogHistoryNewer');
             const olderBtn = document.getElementById('dialogHistoryOlder');
             if (!newerBtn || !olderBtn) return;
-            newerBtn.disabled = false;
-            olderBtn.disabled = false;
+            
+            if (!sessions || !sessions.length) {
+                newerBtn.disabled = true;
+                olderBtn.disabled = true;
+                return;
+            }
+            
+            const idx = sessions.findIndex(session => session.id === activeDialogId);
+            const atNewest = idx <= 0;
+            const atOldest = idx === sessions.length - 1 || idx === -1;
+            
+            newerBtn.disabled = atNewest;
+            olderBtn.disabled = atOldest;
         }
         
         function updateDialogHistoryToggleUI() {
@@ -2088,6 +2106,14 @@ let dialogHistoryCollapsed = false;
             activeDialogId = newSessionId;
             clearAll();
             applyLoadedDialog(defaultLeft, defaultRight, []);
+            const newHistoryInput = document.querySelector(`.dialog-history-item[data-dialog-id="${newSessionId}"] .dialog-history-item-title-input`);
+            if (newHistoryInput) {
+                newlyCreatedTitleInput = newHistoryInput;
+                requestAnimationFrame(() => {
+                    newlyCreatedTitleInput?.focus();
+                    newlyCreatedTitleInput?.select();
+                });
+            }
             resetPose('left');
             resetPose('right');
             dialogActive = true;
@@ -2095,19 +2121,21 @@ let dialogHistoryCollapsed = false;
             renderDialogHistory(newSessionId);
             const leftBubble = document.getElementById('leftBubble');
             const rightBubble = document.getElementById('rightBubble');
-            if (leftBubble) leftBubble.style.display = 'flex';
-            if (rightBubble) rightBubble.style.display = 'none';
+            if (leftBubble) {
+                leftBubble.style.display = 'none';
+                leftBubble.classList.remove('visible');
+            }
+            if (rightBubble) {
+                rightBubble.style.display = 'none';
+                rightBubble.classList.remove('visible');
+            }
             const leftTextarea = document.getElementById('leftTextarea');
             if (leftTextarea) {
                 leftTextarea.value = '';
+                leftTextarea.blur();
             }
             const rightTextarea = document.getElementById('rightTextarea');
             if (rightTextarea) rightTextarea.value = '';
-            const newHistoryInput = document.querySelector(`.dialog-history-item[data-dialog-id="${newSessionId}"] .dialog-history-item-title-input`);
-            if (newHistoryInput) {
-                newHistoryInput.focus();
-                newHistoryInput.select();
-            }
             updateAllButtons();
             setStatus('Ny dialog klar.');
         }
@@ -3287,7 +3315,9 @@ function resetPose(side) {
         
         const bubble = document.getElementById(side + 'Bubble');
         if (!dialogActive) {
-            bubble.style.display = 'none';
+            if (bubble) {
+                bubble.style.display = 'none';
+            }
         }
     } else {
         circle.style.display = 'none';
@@ -3308,7 +3338,9 @@ function resetPose(side) {
         colorBtn.style.display = 'none';
         
         const bubble = document.getElementById(side + 'Bubble');
-        bubble.style.display = 'none';
+        if (bubble) {
+            bubble.style.display = 'none';
+        }
     }
     updateAllButtons();
     persistActiveDialog();
@@ -3683,7 +3715,6 @@ function resetPose(side) {
             
             updateAllButtons();
             setStatus('Vælg to dele og start dialog');
-            renderDialogHistory();
         }
 		
 		
@@ -4214,8 +4245,8 @@ function resetPose(side) {
             
             leftName.textContent = leftPart.name;
             rightName.textContent = rightPart.name;
-            leftName.setAttribute('data-edited', 'true');
-            rightName.setAttribute('data-edited', 'true');
+            leftName.removeAttribute('data-edited');
+            rightName.removeAttribute('data-edited');
             enableParticipantNameEditing('left');
             enableParticipantNameEditing('right');
             partsData.lav_ny_left = {
