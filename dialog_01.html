@@ -236,6 +236,8 @@
             transition: all 0.3s ease;
         }
         
+        .new-dialog-btn { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; }
+        
         .start-btn { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
         .continue-btn { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; }
         .play-btn { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
@@ -763,6 +765,267 @@
             flex-direction: column;
         }
         
+        .dialog-layout {
+            position: relative;
+            display: block;
+        }
+        
+        .dialog-primary {
+            flex: 1;
+            width: 100%;
+            padding-right: 0px;
+        }
+        
+        .dialog-collapse-toggle {
+            position: absolute;
+            left: 8px;
+            top: 10px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            z-index: 100;
+            padding: 0;
+        }
+        
+        .dialog-collapse-toggle-bottom {
+            top: auto;
+            bottom: 10px;
+        }
+        
+        .dialog-collapse-toggle:hover {
+            background: #4338ca;
+            transform: scale(1.1);
+        }
+        
+        .dialog-history-sidebar {
+            position: absolute;
+            top: 0;
+            right: -24px;
+            width: 260px;
+            height: 100%;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+            z-index: 5;
+        }
+        
+        .dialog-history-sidebar.collapsed {
+            transform: translateX(230px);
+        }
+        
+        .dialog-history-header {
+            background: #e2e8f0;
+            padding: 14px 16px 14px 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 600;
+            color: #374151;
+            position: relative;
+        }
+        
+        .dialog-history-sidebar.collapsed .dialog-history-header {
+            justify-content: center;
+        }
+        
+        .dialog-history-sidebar.collapsed .dialog-history-header span {
+            display: none;
+        }
+        
+        .dialog-history-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+        
+        .dialog-history-sidebar.collapsed .dialog-history-content {
+            display: none;
+        }
+        
+        .dialog-history-navigation {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px 10px 44px;
+            background: #e2e8f0;
+            border-bottom: 1px solid #d1d5db;
+        }
+        
+        .dialog-nav-btn-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            justify-content: space-between;
+        }
+        
+        .dialog-nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: white;
+            cursor: pointer;
+            font-size: 0;
+            position: relative;
+            transition: all 0.2s ease;
+            padding: 0;
+        }
+        
+        .dialog-nav-btn::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        #dialogHistoryNewer::before {
+            border-bottom: 12px solid #111827;
+        }
+        
+        #dialogHistoryOlder::before {
+            border-top: 12px solid #111827;
+        }
+        
+        .dialog-nav-btn:hover {
+            background: #f3f4f6;
+        }
+        
+        .dialog-nav-btn:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+        }
+        
+        .dialog-history-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px 12px 12px 44px;
+            overflow-y: auto;
+        }
+        
+        .dialog-history-item {
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: #ffffff;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            text-align: left;
+            position: relative;
+        }
+        
+        .dialog-history-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+            border-color: #cbd5f5;
+        }
+        
+        .dialog-history-item.active {
+            border-color: #6366f1;
+            box-shadow: 0 10px 24px rgba(79, 70, 229, 0.22);
+            background: linear-gradient(135deg, rgba(224, 231, 255, 0.95), rgba(199, 210, 254, 0.95));
+        }
+        
+        .dialog-history-item-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .dialog-history-item-title-input {
+            width: 100%;
+            border: 1px solid transparent;
+            background: transparent;
+            font: inherit;
+            font-weight: 600;
+            color: inherit;
+            padding: 2px 4px;
+            border-radius: 6px;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .dialog-history-item-title-input:hover {
+            border-color: rgba(99, 102, 241, 0.25);
+            background: rgba(99, 102, 241, 0.06);
+        }
+
+        .dialog-history-item-title-input:focus {
+            outline: none;
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.12);
+        }
+        
+        .dialog-history-item-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        
+        .dialog-history-empty {
+            font-size: 13px;
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .dialog-history-item-delete {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .dialog-history-item:hover .dialog-history-item-delete {
+            opacity: 1;
+        }
+
+        .dialog-history-item-delete:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
+        
         .transcript-header {
             background: #f1f5f9;
             padding: 10px 20px;
@@ -1134,6 +1397,7 @@
             
             <div class="controls-divider"></div>
             
+            <button class="btn new-dialog-btn" id="newDialogBtn">Ny Dialog</button>
             <button class="btn start-btn" id="startBtn" disabled>Start Dialog</button>
             <button class="btn" id="loadBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs</button>
             <button class="btn continue-btn" id="continueBtn" disabled>Fortsæt</button>
@@ -1327,22 +1591,42 @@
             </div>
         </div>
         
-        <div class="transcript-section">
-            <div class="transcript-header">
-                <h3 style="color: #475569; font-size: 16px;">Dialog transskript</h3>
-            </div>
-            <div class="transcript-content" id="transcriptContent">
-                <div class="empty">
-                    <h4 style="margin-bottom: 15px; color: #374151;">Sådan bruger du Dialog systemet:</h4>
-                    <p style="margin-bottom: 12px; text-align: left;"><strong>1. Vælg dele:</strong> Brug dropdown-menuerne til at vælge to indre dele der skal tale sammen.</p>
-                    <p style="margin-bottom: 12px; text-align: left;"><strong>2. Start dialog:</strong> Klik "Start Dialog" for at begynde samtalen.</p>
-                    <p style="margin-bottom: 12px; text-align: left;"><strong>3. Skriv beskeder:</strong> En speech bubble vises ved den aktive del. Skriv din besked og tryk Enter for at skifte til den anden del.</p>
-                    <p style="margin-bottom: 12px; text-align: left;"><strong>4. Afspil dialog:</strong> Brug "Afspil" for automatisk gennemgang eller "Næste" for manuel kontrol.</p>
-                    <p style="margin-bottom: 12px; text-align: left;"><strong>5. Fortsæt dialog:</strong> Efter pause eller afspilning kan du fortsætte med at tilføje nye beskeder via "Fortsæt Dialog".</p>
-                    <p style="margin-bottom: 12px; text-align: left;"><strong>6. Rediger beskeder:</strong> Beskeder kan redigeres i transskriptet ved at klikke på dem.</p>
-                    <p style="margin-top: 15px; font-style: italic; color: #6b7280;">Du kan bruge det til en samtale med en indre del eller til at øve dig på en svær samtale.</p>
+        <div class="dialog-layout">
+            <div class="dialog-primary">
+                <div class="transcript-section">
+                    <div class="transcript-header">
+                        <h3 style="color: #475569; font-size: 16px;">Dialog transskript</h3>
+                    </div>
+                    <div class="transcript-content" id="transcriptContent">
+                        <div class="empty">
+                            <h4 style="margin-bottom: 15px; color: #374151;">Sådan bruger du Dialog systemet:</h4>
+                            <p style="margin-bottom: 12px; text-align: left;"><strong>1. Vælg dele:</strong> Brug dropdown-menuerne til at vælge to indre dele der skal tale sammen.</p>
+                            <p style="margin-bottom: 12px; text-align: left;"><strong>2. Start dialog:</strong> Klik "Ny Dialog" for at begynde samtalen.</p>
+                            <p style="margin-bottom: 12px; text-align: left;"><strong>3. Skriv beskeder:</strong> En speech bubble vises ved den aktive del. Skriv din besked og tryk Enter for at skifte til den anden del.</p>
+                            <p style="margin-bottom: 12px; text-align: left;"><strong>4. Afspil dialog:</strong> Brug "Afspil" for automatisk gennemgang eller "Næste" for manuel kontrol.</p>
+                            <p style="margin-bottom: 12px; text-align: left;"><strong>5. Fortsæt dialog:</strong> Efter pause eller afspilning kan du fortsætte med at tilføje nye beskeder via "Fortsæt Dialog".</p>
+                            <p style="margin-bottom: 12px; text-align: left;"><strong>6. Rediger beskeder:</strong> Beskeder kan redigeres i transskriptet ved at klikke på dem.</p>
+                            <p style="margin-top: 15px; font-style: italic; color: #6b7280;">Du kan bruge det til en samtale med en indre del eller til at øve dig på en svær samtale.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
+            <aside class="dialog-history-sidebar" id="dialogHistorySidebar">
+                <div class="dialog-history-header">
+                    <button class="dialog-collapse-toggle" onclick="toggleDialogHistorySidebar()" title="Fold historik">></button>
+                    <span>Gemte dialoger</span>
+                </div>
+                <div class="dialog-history-content">
+                    <div class="dialog-history-navigation">
+                        <div class="dialog-nav-btn-group">
+                            <button type="button" class="dialog-nav-btn" id="dialogHistoryNewer" onclick="navigateDialogHistory(-1)" title="Nyere"></button>
+                            <button type="button" class="dialog-nav-btn" id="dialogHistoryOlder" onclick="navigateDialogHistory(1)" title="Ældre"></button>
+                        </div>
+                    </div>
+                    <div class="dialog-history-list" id="dialogHistoryList"></div>
+                </div>
+                <button class="dialog-collapse-toggle dialog-collapse-toggle-bottom" onclick="toggleDialogHistorySidebar()" title="Fold historik">></button>
+            </aside>
         </div>
     </div>
 
@@ -1384,6 +1668,12 @@
         let rightColor = null;
         let leftLightColor = null;
         let rightLightColor = null;
+const DIALOG_STORAGE_KEY = 'dialogData';
+const DIALOG_COACHING_KEY = 'dialogCoachingData';
+const DIALOG_HISTORY_COLLAPSED_KEY = 'dialog_historySidebarCollapsed';
+const DIALOG_RECENT_LIST_LENGTH = 20;
+let dialogHistoryCollapsed = false;
+        let activeDialogId = null;
         
         let currentColorTarget = null;
         let currentColorSide = null;
@@ -1463,6 +1753,479 @@
     }
 };
 		
+        function loadDialogStorage() {
+            try {
+                let raw = localStorage.getItem(DIALOG_STORAGE_KEY);
+                if (!raw) {
+                    const legacyRaw = localStorage.getItem(DIALOG_COACHING_KEY);
+                    if (legacyRaw) {
+                        try {
+                            const maybeLegacy = JSON.parse(legacyRaw);
+                            if (maybeLegacy && typeof maybeLegacy === 'object' && Array.isArray(maybeLegacy.sessions)) {
+                                raw = legacyRaw;
+                                try {
+                                    localStorage.setItem(DIALOG_STORAGE_KEY, legacyRaw);
+                                } catch (copyErr) {
+                                    console.warn('Kunne ikke kopiere legacy dialogCoachingData til dialogData:', copyErr);
+                                }
+                            }
+                        } catch (_) {}
+                    }
+                }
+                if (!raw) {
+                    return { version: '2.0', sessions: [], lastCoachingUpdate: null };
+                }
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') {
+                    return { version: '2.0', sessions: [], lastCoachingUpdate: null };
+                }
+                const sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+                
+                if (parsed.coachingPayload && typeof parsed.coachingPayload === 'object') {
+                    try {
+                        localStorage.setItem(DIALOG_COACHING_KEY, JSON.stringify(parsed.coachingPayload));
+                    } catch (_) {}
+                    delete parsed.coachingPayload;
+                }
+                const cleaned = {
+                    version: parsed.version || '2.0',
+                    sessions,
+                    lastCoachingUpdate: parsed.lastCoachingUpdate || null,
+                    activeDialogId: parsed.activeDialogId || null
+                };
+                return cleaned;
+            } catch (error) {
+                console.warn('Kunne ikke indlæse dialog data:', error);
+                return { version: '2.0', sessions: [], lastCoachingUpdate: null };
+            }
+        }
+        
+        function saveDialogStorage(data) {
+            try {
+                const payload = {
+                    version: data.version || '2.0',
+                    sessions: Array.isArray(data.sessions) ? data.sessions : [],
+                    lastCoachingUpdate: data.lastCoachingUpdate || null,
+                    activeDialogId: data.activeDialogId || null
+                };
+                const serialized = JSON.stringify(payload);
+                localStorage.setItem(DIALOG_STORAGE_KEY, serialized);
+            } catch (error) {
+                console.error('Kunne ikke gemme dialog data:', error);
+            }
+        }
+        
+        function formatDialogTimestamp(isoString) {
+            if (!isoString) return '';
+            try {
+                const date = new Date(isoString);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day} ${hours}:${minutes}`;
+            } catch (_) {
+                return isoString;
+            }
+        }
+        
+        function renderDialogHistory(activeIdOverride) {
+            const listEl = document.getElementById('dialogHistoryList');
+            if (!listEl) return;
+            
+            const store = loadDialogStorage();
+            const sessions = Array.isArray(store.sessions) ? store.sessions : [];
+            
+            if (!sessions.length) {
+                listEl.innerHTML = '<div class="dialog-history-empty">Ingen gemte dialoger endnu.</div>';
+                activeDialogId = null;
+            } else {
+                listEl.innerHTML = '';
+                const effectiveActiveId = typeof activeIdOverride === 'string' ? activeIdOverride : activeDialogId;
+                const resolvedActiveId = sessions.some(session => session.id === effectiveActiveId)
+                    ? effectiveActiveId
+                    : (sessions.length ? sessions[0].id : null);
+                let newlyCreatedInput = null;
+                sessions.forEach(session => {
+                    const item = document.createElement('div');
+                    const isActive = session.id === resolvedActiveId;
+                    item.className = 'dialog-history-item';
+                    item.classList.toggle('active', isActive);
+                    item.dataset.dialogId = session.id;
+                    
+                    const participants = session.participants || {};
+                    const leftParticipant = participants.left || {};
+                    const rightParticipant = participants.right || {};
+                    const sessionName = session.name || 'Dialog';
+                    
+                    const titleWrapper = document.createElement('div');
+                    titleWrapper.className = 'dialog-history-item-title';
+                    const titleInput = document.createElement('input');
+                    titleInput.type = 'text';
+                    titleInput.className = 'dialog-history-item-title-input';
+                    titleInput.value = sessionName;
+                    titleInput.dataset.dialogId = session.id;
+                    titleWrapper.appendChild(titleInput);
+                    
+                    const meta = document.createElement('div');
+                    meta.className = 'dialog-history-item-meta';
+                    const created = formatDialogTimestamp(session.createdAt);
+                    meta.innerHTML = `
+                        <span>${created || ''}</span>
+                        <span>${session.messages ? session.messages.length : 0} beskeder</span>
+                        <span>${leftParticipant.name || 'Venstre'} vs. ${rightParticipant.name || 'Højre'}</span>
+                    `;
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.className = 'dialog-history-item-delete';
+                    deleteBtn.dataset.dialogId = session.id;
+                    deleteBtn.textContent = '×';
+                    
+                    item.appendChild(titleWrapper);
+                    item.appendChild(meta);
+                    item.appendChild(deleteBtn);
+                    listEl.appendChild(item);
+
+                    titleInput.addEventListener('click', e => e.stopPropagation());
+                    titleInput.addEventListener('keydown', e => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            titleInput.blur();
+                        }
+                    });
+                    titleInput.addEventListener('blur', () => {
+                        renameDialogSession(session.id, titleInput.value);
+                    });
+
+                    deleteBtn.addEventListener('click', e => {
+                        e.stopPropagation();
+                        deleteDialogSession(session.id);
+                    });
+
+                    if (activeIdOverride && session.id === activeIdOverride) {
+                        newlyCreatedInput = titleInput;
+                    }
+                });
+                activeDialogId = resolvedActiveId;
+                const activeItem = resolvedActiveId ? listEl.querySelector(`.dialog-history-item[data-dialog-id="${resolvedActiveId}"]`) : null;
+                if (activeIdOverride && activeItem) {
+                    activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+                if (activeIdOverride && newlyCreatedInput) {
+                    newlyCreatedInput.focus();
+                    newlyCreatedInput.select();
+                }
+            }
+            
+            updateDialogHistoryNavState(sessions);
+            updateDialogHistoryToggleUI();
+        }
+        
+        function updateDialogHistoryNavState(sessions) {
+            const newerBtn = document.getElementById('dialogHistoryNewer');
+            const olderBtn = document.getElementById('dialogHistoryOlder');
+            if (!newerBtn || !olderBtn) return;
+            newerBtn.disabled = false;
+            olderBtn.disabled = false;
+        }
+        
+        function updateDialogHistoryToggleUI() {
+            const sidebar = document.getElementById('dialogHistorySidebar');
+            const layout = document.querySelector('.dialog-layout');
+            if (!sidebar || !layout) return;
+            
+            sidebar.classList.toggle('collapsed', dialogHistoryCollapsed);
+            layout.classList.toggle('history-collapsed', dialogHistoryCollapsed);
+            
+            const toggles = sidebar.querySelectorAll('.dialog-collapse-toggle');
+            toggles.forEach(toggle => {
+                toggle.textContent = dialogHistoryCollapsed ? '<' : '>';
+            });
+        }
+        
+        function toggleDialogHistorySidebar() {
+            setDialogHistoryCollapsed(!dialogHistoryCollapsed);
+        }
+        
+        function setDialogHistoryCollapsed(value) {
+            dialogHistoryCollapsed = !!value;
+            updateDialogHistoryToggleUI();
+            try {
+                localStorage.setItem(DIALOG_HISTORY_COLLAPSED_KEY, String(dialogHistoryCollapsed));
+            } catch (_) {}
+        }
+        
+        function navigateDialogHistory(direction) {
+            const store = loadDialogStorage();
+            const sessions = Array.isArray(store.sessions) ? store.sessions : [];
+            if (!sessions.length) return;
+            
+            const idx = activeDialogId ? sessions.findIndex(session => session.id === activeDialogId) : -1;
+            const nextIndex = idx === -1
+                ? (direction > 0 ? 0 : sessions.length - 1)
+                : (direction < 0 ? Math.max(0, idx - 1) : Math.min(sessions.length - 1, idx + 1));
+            if (nextIndex !== idx && sessions[nextIndex]) {
+                loadSavedDialog(sessions[nextIndex].id);
+            }
+        }
+        
+        function getParticipantSnapshot(side) {
+            const dropdown = document.getElementById(side + 'Dropdown');
+            if (!dropdown || !dropdown.value) return null;
+            
+            const selected = dropdown.value;
+            const partInfo = partsData[selected] || null;
+            const nameElement = document.getElementById(side + 'Name');
+            let name = (nameElement ? nameElement.textContent.trim() : '') || (partInfo ? partInfo.name : '');
+            if (!name) {
+                name = side === 'left' ? 'Venstre del' : 'Højre del';
+            }
+            
+            const partColor = partInfo && partInfo.color ? partInfo.color : null;
+            const defaultColor = side === 'left' ? '#3b82f6' : '#ef4444';
+            const color = side === 'left'
+                ? (leftColor || partColor || defaultColor)
+                : (rightColor || partColor || defaultColor);
+            
+            const keywords = [];
+            for (let i = 1; i <= 6; i++) {
+                const field = document.getElementById(side + 'Stikord' + i);
+                keywords.push(field ? field.value.trim() : '');
+            }
+            
+            const poseDropdown = document.getElementById(side + 'Pose');
+            let poseName = '';
+            if (poseDropdown && poseDropdown.value !== '') {
+                const poseIdx = parseInt(poseDropdown.value, 10);
+                if (!Number.isNaN(poseIdx) && poseLibrary[poseIdx]) {
+                    poseName = poseLibrary[poseIdx].name;
+                }
+            }
+            
+            const mirrorCheckbox = document.getElementById(side + 'Mirror');
+            const spejl = mirrorCheckbox ? !!mirrorCheckbox.checked : false;
+            
+            return {
+                name,
+                color,
+                pose: poseName,
+                spejl,
+                keywords
+            };
+        }
+        
+        function getDefaultParticipant(side) {
+            return {
+                name: side === 'left' ? 'Venstre del' : 'Højre del',
+                color: side === 'left' ? '#3b82f6' : '#ef4444',
+                pose: '',
+                spejl: false,
+                keywords: ['', '', '', '', '', '']
+            };
+        }
+
+        function enableParticipantNameEditing(side) {
+            const nameEl = document.getElementById(side + 'Name');
+            if (!nameEl) return;
+            nameEl.contentEditable = 'true';
+            nameEl.style.cursor = 'text';
+            nameEl.onclick = function () {
+                nameEl.focus();
+            };
+            nameEl.onkeydown = function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    nameEl.blur();
+                    nameEl.setAttribute('data-edited', 'true');
+                    persistActiveDialog(false);
+                }
+            };
+            nameEl.onblur = function () {
+                const trimmed = nameEl.textContent.trim();
+                const key = side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
+                if (partsData[key]) {
+                    partsData[key].name = trimmed || (side === 'left' ? 'Venstre del' : 'Højre del');
+                }
+                nameEl.setAttribute('data-edited', 'true');
+                persistActiveDialog(false);
+            };
+        }
+        
+        function createNewDialogEntry() {
+            const store = loadDialogStorage();
+            const defaultLeft = getDefaultParticipant('left');
+            const defaultRight = getDefaultParticipant('right');
+            defaultLeft.name = 'Venstre deltager';
+            defaultRight.name = 'Højre deltager';
+            defaultLeft.keywords = ['', '', '', '', '', ''];
+            defaultRight.keywords = ['', '', '', '', '', ''];
+            defaultLeft.pose = 'standard';
+            defaultRight.pose = 'standard';
+            defaultLeft.spejl = false;
+            defaultRight.spejl = false;
+            const newSessionId = `dialog-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+            const timestamp = new Date().toISOString();
+            const sessionName = `Dialog ${store.sessions.length + 1}`;
+            const session = {
+                id: newSessionId,
+                name: sessionName,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+                participants: {
+                    left: defaultLeft,
+                    right: defaultRight
+                },
+                messages: []
+            };
+            store.sessions.unshift(session);
+            if (store.sessions.length > DIALOG_RECENT_LIST_LENGTH) {
+                store.sessions = store.sessions.slice(0, DIALOG_RECENT_LIST_LENGTH);
+            }
+            store.activeDialogId = newSessionId;
+            saveDialogStorage(store);
+            activeDialogId = newSessionId;
+            clearAll();
+            applyLoadedDialog(defaultLeft, defaultRight, []);
+            resetPose('left');
+            resetPose('right');
+            dialogActive = true;
+            currentSpeaker = 'left';
+            renderDialogHistory(newSessionId);
+            const leftBubble = document.getElementById('leftBubble');
+            const rightBubble = document.getElementById('rightBubble');
+            if (leftBubble) leftBubble.style.display = 'flex';
+            if (rightBubble) rightBubble.style.display = 'none';
+            const leftTextarea = document.getElementById('leftTextarea');
+            if (leftTextarea) {
+                leftTextarea.value = '';
+            }
+            const rightTextarea = document.getElementById('rightTextarea');
+            if (rightTextarea) rightTextarea.value = '';
+            const newHistoryInput = document.querySelector(`.dialog-history-item[data-dialog-id="${newSessionId}"] .dialog-history-item-title-input`);
+            if (newHistoryInput) {
+                newHistoryInput.focus();
+                newHistoryInput.select();
+            }
+            updateAllButtons();
+            setStatus('Ny dialog klar.');
+        }
+        
+        function persistActiveDialog(updateTimestamp = true) {
+            if (isLoadingDialog) return;
+            if (!activeDialogId) return;
+            const store = loadDialogStorage();
+            const sessionIndex = store.sessions.findIndex(s => s.id === activeDialogId);
+            if (sessionIndex === -1) return;
+            
+            let session = store.sessions[sessionIndex];
+            session.participants = {
+                left: getParticipantSnapshot('left') || getDefaultParticipant('left'),
+                right: getParticipantSnapshot('right') || getDefaultParticipant('right')
+            };
+            session.messages = transcript.map(entry => ({
+                speaker: entry.speaker,
+                message: entry.message,
+                side: entry.side,
+                timestamp: entry.timestamp || ''
+            }));
+            if (updateTimestamp) {
+                session.updatedAt = new Date().toISOString();
+            }
+            store.sessions[sessionIndex] = session;
+            store.activeDialogId = activeDialogId;
+            if (store.sessions.length > DIALOG_RECENT_LIST_LENGTH) {
+                store.sessions = store.sessions.slice(0, DIALOG_RECENT_LIST_LENGTH);
+            }
+            saveDialogStorage(store);
+            renderDialogHistory();
+        }
+
+        function renameDialogSession(sessionId, newName) {
+            const trimmed = (newName || '').trim();
+            const finalName = trimmed.length ? trimmed : 'Dialog';
+            const store = loadDialogStorage();
+            const session = store.sessions.find(s => s.id === sessionId);
+            if (!session) {
+                return;
+            }
+            if (session.name === finalName) {
+                return;
+            }
+            session.name = finalName;
+            store.activeDialogId = activeDialogId;
+            saveDialogStorage(store);
+            renderDialogHistory(sessionId);
+            if (sessionId === activeDialogId) {
+                setStatus(`Dialognavn opdateret til "${finalName}".`);
+            }
+        }
+
+        function deleteDialogSession(sessionId) {
+            const store = loadDialogStorage();
+            const sessionIndex = store.sessions.findIndex(s => s.id === sessionId);
+            if (sessionIndex === -1) {
+                return;
+            }
+            const session = store.sessions[sessionIndex];
+            if (!confirm(`Slet dialogen "${session.name || 'Dialog'}"?`)) {
+                return;
+            }
+            const deletingActive = activeDialogId === sessionId;
+            store.sessions.splice(sessionIndex, 1);
+            let nextActiveId = activeDialogId;
+            if (deletingActive) {
+                if (store.sessions.length) {
+                    const fallbackSession = store.sessions[Math.min(sessionIndex, store.sessions.length - 1)];
+                    nextActiveId = fallbackSession.id;
+                } else {
+                    nextActiveId = null;
+                }
+            } else if (nextActiveId && !store.sessions.some(s => s.id === nextActiveId)) {
+                nextActiveId = store.sessions.length ? store.sessions[0].id : null;
+            }
+            activeDialogId = nextActiveId;
+            store.activeDialogId = nextActiveId;
+            saveDialogStorage(store);
+            renderDialogHistory(nextActiveId);
+            if (nextActiveId) {
+                loadSavedDialog(nextActiveId);
+            } else {
+                clearAll();
+                setStatus('Dialog slettet. Opret en ny dialog for at begynde.');
+            }
+        }
+        
+        function loadSavedDialog(sessionId) {
+            if (!sessionId) return;
+            if (isLoadingDialog && sessionId === activeDialogId) return;
+            const store = loadDialogStorage();
+            const session = store.sessions.find(s => s.id === sessionId);
+            if (!session) {
+                alert('Kunne ikke finde dialogen.');
+                return;
+            }
+            isLoadingDialog = true;
+            try {
+                clearAll();
+                const participants = session.participants || {};
+                const leftParticipant = participants.left || { name: 'Venstre del', color: '#3b82f6', pose: '', spejl: false, keywords: ['', '', '', '', '', ''] };
+                const rightParticipant = participants.right || { name: 'Højre del', color: '#ef4444', pose: '', spejl: false, keywords: ['', '', '', '', '', ''] };
+                
+                applyLoadedDialog(
+                    leftParticipant,
+                    rightParticipant,
+                    session.messages || []
+                );
+                activeDialogId = sessionId;
+                renderDialogHistory();
+                setStatus(`Dialog "${session.name}" indlæst.`);
+            } finally {
+                isLoadingDialog = false;
+            }
+            persistActiveDialog(false);
+        }
 		///// animations bibliotek
 		
 		let animationsLibrary = {};
@@ -2002,6 +2765,13 @@ function applyDirectSlideData(side, slideData) {
 		participant.setAttribute('data-pose', poseIndex);
 		participant.setAttribute('data-mirror', mirrorCheckbox ? mirrorCheckbox.checked : false);
 	}
+    const key = side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
+    if (partsData[key]) {
+        const poseName = poseLibrary[poseIndex] ? poseLibrary[poseIndex].name : '';
+        partsData[key].pose = poseName;
+        partsData[key].mirror = mirrorCheckbox ? !!mirrorCheckbox.checked : false;
+    }
+    persistActiveDialog(false);
 	
 	
 	
@@ -2021,6 +2791,11 @@ function toggleMirror(side) {
     if (participant) {
         participant.setAttribute('data-mirror', mirrorCheckbox ? String(mirrorCheckbox.checked) : 'false');
     }
+    const key = side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
+    if (partsData[key]) {
+        partsData[key].mirror = mirrorCheckbox ? !!mirrorCheckbox.checked : false;
+    }
+    persistActiveDialog(false);
 }
 
 function resetPose(side) {
@@ -2126,6 +2901,7 @@ function resetPose(side) {
     // Reset arm layering
     skulderLeft?.classList.remove('front-arm');
     skulderRight?.classList.remove('front-arm');
+    persistActiveDialog(false);
 }
 		
 		
@@ -2174,6 +2950,7 @@ function resetPose(side) {
 			// Arme og ben får mørkere farve
 			armParts.forEach(part => part.style.background = darkerColor);
 			legParts.forEach(part => part.style.background = darkerColor);
+            
 		}
 
 
@@ -2236,9 +3013,9 @@ function resetPose(side) {
 				// Update body colors
 				updateBodyColors(currentColorSide, hex);
 				
-				const dropdown = document.getElementById(currentColorSide + 'Dropdown');
-				if (dropdown.value === 'lav_ny_' + currentColorSide) {
-					partsData['lav_ny_' + currentColorSide].color = hex;
+				const key = currentColorSide === 'left' ? 'lav_ny_left' : 'lav_ny_right';
+				if (partsData[key]) {
+					partsData[key].color = hex;
 				}
 
 				// Refresh mini C button colors immediately
@@ -2249,6 +3026,7 @@ function resetPose(side) {
 			}
 			
 			setTimeout(() => closeColorPicker(), 100);
+            persistActiveDialog(false);
 		}
 
         function initializeDropdowns() {
@@ -2359,7 +3137,7 @@ function resetPose(side) {
             [leftDropdown, rightDropdown].forEach((dropdown, index) => {
                 const defaultOption = document.createElement('option');
                 defaultOption.value = '';
-                defaultOption.textContent = index === 0 ? 'Venstre del...' : 'Højre del...';
+                defaultOption.textContent = index === 0 ? 'Venstre deltager...' : 'Højre deltager...';
                 dropdown.appendChild(defaultOption);
             });
             
@@ -2436,8 +3214,13 @@ function resetPose(side) {
             rightLightColor = lightenColor(partData.color, 0.6);
         }
         
-        if (!name.hasAttribute('data-edited')) {
+        if (selectedValue === 'lav_ny_' + side) {
+            if (!name.hasAttribute('data-edited')) {
+                name.textContent = partData.name;
+            }
+        } else {
             name.textContent = partData.name;
+            name.removeAttribute('data-edited');
         }
         
         if (partData.keywords && Array.isArray(partData.keywords)) {
@@ -2445,24 +3228,13 @@ function resetPose(side) {
                 const stikordField = document.getElementById(side + 'Stikord' + i);
                 if (stikordField) {
                     stikordField.value = partData.keywords[i-1] || '';
+                    stikordField.oninput = () => persistActiveDialog(false);
+                    stikordField.onchange = () => persistActiveDialog(false);
                 }
             }
         }
         
-        name.contentEditable = true;
-        name.style.cursor = 'text';
-        
-        name.onclick = function() { name.focus(); };
-        name.onkeydown = function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                name.blur();
-                name.setAttribute('data-edited', 'true');
-            }
-        };
-        name.onblur = function() {
-            name.setAttribute('data-edited', 'true');
-        };
+        enableParticipantNameEditing(side);
         
         const head = circle.querySelector('.head');
 		if (head) {
@@ -2539,6 +3311,7 @@ function resetPose(side) {
         bubble.style.display = 'none';
     }
     updateAllButtons();
+    persistActiveDialog();
 }
         
         function startDialog() {
@@ -2557,9 +3330,10 @@ function resetPose(side) {
             showSpeechBubble('left');
             updateAllButtons();
             setStatus('Dialog startet - skriv beskeder');
+            persistActiveDialog();
         }
 
-        // Save mini C button payload to localStorage as "dialogData"
+        // Save mini C button payload to localStorage as "dialogCoachingData"
         function writeDialogData(side) {
             try {
                 const youSide = side;
@@ -2590,14 +3364,21 @@ function resetPose(side) {
                 if (mirrorCheckbox) youPoseFlipped = !!mirrorCheckbox.checked;
                 
                 const payload = {
-                    "Other": otherName,
-                    "You": youName,
-                    "You_color": youColor,
-                    "You_pose": youPoseIndex,
-                    "You_pose_flipped": youPoseFlipped
+                    Other: otherName,
+                    You: youName,
+                    You_color: youColor,
+                    You_pose: youPoseIndex,
+                    You_pose_flipped: youPoseFlipped
                 };
-                localStorage.setItem('dialogData', JSON.stringify(payload));
-                setStatus('dialogData skrevet for ' + youName);
+                try {
+                    localStorage.setItem(DIALOG_COACHING_KEY, JSON.stringify(payload));
+                } catch (err) {
+                    console.warn('Kunne ikke opdatere dialogCoachingData:', err);
+                }
+                const storage = loadDialogStorage();
+                storage.lastCoachingUpdate = new Date().toISOString();
+                saveDialogStorage(storage);
+                setStatus('dialogCoachingData opdateret for ' + youName);
                 
                 // Open coaching overlay with dialog_coaching.json
                 openCoachingOverlayFromFile('coaching_templates/dialog_coaching.json');
@@ -2774,6 +3555,7 @@ function resetPose(side) {
                     transcriptContent.innerHTML = '<div class="empty">Alle beskeder slettet</div>';
                 }
                 updateAllButtons();
+                persistActiveDialog();
             };
             
             textDiv.onkeydown = function(e) {
@@ -2789,6 +3571,7 @@ function resetPose(side) {
                 if (transcriptEntry && newText) {
                     transcriptEntry.message = newText;
                 }
+                persistActiveDialog(false);
             };
             
             messageDiv.appendChild(speakerDiv);
@@ -2806,6 +3589,7 @@ function resetPose(side) {
                 timestamp: timestamp
             });
             updateAllButtons();
+            persistActiveDialog();
         }
 
 
@@ -2864,6 +3648,7 @@ function resetPose(side) {
             rightColor = null;
             leftLightColor = null;
             rightLightColor = null;
+            activeDialogId = null;
 			hideAllSpeechBubbles();
             
             document.getElementById('leftCircle').style.display = 'none';
@@ -2898,6 +3683,7 @@ function resetPose(side) {
             
             updateAllButtons();
             setStatus('Vælg to dele og start dialog');
+            renderDialogHistory();
         }
 		
 		
@@ -3329,6 +4115,8 @@ function resetPose(side) {
             }
             
             applyLoadedDialog(cirkelData[0], cirkelData[1], dialogData);
+            activeDialogId = null;
+            renderDialogHistory();
         }
 
         function parseCSVLine(line) {
@@ -3428,6 +4216,22 @@ function resetPose(side) {
             rightName.textContent = rightPart.name;
             leftName.setAttribute('data-edited', 'true');
             rightName.setAttribute('data-edited', 'true');
+            enableParticipantNameEditing('left');
+            enableParticipantNameEditing('right');
+            partsData.lav_ny_left = {
+                name: leftPart.name || 'Venstre del',
+                keywords: Array.isArray(leftPart.keywords) ? leftPart.keywords.slice(0, 6) : ['', '', '', '', '', ''],
+                color: leftPart.color || '#3b82f6',
+                pose: leftPart.pose || '',
+                mirror: !!leftPart.spejl
+            };
+            partsData.lav_ny_right = {
+                name: rightPart.name || 'Højre del',
+                keywords: Array.isArray(rightPart.keywords) ? rightPart.keywords.slice(0, 6) : ['', '', '', '', '', ''],
+                color: rightPart.color || '#ef4444',
+                pose: rightPart.pose || '',
+                mirror: !!rightPart.spejl
+            };
             
             const leftHead = leftCircle.querySelector('.head');
 			const rightHead = rightCircle.querySelector('.head');
@@ -3544,6 +4348,7 @@ if (rightPoseDropdown && rightPart.pose) {
                     transcriptContent.innerHTML = '<div class="empty">Alle beskeder slettet</div>';
                 }
                 updateAllButtons();
+                persistActiveDialog();
             };
             
             textDiv.onkeydown = function(e) {
@@ -3559,6 +4364,7 @@ if (rightPoseDropdown && rightPart.pose) {
                 if (transcriptEntry && newText) {
                     transcriptEntry.message = newText;
                 }
+                persistActiveDialog(false);
             };
             
             messageDiv.appendChild(speakerDiv);
@@ -3573,6 +4379,7 @@ if (rightPoseDropdown && rightPart.pose) {
                 messageId: messageId,
                 timestamp: timestamp
             });
+            persistActiveDialog(false);
         }
 
         document.addEventListener('DOMContentLoaded', async function() {
@@ -3673,6 +4480,39 @@ if (rightPoseDropdown && rightPart.pose) {
 				e.stopPropagation();
 				openPosePicker(this);
 			});
+
+            dialogHistoryCollapsed = localStorage.getItem(DIALOG_HISTORY_COLLAPSED_KEY) === 'true';
+            const newDialogBtn = document.getElementById('newDialogBtn');
+            if (newDialogBtn) {
+                newDialogBtn.addEventListener('click', createNewDialogEntry);
+            }
+
+            const historyListEl = document.getElementById('dialogHistoryList');
+            if (historyListEl) {
+                historyListEl.addEventListener('click', function(event) {
+                    const item = event.target.closest('.dialog-history-item');
+                    if (item && item.dataset.dialogId) {
+                        const targetId = item.dataset.dialogId;
+                        if (targetId === activeDialogId) {
+                            return;
+                        }
+                        persistActiveDialog(false);
+                        loadSavedDialog(targetId);
+                    }
+                });
+            }
+
+            const initialStore = loadDialogStorage();
+            if (initialStore.activeDialogId) {
+                activeDialogId = initialStore.activeDialogId;
+            }
+            renderDialogHistory(initialStore.activeDialogId || null);
+
+            const initialSessions = initialStore.sessions || [];
+            const targetId = initialStore.activeDialogId || (initialSessions.length ? initialSessions[0].id : null);
+            if (targetId) {
+                loadSavedDialog(targetId);
+            }
 
             // Wire mini C buttons to write dialogData
             const leftMini = document.getElementById('leftMiniC');

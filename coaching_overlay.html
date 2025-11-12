@@ -793,6 +793,23 @@
             You_color: '#f093fb'
         };
         
+        function ensureCoachingData() {
+            try {
+                const newKey = 'coachingData';
+                const legacyKey = 'dialogData';
+                if (!localStorage.getItem(newKey)) {
+                    const legacyData = localStorage.getItem(legacyKey);
+                    if (legacyData) {
+                        localStorage.setItem(newKey, legacyData);
+                        console.log('Migrated legacy dialogData to coachingData');
+                    }
+                }
+            } catch (error) {
+                console.log('Unable to ensure coachingData exists:', error);
+            }
+        }
+        ensureCoachingData();
+        
         // Close overlay functionality
         function closeOverlay() {
             if (window.parent && window.parent !== window) {
@@ -870,17 +887,29 @@
                             
                             if (project.variables) {
                                 variables = project.variables;
+                                if (variables.Data === 'dialogData') {
+                                    variables.Data = 'coachingData';
+                                    project.variables.Data = 'coachingData';
+                                    try {
+                                        localStorage.setItem(dataSource, JSON.stringify(project));
+                                        console.log('Updated project Data key to coachingData');
+                                    } catch (storeError) {
+                                        console.log('Unable to persist Data key migration:', storeError);
+                                    }
+                                }
                                 console.log('Using saved variables:', variables);
                             }
                             
+                            const projectDataKey = project.variables ? project.variables.Data : undefined;
+                            
                             // Also load external data if it exists in the project
-                            if (project.variables && project.variables.Data) {
-                                console.log('Found Data key in project, loading external data from:', project.variables.Data);
-                                loadExternalDataIfNeeded(project.variables.Data);
+                            if (projectDataKey) {
+                                console.log('Found Data key in project, loading external data from:', projectDataKey);
+                                loadExternalDataIfNeeded(projectDataKey);
                                 
                                 // Merge external data into variables for coaching engine
                                 try {
-                                    const externalData = localStorage.getItem(project.variables.Data);
+                                    const externalData = localStorage.getItem(projectDataKey);
                                     if (externalData) {
                                         const loaded = JSON.parse(externalData);
                                         if (loaded && typeof loaded === 'object') {
@@ -1501,7 +1530,21 @@
                     return;
                 }
                 
-                const dataKey = project.variables.Data;
+                let dataKey = project.variables.Data;
+                if (dataKey === 'dialogData') {
+                    const legacy = localStorage.getItem('dialogData');
+                    if (legacy && !localStorage.getItem('coachingData')) {
+                        localStorage.setItem('coachingData', legacy);
+                        console.log('Migrated legacy dialogData to coachingData during external data load');
+                    }
+                    dataKey = 'coachingData';
+                    project.variables.Data = dataKey;
+                    try {
+                        localStorage.setItem(dataSource, JSON.stringify(project));
+                    } catch (saveError) {
+                        console.log('Unable to persist updated Data key on project:', saveError);
+                    }
+                }
                 
                 // Read from the data key specified in the project
                 const raw = localStorage.getItem(dataKey);

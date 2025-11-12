@@ -62,6 +62,6 @@
     ]
   },
   "variables": {
-    "Data": "dialogData"
+    "Data": "dialogCoachingData"
   }
 }

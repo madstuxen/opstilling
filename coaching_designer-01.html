@@ -304,6 +304,23 @@
         let engine = null;
         let currentQuestion = null;
 		
+		function ensureCoachingData() {
+			try {
+				const newKey = 'coachingData';
+				const legacyKey = 'dialogData';
+				if (!localStorage.getItem(newKey)) {
+					const legacy = localStorage.getItem(legacyKey);
+					if (legacy) {
+						localStorage.setItem(newKey, legacy);
+						console.log('Migrated legacy dialogData to coachingData');
+					}
+				}
+			} catch (error) {
+				console.warn('Unable to ensure coachingData exists:', error);
+			}
+		}
+		ensureCoachingData();
+		
 		function showHelp() {
 		const helpText = `COACHING SESSION DESIGNER  HJÆLP
 
@@ -1519,11 +1536,16 @@ Der startes på den node, som er angivet i start_node.
                 }
 
                 // Find which localStorage key to use
-                const storageKey = obj.Data || obj.data || null;
+				let storageKey = obj.Data || obj.data || null;
+                if (storageKey === 'dialogData') {
+					storageKey = 'coachingData';
+					obj.Data = 'coachingData';
+				}
                 if (!storageKey) {
                     alert('Ingen Data-nøgle fundet i Test Variabler (f.eks. "Data": "comparisonData").');
                     return;
                 }
+				ensureCoachingData();
 
                 // Read from localStorage
                 const raw = localStorage.getItem(storageKey);
@@ -1617,6 +1639,16 @@ Der startes på den node, som er angivet i start_node.
 					return null;
 				}
 				
+				if (project.variables && project.variables.Data === 'dialogData') {
+					project.variables.Data = 'coachingData';
+					try {
+						localStorage.setItem(projectName, JSON.stringify(project));
+					} catch (saveError) {
+						console.warn('Kunne ikke gemme opdateret Data-nøgle:', saveError);
+					}
+					ensureCoachingData();
+				}
+				
 				return project;
 			} catch (e) {
 				alert('Fejl ved indlæsning af projekt: ' + e.message);
@@ -1629,7 +1661,15 @@ Der startes på den node, som er angivet i start_node.
 				let variables = project.variables || {};
 				
 				// Check if there's a Data key that points to localStorage
-				const dataKey = variables.Data || variables.data;
+				let dataKey = variables.Data || variables.data;
+				if (dataKey === 'dialogData') {
+					dataKey = 'coachingData';
+					variables.Data = 'coachingData';
+					if (project.variables) {
+						project.variables.Data = 'coachingData';
+					}
+					ensureCoachingData();
+				}
 				if (dataKey) {
 					const externalData = localStorage.getItem(dataKey);
 					if (externalData) {
@@ -1659,7 +1699,8 @@ Der startes på den node, som er angivet i start_node.
 		
 		function loadExternalDataIfNeeded() {
 			try {
-				const testVariablesText = document.getElementById('testVariables').value.trim();
+				const varsTextarea = document.getElementById('testVariables');
+				const testVariablesText = varsTextarea.value.trim();
 				if (!testVariablesText) {
 					// No variables, use defaults
 					updatePopupColors();
@@ -1679,6 +1720,11 @@ Der startes på den node, som er angivet i start_node.
 				// Check if only "Data" key exists
 				const keys = Object.keys(variables);
 				if (keys.length === 1 && keys[0] === 'Data' && variables.Data) {
+					if (variables.Data === 'dialogData') {
+						variables.Data = 'coachingData';
+						varsTextarea.value = varsTextarea.value.replace(/"Data"\s*:\s*"dialogData"/i, '"Data": "coachingData"');
+						ensureCoachingData();
+					}
 					console.log('Auto-loading external data from:', variables.Data);
 					// Load external data first, then update colors
 					loadExternalData();
