@@ -30,6 +30,7 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
+            justify-content: space-around;
             overflow: visible;
         }
         
@@ -281,7 +282,7 @@
         
         .participants-section {
             background: #f8fafc;
-            padding: 20px;
+            padding: 0;
             border-bottom: 2px solid #e2e8f0;
             height: 250px;
             flex-shrink: 0;
@@ -291,11 +292,11 @@
         
         .participants-container {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-around;
             align-items: center;
             max-width: 700px;
             margin: 0 auto;
-            gap: 30px;
+            gap: 75px;
             height: 100%;
             overflow: visible;
         }
@@ -306,7 +307,7 @@
         }
         
         .participant {
-            flex: 1;
+            flex: 0 0 200px;
 			margin-top: -160px;
             display: flex;
             flex-direction: column;
@@ -315,6 +316,7 @@
             position: relative;
             overflow: visible;
 			transform-origin: center center;
+            min-width: 200px;
         }
         
         .participant-circle {
@@ -709,6 +711,7 @@
         .speech-bubble.right {
 			background: #86efac;
 			transform-origin: right center;
+            z-index: 1;
 		}
         
         .speech-bubble.right::after {
@@ -770,7 +773,7 @@
         
         .dialog-collapse-toggle {
             position: absolute;
-            left: 8px;
+            left: 0px;
             top: 10px;
             background: #4f46e5;
             color: white;
@@ -815,7 +818,7 @@
         }
         
         .dialog-history-sidebar.collapsed {
-            transform: translateX(200px);
+            transform: translateX(215px);
         }
         
         .dialog-history-header {
@@ -844,10 +847,6 @@
             flex-direction: column;
             min-height: 0;
             overflow: hidden;
-        }
-        
-        .dialog-history-sidebar.collapsed .dialog-history-content {
-            display: none;
         }
         
         .dialog-history-navigation {
@@ -3422,11 +3421,11 @@ function resetPose(side) {
     }
     
     if (side === 'left') {
-        bubble.style.left = '230px';
+        bubble.style.left = '150px';
         bubble.style.right = 'auto';
         bubble.style.transformOrigin = 'left center';
     } else {
-        bubble.style.right = '230px';
+        bubble.style.right = '150px';
         bubble.style.left = 'auto';
         bubble.style.transformOrigin = 'right center';
     }
@@ -3770,11 +3769,11 @@ function resetPose(side) {
     
     // Positionér boblen
     if (message.side === 'left') {
-        bubble.style.left = '230px';
+        bubble.style.left = '150px';
         bubble.style.right = 'auto';
         bubble.style.transformOrigin = 'left center';
     } else {
-        bubble.style.right = '230px';
+        bubble.style.right = '150px';
         bubble.style.left = 'auto';
         bubble.style.transformOrigin = 'right center';
     }

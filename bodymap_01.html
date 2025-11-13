@@ -265,16 +265,18 @@
         }
         
         .main-content {
-            display: flex;
+            position: relative;
             flex: 1;
             overflow: hidden;
+            min-height: 0;
         }
         
         .workspace-container {
-            flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            height: 100%;
+            position: relative;
         }
         
         .workspace {
@@ -294,12 +296,17 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: width 0.3s ease;
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+            z-index: 30;
         }
         
         .history-sidebar.collapsed {
-            width: 38px;
-            margin-left: -14px;
+            transform: translateX(212px);
         }
         
         .history-content {
@@ -576,26 +583,62 @@
 
         .map-manager-new input {
             flex: 1;
+            border: none;
             border-radius: 10px;
-            border: 1px solid #cbd5f5;
             padding: 10px 14px;
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+            background: #f8fafc;
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.18);
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
         }
 
         .map-manager-new input:focus {
             outline: none;
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+            transform: translateY(-1px);
+        }
+
+        .map-manager-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .map-color-select {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            color: #ffffff;
+        }
+
+        .map-color-select:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
+        }
+
+        .map-color-select span[aria-hidden="true"] {
+            color: inherit;
+            font-weight: 700;
+            font-size: 14px;
         }
 
         .map-manager-new .map-create-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
             border: none;
             background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
             color: white;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             cursor: pointer;
             display: inline-flex;
@@ -607,6 +650,18 @@
         .map-manager-new .map-create-btn:hover {
             transform: scale(1.05);
             box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         .map-color-picker-modal {
@@ -884,6 +939,12 @@
             transition: none !important;
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25)) brightness(1.0);
             z-index: 1000;
+        }
+        
+        #guideFigure {
+            left: 50%;
+            top: 140px;
+            transform: translateX(-50%);
         }
         
         .head {
@@ -1372,6 +1433,39 @@
         </div>
     </div>
     
+<!-- Map Manager Overlay -->
+<div class="map-manager-overlay" id="mapManagerOverlay">
+    <div class="map-manager-backdrop" onclick="closeMapManager()"></div>
+    <div class="map-manager-panel">
+        <div class="map-manager-header">
+            <h2>Bodymaps</h2>
+            <button class="map-manager-close" onclick="closeMapManager()" title="Luk">×</button>
+        </div>
+        <div class="map-manager-list" id="mapManagerList"></div>
+        <div class="map-manager-divider"></div>
+        <div class="map-manager-new" id="mapManagerNewRow">
+            <input type="text" id="newMapName" placeholder="Nyt bodymap-navn" autocomplete="off">
+            <div class="map-manager-actions">
+                <button class="map-color-select" id="newMapColorBtn" onclick="openMapColorPicker({ type: 'new' })" title="Vælg farve">
+                    <span class="sr-only">Vælg farve</span>
+                    <span aria-hidden="true">C</span>
+                </button>
+                <button class="map-create-btn" onclick="confirmCreateMap()" title="Opret bodymap">✓</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Map Color Picker Modal -->
+<div class="map-color-picker-modal" id="mapColorPickerModal" onclick="backdropCloseHandler(event)">
+    <div class="map-color-picker" onclick="event.stopPropagation()">
+        <div class="map-color-picker-header">
+            <h3>Vælg farve</h3>
+        </div>
+        <div class="map-color-grid" id="mapColorGrid"></div>
+    </div>
+</div>
+
     <script src="coaching_engine.js"></script>
     <script src="coaching_overlay_complete.js"></script>
     <script>
@@ -1411,6 +1505,7 @@
         let totalLabelsCreated = 0; // Total count of all labels ever created
         let bodymapTitle = ''; // Title of the current bodymap
         let shouldScrollHistoryToBottom = false;
+        let shouldScrollHistoryToTop = false;
         let showOnionLayers = true; // Toggle for showing onion layers
         let historyFilterMapId = 'all'; // Current filter selection for history
         
@@ -1579,7 +1674,7 @@
                     timestamp: new Date(index.timestamp)
                 };
             });
-            enriched.sort((a, b) => a.timestamp - b.timestamp);
+            enriched.sort((a, b) => b.timestamp - a.timestamp);
             return enriched;
         }
 
@@ -1662,20 +1757,28 @@
                 const baseColor = newMapDraftColor || MAP_COLOR_PRESETS[0];
                 newMapColorBtnEl.style.background = baseColor;
                 newMapColorBtnEl.style.color = '#ffffff';
-                newMapColorBtnEl.style.border = `2px solid ${baseColor}`;
                 if (newMapNameInputEl) {
                     newMapNameInputEl.style.background = lightenHex(baseColor, 0.85);
-                    newMapNameInputEl.style.borderColor = baseColor;
+                    newMapNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
                 }
             } else {
-                newMapColorBtnEl.style.background = '';
-                newMapColorBtnEl.style.color = '';
-                newMapColorBtnEl.style.border = '';
+                newMapColorBtnEl.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                newMapColorBtnEl.style.color = '#ffffff';
                 if (newMapNameInputEl) {
-                    newMapNameInputEl.style.background = '';
-                    newMapNameInputEl.style.borderColor = '';
+                    newMapNameInputEl.style.background = '#f8fafc';
+                    newMapNameInputEl.style.boxShadow = '0 0 0 1px rgba(99, 102, 241, 0.18)';
                 }
             }
+        }
+
+        function hexToRgba(hex, alpha = 1) {
+            if (!hex) return `rgba(99, 102, 241, ${alpha})`;
+            const sanitized = hex.replace('#', '');
+            const bigint = parseInt(sanitized, 16);
+            const r = (bigint >> 16) & 255;
+            const g = (bigint >> 8) & 255;
+            const b = bigint & 255;
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
         }
 
         function renderMapManagerList() {
@@ -1795,6 +1898,7 @@
                 newMapColorDirty = true;
                 updateNewMapColorButton();
             }
+            closeMapColorPicker();
         }
 
         function applyMapColor(mapId, color) {
@@ -1822,10 +1926,11 @@
                 color
             };
             maps.push(newMap);
-            const createdIndex = createNewIndex({ mapId: newMap.id, skipRender: true });
+            const createdIndex = createNewIndex({ mapId: newMap.id, skipRender: true, autoScroll: true });
             activeMapId = newMap.id;
             activeIndexId = createdIndex.id;
-            shouldScrollHistoryToBottom = true;
+            shouldScrollHistoryToTop = true;
+            shouldScrollHistoryToBottom = false;
             renderHistoryFilterOptions();
             renderHistory();
             renderWorkspace();
@@ -1997,7 +2102,7 @@
                 // If no saved data, create first index and default to showing layers
                 showOnionLayers = true;
                 updateLayerToggleUI();
-                createNewIndex();
+                createNewIndex({ autoScroll: true });
             }
             // Load history sidebar collapsed state
             const isCollapsed = localStorage.getItem('body_historySidebarCollapsed') === 'true';
@@ -2042,8 +2147,12 @@
                     text: label.text,
                     x: label.x,
                     y: label.y,
+                    offsetX: label.offsetX ?? (label.x - 450),
+                    offsetY: label.offsetY ?? (label.y - 140),
                     pointerX: label.pointerX,
                     pointerY: label.pointerY,
+                    pointerOffsetX: label.pointerOffsetX ?? ((label.pointerX ?? label.x) - 450),
+                    pointerOffsetY: label.pointerOffsetY ?? ((label.pointerY ?? label.y) - 140),
                     labelNumber: label.labelNumber
                 }))
             }));
@@ -2353,7 +2462,7 @@
         }
         
         function createNewIndex(options = {}) {
-            const { mapId = null, skipRender = false } = options;
+            const { mapId = null, skipRender = false, autoScroll = false } = options;
             ensureDefaultMap();
             const targetMapId = mapId || activeMapId;
             const now = new Date();
@@ -2379,10 +2488,15 @@
             activeIndexId = index.id;
             
             if (!skipRender) {
-                shouldScrollHistoryToBottom = true;
-            renderHistory();
-            renderWorkspace();
-            saveToLocalStorage();
+                if (autoScroll) {
+                    shouldScrollHistoryToBottom = false;
+                    shouldScrollHistoryToTop = true;
+                } else {
+                    shouldScrollHistoryToBottom = true;
+                }
+                renderHistory();
+                renderWorkspace();
+                saveToLocalStorage();
             }
             
             return index;
@@ -2474,8 +2588,11 @@
             navDown.disabled = !canNavigate;
 
             if (shouldScrollHistoryToBottom) {
-            list.scrollTop = list.scrollHeight;
+                list.scrollTop = list.scrollHeight;
                 shouldScrollHistoryToBottom = false;
+            } else if (shouldScrollHistoryToTop) {
+                list.scrollTop = 0;
+                shouldScrollHistoryToTop = false;
             }
         }
         
@@ -2540,11 +2657,6 @@
             figure.className = 'part';
             figure.id = 'guideFigure';
             
-            // Position guide figure
-            figure.style.left = '450px';
-            figure.style.top = '140px';
-            figure.style.transform = 'translate(-50%, -50%)';
-            
             figure.innerHTML = `
                 <div class="body">
                     <div class="head"></div>
@@ -2600,6 +2712,27 @@
             applyPoseToFigure(figure);
             
             return figure;
+        }
+        
+        function getGuideCenter(workspace) {
+            const fallback = { x: 450, y: 140 };
+            if (!workspace) {
+                return fallback;
+            }
+            const guideFigure = workspace.querySelector('#guideFigure');
+            if (!guideFigure) {
+                return fallback;
+            }
+            const torso = guideFigure.querySelector('.torso');
+            if (!torso) {
+                return fallback;
+            }
+            const workspaceRect = workspace.getBoundingClientRect();
+            const rect = torso.getBoundingClientRect();
+            return {
+                x: rect.left - workspaceRect.left + workspace.scrollLeft + rect.width / 2,
+                y: rect.top - workspaceRect.top + workspace.scrollTop + rect.height / 2
+            };
         }
         
         function applyPoseToFigure(figure) {
@@ -2703,11 +2836,37 @@
                 }
             }
             
+            const guideCenter = { x: guideCenterX, y: guideCenterY };
+            
             // Only render labels for onion layers (not the guide figure itself)
             layerIndex.labels.forEach(label => {
+                if (typeof label.offsetX !== 'number' || typeof label.offsetY !== 'number') {
+                    const absX = typeof label.x === 'number' ? label.x : guideCenter.x;
+                    const absY = typeof label.y === 'number' ? label.y : guideCenter.y;
+                    label.offsetX = absX - guideCenter.x;
+                    label.offsetY = absY - guideCenter.y;
+                }
+                
+                const labelAbsX = guideCenter.x + (label.offsetX ?? 0);
+                const labelAbsY = guideCenter.y + (label.offsetY ?? 0);
+                label.x = labelAbsX;
+                label.y = labelAbsY;
+                
+                if (typeof label.pointerOffsetX !== 'number' || typeof label.pointerOffsetY !== 'number') {
+                    const fallbackPointerX = typeof label.pointerX === 'number' ? label.pointerX : labelAbsX;
+                    const fallbackPointerY = typeof label.pointerY === 'number' ? label.pointerY : labelAbsY;
+                    label.pointerOffsetX = fallbackPointerX - guideCenter.x;
+                    label.pointerOffsetY = fallbackPointerY - guideCenter.y;
+                }
+                
+                const pointerAbsX = guideCenter.x + (label.pointerOffsetX ?? 0);
+                const pointerAbsY = guideCenter.y + (label.pointerOffsetY ?? 0);
+                label.pointerX = pointerAbsX;
+                label.pointerY = pointerAbsY;
+                
                 // Calculate displacement vector from guide center to label position
-                const dx = label.x - guideCenterX;
-                const dy = label.y - guideCenterY;
+                const dx = labelAbsX - guideCenterX;
+                const dy = labelAbsY - guideCenterY;
                 const length = Math.sqrt(dx * dx + dy * dy);
                 
                 // Normalize and scale by layerNum
@@ -2716,8 +2875,8 @@
                 
                 // Render pointer line and point only for active layer
                 if (isActive && label.pointerX !== undefined && label.pointerY !== undefined) {
-                    const lineX1 = label.x + offsetX;
-                    const lineY1 = label.y + offsetY;
+                    const lineX1 = labelAbsX + offsetX;
+                    const lineY1 = labelAbsY + offsetY;
                     const lineX2 = label.pointerX;
                     const lineY2 = label.pointerY;
                     
@@ -2761,6 +2920,9 @@
                             const workspaceRect = workspace.getBoundingClientRect();
                             label.pointerX = e.clientX - workspaceRect.left + workspace.scrollLeft - startX;
                             label.pointerY = e.clientY - workspaceRect.top + workspace.scrollTop - startY;
+                            const guideCenterDuringDrag = getGuideCenter(workspace);
+                            label.pointerOffsetX = label.pointerX - guideCenterDuringDrag.x;
+                            label.pointerOffsetY = label.pointerY - guideCenterDuringDrag.y;
                             point.style.left = label.pointerX + 'px';
                             point.style.top = label.pointerY + 'px';
                             
@@ -2787,6 +2949,8 @@
                                     if (lab.text === label.text && lab.id !== label.id) {
                                         lab.pointerX = label.pointerX;
                                         lab.pointerY = label.pointerY;
+                                        lab.pointerOffsetX = label.pointerOffsetX;
+                                        lab.pointerOffsetY = label.pointerOffsetY;
                                     }
                                 });
                             });
@@ -2818,6 +2982,9 @@
                             const workspaceRect = workspace.getBoundingClientRect();
                             label.pointerX = touch.clientX - workspaceRect.left + workspace.scrollLeft - startX;
                             label.pointerY = touch.clientY - workspaceRect.top + workspace.scrollTop - startY;
+                            const guideCenterDuringDrag = getGuideCenter(workspace);
+                            label.pointerOffsetX = label.pointerX - guideCenterDuringDrag.x;
+                            label.pointerOffsetY = label.pointerY - guideCenterDuringDrag.y;
                             point.style.left = label.pointerX + 'px';
                             point.style.top = label.pointerY + 'px';
                             
@@ -2844,6 +3011,8 @@
                                     if (lab.text === label.text && lab.id !== label.id) {
                                         lab.pointerX = label.pointerX;
                                         lab.pointerY = label.pointerY;
+                                        lab.pointerOffsetX = label.pointerOffsetX;
+                                        lab.pointerOffsetY = label.pointerOffsetY;
                                     }
                                 });
                             });
@@ -3002,6 +3171,9 @@
                         const workspaceRect = workspace.getBoundingClientRect();
                         label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - startX;
                         label.y = e.clientY - workspaceRect.top + workspace.scrollTop - startY;
+                        const guideCenterDuringDrag = getGuideCenter(workspace);
+                        label.offsetX = label.x - guideCenterDuringDrag.x;
+                        label.offsetY = label.y - guideCenterDuringDrag.y;
                         container.style.left = label.x + 'px';
                         container.style.top = label.y + 'px';
                         
@@ -3027,6 +3199,8 @@
                                 if (lab.text === label.text && lab.id !== label.id) {
                                     lab.x = label.x;
                                     lab.y = label.y;
+                                    lab.offsetX = label.offsetX;
+                                    lab.offsetY = label.offsetY;
                                 }
                             });
                         });
@@ -3062,6 +3236,9 @@
                         const workspaceRect = workspace.getBoundingClientRect();
                         label.x = touch.clientX - workspaceRect.left + workspace.scrollLeft - startX;
                         label.y = touch.clientY - workspaceRect.top + workspace.scrollTop - startY;
+                        const guideCenterDuringDrag = getGuideCenter(workspace);
+                        label.offsetX = label.x - guideCenterDuringDrag.x;
+                        label.offsetY = label.y - guideCenterDuringDrag.y;
                         container.style.left = label.x + 'px';
                         container.style.top = label.y + 'px';
                         
@@ -3088,6 +3265,8 @@
                                 if (lab.text === label.text && lab.id !== label.id) {
                                     lab.x = label.x;
                                     lab.y = label.y;
+                                    lab.offsetX = label.offsetX;
+                                    lab.offsetY = label.offsetY;
                                 }
                             });
                         });
@@ -3123,7 +3302,7 @@
                 copyFrom = mapIndexes[mapIndexes.length - 1];
             }
             
-            const index = createNewIndex({ mapId: currentMapId, skipRender: true });
+            const index = createNewIndex({ mapId: currentMapId, skipRender: true, autoScroll: true });
             
             if (copyFrom) {
                 copyFrom.labels.forEach(origLabel => {
@@ -3149,16 +3328,21 @@
                 index.labels.push({
                     id: labelIdCounter++,
                     text: origLabel.text,
-                        x: originalX,
-                        y: originalY,
-                        pointerX,
-                        pointerY,
-                        labelNumber: maxLabelNumber + 1
+                    x: originalX,
+                    y: originalY,
+                    pointerX,
+                    pointerY,
+                    offsetX: origLabel.offsetX ?? (originalX - 450),
+                    offsetY: origLabel.offsetY ?? (originalY - 140),
+                    pointerOffsetX: origLabel.pointerOffsetX ?? (pointerX - 450),
+                    pointerOffsetY: origLabel.pointerOffsetY ?? (pointerY - 140),
+                    labelNumber: maxLabelNumber + 1
                 });
             });
             }
             
-            shouldScrollHistoryToBottom = true;
+            shouldScrollHistoryToTop = true;
+            shouldScrollHistoryToBottom = false;
             renderHistory();
             renderWorkspace();
             saveToLocalStorage();
@@ -3171,7 +3355,7 @@
             const mapId = indexToDelete.mapId;
             const mapIndexes = getIndexesForMap(mapId);
             if (mapIndexes.length <= 1) {
-                alert('Du kan ikke slette det eneste lag.');
+                alert('Det er det sidste lag i dette map. Hvis du vil slette mappet helt så brug Nyt bodymap knappen.');
                 return;
             }
             
@@ -3476,6 +3660,10 @@
                 y: y,
                 pointerX: pointerX,
                 pointerY: pointerY,
+                offsetX: x - guideCenterX,
+                offsetY: y - guideCenterY,
+                pointerOffsetX: pointerX - guideCenterX,
+                pointerOffsetY: pointerY - guideCenterY,
                 labelNumber: 1 // Always start with 1 for new labels
             };
             
@@ -3629,6 +3817,9 @@
         
         // Initialize on load
         init();
+        window.addEventListener('resize', () => {
+            renderWorkspace();
+        });
 
         function buildMapColorGrid() {
             if (!mapColorGridEl) return;
