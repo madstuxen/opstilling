@@ -17,7 +17,7 @@
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 0px;
             display: flex;
             justify-content: center;
         }
@@ -26,7 +26,7 @@
             width: 100%;
             max-width: 1400px;
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
+            border-radius: 0px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             display: flex;
@@ -41,35 +41,54 @@
             align-items: center;
             justify-content: center;
             text-align: center;
+            position: relative;
         }
 
         .header h1 {
             font-size: 2rem;
             font-weight: 300;
+            width: 100%;
+            text-align: center;
         }
 
-        .nav-controls {
-            position: relative;
-            align-self: start;
-            justify-self: start;
+        .header .nav-controls {
+            position: absolute;
+            top: 16px;
+            left: 24px;
+            display: inline-flex;
+            flex-direction: column;
+            gap: 0;
+            align-items: flex-start;
         }
 
         .nav-toggle-btn {
-            padding: 8px 16px;
+            width: 35px;
+            height: 35px;
+            padding: 5px 8px;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: 12px;
+            background: #e5e7eb;
+            color: #374151;
+            box-shadow: 0 12px 26px rgba(15, 23, 42, 0.16);
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
             cursor: pointer;
-            font-weight: 500;
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            color: white;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+            transition: all 0.25s ease;
         }
 
         .nav-toggle-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(107, 114, 128, 0.3);
+        }
+
+        .nav-toggle-btn span {
+            width: 16px;
+            height: 2px;
+            border-radius: 999px;
+            background: #374151;
         }
 
         .nav-box {
@@ -754,11 +773,11 @@
 
         @media (max-width: 768px) {
             body {
-                padding: 12px;
+                padding: 0px;
             }
 
             .container {
-                border-radius: 16px;
+                border-radius: 0;
             }
 
             .header {
@@ -780,12 +799,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Logbog</h1>
-        </div>
-
-        <div class="content">
             <div class="nav-controls">
-                <button class="nav-toggle-btn" onclick="toggleNavBox(event)" title="Navigation">☰</button>
+                <button class="nav-toggle-btn" onclick="toggleNavBox(event)" title="Navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
                 <div class="nav-box" id="navBox">
                     <a href="opstilling_01.html" class="nav-button">Opstilling</a>
                     <a href="dialog_01.html" class="nav-button">Dialog</a>
@@ -794,6 +813,10 @@
                     <a href="logbog_01.html" class="nav-button active">Logbog</a>
                 </div>
             </div>
+            <h1>Logbog</h1>
+        </div>
+
+        <div class="content">
             <div class="log-layout">
                 <div class="log-primary">
                     <section class="card activities-card">

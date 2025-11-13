@@ -18,14 +18,14 @@
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 0px;
         }
         
         .container {
             max-width: 1600px;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
+            border-radius: 0px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
             display: flex;
@@ -36,14 +36,30 @@
         .header {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: white;
-            padding: 5px;
+            padding: 16px 24px;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
         }
         
         .header h1 {
             font-size: 2.0em;
-            margin-bottom: 10px;
+            margin-bottom: 0px;
             font-weight: 300;
+            width: 100%;
+            text-align: center;
+        }
+
+        .header .nav-controls {
+            position: absolute;
+            top: 16px;
+            left: 24px;
+            display: inline-flex;
+            flex-direction: column;
+            gap: 0;
+            align-items: flex-start;
         }
         
         .header p {
@@ -80,24 +96,33 @@
         
         /* Navigation overlay */
         .nav-toggle-btn {
-            padding: 8px 16px !important;
-            border: none !important;
-            border-radius: 10px !important;
-            font-size: 15px !important;
-            cursor: pointer !important;
-            font-weight: 500 !important;
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
-            color: white !important;
-            transition: all 0.3s ease !important;
-            margin-right: 10px !important;
-            min-width: auto !important;
-            width: auto !important;
+            width: 35px;
+            height: 35px;
+            padding: 5px 8px;
+            border: none;
+            border-radius: 12px;
+            background: #e5e7eb;
+            color: #374151;
+            box-shadow: 0 12px 26px rgba(15, 23, 42, 0.16);
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.25s ease;
         }
         
         .nav-toggle-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(107, 114, 128, 0.3);
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+        }
+
+        .nav-toggle-btn span {
+            width: 16px;
+            height: 2px;
+            border-radius: 999px;
+            background: #374151;
         }
         
         .nav-overlay {
@@ -1253,7 +1278,7 @@
         /* Mobile adjustments */
         @media (hover: none) and (pointer: coarse) {
             body {
-                padding: 5px;
+                padding: 0px;
             }
             .container {
                 border-radius: 12px;
@@ -1294,11 +1319,24 @@
 <body>
     <div class="container">
         <div class="header">
+            <div class="nav-controls">
+                <button class="nav-toggle-btn" onclick="toggleNavBox()" title="Navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <div class="nav-box" id="navBox">
+                    <a href="opstilling_01.html" class="nav-button">Opstilling</a>
+                    <a href="dialog_01.html" class="nav-button">Dialog</a>
+                    <a href="compare_01.html" class="nav-button">Ligheder</a>
+                    <a href="bodymap_01.html" class="nav-button">BodyMap</a>
+                    <a href="logbog_01.html" class="nav-button">Logbog</a>
+                </div>
+            </div>
             <h1>Body Map</h1>
         </div>
         
         <div class="toolbar">
-            <button class="nav-toggle-btn" onclick="toggleNavBox()" title="Navigation">☰</button>
             <button class="btn-new-map" onclick="openMapManager()">Nyt bodymap</button>
             <button class="btn-new-label" onclick="newLabel()">Ny label</button>
             <button class="btn-new-index" onclick="newIndex()">Nyt lag</button>
@@ -3680,36 +3718,6 @@
     </script>
     <!-- Navigation overlay -->
     <div class="nav-overlay" id="navOverlay"></div>
-    <div class="nav-box" id="navBox">
-        <a href="opstilling_01.html" class="nav-button">Opstilling</a>
-        <a href="dialog_01.html" class="nav-button">Dialog</a>
-        <a href="compare_01.html" class="nav-button">Ligheder</a>
-        <a href="bodymap_01.html" class="nav-button">BodyMap</a>
-        <a href="logbog_01.html" class="nav-button">Logbog</a>
-    </div>
-
-    <div class="map-manager-overlay" id="mapManagerOverlay">
-        <div class="map-manager-backdrop" onclick="closeMapManager()"></div>
-        <div class="map-manager-panel">
-            <div class="map-manager-header">
-                <h2>BodyMaps</h2>
-                <button class="map-manager-close" onclick="closeMapManager()" aria-label="Luk">×</button>
-            </div>
-            <div class="map-manager-list" id="mapManagerList"></div>
-            <div class="map-manager-divider"></div>
-            <div class="map-manager-new" id="mapManagerNewRow">
-                <input type="text" id="newMapName" placeholder="Nyt map-navn...">
-                <button class="map-action-btn color" id="newMapColorBtn" onclick="openMapColorPicker({ type: 'new' })">C</button>
-                <button class="map-create-btn" onclick="confirmCreateMap()">✔</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="map-color-picker-modal" id="mapColorPickerModal">
-        <div class="map-color-picker">
-            <div class="map-color-grid" id="mapColorGrid"></div>
-        </div>
-    </div>
 </body>
 </html>
 
