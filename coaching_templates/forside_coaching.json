@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "saved_at": "2025-11-05T14:47:12.782Z",
+  "saved_at": "2025-11-14T15:41:32.648Z",
   "session": {
     "start_node": "start",
     "nodes": [
@@ -43,12 +43,15 @@
     ]
   },
   "variables": {
-    "Data": "forsideData",
     "You": "Mig",
     "You_color": "#d97706",
     "You_pose": 0,
     "You_pose_flipped": "false",
     "Other_pose": 18,
     "Other_pose_flipped": "true"
+  },
+  "flags": {
+    "noTranscript": true,
+    "noButtons": true
   }
 }

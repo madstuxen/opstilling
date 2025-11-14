@@ -24,14 +24,15 @@
             width: 100%;
             max-width: 1600px;
             margin: 0 auto;
-            height: 600px;
+            min-height: 600px;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 0px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
             justify-content: space-around;
-            overflow: visible;
+            overflow-x: hidden;
+            overflow-y: visible;
         }
         
         .header {
@@ -299,6 +300,7 @@
             gap: 75px;
             height: 100%;
             overflow: visible;
+            position: relative;
         }
 
         /* Prevent external scripts/overlays from shrinking dialog participants */
@@ -754,21 +756,30 @@
         }
         
         .transcript-section {
-            height: 500px;
+            min-height: 500px;
             background: white;
             display: flex;
             flex-direction: column;
+            flex: 1;
         }
         
         .dialog-layout {
             position: relative;
             display: block;
+            overflow-x: hidden;
+            overflow-y: visible;
+            width: 100%;
+            max-width: 100%;
+            max-height: 800px;
         }
         
         .dialog-primary {
             flex: 1;
             width: 100%;
+            max-width: 100%;
             padding-right: 0px;
+            overflow-x: hidden;
+            box-sizing: border-box;
         }
         
         .dialog-collapse-toggle {
@@ -1026,7 +1037,8 @@
         .transcript-content {
             flex: 1;
             overflow-y: auto;
-            padding: 15px 20px;
+            overflow-x: hidden;
+            padding: 15px 50px;
             background: #fafafa;
 			min-height: 400px;
         }
@@ -1321,16 +1333,14 @@
 
 /* Mini action controls (two small C buttons) */
 .mini-controls-wrapper {
-    position: relative;
-    height: 0;
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 200;
 }
 
 .mini-controls {
-    position: absolute;
-    top: -41px;
-    left: 50%;
-    transform: translateX(-50%);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -1339,7 +1349,7 @@
 .mini-c-btn {
     min-width: 32px;
     height: 32px;
-    border-radius: 6px;
+    border-radius: 0;
     border: 2px solid white;
     color: white;
     font-size: 12px;
@@ -1550,12 +1560,12 @@
 							<span class="blinking-dots" id="rightDots">...</span>
 						</div>
                 </div>
-            </div>
-            
-            <div class="mini-controls-wrapper" id="miniControlsWrapper" style="display: none;">
-                <div class="mini-controls">
-                    <button class="mini-c-btn" id="leftMiniC">C</button>
-                    <button class="mini-c-btn" id="rightMiniC">C</button>
+                
+                <div class="mini-controls-wrapper" id="miniControlsWrapper" style="display: none;">
+                    <div class="mini-controls">
+                        <button class="mini-c-btn" id="leftMiniC">C</button>
+                        <button class="mini-c-btn" id="rightMiniC">C</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1957,28 +1967,50 @@ let dialogHistoryCollapsed = false;
         }
         
         function getParticipantSnapshot(side) {
-            const dropdown = document.getElementById(side + 'Dropdown');
-            if (!dropdown || !dropdown.value) return null;
+            // Check if participant is visible (works for both dropdown selection and "Ny Dialog" case)
+            const circle = document.getElementById(side + 'Circle');
+            const isVisible = circle && window.getComputedStyle(circle).display !== 'none';
+            if (!isVisible) return null;
             
-            const selected = dropdown.value;
-            const partInfo = partsData[selected] || null;
+            const dropdown = document.getElementById(side + 'Dropdown');
+            const selected = dropdown && dropdown.value ? dropdown.value : null;
+            const partInfo = selected && partsData[selected] ? partsData[selected] : null;
+            
+            // Get name from UI element (this works for both dropdown and "Ny Dialog" cases)
             const nameElement = document.getElementById(side + 'Name');
-            let name = (nameElement ? nameElement.textContent.trim() : '') || (partInfo ? partInfo.name : '');
+            let name = nameElement ? nameElement.textContent.trim() : '';
+            if (!name && partInfo) {
+                name = partInfo.name || '';
+            }
+            if (!name) {
+                // Fallback to lav_ny_left/lav_ny_right if available
+                const fallbackKey = side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
+                if (partsData[fallbackKey] && partsData[fallbackKey].name) {
+                    name = partsData[fallbackKey].name;
+                }
+            }
             if (!name) {
                 name = side === 'left' ? 'Venstre del' : 'Højre del';
             }
             
+            // Get color from UI state or partInfo
             const partColor = partInfo && partInfo.color ? partInfo.color : null;
             const defaultColor = side === 'left' ? '#3b82f6' : '#ef4444';
             const color = side === 'left'
                 ? (leftColor || partColor || defaultColor)
                 : (rightColor || partColor || defaultColor);
             
-            const keywords = partInfo && Array.isArray(partInfo.keywords)
-                ? partInfo.keywords.slice(0, 6)
-                : ['', '', '', '', '', ''];
+            // Get keywords from partInfo or fallback
+            let keywords = ['', '', '', '', '', ''];
+            if (partInfo && Array.isArray(partInfo.keywords)) {
+                keywords = partInfo.keywords.slice(0, 6);
+            } else {
+                const fallbackKey = side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
+                if (partsData[fallbackKey] && Array.isArray(partsData[fallbackKey].keywords)) {
+                    keywords = partsData[fallbackKey].keywords.slice(0, 6);
+                }
+            }
             
-            const circle = document.getElementById(side + 'Circle');
             const participantNode = circle ? circle.parentElement : null;
             const poseDropdown = document.getElementById(side + 'Pose');
             let poseName = '';
@@ -2088,7 +2120,7 @@ let dialogHistoryCollapsed = false;
             }
             resetPose('left');
             resetPose('right');
-            dialogActive = true;
+            dialogActive = false; // Dialog is not started yet, user needs to click "Start Dialog"
             currentSpeaker = 'left';
             renderDialogHistory(newSessionId);
             const leftBubble = document.getElementById('leftBubble');
@@ -2108,7 +2140,10 @@ let dialogHistoryCollapsed = false;
             }
             const rightTextarea = document.getElementById('rightTextarea');
             if (rightTextarea) rightTextarea.value = '';
-            updateAllButtons();
+            // Update buttons after a short delay to ensure DOM is updated
+            setTimeout(() => {
+                updateAllButtons();
+            }, 0);
             setStatus('Ny dialog klar.');
         }
         
@@ -2218,8 +2253,34 @@ let dialogHistoryCollapsed = false;
                     rightParticipant,
                     session.messages || []
                 );
-+                applyParticipantPose('left', leftParticipant.pose, leftParticipant.spejl);
-+                applyParticipantPose('right', rightParticipant.pose, rightParticipant.spejl);
+                
+                // Update session.participants with the loaded values (names, colors, poses)
+                // This ensures the history item shows the correct participant names
+                session.participants = {
+                    left: {
+                        name: leftParticipant.name || 'Venstre del',
+                        color: leftParticipant.color || '#3b82f6',
+                        pose: leftParticipant.pose || '',
+                        spejl: leftParticipant.spejl || false,
+                        keywords: leftParticipant.keywords || ['', '', '', '', '', '']
+                    },
+                    right: {
+                        name: rightParticipant.name || 'Højre del',
+                        color: rightParticipant.color || '#ef4444',
+                        pose: rightParticipant.pose || '',
+                        spejl: rightParticipant.spejl || false,
+                        keywords: rightParticipant.keywords || ['', '', '', '', '', '']
+                    }
+                };
+                
+                // Save updated session to storage
+                const store = loadDialogStorage();
+                const sessionIndex = store.sessions.findIndex(s => s.id === sessionId);
+                if (sessionIndex !== -1) {
+                    store.sessions[sessionIndex] = session;
+                    saveDialogStorage(store);
+                }
+                
                 activeDialogId = sessionId;
                 renderDialogHistory();
                 setStatus(`Dialog "${session.name}" indlæst.`);
@@ -3069,9 +3130,9 @@ function resetPose(side) {
             // Reinitialize dropdowns with new data
             initializeDropdowns();
             
-            // Check if current selections still exist and are valid
-            const leftStillValid = currentLeftSelected && (currentLeftSelected === 'lav_ny_left' || partsData[currentLeftSelected]);
-            const rightStillValid = currentRightSelected && (currentRightSelected === 'lav_ny_right' || partsData[currentRightSelected]);
+            // Check if current selections still exist and are valid (exclude lav_ny_left/lav_ny_right)
+            const leftStillValid = currentLeftSelected && currentLeftSelected !== 'lav_ny_left' && partsData[currentLeftSelected];
+            const rightStillValid = currentRightSelected && currentRightSelected !== 'lav_ny_right' && partsData[currentRightSelected];
             
             // Restore selections if they're still valid, otherwise clear them
             if (leftStillValid) {
@@ -3079,7 +3140,7 @@ function resetPose(side) {
             } else {
                 leftDropdown.value = '';
                 // Hide left participant if it was selected but no longer exists
-                if (currentLeftSelected && currentLeftSelected !== 'lav_ny_left') {
+                if (currentLeftSelected) {
                     document.getElementById('leftCircle').style.display = 'none';
                     document.getElementById('leftColorBtn').style.display = 'none';
                 }
@@ -3090,7 +3151,7 @@ function resetPose(side) {
             } else {
                 rightDropdown.value = '';
                 // Hide right participant if it was selected but no longer exists
-                if (currentRightSelected && currentRightSelected !== 'lav_ny_right') {
+                if (currentRightSelected) {
                     document.getElementById('rightCircle').style.display = 'none';
                     document.getElementById('rightColorBtn').style.display = 'none';
                 }
@@ -3142,16 +3203,6 @@ function resetPose(side) {
                 dropdown.appendChild(defaultOption);
             });
             
-            const leftNewOption = document.createElement('option');
-            leftNewOption.value = 'lav_ny_left';
-            leftNewOption.textContent = 'Lav Ny Del';
-            leftDropdown.appendChild(leftNewOption);
-            
-            const rightNewOption = document.createElement('option');
-            rightNewOption.value = 'lav_ny_right';
-            rightNewOption.textContent = 'Lav Ny Del';
-            rightDropdown.appendChild(rightNewOption);
-            
             Object.keys(partsData).forEach(key => {
                 if (key === 'lav_ny_left' || key === 'lav_ny_right') return;
                 
@@ -3165,10 +3216,10 @@ function resetPose(side) {
                 });
             });
             
-            if (leftSelected && (leftSelected === 'lav_ny_left' || partsData[leftSelected])) {
+            if (leftSelected && partsData[leftSelected] && leftSelected !== 'lav_ny_left') {
                 leftDropdown.value = leftSelected;
             }
-            if (rightSelected && (rightSelected === 'lav_ny_right' || partsData[rightSelected])) {
+            if (rightSelected && partsData[rightSelected] && rightSelected !== 'lav_ny_right') {
                 rightDropdown.value = rightSelected;
             }
         }
@@ -3243,21 +3294,16 @@ function resetPose(side) {
         if (leftBtn) leftBtn.style.background = leftColor || '#3b82f6';
         if (rightBtn) rightBtn.style.background = rightColor || '#ef4444';
         
-        // Play welcome animation first, then apply saved pose or reset to default
+        // Apply saved pose immediately from partData
+        if (partData.pose || partData.mirror !== undefined) {
+            applyParticipantPose(side, partData.pose || '', partData.mirror || false);
+        } else {
+            resetPose(side);
+        }
+        
+        // Play welcome animation after pose is applied
         setTimeout(() => {
             runAnimation(side, 'vinke');
-            
-            const animationDuration = animationsLibrary.vinke ? animationsLibrary.vinke.slides.reduce((total, slide) => total + slide.duration, 0) : 0;
-            setTimeout(() => {
-                const dropdown = document.getElementById(side + 'Dropdown');
-                const selectedValue = dropdown ? dropdown.value : null;
-                const currentPartData = selectedValue ? partsData[selectedValue] : null;
-                if (currentPartData) {
-                    applyParticipantPose(side, currentPartData.pose, currentPartData.mirror);
-                } else {
-                    resetPose(side);
-                }
-            }, animationDuration * 1000 + 100);
         }, 200);
         
         const bubble = document.getElementById(side + 'Bubble');
@@ -3294,10 +3340,16 @@ function resetPose(side) {
 }
         
         function startDialog() {
-            const leftSelected = document.getElementById('leftDropdown').value;
-            const rightSelected = document.getElementById('rightDropdown').value;
+            // Check if both participants are visible (this handles both dropdown selection and "Ny Dialog" case)
+            const leftCircle = document.getElementById('leftCircle');
+            const rightCircle = document.getElementById('rightCircle');
+            const leftVisible = leftCircle && window.getComputedStyle(leftCircle).display !== 'none';
+            const rightVisible = rightCircle && window.getComputedStyle(rightCircle).display !== 'none';
             
-            if (!leftSelected || !rightSelected) return;
+            if (!leftVisible || !rightVisible) {
+                setStatus('Vælg begge deltagere først');
+                return;
+            }
             
             dialogActive = true;
             currentSpeaker = 'left';
@@ -3325,22 +3377,21 @@ function resetPose(side) {
                 // Color
                 const youColor = (youSide === 'left') ? (leftColor || '#3b82f6') : (rightColor || '#ef4444');
                 
-                // Pose and mirror
+                // Pose and mirror - read from data-pose attribute (more reliable than dropdown)
                 let youPoseIndex = 0;
                 let youPoseFlipped = false;
-                const poseDropdown = document.getElementById(youSide + 'Pose');
-                const mirrorCheckbox = document.getElementById(youSide + 'Mirror');
-                if (poseDropdown) {
-                    const selectedValue = poseDropdown.value;
-                    if (selectedValue !== '') {
-                        youPoseIndex = Number(selectedValue);
-                    } else {
-                        // If empty, find standard pose index
-                        const standardIndex = Array.isArray(poseLibrary) ? poseLibrary.findIndex(p => p && p.name === 'standard') : -1;
-                        youPoseIndex = standardIndex !== -1 ? standardIndex : 0;
+                const youCircle = document.getElementById(youSide + 'Circle');
+                if (youCircle) {
+                    const youParticipant = youCircle.parentElement;
+                    if (youParticipant) {
+                        const dataPose = youParticipant.getAttribute('data-pose');
+                        if (dataPose !== null && dataPose !== '') {
+                            youPoseIndex = Number(dataPose);
+                        }
+                        const dataMirror = youParticipant.getAttribute('data-mirror');
+                        youPoseFlipped = dataMirror === 'true';
                     }
                 }
-                if (mirrorCheckbox) youPoseFlipped = !!mirrorCheckbox.checked;
                 
                 const payload = {
                     Other: otherName,
@@ -3351,6 +3402,7 @@ function resetPose(side) {
                 };
                 try {
                     localStorage.setItem(DIALOG_COACHING_KEY, JSON.stringify(payload));
+                    console.log('Gemmer dialogCoachingData:', payload);
                 } catch (err) {
                     console.warn('Kunne ikke opdatere dialogCoachingData:', err);
                 }
@@ -3367,13 +3419,20 @@ function resetPose(side) {
         }
 
         function continueDialog() {
-            const leftSelected = document.getElementById('leftDropdown').value;
-            const rightSelected = document.getElementById('rightDropdown').value;
+            // Check if both participants are visible (this handles both dropdown selection and "Ny Dialog" case)
+            const leftCircle = document.getElementById('leftCircle');
+            const rightCircle = document.getElementById('rightCircle');
+            const leftVisible = leftCircle && window.getComputedStyle(leftCircle).display !== 'none';
+            const rightVisible = rightCircle && window.getComputedStyle(rightCircle).display !== 'none';
             
-            if (!leftSelected || !rightSelected) return;
+            if (!leftVisible || !rightVisible) {
+                setStatus('Begge deltagere skal være synlige');
+                return;
+            }
             
             dialogActive = true;
             
+            // Determine next speaker based on last speaker
             if (lastSpeaker === 'left') {
                 currentSpeaker = 'right';
             } else if (lastSpeaker === 'right') {
@@ -3386,23 +3445,33 @@ function resetPose(side) {
             showSpeechBubble(currentSpeaker);
             updateAllButtons();
             setStatus('Dialog fortsat - skriv nye beskeder');
+            persistActiveDialog();
         }
 
         function showSpeechBubble(side) {
     hideAllSpeechBubbles();
 	// Scale den talende part op
-    const activeParticipant = document.getElementById(side + 'Circle').parentElement;
+    const circle = document.getElementById(side + 'Circle');
+    if (!circle) return;
+    const activeParticipant = circle.parentElement;
+    if (!activeParticipant) return;
     activeParticipant.style.transform = 'scale(1.035)';
     activeParticipant.style.transition = 'transform 0.45s ease';
     
     // Scale den anden part ned til normal
     const otherSide = side === 'left' ? 'right' : 'left';
-    const otherParticipant = document.getElementById(otherSide + 'Circle').parentElement;
-    otherParticipant.style.transform = 'scale(1.0)';
-    otherParticipant.style.transition = 'transform 0.45s ease';
+    const otherCircle = document.getElementById(otherSide + 'Circle');
+    if (otherCircle) {
+        const otherParticipant = otherCircle.parentElement;
+        if (otherParticipant) {
+            otherParticipant.style.transform = 'scale(1.0)';
+            otherParticipant.style.transition = 'transform 0.45s ease';
+        }
+    }
 	
     
     const bubble = document.getElementById(side + 'Bubble');
+    if (!bubble) return;
     const textarea = document.getElementById(side + 'Textarea');
     const dots = document.getElementById(side + 'Dots');
     
@@ -3457,17 +3526,43 @@ function resetPose(side) {
             if (event.key === 'Enter' && !event.shiftKey && event.target.value.trim()) {
                 event.preventDefault();
                 const message = event.target.value.trim();
+                
+                // Check if dialog is active
+                if (!dialogActive) return;
+                
+                // Check if this is the current speaker
+                if (currentSpeaker !== side) return;
+                
+                // Check if participant is visible
+                const circle = document.getElementById(side + 'Circle');
+                const isVisible = circle && window.getComputedStyle(circle).display !== 'none';
+                
+                if (!isVisible) return;
+                
+                // Get participant data - check dropdown first, then fallback to lav_ny_left/lav_ny_right
                 const dropdown = document.getElementById(side + 'Dropdown');
-                const partData = partsData[dropdown.value];
+                let partData = null;
+                if (dropdown && dropdown.value && dropdown.value.trim() !== '') {
+                    partData = partsData[dropdown.value];
+                } else {
+                    // Use lav_ny_left or lav_ny_right if dropdown is empty (Ny Dialog case)
+                    const fallbackKey = side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
+                    partData = partsData[fallbackKey];
+                }
                 
                 if (partData) {
                     const nameElement = document.getElementById(side + 'Name');
-                    const customName = nameElement.textContent.trim() || partData.name;
+                    const customName = nameElement ? nameElement.textContent.trim() || partData.name : partData.name;
+                    
+                    // Clear the textarea
+                    event.target.value = '';
                     
                     addToTranscript(customName, message, side);
                     lastSpeaker = side;
                     currentSpeaker = side === 'left' ? 'right' : 'left';
                     showSpeechBubble(currentSpeaker);
+                    updateAllButtons();
+                    persistActiveDialog();
                 }
             }
         }
@@ -3577,20 +3672,41 @@ function resetPose(side) {
         function updateAllButtons() {
             const leftSelected = document.getElementById('leftDropdown').value;
             const rightSelected = document.getElementById('rightDropdown').value;
-            const hasDialog = transcript.length > 0;
-            const bothSelected = leftSelected && rightSelected;
-            const systemReset = !leftSelected && !rightSelected && !hasDialog && !dialogActive;
+            const bothSelected = leftSelected && leftSelected.trim() !== '' && rightSelected && rightSelected.trim() !== '';
             
-            document.getElementById('startBtn').disabled = !bothSelected || hasDialog;
-            document.getElementById('loadBtn').disabled = !systemReset;
-			document.getElementById('copyBtn').disabled = !hasDialog;
-            document.getElementById('saveBtn').disabled = !hasDialog;
+            // Check if both participants are visible
+            const leftCircle = document.getElementById('leftCircle');
+            const rightCircle = document.getElementById('rightCircle');
+            const leftVisible = leftCircle && window.getComputedStyle(leftCircle).display !== 'none';
+            const rightVisible = rightCircle && window.getComputedStyle(rightCircle).display !== 'none';
+            const bothParticipantsVisible = leftVisible && rightVisible;
+            
+            // Check if there's content in transcript
+            const hasTranscriptContent = transcript.length > 0;
+            
+            // If not both participants are visible, disable all buttons except "Ny Dialog"
+            const participantsNotVisible = !bothParticipantsVisible;
+            
+            // Button logic based on transcript content
+            // If no transcript content: can start dialog, but not continue/play/next/copy/save/clear
+            // If has transcript content: cannot start dialog, but can continue/play/next/copy/save/clear
+            document.getElementById('startBtn').disabled = participantsNotVisible || hasTranscriptContent;
             
             const continueBtn = document.getElementById('continueBtn');
-            continueBtn.disabled = !(hasDialog && bothSelected && !dialogActive && !isAutoPlaying);
+            continueBtn.disabled = participantsNotVisible || !hasTranscriptContent;
             
-            document.getElementById('playBtn').disabled = !hasDialog;
-            document.getElementById('nextBtn').disabled = !hasDialog;
+            document.getElementById('playBtn').disabled = participantsNotVisible || !hasTranscriptContent;
+            document.getElementById('nextBtn').disabled = participantsNotVisible || !hasTranscriptContent;
+			document.getElementById('copyBtn').disabled = participantsNotVisible || !hasTranscriptContent;
+            document.getElementById('saveBtn').disabled = participantsNotVisible || !hasTranscriptContent;
+            
+            // "Ryd Alt" is enabled when there's transcript content
+            document.getElementById('clearBtn').disabled = participantsNotVisible || !hasTranscriptContent;
+            
+            // "Load" and "Ny Dialog" are always enabled (unless participants not visible)
+            document.getElementById('loadBtn').disabled = participantsNotVisible;
+            document.getElementById('newDialogBtn').disabled = participantsNotVisible;
+            
             document.getElementById('pauseBtn').disabled = false;
             
             if (isAutoPlaying) {
@@ -3604,7 +3720,7 @@ function resetPose(side) {
             // Show/hide mini C buttons and apply colors
             const miniWrapper = document.getElementById('miniControlsWrapper');
             if (miniWrapper) {
-                miniWrapper.style.display = bothSelected ? 'block' : 'none';
+                miniWrapper.style.display = bothParticipantsVisible ? 'block' : 'none';
                 const leftBtn = document.getElementById('leftMiniC');
                 const rightBtn = document.getElementById('rightMiniC');
                 if (leftBtn) leftBtn.style.background = leftColor || '#3b82f6';
@@ -3617,51 +3733,34 @@ function resetPose(side) {
         }
 
         function clearAll() {
+            // Stop auto-play if running
             if (autoTimeout) clearTimeout(autoTimeout);
             
+            // Clear dialog state
             dialogActive = false;
             isAutoPlaying = false;
             transcript = [];
             lastSpeaker = null;
-            leftColor = null;
-            rightColor = null;
-            leftLightColor = null;
-            rightLightColor = null;
-            activeDialogId = null;
-			hideAllSpeechBubbles();
             
-            document.getElementById('leftCircle').style.display = 'none';
-            document.getElementById('rightCircle').style.display = 'none';
-            document.getElementById('leftDropdown').value = '';
-            document.getElementById('rightDropdown').value = '';
+            // Hide speech bubbles
+            hideAllSpeechBubbles();
             
-            ['left', 'right'].forEach(side => {
-                const key = 'lav_ny_' + side;
-                if (partsData[key] && Array.isArray(partsData[key].keywords)) {
-                    partsData[key].keywords = ['', '', '', '', '', ''];
-                }
-            });
+            // Clear transcript content (show empty message)
+            const transcriptContent = document.getElementById('transcriptContent');
+            if (transcriptContent) {
+                transcriptContent.innerHTML = '<div class="empty">Alle beskeder slettet</div>';
+            }
             
-            ['leftName', 'rightName'].forEach(id => {
-                const element = document.getElementById(id);
-                element.textContent = '';
-                element.removeAttribute('data-edited');
-            });
-			// Reset pose dropdowns and mirror checkboxes
-			const leftPose = document.getElementById('leftPose');
-			const rightPose = document.getElementById('rightPose');
-			const leftMirror = document.getElementById('leftMirror');
-			const rightMirror = document.getElementById('rightMirror');
-
-			if (leftPose) leftPose.value = '';
-			if (rightPose) rightPose.value = '';
-			if (leftMirror) leftMirror.checked = false;
-			if (rightMirror) rightMirror.checked = false;
+            // Clear textareas
+            const leftTextarea = document.getElementById('leftTextarea');
+            const rightTextarea = document.getElementById('rightTextarea');
+            if (leftTextarea) leftTextarea.value = '';
+            if (rightTextarea) rightTextarea.value = '';
             
-            document.getElementById('transcriptContent').innerHTML = '<div class="empty"><h4 style="margin-bottom: 15px; color: #374151;">Sådan bruger du Dialog systemet:</h4><p style="margin-bottom: 12px; text-align: left;"><strong>1. Vælg dele:</strong> Brug dropdown-menuerne til at vælge to indre dele der skal tale sammen.</p><p style="margin-bottom: 12px; text-align: left;"><strong>2. Start dialog:</strong> Klik "Ny Dialog" for at begynde samtalen.</p><p style="margin-bottom: 12px; text-align: left;"><strong>3. Skriv beskeder:</strong> En speech bubble vises ved den aktive del. Skriv din besked og tryk Enter for at skifte til den anden del.</p><p style="margin-bottom: 12px; text-align: left;"><strong>4. Afspil dialog:</strong> Brug "Afspil" for automatisk gennemgang eller "Næste" for manuel kontrol.</p><p style="margin-bottom: 12px; text-align: left;"><strong>5. Fortsæt dialog:</strong> Efter pause eller afspilning kan du fortsætte med at tilføje nye beskeder via "Fortsæt Dialog".</p><p style="margin-bottom: 12px; text-align: left;"><strong>6. Rediger beskeder:</strong> Beskeder kan redigeres i transskriptet ved at klikke på dem.</p><p style="margin-top: 15px; font-style: italic; color: #6b7280;">Du kan bruge det til en samtale med en indre del eller til at øve dig på en svær samtale.</p></div>';
-            
+            // Update buttons and status
             updateAllButtons();
-            setStatus('Vælg to dele og start dialog');
+            persistActiveDialog();
+            setStatus('Alle beskeder slettet');
         }
 		
 		
@@ -4180,8 +4279,9 @@ function resetPose(side) {
 			updateBodyColors('left', leftPart.color);
 			updateBodyColors('right', rightPart.color);
             
-            document.getElementById('leftDropdown').value = 'lav_ny_left';
-            document.getElementById('rightDropdown').value = 'lav_ny_right';
+            // Don't set dropdown values to 'lav_ny_left'/'lav_ny_right' as they're no longer in dropdowns
+            document.getElementById('leftDropdown').value = '';
+            document.getElementById('rightDropdown').value = '';
             
             const leftCircle = document.getElementById('leftCircle');
             const rightCircle = document.getElementById('rightCircle');
@@ -4241,19 +4341,28 @@ if (leftMirror) leftMirror.checked = leftPart.spejl || false;
 if (rightMirror) rightMirror.checked = rightPart.spejl || false;
 
 // Derefter anvend poses (som nu vil tage højde for spejl-indstillingen)
-if (leftPoseDropdown && leftPart.pose) {
+// Use applyParticipantPose to ensure mirror is handled correctly
+if (leftPart.pose) {
     const poseIndex = poseLibrary.findIndex(pose => pose.name === leftPart.pose);
-    if (poseIndex !== -1) {
+    if (poseIndex !== -1 && leftPoseDropdown) {
         leftPoseDropdown.value = poseIndex;
-        applyPose('left', poseIndex); // Nu vil den spejle hvis checkboxen er true
     }
+    applyParticipantPose('left', leftPart.pose, leftPart.spejl || false);
+} else {
+    // Reset pose if no pose is specified
+    if (leftPoseDropdown) leftPoseDropdown.value = '';
+    resetPose('left');
 }
-if (rightPoseDropdown && rightPart.pose) {
+if (rightPart.pose) {
     const poseIndex = poseLibrary.findIndex(pose => pose.name === rightPart.pose);
-    if (poseIndex !== -1) {
+    if (poseIndex !== -1 && rightPoseDropdown) {
         rightPoseDropdown.value = poseIndex;
-        applyPose('right', poseIndex); // Nu vil den spejle hvis checkboxen er true
     }
+    applyParticipantPose('right', rightPart.pose, rightPart.spejl || false);
+} else {
+    // Reset pose if no pose is specified
+    if (rightPoseDropdown) rightPoseDropdown.value = '';
+    resetPose('right');
 }
 			
             
@@ -4510,8 +4619,9 @@ if (rightPoseDropdown && rightPart.pose) {
             
             updateAllButtons();
             
-            // Navigation overlay functionality
+            // Navigation overlay functionality - optimized with event delegation
             const navBox = document.getElementById('navBox');
+            const navToggleBtn = document.querySelector('.nav-toggle-btn');
             
             if (navBox) {
                 // Mark current page as active
@@ -4522,7 +4632,29 @@ if (rightPoseDropdown && rightPart.pose) {
                         btn.classList.add('active');
                     }
                 });
+                
+                // Use event delegation for nav button clicks (only one listener instead of multiple)
+                navBox.addEventListener('click', function(e) {
+                    const navButton = e.target.closest('.nav-button');
+                    if (navButton) {
+                        e.stopPropagation();
+                        navBox.classList.remove('show');
+                        const href = navButton.getAttribute('href');
+                        if (href) {
+                            window.location.href = href;
+                        }
+                    }
+                });
             }
+            
+            // Close nav box when clicking outside - single listener
+            document.addEventListener('click', function(e) {
+                if (navBox && navBox.classList.contains('show')) {
+                    if (!navBox.contains(e.target) && e.target !== navToggleBtn && !navToggleBtn?.contains(e.target)) {
+                        navBox.classList.remove('show');
+                    }
+                }
+            });
         });
         
         // Navigation overlay toggle function
@@ -4543,18 +4675,6 @@ if (rightPoseDropdown && rightPart.pose) {
                 }
             }
         }
-        
-        // Close nav box when clicking outside
-        document.addEventListener('click', function(e) {
-            const navBox = document.getElementById('navBox');
-            const navToggleBtn = document.querySelector('.nav-toggle-btn');
-            
-            if (navBox && navBox.classList.contains('show')) {
-                if (!navBox.contains(e.target) && e.target !== navToggleBtn) {
-                    navBox.classList.remove('show');
-                }
-            }
-        });
 
         function applyParticipantPose(side, poseName, mirror) {
             if (!poseLibrary || !poseLibrary.length) {

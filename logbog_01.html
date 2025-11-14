@@ -595,9 +595,14 @@
             gap: 10px;
         }
 
+        .journal-title {
+            overflow: visible;
+        }
+
         .journal-title img {
-            width: 28px;
+            width: 55px;
             height: auto;
+            flex-shrink: 0;
         }
 
         .dreams-title img {
@@ -724,7 +729,7 @@
 
         .checkins-side-icons {
             position: absolute;
-            left: 8px;
+            left: 1px;
             top: 24px;
             width: 42px;
             height: 240px;
@@ -806,7 +811,7 @@
                             <div class="journal-entry">
                                 <label class="journal-title" for="logbookEntry">
                                     Dagbog
-                                    <img src="imagefiles/sun.svg" alt="Sol ikon">
+                                    <img src="imagefiles/write_log.svg" alt="Dagbog ikon">
                                 </label>
                                 <textarea id="logbookEntry" placeholder="Skriv dit dagbogsnotat her..."></textarea>
                             </div>
@@ -1440,18 +1445,34 @@
             }
         }
 
+        // Store handlers to prevent listener accumulation
+        let logbookInputHandler = null;
+        let dreamInputHandler = null;
+
         function hydrateLogbookFields() {
             const logbookEntryEl = document.getElementById('logbookEntry');
             const dreamEntryEl = document.getElementById('dreamEntry');
             if (!logbookEntryEl || !dreamEntryEl) return;
 
-            logbookEntryEl.addEventListener('input', () => {
-                updateActiveLogEntry('dagbog', logbookEntryEl.value);
-            });
+            // Remove old listeners if they exist
+            if (logbookInputHandler) {
+                logbookEntryEl.removeEventListener('input', logbookInputHandler);
+            }
+            if (dreamInputHandler) {
+                dreamEntryEl.removeEventListener('input', dreamInputHandler);
+            }
 
-            dreamEntryEl.addEventListener('input', () => {
+            // Create new handlers
+            logbookInputHandler = () => {
+                updateActiveLogEntry('dagbog', logbookEntryEl.value);
+            };
+            dreamInputHandler = () => {
                 updateActiveLogEntry('dreams', dreamEntryEl.value);
-            });
+            };
+
+            // Add new listeners
+            logbookEntryEl.addEventListener('input', logbookInputHandler);
+            dreamEntryEl.addEventListener('input', dreamInputHandler);
 
             setActiveLogDate(activeLogDate);
         }
@@ -1971,13 +1992,28 @@
             activeLogDate = getTodayDateKey();
             hydrateLogbookFields();
 
-            const navLinks = document.querySelectorAll('.nav-box a.nav-button');
-            navLinks.forEach(link => {
-                link.addEventListener('click', closeNavMenu);
-                if (link.getAttribute('href') === 'logbog_01.html') {
-                    link.classList.add('active');
-                }
-            });
+            // Use event delegation for nav button clicks (only one listener instead of multiple)
+            const navBox = document.querySelector('.nav-box');
+            if (navBox) {
+                navBox.addEventListener('click', function(e) {
+                    const navButton = e.target.closest('.nav-button');
+                    if (navButton) {
+                        closeNavMenu();
+                        const href = navButton.getAttribute('href');
+                        if (href) {
+                            window.location.href = href;
+                        }
+                    }
+                });
+                
+                // Mark current page as active
+                const navLinks = navBox.querySelectorAll('.nav-button');
+                navLinks.forEach(link => {
+                    if (link.getAttribute('href') === 'logbog_01.html') {
+                        link.classList.add('active');
+                    }
+                });
+            }
 
             window.addEventListener('storage', handleLogbookStorageEvent);
             window.addEventListener('storage', handleBodymapStorageEvent);

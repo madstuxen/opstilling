@@ -260,6 +260,34 @@
             <div>
                 <div class="panel">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2 style="margin-bottom: 0;">Flags</h2>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                            <input type="checkbox" id="flagTransparentBG" style="width: auto; margin: 0;">
+                            <span>transparentBG</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                            <input type="checkbox" id="flagNoTranscript" style="width: auto; margin: 0;">
+                            <span>noTranscript</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                            <input type="checkbox" id="flagMonolog" style="width: auto; margin: 0;">
+                            <span>monolog</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                            <input type="checkbox" id="flagNoButtons" style="width: auto; margin: 0;">
+                            <span>noButtons</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;">
+                            <input type="checkbox" id="flagBlurBG" style="width: auto; margin: 0;">
+                            <span>blurBG</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="panel" style="margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h2 style="margin-bottom: 0;">Test Variabler</h2>
                     </div>
                     <textarea id="testVariables">"deltagere": ["Anna", "Peter", "Else"]
@@ -506,11 +534,20 @@ Der startes på den node, som er angivet i start_node.
 				// Persist chosen name back to input
 				if (nameInputEl) nameInputEl.value = projectName;
 
+				// Collect flags
+				const flags = {};
+				if (document.getElementById('flagTransparentBG').checked) flags.transparentBG = true;
+				if (document.getElementById('flagNoTranscript').checked) flags.noTranscript = true;
+				if (document.getElementById('flagMonolog').checked) flags.monolog = true;
+				if (document.getElementById('flagNoButtons').checked) flags.noButtons = true;
+				if (document.getElementById('flagBlurBG').checked) flags.blurBG = true;
+
 				const project = {
 					version: 1,
 					saved_at: new Date().toISOString(),
 					session: sessionData,
-					variables: variables
+					variables: variables,
+					flags: Object.keys(flags).length > 0 ? flags : undefined
 				};
 
 				const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
@@ -555,6 +592,22 @@ Der startes på den node, som er angivet i start_node.
 					document.getElementById('jsonEditor').value = JSON.stringify(project.session, null, 2);
 					loadFromJSON();
 
+					// Load flags into checkboxes
+					if (project.flags && typeof project.flags === 'object') {
+						document.getElementById('flagTransparentBG').checked = !!project.flags.transparentBG;
+						document.getElementById('flagNoTranscript').checked = !!project.flags.noTranscript;
+						document.getElementById('flagMonolog').checked = !!project.flags.monolog;
+						document.getElementById('flagNoButtons').checked = !!project.flags.noButtons;
+						document.getElementById('flagBlurBG').checked = !!project.flags.blurBG;
+					} else {
+						// Reset all flags if not present
+						document.getElementById('flagTransparentBG').checked = false;
+						document.getElementById('flagNoTranscript').checked = false;
+						document.getElementById('flagMonolog').checked = false;
+						document.getElementById('flagNoButtons').checked = false;
+						document.getElementById('flagBlurBG').checked = false;
+					}
+					
 					// Load variables into textarea (pretty print line format)
 					if (project.variables && typeof project.variables === 'object') {
 						const lines = Object.keys(project.variables).map(key => {
@@ -1830,6 +1883,31 @@ Der startes på den node, som er angivet i start_node.
 					}
 				}
 				
+				// Collect flags
+				const flags = {};
+				const transparentBG = document.getElementById('flagTransparentBG');
+				const noTranscript = document.getElementById('flagNoTranscript');
+				const monolog = document.getElementById('flagMonolog');
+				const noButtons = document.getElementById('flagNoButtons');
+				const blurBG = document.getElementById('flagBlurBG');
+				
+				console.log('Flag checkboxes:', {
+					transparentBG: transparentBG ? transparentBG.checked : 'not found',
+					noTranscript: noTranscript ? noTranscript.checked : 'not found',
+					monolog: monolog ? monolog.checked : 'not found',
+					noButtons: noButtons ? noButtons.checked : 'not found',
+					blurBG: blurBG ? blurBG.checked : 'not found'
+				});
+				
+				if (transparentBG && transparentBG.checked) flags.transparentBG = true;
+				if (noTranscript && noTranscript.checked) flags.noTranscript = true;
+				if (monolog && monolog.checked) flags.monolog = true;
+				if (noButtons && noButtons.checked) flags.noButtons = true;
+				if (blurBG && blurBG.checked) flags.blurBG = true;
+				
+				console.log('Collected flags object:', flags);
+				console.log('Flags keys length:', Object.keys(flags).length);
+				
 				// Create project from current session
 				const project = {
 					version: 1,
@@ -1838,10 +1916,27 @@ Der startes på den node, som er angivet i start_node.
 					variables: variables
 				};
 				
-				// Store project in localStorage
-				localStorage.setItem('myCoachingProject', JSON.stringify(project));
+				// Only add flags if there are any
+				if (Object.keys(flags).length > 0) {
+					project.flags = flags;
+				}
 				
-				// Project saved silently
+				console.log('Final project object:', project);
+				console.log('Project.flags:', project.flags);
+				
+				// Store project in localStorage
+				const projectJson = JSON.stringify(project);
+				localStorage.setItem('myCoachingProject', projectJson);
+				console.log('Projekt gemt til myCoachingProject');
+				console.log('JSON length:', projectJson.length);
+				console.log('JSON contains flags:', projectJson.includes('flags'));
+				
+				// Show feedback
+				const statusMsg = document.createElement('div');
+				statusMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
+				statusMsg.textContent = 'Projekt gemt til myCoachingProject';
+				document.body.appendChild(statusMsg);
+				setTimeout(() => statusMsg.remove(), 2000);
 			} catch (e) {
 				alert('Fejl ved gemning af projekt: ' + e.message);
 			}
@@ -1849,6 +1944,52 @@ Der startes på den node, som er angivet i start_node.
 		
 		function openDialogPopup(projectName) {
 			try {
+				// Save current project with flags before opening overlay
+				const sessionData = JSON.parse(document.getElementById('jsonEditor').value);
+				const varsText = document.getElementById('testVariables').value.trim();
+				
+				let variables = {};
+				if (varsText) {
+					if (varsText.startsWith('{')) {
+						variables = JSON.parse(varsText);
+					} else {
+						const lines = varsText.split('\n').filter(l => l.trim());
+						const jsonStr = '{' + lines.join(',') + '}';
+						variables = JSON.parse(jsonStr);
+					}
+				}
+				
+				// Collect flags
+				const flags = {};
+				const transparentBG = document.getElementById('flagTransparentBG');
+				const noTranscript = document.getElementById('flagNoTranscript');
+				const monolog = document.getElementById('flagMonolog');
+				const noButtons = document.getElementById('flagNoButtons');
+				const blurBG = document.getElementById('flagBlurBG');
+				
+				if (transparentBG && transparentBG.checked) flags.transparentBG = true;
+				if (noTranscript && noTranscript.checked) flags.noTranscript = true;
+				if (monolog && monolog.checked) flags.monolog = true;
+				if (noButtons && noButtons.checked) flags.noButtons = true;
+				if (blurBG && blurBG.checked) flags.blurBG = true;
+				
+				// Create project
+				const project = {
+					version: 1,
+					saved_at: new Date().toISOString(),
+					session: sessionData,
+					variables: variables
+				};
+				
+				// Only add flags if there are any
+				if (Object.keys(flags).length > 0) {
+					project.flags = flags;
+				}
+				
+				// Save to localStorage
+				localStorage.setItem(projectName, JSON.stringify(project));
+				console.log('Projekt gemt til', projectName, 'med flags:', flags);
+				
 				const invoke = () => (window.openCoachingOverlay || openCoachingOverlay)(projectName);
 				if (typeof window.openCoachingOverlay === 'function' || typeof openCoachingOverlay === 'function') {
 					invoke();

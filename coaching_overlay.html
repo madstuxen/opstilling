@@ -886,7 +886,10 @@
                             }
                             
                             if (project.variables) {
-                                variables = project.variables;
+                                // Merge project variables instead of overwriting
+                                Object.keys(project.variables).forEach(key => {
+                                    variables[key] = project.variables[key];
+                                });
                                 if (variables.Data === 'dialogData') {
                                     variables.Data = 'coachingData';
                                     project.variables.Data = 'coachingData';
@@ -908,20 +911,33 @@
                                 loadExternalDataIfNeeded(projectDataKey);
                                 
                                 // Merge external data into variables for coaching engine
-                                try {
-                                    const externalData = localStorage.getItem(projectDataKey);
-                                    if (externalData) {
-                                        const loaded = JSON.parse(externalData);
-                                        if (loaded && typeof loaded === 'object') {
-                                            // Merge external data into variables
-                                            Object.keys(loaded).forEach(key => {
-                                                variables[key] = loaded[key];
-                                            });
-                                            console.log('Merged external data into variables:', variables);
+                                // First try to use window.loadedExternalData (set by loadExternalDataIfNeeded)
+                                if (window.loadedExternalData && typeof window.loadedExternalData === 'object') {
+                                    console.log('Merging external data from window.loadedExternalData:', window.loadedExternalData);
+                                    Object.keys(window.loadedExternalData).forEach(key => {
+                                        variables[key] = window.loadedExternalData[key];
+                                    });
+                                    console.log('Merged external data into variables:', variables);
+                                } else {
+                                    // Fallback: try to read directly from localStorage
+                                    try {
+                                        const externalData = localStorage.getItem(projectDataKey);
+                                        if (externalData) {
+                                            const loaded = JSON.parse(externalData);
+                                            if (loaded && typeof loaded === 'object') {
+                                                // Check if it's a data payload (not a project structure)
+                                                if ((loaded.You || loaded.Other) && !loaded.session && !loaded.variables) {
+                                                    // Merge external data into variables
+                                                    Object.keys(loaded).forEach(key => {
+                                                        variables[key] = loaded[key];
+                                                    });
+                                                    console.log('Merged external data into variables (fallback):', variables);
+                                                }
+                                            }
                                         }
+                                    } catch (e) {
+                                        console.log('Error merging external data:', e);
                                     }
-                                } catch (e) {
-                                    console.log('Error merging external data:', e);
                                 }
                             }
                         }
@@ -937,6 +953,13 @@
                 
                 // Clear transcript
                 document.getElementById('transcriptContent').innerHTML = '';
+                
+                // Update client name from variables if available (in case loadExternalDataIfNeeded didn't update it)
+                const clientNameEl = document.getElementById('clientName');
+                if (clientNameEl && variables.You) {
+                    clientNameEl.textContent = variables.You;
+                    console.log('Updated client name from variables:', variables.You);
+                }
                 
                 // Update colors
                 updatePopupColors();
@@ -1515,22 +1538,45 @@
             try {
                 console.log('Loading external data from:', dataSource);
                 
-                // Read the project from localStorage to get the Data key
-                const projectRaw = localStorage.getItem(dataSource);
-                if (!projectRaw) {
-                    console.log('No project found in localStorage for:', dataSource);
-                    return;
+                let dataKey = null;
+                let isDirectDataKey = false;
+                
+                // Check if dataSource is a direct data key (like "dialogCoachingData" or "compareCoachingData")
+                // by checking if it exists in localStorage and is not a project structure
+                const directData = localStorage.getItem(dataSource);
+                if (directData) {
+                    try {
+                        const parsed = JSON.parse(directData);
+                        // If it looks like a data payload (has You, Other, etc.) and not a project (no session/variables structure)
+                        if (parsed && typeof parsed === 'object' && (parsed.You || parsed.Other) && !parsed.session && !parsed.variables) {
+                            dataKey = dataSource;
+                            isDirectDataKey = true;
+                            console.log('dataSource is a direct data key:', dataKey);
+                        }
+                    } catch (e) {
+                        // Not valid JSON or not a data payload
+                    }
                 }
                 
-                const project = JSON.parse(projectRaw);
-                
-                // Check if project has variables.Data key
-                if (!project.variables || !project.variables.Data) {
-                    console.log('No Data key found in project variables');
-                    return;
+                // If not a direct data key, try to read the project from localStorage to get the Data key
+                if (!dataKey) {
+                    const projectRaw = localStorage.getItem(dataSource);
+                    if (!projectRaw) {
+                        console.log('No project found in localStorage for:', dataSource);
+                        return;
+                    }
+                    
+                    const project = JSON.parse(projectRaw);
+                    
+                    // Check if project has variables.Data key
+                    if (!project.variables || !project.variables.Data) {
+                        console.log('No Data key found in project variables');
+                        return;
+                    }
+                    
+                    dataKey = project.variables.Data;
                 }
                 
-                let dataKey = project.variables.Data;
                 if (dataKey === 'dialogData') {
                     const legacy = localStorage.getItem('dialogData');
                     if (legacy && !localStorage.getItem('coachingData')) {
@@ -1538,11 +1584,18 @@
                         console.log('Migrated legacy dialogData to coachingData during external data load');
                     }
                     dataKey = 'coachingData';
-                    project.variables.Data = dataKey;
-                    try {
-                        localStorage.setItem(dataSource, JSON.stringify(project));
-                    } catch (saveError) {
-                        console.log('Unable to persist updated Data key on project:', saveError);
+                    // Only update project if we loaded it from a project file
+                    if (!isDirectDataKey) {
+                        const projectRaw = localStorage.getItem(dataSource);
+                        if (projectRaw) {
+                            try {
+                                const project = JSON.parse(projectRaw);
+                                project.variables.Data = dataKey;
+                                localStorage.setItem(dataSource, JSON.stringify(project));
+                            } catch (saveError) {
+                                console.log('Unable to persist updated Data key on project:', saveError);
+                            }
+                        }
                     }
                 }
                 

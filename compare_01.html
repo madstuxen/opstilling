@@ -267,58 +267,30 @@
         
         .participants-section {
             background: #f8fafc;
-            padding: 20px;
+            padding: 0;
             border-bottom: 2px solid #e2e8f0;
-            height: 315px;
+            height: 250px;
             flex-shrink: 0;
             overflow: visible;
             position: relative;
         }
         
-        .info-left, .info-right {
-            position: absolute;
-            top: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 100;
-        }
-        
-        .info-left { left: 20px; }
-        .info-right { right: 20px; }
-        
-        .info-input {
-            width: 140px;
-            padding: 6px 10px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-size: 12px;
-            font-family: inherit;
-            background: white;
-        }
-        
-        .info-label {
-            font-size: 10px;
-            font-weight: 500;
-            color: #6b7280;
-            margin-bottom: 2px;
-        }
-        
         .participants-container {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-around;
             align-items: center;
             max-width: 700px;
             margin: 0 auto;
-            gap: 30px;
+            gap: 75px;
             height: 100%;
             overflow: visible;
+            position: relative;
         }
 
         
         
         .participant {
-            flex: 1;
+            flex: 0 0 200px;
             margin-top: -160px;
             display: flex;
             flex-direction: column;
@@ -326,6 +298,8 @@
             gap: 15px;
             position: relative;
             overflow: visible;
+            transform-origin: center center;
+            min-width: 200px;
         }
         
         .participant-circle {
@@ -1461,8 +1435,6 @@
         .controls-bar { padding: 8px 12px; gap: 10px; }
         .participant-dropdown { font-size: 13px; padding: 6px 10px; border-radius: 8px; }
         .btn { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
-        /* Hide side info panels on touch for more space */
-        .info-left, .info-right { display: none; }
     }
     </style>
 </head>
@@ -1497,6 +1469,7 @@
             
             <div class="controls-divider"></div>
             
+            <button class="btn" id="newComparisonBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">Ny sammenligning</button>
             <button class="btn save-btn" id="saveBtn" disabled>Gem</button>
             <button class="btn" id="loadComparisonBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs</button>
             <button class="btn random-btn" id="randomBtn" disabled>Random</button>
@@ -1506,48 +1479,6 @@
         <div class="status" id="status">Vælg to dele for at begynde sammenligning</div>
         
         <div class="participants-section">
-            <div class="info-left">
-                
-				<input type="text" class="info-input" id="leftStikord1" placeholder="Alder">
-				<input type="text" class="info-input" id="leftStikord2" placeholder="Relation">
-				<input type="text" class="info-input" id="leftStikord3" placeholder="Køn">
-				<input type="text" class="info-input" id="leftStikord4" placeholder="Stikord 4">
-				<input type="text" class="info-input" id="leftStikord5" placeholder="Stikord 5">
-				<input type="text" class="info-input" id="leftStikord6" placeholder="Stikord 6">
-				<div style="display: flex; align-items: center; justify-content: space-between;">
-				<div class="info-label">Pose:</div>
-				<div style="display: flex; align-items: center; gap: 4px;">
-					<input type="checkbox" id="leftMirror" onchange="toggleMirror('left')" style="width: 12px; height: 12px;">
-					<label for="leftMirror" style="font-size: 10px; color: #6b7280;">Spejl</label>
-				</div>
-			</div>
-			<select class="info-input" id="leftPose" onchange="applyPose('left', this.value)">
-				<option value="">Standard pose</option>
-			</select>
-            </div>
-            
-            <div class="info-right">
-                
-				<input type="text" class="info-input" id="rightStikord1" placeholder="Alder">
-				<input type="text" class="info-input" id="rightStikord2" placeholder="Relation">
-				<input type="text" class="info-input" id="rightStikord3" placeholder="Køn">
-				<input type="text" class="info-input" id="rightStikord4" placeholder="Stikord 4">
-				<input type="text" class="info-input" id="rightStikord5" placeholder="Stikord 5">
-				<input type="text" class="info-input" id="rightStikord6" placeholder="Stikord 6">
-				<div style="display: flex; align-items: center; justify-content: space-between;">
-				<div class="info-label">Pose:</div>
-				<div style="display: flex; align-items: center; gap: 4px;">
-					<input type="checkbox" id="rightMirror" onchange="toggleMirror('right')" style="width: 12px; height: 12px;">
-					<label for="rightMirror" style="font-size: 10px; color: #6b7280;">Spejl</label>
-				</div>
-			</div>
-			<select class="info-input" id="rightPose" onchange="applyPose('right', this.value)">
-				<option value="">Standard pose</option>
-			</select>
-            </div>
-			
-			
-            
             <div class="participants-container" id="compareParticipants">
                
 			   <div class="participant">
@@ -2412,7 +2343,7 @@ function closePosePicker() {
                 updateBodyColors(side, partData.color);
 				updateSliderColors();
 				
-				// Populate stikord from parts data
+				// Populate stikord from parts data (if fields exist)
 				if (partData.keywords && Array.isArray(partData.keywords)) {
 					for (let i = 1; i <= 6; i++) {
 						const stikordField = document.getElementById(side + 'Stikord' + i);
@@ -2434,28 +2365,27 @@ function closePosePicker() {
 						const selectedValue = dropdown.value;
 						const currentPartData = partsData[selectedValue];
 						
-						const poseDropdown = document.getElementById(side + 'Pose');
-						const mirrorCheckbox = document.getElementById(side + 'Mirror');
-						
-							if (currentPartData && currentPartData.pose) {
-								// Find pose index by name (case-insensitive, trimmed)
-								const targetName = (currentPartData.pose || '').toLowerCase().trim();
-								const poseIndex = poseLibrary.findIndex(pose => (pose.name || '').toLowerCase().trim() === targetName);
-							if (poseIndex !== -1 && poseDropdown) {
-								poseDropdown.value = poseIndex;
-								if (mirrorCheckbox) {
-									mirrorCheckbox.checked = currentPartData.mirror || false;
+						// Apply pose directly from partData (no dropdowns needed)
+						if (currentPartData && currentPartData.pose) {
+							// Find pose index by name (case-insensitive, trimmed)
+							const targetName = (currentPartData.pose || '').toLowerCase().trim();
+							const poseIndex = poseLibrary.findIndex(pose => (pose.name || '').toLowerCase().trim() === targetName);
+							if (poseIndex !== -1) {
+								// Apply pose with mirror if specified
+								const circle = document.getElementById(side + 'Circle');
+								if (circle) {
+									const participant = circle.parentElement;
+									if (participant) {
+										participant.setAttribute('data-pose', poseIndex.toString());
+										participant.setAttribute('data-mirror', (currentPartData.mirror || false).toString());
+									}
 								}
 								applyPose(side, poseIndex);
 							} else {
 								resetPose(side);
-								if (poseDropdown) poseDropdown.value = '';
-								if (mirrorCheckbox) mirrorCheckbox.checked = false;
 							}
 						} else {
 							resetPose(side);
-							if (poseDropdown) poseDropdown.value = '';
-							if (mirrorCheckbox) mirrorCheckbox.checked = false;
 						}
 					}, animationDuration * 1000 + 100);
 				}, 200);
@@ -2513,16 +2443,6 @@ function closePosePicker() {
                 dropdown.appendChild(defaultOption);
             });
             
-            const leftNewOption = document.createElement('option');
-            leftNewOption.value = 'lav_ny_left';
-            leftNewOption.textContent = 'Lav Ny Del';
-            leftDropdown.appendChild(leftNewOption);
-            
-            const rightNewOption = document.createElement('option');
-            rightNewOption.value = 'lav_ny_right';
-            rightNewOption.textContent = 'Lav Ny Del';
-            rightDropdown.appendChild(rightNewOption);
-            
             // partsData already may include shared items injected at init
             Object.keys(partsData).forEach(key => {
                 if (key === 'lav_ny_left' || key === 'lav_ny_right') return;
@@ -2537,10 +2457,10 @@ function closePosePicker() {
                 });
             });
             
-            if (leftSelected && (leftSelected === 'lav_ny_left' || partsData[leftSelected])) {
+            if (leftSelected && partsData[leftSelected]) {
                 leftDropdown.value = leftSelected;
             }
-            if (rightSelected && (rightSelected === 'lav_ny_right' || partsData[rightSelected])) {
+            if (rightSelected && partsData[rightSelected]) {
                 rightDropdown.value = rightSelected;
             }
         }
@@ -2585,8 +2505,8 @@ function closePosePicker() {
             initializeDropdowns();
             
             // Check if current selections still exist and are valid
-            const leftStillValid = currentLeftSelected && (currentLeftSelected === 'lav_ny_left' || partsData[currentLeftSelected]);
-            const rightStillValid = currentRightSelected && (currentRightSelected === 'lav_ny_right' || partsData[currentRightSelected]);
+            const leftStillValid = currentLeftSelected && partsData[currentLeftSelected];
+            const rightStillValid = currentRightSelected && partsData[currentRightSelected];
             
             // Restore selections if they're still valid, otherwise clear them
             if (leftStillValid) {
@@ -2594,7 +2514,7 @@ function closePosePicker() {
             } else {
                 leftDropdown.value = '';
                 // Hide left participant if it was selected but no longer exists
-                if (currentLeftSelected && currentLeftSelected !== 'lav_ny_left') {
+                if (currentLeftSelected) {
                     document.getElementById('leftCircle').style.display = 'none';
                     document.getElementById('leftColorBtn').style.display = 'none';
                 }
@@ -2605,7 +2525,7 @@ function closePosePicker() {
             } else {
                 rightDropdown.value = '';
                 // Hide right participant if it was selected but no longer exists
-                if (currentRightSelected && currentRightSelected !== 'lav_ny_right') {
+                if (currentRightSelected) {
                     document.getElementById('rightCircle').style.display = 'none';
                     document.getElementById('rightColorBtn').style.display = 'none';
                 }
@@ -2624,7 +2544,7 @@ function closePosePicker() {
             updateComparisonView();
             
             // Show status message
-            const updatedCount = Object.keys(partsData).length - 2; // Subtract the two "lav_ny" entries
+            const updatedCount = Object.keys(partsData).length;
             setStatus(`Dropdowns opdateret - ${updatedCount} karakterer tilgængelige`);
             
             // Log what happened for debugging
@@ -2646,6 +2566,11 @@ function closePosePicker() {
 		function initializePoseDropdowns() {
     const leftDropdown = document.getElementById('leftPose');
     const rightDropdown = document.getElementById('rightPose');
+    
+    // Return early if dropdowns don't exist (they were removed with info-left/right)
+    if (!leftDropdown || !rightDropdown) {
+        return;
+    }
     
     // Clear existing options; if standard exists, we won't add a placeholder
     const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
@@ -2808,16 +2733,21 @@ function applyPose(side, poseIndex) {
 }
 
 function toggleMirror(side) {
-    const poseDropdown = document.getElementById(side + 'Pose');
-    if (poseDropdown) {
-        applyPose(side, poseDropdown.value);
-    }
-    // Persist mirror on participant
+    // Get mirror state from participant data attribute if checkbox doesn't exist
     const circle = document.getElementById(side + 'Circle');
     const mirrorCheckbox = document.getElementById(side + 'Mirror');
     const participant = circle ? circle.parentElement : null;
+    
     if (participant) {
-        participant.setAttribute('data-mirror', mirrorCheckbox ? String(mirrorCheckbox.checked) : 'false');
+        const currentMirror = mirrorCheckbox ? mirrorCheckbox.checked : (participant.getAttribute('data-mirror') === 'true');
+        const newMirror = !currentMirror;
+        participant.setAttribute('data-mirror', String(newMirror));
+        
+        // Re-apply current pose with new mirror state
+        const currentPose = participant.getAttribute('data-pose');
+        if (currentPose !== null && currentPose !== '') {
+            applyPose(side, currentPose);
+        }
     }
 }
 
@@ -3234,14 +3164,18 @@ function resetPose(side) {
                 var leftPoseIndex = 0; // Default to standard pose
                 var leftPoseFlipped = false;
                 
-                var leftPoseDropdown = document.getElementById('leftPose');
-                var leftMirror = document.getElementById('leftMirror');
-                
-                if (leftPoseDropdown && leftPoseDropdown.value !== '') {
-                    leftPoseIndex = Number(leftPoseDropdown.value);
-                }
-                if (leftMirror) {
-                    leftPoseFlipped = leftMirror.checked;
+                // Read pose from data-pose attribute on participant element (more reliable than dropdown)
+                var leftCircle = document.getElementById('leftCircle');
+                if (leftCircle) {
+                    var leftParticipant = leftCircle.parentElement;
+                    if (leftParticipant) {
+                        var dataPose = leftParticipant.getAttribute('data-pose');
+                        if (dataPose !== null && dataPose !== '') {
+                            leftPoseIndex = Number(dataPose);
+                        }
+                        var dataMirror = leftParticipant.getAttribute('data-mirror');
+                        leftPoseFlipped = dataMirror === 'true';
+                    }
                 }
 
                 var payload = {
@@ -3256,11 +3190,28 @@ function resetPose(side) {
                     "You_pose_flipped": leftPoseFlipped
                 };
 
-                localStorage.setItem('comparisonData', JSON.stringify(payload));
-                setStatus('Skrev comparisonData for trait #' + traitIndex);
+                localStorage.setItem('compareCoachingData', JSON.stringify(payload));
+                console.log('Gemmer compareCoachingData:', payload);
+                setStatus('Skrev compareCoachingData for trait #' + traitIndex);
                 
                 // Open coaching overlay with compare_coaching.json
-                openCoachingOverlayFromFile('coaching_templates/compare_coaching.json');
+                console.log('Kalder openCoachingOverlayFromFile med:', 'coaching_templates/compare_coaching.json');
+                console.log('openCoachingOverlayFromFile type:', typeof openCoachingOverlayFromFile);
+                console.log('window.openCoachingOverlayFromFile type:', typeof window.openCoachingOverlayFromFile);
+                
+                if (typeof openCoachingOverlayFromFile === 'function') {
+                    console.log('Bruger openCoachingOverlayFromFile direkte');
+                    openCoachingOverlayFromFile('coaching_templates/compare_coaching.json');
+                } else if (typeof window.openCoachingOverlayFromFile === 'function') {
+                    console.log('Bruger window.openCoachingOverlayFromFile');
+                    window.openCoachingOverlayFromFile('coaching_templates/compare_coaching.json');
+                } else if (typeof openCoachingOverlay === 'function') {
+                    console.log('Bruger openCoachingOverlay som fallback');
+                    openCoachingOverlay('coaching_templates/compare_coaching.json');
+                } else {
+                    console.error('Ingen coaching overlay funktion fundet!');
+                    alert('Coaching overlay funktion ikke tilgængelig. Sørg for at coaching_overlay_complete.js er indlæst.');
+                }
             } catch (e) {
                 console.error('writeComparisonDataLeft error:', e);
             }
@@ -3294,14 +3245,18 @@ function resetPose(side) {
                 var rightPoseIndex = 0; // Default to standard pose
                 var rightPoseFlipped = false;
                 
-                var rightPoseDropdown = document.getElementById('rightPose');
-                var rightMirror = document.getElementById('rightMirror');
-                
-                if (rightPoseDropdown && rightPoseDropdown.value !== '') {
-                    rightPoseIndex = Number(rightPoseDropdown.value);
-                }
-                if (rightMirror) {
-                    rightPoseFlipped = rightMirror.checked;
+                // Read pose from data-pose attribute on participant element (more reliable than dropdown)
+                var rightCircle = document.getElementById('rightCircle');
+                if (rightCircle) {
+                    var rightParticipant = rightCircle.parentElement;
+                    if (rightParticipant) {
+                        var dataPose = rightParticipant.getAttribute('data-pose');
+                        if (dataPose !== null && dataPose !== '') {
+                            rightPoseIndex = Number(dataPose);
+                        }
+                        var dataMirror = rightParticipant.getAttribute('data-mirror');
+                        rightPoseFlipped = dataMirror === 'true';
+                    }
                 }
 
                 var payload = {
@@ -3316,11 +3271,28 @@ function resetPose(side) {
                     "You_pose_flipped": rightPoseFlipped
                 };
 
-                localStorage.setItem('comparisonData', JSON.stringify(payload));
-                setStatus('Skrev comparisonData (højre) for trait #' + traitIndex);
+                localStorage.setItem('compareCoachingData', JSON.stringify(payload));
+                console.log('Gemmer compareCoachingData:', payload);
+                setStatus('Skrev compareCoachingData (højre) for trait #' + traitIndex);
                 
                 // Open coaching overlay with compare_coaching.json
-                openCoachingOverlayFromFile('coaching_templates/compare_coaching.json');
+                console.log('Kalder openCoachingOverlayFromFile med:', 'coaching_templates/compare_coaching.json');
+                console.log('openCoachingOverlayFromFile type:', typeof openCoachingOverlayFromFile);
+                console.log('window.openCoachingOverlayFromFile type:', typeof window.openCoachingOverlayFromFile);
+                
+                if (typeof openCoachingOverlayFromFile === 'function') {
+                    console.log('Bruger openCoachingOverlayFromFile direkte');
+                    openCoachingOverlayFromFile('coaching_templates/compare_coaching.json');
+                } else if (typeof window.openCoachingOverlayFromFile === 'function') {
+                    console.log('Bruger window.openCoachingOverlayFromFile');
+                    window.openCoachingOverlayFromFile('coaching_templates/compare_coaching.json');
+                } else if (typeof openCoachingOverlay === 'function') {
+                    console.log('Bruger openCoachingOverlay som fallback');
+                    openCoachingOverlay('coaching_templates/compare_coaching.json');
+                } else {
+                    console.error('Ingen coaching overlay funktion fundet!');
+                    alert('Coaching overlay funktion ikke tilgængelig. Sørg for at coaching_overlay_complete.js er indlæst.');
+                }
             } catch (e) {
                 console.error('writeComparisonDataRight error:', e);
             }
@@ -3797,10 +3769,10 @@ function resetPose(side) {
             leftLightColor = lightenColor(leftPart.color, 0.6);
             rightLightColor = lightenColor(rightPart.color, 0.6);
             
-            // Update dropdowns to "Lav Ny Del" since we're loading custom data
-            document.getElementById('leftDropdown').value = 'lav_ny_left';
-            document.getElementById('rightDropdown').value = 'lav_ny_right';
-            currentTraitSelectionKey = 'lav_ny_left|lav_ny_right';
+            // Clear dropdowns since we're loading custom data
+            document.getElementById('leftDropdown').value = '';
+            document.getElementById('rightDropdown').value = '';
+            currentTraitSelectionKey = null;
             if (Array.isArray(traitIndices) && traitIndices.length > 0) {
                 activeTraitIndices = traitIndices
                     .map(idx => parseInt(idx, 10))
@@ -4160,6 +4132,7 @@ function adjustDistance(direction) {
 				openPosePicker(this);
 			});
             
+            document.getElementById('newComparisonBtn').addEventListener('click', clearAll);
             document.querySelector('.clear-btn').addEventListener('click', clearAll);
             document.getElementById('randomBtn').addEventListener('click', randomizeCurrentStep);
             document.getElementById('saveBtn').addEventListener('click', saveComparison);
@@ -4170,8 +4143,9 @@ function adjustDistance(direction) {
             
             updateButtonStates();
             
-            // Navigation overlay functionality
+            // Navigation overlay functionality - optimized with event delegation
             const navBox = document.getElementById('navBox');
+            const navToggleBtn = document.querySelector('.nav-toggle-btn');
             
             if (navBox) {
                 // Mark current page as active
@@ -4182,7 +4156,29 @@ function adjustDistance(direction) {
                         btn.classList.add('active');
                     }
                 });
+                
+                // Use event delegation for nav button clicks (only one listener instead of multiple)
+                navBox.addEventListener('click', function(e) {
+                    const navButton = e.target.closest('.nav-button');
+                    if (navButton) {
+                        e.stopPropagation();
+                        navBox.classList.remove('show');
+                        const href = navButton.getAttribute('href');
+                        if (href) {
+                            window.location.href = href;
+                        }
+                    }
+                });
             }
+            
+            // Close nav box when clicking outside - single listener
+            document.addEventListener('click', function(e) {
+                if (navBox && navBox.classList.contains('show')) {
+                    if (!navBox.contains(e.target) && e.target !== navToggleBtn && !navToggleBtn?.contains(e.target)) {
+                        navBox.classList.remove('show');
+                    }
+                }
+            });
         });
         
         // Navigation overlay toggle function
@@ -4203,18 +4199,6 @@ function adjustDistance(direction) {
                 }
             }
         }
-        
-        // Close nav box when clicking outside
-        document.addEventListener('click', function(e) {
-            const navBox = document.getElementById('navBox');
-            const navToggleBtn = document.querySelector('.nav-toggle-btn');
-            
-            if (navBox && navBox.classList.contains('show')) {
-                if (!navBox.contains(e.target) && e.target !== navToggleBtn) {
-                    navBox.classList.remove('show');
-                }
-            }
-        });
     </script>
     <!-- Navigation overlay -->
     <div class="nav-overlay" id="navOverlay"></div>

@@ -43,7 +43,7 @@ function saveOverlayDialogCSV(contentElement) {
         try {
             let poseLib = window.poseLibrary;
             if (!poseLib && typeof poseLibrary !== 'undefined') poseLib = poseLibrary;
-            let val = window.pendingClientPose;
+            let val = window.clientPoseToApply;
             if (typeof val === 'string') {
                 clientPoseName = val;
             } else if (typeof val === 'number' && poseLib && poseLib[val] && poseLib[val].name) {
@@ -175,7 +175,7 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
         transform: translate(-50%, -50%);
         width: 85%;
         max-width: 750px;
-        height: 80vh;
+        height: auto;
         background: white;
         border-radius: 15px;
         box-shadow: 0 10px 40px rgba(0,0,0,0.3);
@@ -306,6 +306,171 @@ async function openCoachingOverlayFromFile(filename) {
 }
 
 /**
+ * Apply flags to shadow DOM (hide transcript section, controls, etc.)
+ */
+function applyFlagsToShadowDOM(shadowRoot, flags) {
+    if (!shadowRoot || !flags) {
+        return;
+    }
+    
+    if (flags.noTranscript) {
+        // Hide transcript section - try multiple selectors
+        let transcriptSection = shadowRoot.querySelector('.transcript-section');
+        
+        if (!transcriptSection) {
+            // Try finding by id and traversing up
+            const transcriptContent = shadowRoot.querySelector('#transcriptContent');
+            if (transcriptContent) {
+                transcriptSection = transcriptContent.closest('.transcript-section');
+            }
+        }
+        
+        if (transcriptSection) {
+            // Remove inline styles and set display to none - inline styles have higher specificity
+            transcriptSection.removeAttribute('style');
+            transcriptSection.style.setProperty('display', 'none', 'important');
+            transcriptSection.style.setProperty('visibility', 'hidden', 'important');
+            transcriptSection.style.setProperty('height', '0', 'important');
+            transcriptSection.style.setProperty('overflow', 'hidden', 'important');
+            transcriptSection.style.setProperty('flex', '0', 'important');
+            transcriptSection.style.setProperty('min-height', '0', 'important');
+            transcriptSection.style.setProperty('max-height', '0', 'important');
+            transcriptSection.style.setProperty('padding', '0', 'important');
+            transcriptSection.style.setProperty('margin', '0', 'important');
+        } else {
+            // Retry with longer delay
+            setTimeout(() => {
+                let retrySection = shadowRoot.querySelector('.transcript-section');
+                if (!retrySection) {
+                    const transcriptContent = shadowRoot.querySelector('#transcriptContent');
+                    if (transcriptContent) {
+                        retrySection = transcriptContent.closest('.transcript-section');
+                    }
+                }
+                if (retrySection) {
+                    retrySection.removeAttribute('style');
+                    retrySection.style.setProperty('display', 'none', 'important');
+                    retrySection.style.setProperty('visibility', 'hidden', 'important');
+                    retrySection.style.setProperty('height', '0', 'important');
+                    retrySection.style.setProperty('overflow', 'hidden', 'important');
+                    retrySection.style.setProperty('flex', '0', 'important');
+                    retrySection.style.setProperty('min-height', '0', 'important');
+                    retrySection.style.setProperty('max-height', '0', 'important');
+                    retrySection.style.setProperty('padding', '0', 'important');
+                    retrySection.style.setProperty('margin', '0', 'important');
+                }
+            }, 500);
+        }
+        
+        // Add CSS rule to shadow DOM to ensure it stays hidden (must override inline styles)
+        // Also reduce overlay size when transcript is hidden
+        const noTranscriptStyle = document.createElement('style');
+        noTranscriptStyle.id = 'noTranscriptStyle';
+        noTranscriptStyle.textContent = `
+            .transcript-section { 
+                display: none !important; 
+                visibility: hidden !important;
+                height: 0 !important;
+                overflow: hidden !important;
+                flex: 0 !important;
+                min-height: 0 !important;
+                max-height: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .dialog-popup {
+                max-height: 350px !important;
+                height: auto !important;
+            }
+            .content {
+                max-height: 350px !important;
+                height: auto !important;
+                padding: 8px !important;
+            }
+            .overlay-participants-section {
+                margin-bottom: 8px !important;
+                gap: 10px !important;
+            }
+            .speech-bubble {
+                margin-bottom: 8px !important;
+            }
+        `;
+        // Remove old style if exists
+        const oldStyle = shadowRoot.querySelector('#noTranscriptStyle');
+        if (oldStyle) oldStyle.remove();
+        shadowRoot.appendChild(noTranscriptStyle);
+        
+        // Also reduce the main overlay container size
+        if (window.coachingOverlay && window.coachingOverlay.overlay) {
+            const overlay = window.coachingOverlay.overlay;
+            overlay.style.maxHeight = '400px';
+            overlay.style.height = 'auto';
+            overlay.style.maxWidth = '550px';
+            overlay.style.minHeight = '0';
+            overlay.style.width = 'auto';
+        }
+        
+        // Also reduce content padding and remove min-height
+        if (window.coachingOverlay && window.coachingOverlay.content) {
+            const content = window.coachingOverlay.content;
+            content.style.padding = '8px';
+            content.style.minHeight = '0';
+            content.style.height = 'auto';
+        }
+        
+        // Also check if there are any other elements forcing height
+        const shadowContent = shadowRoot.querySelector('.content');
+        if (shadowContent) {
+            shadowContent.style.minHeight = '0';
+            shadowContent.style.height = 'auto';
+            shadowContent.style.padding = '8px';
+        }
+        
+        // Reduce header height if possible
+        if (window.coachingOverlay && window.coachingOverlay.header) {
+            const header = window.coachingOverlay.header;
+            header.style.padding = '8px 15px';
+            header.style.minHeight = 'auto';
+        }
+    }
+    
+    if (flags.noButtons) {
+        // Hide controls/buttons
+        let controls = shadowRoot.querySelector('.controls');
+        
+        if (controls) {
+            controls.removeAttribute('style');
+            controls.style.setProperty('display', 'none', 'important');
+            controls.style.setProperty('visibility', 'hidden', 'important');
+        } else {
+            // Retry with longer delay
+            setTimeout(() => {
+                let retryControls = shadowRoot.querySelector('.controls');
+                if (retryControls) {
+                    retryControls.removeAttribute('style');
+                    retryControls.style.setProperty('display', 'none', 'important');
+                    retryControls.style.setProperty('visibility', 'hidden', 'important');
+                }
+            }, 300);
+        }
+        
+        // Add CSS rule to shadow DOM to ensure it stays hidden
+        const noButtonsStyle = document.createElement('style');
+        noButtonsStyle.id = 'noButtonsStyle';
+        noButtonsStyle.textContent = `
+            .controls { 
+                display: none !important; 
+                visibility: hidden !important;
+            }
+        `;
+        // Remove old style if exists
+        const oldStyle = shadowRoot.querySelector('#noButtonsStyle');
+        if (oldStyle) oldStyle.remove();
+        shadowRoot.appendChild(noButtonsStyle);
+    }
+}
+
+/**
  * Create coaching content
  */
 async function createCoachingContent(contentElement, dataSource) {
@@ -351,6 +516,8 @@ async function createCoachingContent(contentElement, dataSource) {
         const contentWrapper = document.createElement('div');
         contentWrapper.innerHTML = bodyContent;
         shadowRoot.appendChild(contentWrapper);
+        
+        // Note: Flags will be applied in startCoachingSession after they are loaded from project
 
         // Constrain dialog popup height inside shadow root
         const dialogMaxHeightStyle = document.createElement('style');
@@ -443,8 +610,10 @@ async function createCoachingContent(contentElement, dataSource) {
         // Expose shadow root for later updates
         if (window.coachingOverlay) {
             window.coachingOverlay.contentRoot = shadowRoot;
+            window.coachingOverlay.contentElement = contentElement; // Store original element for shadowRoot access
         }
         // From now on, pass shadowRoot as the content element for isolation
+        // But also store the original contentElement so we can access shadowRoot later
         initializeCoachingSystem(shadowRoot, dataSource);
         
     } catch (error) {
@@ -534,32 +703,52 @@ async function startCoachingSession(contentElement, dataSource) {
         
         if (!projectData) {
             debugLog('No project data found in localStorage for:', dataSource);
-            debugLog('Available localStorage keys:', Object.keys(localStorage));
-            
-            // Try to find the data with a different key
-            const possibleKeys = Object.keys(localStorage).filter(key => key.includes('coaching') || key.includes('compare'));
-            debugLog('Possible coaching keys:', possibleKeys);
-            
-            if (possibleKeys.length > 0) {
-                const actualKey = possibleKeys[0];
-                debugLog('Using key:', actualKey);
-                projectData = localStorage.getItem(actualKey);
-            }
         }
         
-        // If still no data, try to load from file
-        if (!projectData) {
-            debugLog('Trying to load from file:', dataSource);
-            try {
-                const response = await fetch(dataSource);
-                if (response.ok) {
-                    projectData = await response.text();
-                    debugLog('Loaded project data from file:', dataSource);
-                } else {
-                    debugLog('Could not load file:', dataSource);
+        // Always try to load from file if not found in localStorage (or if it looks like a data payload)
+        // For JSON files (coaching templates), always load from file to get latest version with flags
+        const isJsonFile = dataSource && dataSource.endsWith('.json');
+        const shouldLoadFromFile = !projectData || isJsonFile || (projectData && projectData.trim().startsWith('{'));
+        
+        if (shouldLoadFromFile) {
+            // Check if it's a data payload (not a project)
+            if (projectData && !isJsonFile) {
+                try {
+                    const testParse = JSON.parse(projectData);
+                    if (testParse && !testParse.session && !testParse.variables && (testParse.You || testParse.Other)) {
+                        console.warn('[Coaching] Data in localStorage looks like a payload, not a project. Will load from file.');
+                        projectData = null; // Force loading from file
+                    }
+                } catch (e) {
+                    // Not valid JSON, will try to load from file
+                    projectData = null;
                 }
-            } catch (error) {
-                debugLog('Error loading file:', error);
+            }
+            
+            // Try to load from file (always for JSON files to get latest flags)
+            if (!projectData || isJsonFile) {
+                debugLog('Trying to load from file:', dataSource);
+                try {
+                    const response = await fetch(dataSource);
+                    if (response.ok) {
+                        projectData = await response.text();
+                        debugLog('Loaded project data from file:', dataSource);
+                        // Store in localStorage for future use (but JSON files will always reload from file)
+                        try {
+                            localStorage.setItem(dataSource, projectData);
+                            debugLog('Stored project in localStorage with key:', dataSource);
+                        } catch (storeError) {
+                            console.error('[Coaching] Could not store project in localStorage:', storeError);
+                            debugLog('Could not store project in localStorage:', storeError);
+                        }
+                    } else {
+                        console.error('[Coaching] Could not load file:', dataSource, 'Status:', response.status);
+                        debugLog('Could not load file:', dataSource);
+                    }
+                } catch (error) {
+                    console.error('[Coaching] Error loading file:', error);
+                    debugLog('Error loading file:', error);
+                }
             }
         }
         
@@ -589,8 +778,68 @@ async function startCoachingSession(contentElement, dataSource) {
         const project = JSON.parse(projectData);
         debugLog('Loaded project:', project);
         
+        // Read and apply flags
+        const flags = project.flags || {};
+        
+        // Get shadowRoot - contentElement is actually the shadowRoot (passed from initializeCoachingSystem)
+        // But we can also try to get it from the original element stored in coachingOverlay
+        let shadowRootForFlags = contentElement; // contentElement IS the shadowRoot in this context
+        
+        // Try to get shadowRoot from the original element if available
+        if (window.coachingOverlay && window.coachingOverlay.contentElement) {
+            const originalElement = window.coachingOverlay.contentElement;
+            if (originalElement && originalElement.shadowRoot) {
+                shadowRootForFlags = originalElement.shadowRoot;
+            }
+        }
+        
+        // Also try direct access (in case contentElement has shadowRoot property)
+        if (contentElement && contentElement.shadowRoot) {
+            shadowRootForFlags = contentElement.shadowRoot;
+        }
+        
+        if (flags.transparentBG) {
+            // Apply transparent background to overlay
+            if (coachingOverlay && coachingOverlay.overlay) {
+                coachingOverlay.overlay.style.background = 'transparent';
+                coachingOverlay.overlay.style.boxShadow = 'none';
+            }
+            if (coachingOverlay && coachingOverlay.content) {
+                coachingOverlay.content.style.background = 'transparent';
+            }
+            // Also apply to shadow DOM content
+            if (shadowRootForFlags) {
+                const dialogPopup = shadowRootForFlags.querySelector('.dialog-popup');
+                if (dialogPopup) {
+                    dialogPopup.style.background = 'transparent';
+                }
+                const content = shadowRootForFlags.querySelector('.content');
+                if (content) {
+                    content.style.background = 'transparent';
+                }
+                // Add style to shadow DOM to override CSS
+                const transparentStyle = document.createElement('style');
+                transparentStyle.textContent = `
+                    .dialog-popup { background: transparent !important; }
+                    .content { background: transparent !important; }
+                `;
+                shadowRootForFlags.appendChild(transparentStyle);
+            }
+        }
+        
+        // Store flags globally so we can apply them later when shadow DOM is ready
+        window.coachingFlags = flags;
+        
+        // Apply flags directly if shadowRoot is available
+        if (shadowRootForFlags && flags) {
+            // Use a small delay to ensure DOM is fully rendered
+            setTimeout(() => {
+                applyFlagsToShadowDOM(shadowRootForFlags, flags);
+            }, 100);
+        }
+        
         // Prepare variables like the original system
-        let variables = { ...project.variables };
+        let variables = project.variables ? { ...project.variables } : {};
         
         // Merge external data if it exists in the project
         if (project.variables && project.variables.Data) {
@@ -600,25 +849,54 @@ async function startCoachingSession(contentElement, dataSource) {
                 const externalData = localStorage.getItem(project.variables.Data);
                 if (externalData) {
                     const loaded = JSON.parse(externalData);
+                    debugLog('Loaded external data from localStorage:', loaded);
                     if (loaded && typeof loaded === 'object') {
-                        // Merge external data into variables
-                        Object.keys(loaded).forEach(key => {
-                            variables[key] = loaded[key];
-                        });
-                        debugLog('Merged external data into variables:', variables);
-                        
-                        // Merge project.variables with loaded data for UI (project.variables takes precedence for You_pose, You_color, etc.)
-                        const uiData = { ...loaded, ...project.variables };
-                        
-                        // Load external data for UI (colors, poses, names)
-                        loadExternalDataForUI(contentElement, uiData);
+                        // Check if it's a data payload (not a project structure)
+                        if ((loaded.You || loaded.Other) && !loaded.session && !loaded.variables) {
+                            // Merge external data into variables for coaching engine
+                            // This gives the engine access to both project.variables (like Data key) and loaded data
+                            Object.keys(loaded).forEach(key => {
+                                variables[key] = loaded[key];
+                            });
+                            debugLog('Merged external data into variables for engine:', variables);
+                            
+                            // For UI: Use ONLY loaded data (not merged with project.variables)
+                            // project.variables is just metadata (Data key), not UI data
+                            // UI needs the actual participant data: You, You_pose, You_color, etc.
+                            const uiData = { ...loaded };
+                            
+                            // Load external data for UI (colors, poses, names)
+                            loadExternalDataForUI(contentElement, uiData);
+                        } else {
+                            debugLog('External data does not look like a data payload, skipping UI update');
+                        }
                     }
+                } else {
+                    debugLog('No external data found in localStorage for key:', project.variables.Data);
                 }
             } catch (e) {
+                console.error('[Coaching] Error merging external data:', e);
                 debugLog('Error merging external data:', e);
             }
         } else if (project.variables && (project.variables.You_color || project.variables.You_pose !== undefined || project.variables.Other_pose !== undefined || project.variables.You_pose_flipped !== undefined || project.variables.Other_pose_flipped !== undefined)) {
             // If You_color, You_pose, Other_pose, You_pose_flipped, or Other_pose_flipped are directly in project.variables, use them for UI
+            
+            // Try to load additional data from forsideData if it exists (for tekst variable)
+            try {
+                const forsideData = localStorage.getItem('forsideData');
+                if (forsideData) {
+                    const parsed = JSON.parse(forsideData);
+                    if (parsed && typeof parsed === 'object' && parsed.tekst) {
+                        // Merge tekst into variables for engine
+                        variables.tekst = parsed.tekst;
+                        // Also add to project.variables for UI
+                        project.variables.tekst = parsed.tekst;
+                    }
+                }
+            } catch (e) {
+                // Ignore errors loading forsideData
+            }
+            
             loadExternalDataForUI(contentElement, project.variables);
         }
         
@@ -632,8 +910,44 @@ async function startCoachingSession(contentElement, dataSource) {
         // Set session as active
         window.coachingActive = true;
         
+        // Ensure client name is updated from variables if available
+        if (variables.You) {
+            const clientName = contentElement.querySelector('#clientName');
+            if (clientName) {
+                clientName.textContent = variables.You;
+                debugLog('Updated client name from variables after engine start:', variables.You);
+            } else {
+                debugLog('clientName element not found after engine start');
+            }
+        }
+        
         // Show the first question
         showCoachingQuestion(contentElement, currentQuestion);
+        
+        // Ensure client name is updated again after showing question (in case it was overwritten)
+        if (variables.You) {
+            setTimeout(() => {
+                const clientName = contentElement.querySelector('#clientName');
+                if (clientName) {
+                    clientName.textContent = variables.You;
+                    debugLog('Updated client name from variables after showing question:', variables.You);
+                } else {
+                    debugLog('clientName element not found after showing question');
+                }
+            }, 50);
+            
+            // Also try again after a longer delay
+            setTimeout(() => {
+                const clientName = contentElement.querySelector('#clientName');
+                if (clientName) {
+                    clientName.textContent = variables.You;
+                    debugLog('Updated client name from variables after longer delay:', variables.You);
+                } else {
+                    debugLog('clientName element not found after longer delay');
+                }
+            }, 500);
+        }
+        
         
         // Set up event listeners
         setupCoachingEventListeners(contentElement);
@@ -657,6 +971,27 @@ function loadExternalDataForUI(contentElement, loaded) {
             const clientName = contentElement.querySelector('#clientName');
             if (clientName) {
                 clientName.textContent = loaded.You;
+                debugLog('Updated client name to:', loaded.You);
+            } else {
+                // Try again after a short delay in case DOM isn't ready
+                setTimeout(() => {
+                    const retryClientName = contentElement.querySelector('#clientName');
+                    if (retryClientName) {
+                        retryClientName.textContent = loaded.You;
+                        debugLog('Updated client name on retry to:', loaded.You);
+                    } else {
+                        // Try one more time with longer delay
+                        setTimeout(() => {
+                            const retry2ClientName = contentElement.querySelector('#clientName');
+                            if (retry2ClientName) {
+                                retry2ClientName.textContent = loaded.You;
+                                debugLog('Updated client name on second retry to:', loaded.You);
+                            } else {
+                                debugLog('clientName element still not found after second retry');
+                            }
+                        }, 200);
+                    }
+                }, 100);
             }
         }
         
@@ -667,11 +1002,10 @@ function loadExternalDataForUI(contentElement, loaded) {
             window.popupClientColor = loaded.You_color;
         }
         
-        // Apply pose if available
+        // Apply pose if available - store for later application
         if (loaded.You_pose !== undefined) {
-            debugLog('Setting client pose to:', loaded.You_pose);
             // Store pose for later use when poseLibrary is loaded
-            window.pendingClientPose = loaded.You_pose;
+            window.clientPoseToApply = loaded.You_pose;
         }
         
         // Apply client flipped if available
@@ -697,20 +1031,24 @@ function loadExternalDataForUI(contentElement, loaded) {
         
         // Store loaded data globally for use in coaching engine
         window.loadedExternalData = loaded;
+        debugLog('Stored loadedExternalData globally:', window.loadedExternalData);
         
         // Update colors BEFORE showing client figure
         updatePopupColors(contentElement);
         debugLog('Updated colors before showing client');
         
-        // Wait for poseLibrary to be loaded before applying poses
-        setTimeout(() => {
-            // Ensure poseLibrary is available globally
-            if (typeof poseLibrary !== 'undefined' && !window.poseLibrary) {
-                window.poseLibrary = poseLibrary;
-                debugLog('Set window.poseLibrary from global poseLibrary');
-            }
-            waitForPoseLibraryAndApplyPoses();
-        }, 100);
+        // Ensure client name is updated with a delay to ensure DOM is ready
+        if (loaded.You) {
+            setTimeout(() => {
+                const delayedClientName = contentElement.querySelector('#clientName');
+                if (delayedClientName) {
+                    delayedClientName.textContent = loaded.You;
+                    debugLog('Updated client name with delay to:', loaded.You);
+                } else {
+                    debugLog('clientName element not found even with delay');
+                }
+            }, 300);
+        }
         
         // Show client figure after colors are set
         const clientCircle = contentElement.querySelector('#clientCircle');
@@ -721,10 +1059,9 @@ function loadExternalDataForUI(contentElement, loaded) {
             debugLog('Showed client figure with correct colors');
         }
         
-        // Apply client pose if pending
-        if (window.pendingClientPose !== undefined && window.pendingClientPose !== null) {
-            applyPendingPose();
-            debugLog('Applied client pose after colors are set');
+        // Apply client pose if available - wait for poseLibrary and clientCircle to be ready
+        if (window.clientPoseToApply !== undefined) {
+            waitForPoseAndApply();
         }
         
     } catch (e) {
@@ -861,13 +1198,14 @@ function applyPose(side, poseIndex) {
     // Only search within overlay, not on main page
     if (!circle) {
         const overlay = document.getElementById('coachingOverlay');
-        if (overlay) circle = overlay.querySelector('#' + side + 'Circle');
+        if (overlay) {
+            circle = overlay.querySelector('#' + side + 'Circle');
+        }
     }
     
     if (!circle) {
+        console.error('[Coaching] No circle found for side:', side);
         debugLog('No circle found for side:', side);
-        debugLog('Available elements with Circle:', document.querySelectorAll('#coachingOverlay [id*="Circle"]'));
-        debugLog('Available elements in overlay:', document.querySelectorAll('#coachingOverlay [id*="Circle"]'));
         return;
     }
     
@@ -929,7 +1267,8 @@ function applyPose(side, poseIndex) {
     const pose = poseLib[poseIndex];
     debugLog('Found pose at index', poseIndex, ':', pose);
     if (!pose) {
-        debugLog('No pose found at index:', poseIndex, 'Available poses:', poseLib.map(p => p.name));
+        console.error('[Coaching] No pose found at index:', poseIndex);
+        debugLog('No pose found at index:', poseIndex);
         return;
     }
     
@@ -1209,6 +1548,47 @@ function darkenColor(color, factor) {
 }
 
 /**
+ * Wait for poseLibrary and clientCircle, then apply client pose
+ * Simple: wait → apply once → done
+ */
+function waitForPoseAndApply() {
+    if (window.clientPoseToApply === undefined) {
+        return;
+    }
+    
+    let attempts = 0;
+    const maxAttempts = 20; // 2 seconds max
+    
+    const checkAndApply = () => {
+        attempts++;
+        
+        // Check poseLibrary
+        let poseLib = window.poseLibrary;
+        if (!poseLib && typeof poseLibrary !== 'undefined') {
+            poseLib = poseLibrary;
+            window.poseLibrary = poseLibrary;
+        }
+        
+        // Check clientCircle in shadow DOM
+        const root = (coachingOverlay && coachingOverlay.content && coachingOverlay.content.shadowRoot)
+            ? coachingOverlay.content.shadowRoot
+            : null;
+        const clientCircle = root ? root.querySelector('#clientCircle') : null;
+        
+        if (poseLib && poseLib.length > 0 && clientCircle && window.clientPoseToApply !== undefined) {
+            applyPose('client', window.clientPoseToApply);
+            window.clientPoseToApply = undefined;
+        } else if (attempts >= maxAttempts) {
+            console.error('[Coaching] Timeout waiting for poseLibrary or clientCircle');
+        } else {
+            setTimeout(checkAndApply, 100);
+        }
+    };
+    
+    checkAndApply();
+}
+
+/**
  * Wait for poseLibrary to be loaded and then apply poses
  */
 function waitForPoseLibraryAndApplyPoses() {
@@ -1240,11 +1620,8 @@ function waitForPoseLibraryAndApplyPoses() {
                 debugLog('Set coach to tænke pose (index 2)');
             }
             
-            // Apply client pose if pending (but don't hide client again)
-            if (window.pendingClientPose !== undefined && window.pendingClientPose !== null) {
-                applyPose('client', window.pendingClientPose);
-                debugLog('Applied pending client pose');
-            }
+            // DON'T apply client pose here - it's handled by waitForPoseAndApply()
+            // This function is only for coach pose
             
             // Apply flipped states after poses are applied
             const coachCircle = document.querySelector('#coachingOverlay #coachCircle') || 
@@ -1350,88 +1727,9 @@ function waitForPoseLibraryAndApplyCoachPose(poseName) {
     checkPoseLibrary();
 }
 
-/**
- * Wait for poseLibrary and apply client pose
- */
-function waitForPoseLibraryAndApplyClientPose(poseIndex) {
-    let attempts = 0;
-    const maxAttempts = 10; // 1 second max
-    
-    const checkPoseLibrary = () => {
-        attempts++;
-        debugLog('Checking for poseLibrary for client pose, attempt:', attempts);
-        
-        let poseLib = window.poseLibrary;
-        if (!poseLib && typeof poseLibrary !== 'undefined') {
-            poseLib = poseLibrary;
-            window.poseLibrary = poseLibrary;
-        }
-        if (poseLib && poseLib.length > 0) {
-            debugLog('poseLibrary loaded! Applying client pose:', poseIndex);
-            // Ensure standard (0) maps to an existing pose, fallback to 0
-            let finalIndex = poseIndex;
-            if (typeof finalIndex === 'number') {
-                if (finalIndex < 0 || finalIndex >= poseLib.length || !poseLib[finalIndex]) {
-                    finalIndex = 0;
-                }
-            }
-            applyPose('client', finalIndex);
-            debugLog('Applied client pose:', poseIndex);
-            
-            // Re-apply flipped state after pose is applied
-            const clientCircle = document.querySelector('#coachingOverlay #clientCircle') || 
-                               (coachingOverlay && coachingOverlay.content && coachingOverlay.content.shadowRoot && 
-                                coachingOverlay.content.shadowRoot.querySelector('#clientCircle'));
-            if (clientCircle && window.pendingClientFlipped !== undefined) {
-                applyFlipped('client', clientCircle);
-            }
-            
-        } else if (attempts >= maxAttempts) {
-            debugLog('Timeout waiting for poseLibrary for client pose');
-        } else {
-            setTimeout(checkPoseLibrary, 100);
-        }
-    };
-    
-    checkPoseLibrary();
-}
+// Removed waitForPoseLibraryAndApplyClientPose - now using waitForPoseAndApply() instead
 
-/**
- * Apply pending client pose
- */
-function applyPendingPose() {
-    if (window.pendingClientPose === undefined || window.pendingClientPose === null) return;
-    
-    try {
-        let poseIndex = window.pendingClientPose;
-        if (typeof window.pendingClientPose === 'string') {
-            // Try to find pose by name in poseLibrary
-            if (window.poseLibrary) {
-                const foundIndex = window.poseLibrary.findIndex(p => p && p.name === window.pendingClientPose);
-                if (foundIndex !== -1) {
-                    poseIndex = foundIndex;
-                } else {
-                    poseIndex = 0; // standard pose
-                }
-            }
-        }
-        // If numeric but invalid, coerce to 0
-        if (typeof poseIndex === 'number') {
-            if (!window.poseLibrary || !Array.isArray(window.poseLibrary) || poseIndex < 0 || poseIndex >= window.poseLibrary.length) {
-                poseIndex = 0;
-            }
-        }
-        
-        // Apply pose if poseLibrary is loaded
-        waitForPoseLibraryAndApplyClientPose(poseIndex);
-        
-        // Clear pending pose
-        window.pendingClientPose = null;
-        
-    } catch (e) {
-        debugLog('Error applying pending pose:', e);
-    }
-}
+// Removed applyPendingPose - now using waitForPoseAndApply() instead
 
 /**
  * Show coaching question
@@ -2301,6 +2599,53 @@ window.closeCoachingOverlay = closeCoachingOverlay;
 window.openCoachingOverlayFromStorage = openCoachingOverlay;
 window.openCoachingOverlayFromURL = openCoachingOverlay;
 window.openCoachingOverlayFromFile = openCoachingOverlay;
+
+// Debug function to manually set client pose
+window.debugSetClientPose = function(poseIndex) {
+    console.log('[Debug] Setting client pose to:', poseIndex);
+    const root = (coachingOverlay && coachingOverlay.content && coachingOverlay.content.shadowRoot)
+        ? coachingOverlay.content.shadowRoot
+        : null;
+    if (!root) {
+        console.error('[Debug] Shadow root not found');
+        return;
+    }
+    const clientCircle = root.querySelector('#clientCircle');
+    if (!clientCircle) {
+        console.error('[Debug] clientCircle not found');
+        return;
+    }
+    console.log('[Debug] Found clientCircle, applying pose:', poseIndex);
+    applyPose('client', poseIndex);
+    console.log('[Debug] Applied pose:', poseIndex);
+};
+
+// Debug function to check current pose state
+window.debugCheckPose = function() {
+    console.log('[Debug] Current pose state:');
+    console.log('[Debug] clientPoseToApply:', window.clientPoseToApply);
+    console.log('[Debug] poseLibrary available:', !!window.poseLibrary, 'length:', window.poseLibrary ? window.poseLibrary.length : 0);
+    if (window.poseLibrary && window.poseLibrary.length > 0) {
+        console.log('[Debug] Available poses:', window.poseLibrary.map((p, i) => `${i}: ${p.name}`));
+    }
+    const root = (coachingOverlay && coachingOverlay.content && coachingOverlay.content.shadowRoot)
+        ? coachingOverlay.content.shadowRoot
+        : null;
+    if (root) {
+        const clientCircle = root.querySelector('#clientCircle');
+        console.log('[Debug] clientCircle found:', !!clientCircle);
+        if (clientCircle) {
+            const skulderLeft = clientCircle.querySelector('.skulder_translate_left');
+            const skulderRight = clientCircle.querySelector('.skulder_translate_right');
+            const skulderRotLeft = clientCircle.querySelector('.skulder_rotate_left');
+            const skulderRotRight = clientCircle.querySelector('.skulder_rotate_right');
+            console.log('[Debug] skulderLeft transform:', skulderLeft ? skulderLeft.style.transform : 'not found');
+            console.log('[Debug] skulderRight transform:', skulderRight ? skulderRight.style.transform : 'not found');
+            console.log('[Debug] skulderRotLeft transform:', skulderRotLeft ? skulderRotLeft.style.transform : 'not found');
+            console.log('[Debug] skulderRotRight transform:', skulderRotRight ? skulderRotRight.style.transform : 'not found');
+        }
+    }
+};
 
 debugLog('Complete coaching overlay system loaded');
 

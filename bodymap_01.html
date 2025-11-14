@@ -283,10 +283,9 @@
             flex: 1;
             position: relative;
             background: #fafafa;
-            overflow: auto;
+            overflow: hidden;
             cursor: default;
-            touch-action: auto;
-            -webkit-overflow-scrolling: touch;
+            touch-action: none;
         }
         
         .history-sidebar {
@@ -3862,21 +3861,10 @@
             }
         }
         
-        // Close nav box when clicking outside
-        document.addEventListener('click', function(e) {
-            const navBox = document.getElementById('navBox');
-            const navToggleBtn = document.querySelector('.nav-toggle-btn');
-            
-            if (navBox && navBox.classList.contains('show')) {
-                if (!navBox.contains(e.target) && e.target !== navToggleBtn) {
-                    navBox.classList.remove('show');
-                }
-            }
-        });
-        
-        // Initialize navigation overlay on page load
+        // Initialize navigation overlay on page load - optimized with event delegation
         document.addEventListener('DOMContentLoaded', function() {
             const navBox = document.getElementById('navBox');
+            const navToggleBtn = document.querySelector('.nav-toggle-btn');
             
             if (navBox) {
                 // Mark current page as active
@@ -3887,7 +3875,29 @@
                         btn.classList.add('active');
                     }
                 });
+                
+                // Use event delegation for nav button clicks (only one listener instead of multiple)
+                navBox.addEventListener('click', function(e) {
+                    const navButton = e.target.closest('.nav-button');
+                    if (navButton) {
+                        e.stopPropagation();
+                        navBox.classList.remove('show');
+                        const href = navButton.getAttribute('href');
+                        if (href) {
+                            window.location.href = href;
+                        }
+                    }
+                });
             }
+            
+            // Close nav box when clicking outside - single listener
+            document.addEventListener('click', function(e) {
+                if (navBox && navBox.classList.contains('show')) {
+                    if (!navBox.contains(e.target) && e.target !== navToggleBtn && !navToggleBtn?.contains(e.target)) {
+                        navBox.classList.remove('show');
+                    }
+                }
+            });
         });
 
         document.addEventListener('keydown', (e) => {
