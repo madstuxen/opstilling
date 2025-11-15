@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Label Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+        
+        #workspace {
+            width: 100%;
+            height: 80vh;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .label-container {
+            position: absolute;
+            cursor: move;
+            z-index: 20;
+            transform-origin: center center;
+        }
+        
+        .label-input {
+            background: #e8dcc6;
+            border: none;
+            border-radius: 12px;
+            padding: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            width: 156px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            position: relative;
+            max-height: 260px;
+            overflow-y: auto;
+            cursor: move;
+        }
+        
+        .label-input.label-active {
+            border: 3px solid #a67c52;
+        }
+        
+        .label-input.label-active:hover .label-text-input,
+        .label-input.label-active.clicked .label-text-input {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 4px;
+            transition: background 0.2s ease;
+        }
+        
+        .label-text-input {
+            border: none;
+            background: transparent;
+            outline: none;
+            text-align: left;
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 0;
+            color: black;
+            font-family: 'Arial', sans-serif;
+            resize: none;
+            line-height: 1.2;
+            min-height: 64px;
+            field-sizing: content;
+            touch-action: manipulation;
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        .label-text-input.editing {
+            pointer-events: auto;
+            user-select: text;
+            cursor: text;
+        }
+        
+        .label-text-input:focus {
+            outline: none;
+        }
+        
+        .label-number {
+            color: black;
+            font-size: 16px;
+            font-weight: bold;
+            line-height: 1;
+            align-self: flex-end;
+        }
+        
+        .label-delete-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            opacity: 0;
+            pointer-events: none;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 16px;
+            line-height: 18px;
+            cursor: pointer;
+            padding: 0;
+            text-align: center;
+            transition: opacity 0.2s ease;
+            z-index: 1;
+        }
+        
+        .label-container:hover .label-delete-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .label-delete-btn:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <h1>Label Test</h1>
+    <p>Klik en gang for at aktivere, dobbeltklik for at redigere, eller træk for at flytte</p>
+    <div id="workspace"></div>
+
+    <script>
+        const workspace = document.getElementById('workspace');
+        
+        // Create a test label
+        const label = {
+            id: 1,
+            text: 'Test Label',
+            x: 200,
+            y: 200,
+            labelNumber: 1
+        };
+        
+        function createLabelElement() {
+            const container = document.createElement('div');
+            container.className = 'label-container';
+            container.dataset.labelId = label.id;
+            
+            const labelInput = document.createElement('div');
+            labelInput.className = 'label-input label-active';
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = 'label-text-input';
+            textarea.value = label.text;
+            textarea.placeholder = 'Skriv her';
+            
+            const numberSpan = document.createElement('span');
+            numberSpan.className = 'label-number';
+            numberSpan.textContent = label.labelNumber;
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'label-delete-btn';
+            deleteBtn.textContent = '×';
+            
+            labelInput.appendChild(textarea);
+            labelInput.appendChild(numberSpan);
+            labelInput.appendChild(deleteBtn);
+            container.appendChild(labelInput);
+            
+            // Position
+            container.style.left = label.x + 'px';
+            container.style.top = label.y + 'px';
+            
+            workspace.appendChild(container);
+            
+            // Get elements
+            const inputEl = container.querySelector('.label-text-input');
+            const deleteBtnEl = container.querySelector('.label-delete-btn');
+            
+            // Enable editing mode on textarea
+            const enableEditing = () => {
+                justEnabledEditing = true;
+                inputEl.classList.add('editing');
+                setTimeout(() => {
+                    inputEl.focus();
+                    inputEl.select();
+                    justEnabledEditing = false;
+                }, 10);
+            };
+            
+            // Disable editing mode on textarea
+            const disableEditing = () => {
+                inputEl.classList.remove('editing');
+                inputEl.blur();
+            };
+            
+            // Double-click to edit
+            let isDoubleClick = false;
+            let doubleClickTimer = null;
+            
+            container.addEventListener('dblclick', (e) => {
+                if (e.target === deleteBtnEl) return;
+                
+                console.log('Double-click detected');
+                
+                // Cancel click timer and mousedown delay
+                if (clickTimer) {
+                    clearTimeout(clickTimer);
+                    clickTimer = null;
+                }
+                if (mouseDownDelayTimer) {
+                    clearTimeout(mouseDownDelayTimer);
+                    mouseDownDelayTimer = null;
+                }
+                
+                isDoubleClick = true;
+                isLabelClicked = false;
+                const labelInputEl = container.querySelector('.label-input');
+                if (labelInputEl) {
+                    labelInputEl.classList.remove('clicked');
+                }
+                
+                e.stopPropagation();
+                e.preventDefault();
+                
+                // Small delay to ensure mousedown handlers have finished
+                setTimeout(() => {
+                    enableEditing();
+                }, 10);
+                
+                // Reset double-click flag after a short delay
+                if (doubleClickTimer) clearTimeout(doubleClickTimer);
+                doubleClickTimer = setTimeout(() => {
+                    isDoubleClick = false;
+                }, 300);
+            });
+            
+            // Blur textarea when clicking outside
+            let justEnabledEditing = false;
+            inputEl.addEventListener('blur', () => {
+                if (!justEnabledEditing) {
+                    disableEditing();
+                    isLabelClicked = false;
+                    const labelInputEl = container.querySelector('.label-input');
+                    if (labelInputEl) {
+                        labelInputEl.classList.remove('clicked');
+                    }
+                }
+                justEnabledEditing = false;
+            });
+            
+            // Remove clicked state when clicking outside label
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target)) {
+                    isLabelClicked = false;
+                    const labelInputEl = container.querySelector('.label-input');
+                    if (labelInputEl) {
+                        labelInputEl.classList.remove('clicked');
+                    }
+                }
+            });
+            
+            let isDragging = false;
+            let dragStartTime = 0;
+            let dragStartX = 0;
+            let dragStartY = 0;
+            let mouseDownTimer = null;
+            
+            // Touch state for mobile
+            let longPressTimer = null;
+            let touchStartTime = 0;
+            let lastTapTime = 0;
+            let tapCount = 0;
+            let tapTimer = null;
+            
+            // Delay for mousedown to allow dblclick to fire first
+            let mouseDownDelayTimer = null;
+            let clickTimer = null;
+            let isLabelClicked = false;
+            
+            // Single click to make label "ready" (show textarea lighter)
+            container.addEventListener('click', (e) => {
+                if (e.target === deleteBtnEl) return;
+                if (inputEl.classList.contains('editing')) return;
+                
+                console.log('Single click detected');
+                
+                // Clear any existing timer
+                if (clickTimer) clearTimeout(clickTimer);
+                
+                // Wait to see if it's a double-click
+                clickTimer = setTimeout(() => {
+                    if (!isDoubleClick) {
+                        console.log('Single click confirmed - making label ready');
+                        isLabelClicked = true;
+                        const labelInputEl = container.querySelector('.label-input');
+                        if (labelInputEl) {
+                            labelInputEl.classList.add('clicked');
+                        }
+                    }
+                }, 250);
+            });
+            
+            container.addEventListener('mousedown', (e) => {
+                console.log('mousedown', e.target);
+                // Don't drag when clicking on delete button or if editing
+                if (e.target === deleteBtnEl || inputEl.classList.contains('editing')) return;
+                // Don't start drag if double-clicking
+                if (isDoubleClick) {
+                    console.log('Ignoring mousedown - double click detected');
+                    isDoubleClick = false;
+                    return;
+                }
+                
+                // Clear any existing timer
+                if (mouseDownDelayTimer) clearTimeout(mouseDownDelayTimer);
+                
+                // Store initial values
+                dragStartTime = Date.now();
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                
+                // Wait a bit to see if dblclick fires before starting drag
+                mouseDownDelayTimer = setTimeout(() => {
+                    if (isDoubleClick) {
+                        console.log('mousedown delay cancelled - double click');
+                        isDoubleClick = false;
+                        return;
+                    }
+                    
+                    console.log('mousedown delay expired - starting drag setup');
+                    // Start drag logic
+                    const workspaceRect = workspace.getBoundingClientRect();
+                    const cursorX = e.clientX - workspaceRect.left;
+                    const cursorY = e.clientY - workspaceRect.top;
+                    const startX = cursorX - label.x;
+                    const startY = cursorY - label.y;
+                    
+                    let lastMouseX = dragStartX;
+                    let lastMouseY = dragStartY;
+                    
+                    const onMouseMove = (e) => {
+                        lastMouseX = e.clientX;
+                        lastMouseY = e.clientY;
+                        
+                        // Start dragging after small movement threshold
+                        const moveX = Math.abs(e.clientX - dragStartX);
+                        const moveY = Math.abs(e.clientY - dragStartY);
+                        if (!isDragging && (moveX > 3 || moveY > 3)) {
+                            console.log('Dragging started');
+                            isDragging = true;
+                            disableEditing();
+                            if (mouseDownTimer) {
+                                clearTimeout(mouseDownTimer);
+                                mouseDownTimer = null;
+                            }
+                        }
+                        if (!isDragging) return;
+                        // Convert cursor position to workspace coordinates
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        label.x = e.clientX - workspaceRect.left - startX;
+                        label.y = e.clientY - workspaceRect.top - startY;
+                        container.style.left = label.x + 'px';
+                        container.style.top = label.y + 'px';
+                        e.preventDefault();
+                    };
+                    
+                    const onMouseUp = (e) => {
+                        console.log('mouseup', isDragging);
+                        lastMouseX = e ? e.clientX : dragStartX;
+                        lastMouseY = e ? e.clientY : dragStartY;
+                        
+                        const wasDragging = isDragging;
+                        isDragging = false;
+                        if (mouseDownTimer) {
+                            clearTimeout(mouseDownTimer);
+                            mouseDownTimer = null;
+                        }
+                        if (mouseDownDelayTimer) {
+                            clearTimeout(mouseDownDelayTimer);
+                            mouseDownDelayTimer = null;
+                        }
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                        
+                        // Only update position if we were actually dragging
+                        if (wasDragging || (Math.abs(dragStartX - lastMouseX) > 3 || Math.abs(dragStartY - lastMouseY) > 3)) {
+                            console.log('Position updated');
+                        }
+                    };
+                    
+                    // Delay preventing default to allow click/dblclick events to fire
+                    mouseDownTimer = setTimeout(() => {
+                        if (!isDragging) {
+                            e.preventDefault();
+                        }
+                    }, 10);
+                    
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                }, 250); // Wait 250ms to see if dblclick fires
+            });
+            
+            // Touch support for mobile dragging and editing
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchDragging = false;
+            let touchStartPos = { x: 0, y: 0 };
+            let touchStartOffset = { x: 0, y: 0 };
+            
+            container.addEventListener('touchstart', (e) => {
+                console.log('touchstart', e.target);
+                // Only don't drag when clicking on delete button or if editing
+                if (e.target === deleteBtnEl || inputEl.classList.contains('editing')) return;
+                if (!e.touches || e.touches.length === 0) return;
+                
+                const t = e.touches[0];
+                touchStartTime = Date.now();
+                touchStartX = t.clientX;
+                touchStartY = t.clientY;
+                touchDragging = false;
+                
+                const workspaceRect = workspace.getBoundingClientRect();
+                const cursorX = t.clientX - workspaceRect.left;
+                const cursorY = t.clientY - workspaceRect.top;
+                touchStartPos = { x: cursorX, y: cursorY };
+                touchStartOffset = { x: cursorX - label.x, y: cursorY - label.y };
+                
+                // Start long press timer for editing
+                longPressTimer = setTimeout(() => {
+                    console.log('Long press detected');
+                    enableEditing();
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, 500);
+                
+                // Double tap detection
+                const currentTime = Date.now();
+                const timeDiff = currentTime - lastTapTime;
+                
+                if (timeDiff < 400 && timeDiff > 0) {
+                    tapCount++;
+                    if (tapCount === 2) {
+                        console.log('Double tap detected');
+                        clearTimeout(tapTimer);
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                        tapCount = 0;
+                        lastTapTime = 0;
+                        enableEditing();
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+                } else {
+                    tapCount = 1;
+                }
+                
+                lastTapTime = currentTime;
+                
+                // Reset tap count after delay
+                if (tapTimer) clearTimeout(tapTimer);
+                tapTimer = setTimeout(() => {
+                    if (tapCount === 1) {
+                        lastTapTime = 0;
+                    }
+                    tapCount = 0;
+                }, 400);
+                
+                const onTouchMove = (ev) => {
+                    const touch = ev.touches && ev.touches[0];
+                    if (!touch) return;
+                    
+                    // Cancel long press and tap timers if moving
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                    if (tapTimer) {
+                        clearTimeout(tapTimer);
+                        tapTimer = null;
+                        tapCount = 0;
+                    }
+                    
+                    // Start dragging after small movement threshold
+                    const moveX = Math.abs(touch.clientX - touchStartX);
+                    const moveY = Math.abs(touch.clientY - touchStartY);
+                    if (!touchDragging && (moveX > 5 || moveY > 5)) {
+                        console.log('Touch dragging started');
+                        touchDragging = true;
+                        disableEditing();
+                    }
+                    if (!touchDragging) return;
+                    
+                    // Convert cursor position to workspace coordinates
+                    const workspaceRect = workspace.getBoundingClientRect();
+                    label.x = touch.clientX - workspaceRect.left - touchStartOffset.x;
+                    label.y = touch.clientY - workspaceRect.top - touchStartOffset.y;
+                    container.style.left = label.x + 'px';
+                    container.style.top = label.y + 'px';
+                    ev.preventDefault();
+                };
+
+                const onTouchEnd = () => {
+                    console.log('touchend', touchDragging);
+                    touchDragging = false;
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                    document.removeEventListener('touchmove', onTouchMove, { passive: false });
+                    document.removeEventListener('touchend', onTouchEnd);
+                };
+
+                document.addEventListener('touchmove', onTouchMove, { passive: false });
+                document.addEventListener('touchend', onTouchEnd);
+            }, { passive: false });
+            
+            // Delete button
+            deleteBtnEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                container.remove();
+            });
+            
+            // Update text on input
+            inputEl.addEventListener('input', () => {
+                label.text = inputEl.value;
+                console.log('Text updated:', label.text);
+            });
+        }
+        
+        // Initialize
+        createLabelElement();
+    </script>
+</body>
+</html>
+
