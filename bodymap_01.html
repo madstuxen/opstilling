@@ -3293,15 +3293,19 @@
                     });
                 }
                 
-                // State for pointer events
+                // State
                 let isEditing = false;
                 let isDragging = false;
                 let pointerDownTime = 0;
                 let pointerDownX = 0;
                 let pointerDownY = 0;
-                let hasMoved = false;
                 let dragStartX = 0;
                 let dragStartY = 0;
+                
+                // Double-tap detection for touch
+                let lastTapTime = 0;
+                let tapCount = 0;
+                let tapTimer = null;
                 
                 // Enable editing mode on textarea
                 const enableEditing = () => {
@@ -3339,40 +3343,75 @@
                     }
                 });
                 
-                // Animation frame for smooth dragging
-                let animationFrameId = null;
+                // Double-click to edit (desktop)
+                container.addEventListener('dblclick', (e) => {
+                    if (e.target === deleteBtn) return;
+                    if (isEditing && e.target === inputEl) return;
+                    
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    enableEditing();
+                });
                 
-                // UNIFIED POINTER EVENTS (works for mouse, touch, pen)
+                // DRAG with pointer events
                 container.addEventListener('pointerdown', (e) => {
                     if (e.target === deleteBtn) return;
                     if (isEditing && e.target === inputEl) return;
                     
-                    // Prevent default on touch to stop scrolling on mobile
+                    // Prevent default on touch to stop scrolling
                     if (e.pointerType === 'touch') {
                         e.preventDefault();
                     }
                     
-                    // Capture pointer for consistent events
+                    // Capture pointer
                     container.setPointerCapture(e.pointerId);
                     
                     pointerDownTime = Date.now();
                     pointerDownX = e.clientX;
                     pointerDownY = e.clientY;
-                    hasMoved = false;
                     isDragging = false;
                     
                     const workspaceRect = workspace.getBoundingClientRect();
                     dragStartX = e.clientX - workspaceRect.left + workspace.scrollLeft - label.x;
                     dragStartY = e.clientY - workspaceRect.top + workspace.scrollTop - label.y;
+                    
+                    // Double-tap detection for touch
+                    if (e.pointerType === 'touch') {
+                        const currentTime = Date.now();
+                        const timeDiff = currentTime - lastTapTime;
+                        
+                        if (timeDiff < 400 && timeDiff > 0) {
+                            tapCount++;
+                            if (tapCount === 2) {
+                                // Double tap - enable editing
+                                clearTimeout(tapTimer);
+                                tapCount = 0;
+                                lastTapTime = 0;
+                                enableEditing();
+                                e.preventDefault();
+                                e.stopPropagation();
+                                container.releasePointerCapture(e.pointerId);
+                                pointerDownTime = 0;
+                                return;
+                            }
+                        } else {
+                            tapCount = 1;
+                        }
+                        
+                        lastTapTime = currentTime;
+                        
+                        if (tapTimer) clearTimeout(tapTimer);
+                        tapTimer = setTimeout(() => {
+                            tapCount = 0;
+                            lastTapTime = 0;
+                        }, 400);
+                    }
                 });
                 
                 container.addEventListener('pointermove', (e) => {
                     if (pointerDownTime === 0) return;
-                    
-                    // Always prevent default when dragging to stop page scroll
-                    if (isDragging || e.pointerType === 'touch') {
-                        e.preventDefault();
-                    }
+                    if (isEditing) return;
                     
                     const moveDistance = Math.sqrt(
                         Math.pow(e.clientX - pointerDownX, 2) + 
@@ -3381,62 +3420,50 @@
                     
                     // Start dragging if moved more than 5px
                     if (moveDistance > 5 && !isDragging) {
-                        hasMoved = true;
                         isDragging = true;
                         disableEditing();
+                        
+                        // Cancel tap timer if moving
+                        if (tapTimer) {
+                            clearTimeout(tapTimer);
+                            tapTimer = null;
+                            tapCount = 0;
+                        }
                     }
                     
                     if (isDragging) {
-                        // Store current coordinates before requestAnimationFrame
-                        const currentX = e.clientX;
-                        const currentY = e.clientY;
+                        // Prevent default to stop scrolling
+                        e.preventDefault();
                         
-                        // Cancel any pending animation frame
-                        if (animationFrameId) {
-                            cancelAnimationFrame(animationFrameId);
-                        }
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - dragStartX;
+                        label.y = e.clientY - workspaceRect.top + workspace.scrollTop - dragStartY;
+                        const guideCenterDuringDrag = getGuideCenter(workspace);
+                        label.offsetX = label.x - guideCenterDuringDrag.x;
+                        label.offsetY = label.y - guideCenterDuringDrag.y;
+                        container.style.left = label.x + 'px';
+                        container.style.top = label.y + 'px';
                         
-                        // Use requestAnimationFrame for smooth updates
-                        animationFrameId = requestAnimationFrame(() => {
-                            const workspaceRect = workspace.getBoundingClientRect();
-                            label.x = currentX - workspaceRect.left + workspace.scrollLeft - dragStartX;
-                            label.y = currentY - workspaceRect.top + workspace.scrollTop - dragStartY;
-                            const guideCenterDuringDrag = getGuideCenter(workspace);
-                            label.offsetX = label.x - guideCenterDuringDrag.x;
-                            label.offsetY = label.y - guideCenterDuringDrag.y;
-                            container.style.left = label.x + 'px';
-                            container.style.top = label.y + 'px';
-                            
-                            // Update line if it exists
-                            const svgContainer = workspace.querySelector('#labelLinesSvg');
-                            if (svgContainer) {
-                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
-                                if (svgLine) {
-                                    svgLine.setAttribute('x1', label.x + offsetX);
-                                    svgLine.setAttribute('y1', label.y + offsetY);
-                                }
+                        // Update line if it exists
+                        const svgContainer = workspace.querySelector('#labelLinesSvg');
+                        if (svgContainer) {
+                            const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                            if (svgLine) {
+                                svgLine.setAttribute('x1', label.x + offsetX);
+                                svgLine.setAttribute('y1', label.y + offsetY);
                             }
-                        });
+                        }
                     }
                 });
                 
                 container.addEventListener('pointerup', (e) => {
                     if (pointerDownTime === 0) return;
                     
-                    // Cancel any pending animation frame
-                    if (animationFrameId) {
-                        cancelAnimationFrame(animationFrameId);
-                        animationFrameId = null;
-                    }
-                    
                     // Release pointer capture
                     container.releasePointerCapture(e.pointerId);
                     
-                    // If didn't move = enable editing
-                    if (!hasMoved && !isDragging) {
-                        enableEditing();
-                    } else if (isDragging) {
-                        // Update all labels with the same text across all indexes to match the new position
+                    if (isDragging) {
+                        // Update all labels with the same text across all indexes
                         relevantIndexes.forEach(idx => {
                             idx.labels.forEach(lab => {
                                 if (lab.text === label.text && lab.id !== label.id) {
@@ -3448,7 +3475,6 @@
                             });
                         });
                         
-                        // Re-render workspace to show updated positions
                         renderWorkspace();
                         saveToLocalStorage();
                     }
@@ -3456,21 +3482,17 @@
                     // Reset state
                     pointerDownTime = 0;
                     isDragging = false;
-                    hasMoved = false;
                 });
                 
-                // Cancel on pointer cancel (e.g., gesture interrupted)
                 container.addEventListener('pointercancel', (e) => {
-                    // Cancel any pending animation frame
-                    if (animationFrameId) {
-                        cancelAnimationFrame(animationFrameId);
-                        animationFrameId = null;
-                    }
-                    
                     container.releasePointerCapture(e.pointerId);
                     pointerDownTime = 0;
                     isDragging = false;
-                    hasMoved = false;
+                    if (tapTimer) {
+                        clearTimeout(tapTimer);
+                        tapTimer = null;
+                        tapCount = 0;
+                    }
                 });
             } else {
                 // Make read-only for onion layers
