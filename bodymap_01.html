@@ -3296,6 +3296,13 @@
                 
                 container.addEventListener('dblclick', (e) => {
                     if (e.target === deleteBtn) return;
+                    
+                    // Cancel mousedown delay
+                    if (mouseDownDelayTimer) {
+                        clearTimeout(mouseDownDelayTimer);
+                        mouseDownDelayTimer = null;
+                    }
+                    
                     isDoubleClick = true;
                     enableEditing();
                     e.stopPropagation();
@@ -3326,6 +3333,9 @@
                 let tapCount = 0;
                 let tapTimer = null;
                 
+                // Delay for mousedown to allow dblclick to fire first
+                let mouseDownDelayTimer = null;
+                
                 container.addEventListener('mousedown', (e) => {
                     // Don't drag when clicking on delete button or if editing
                     if (e.target === deleteBtn || inputEl.classList.contains('editing')) return;
@@ -3335,100 +3345,116 @@
                         return;
                     }
                     
+                    // Clear any existing timer
+                    if (mouseDownDelayTimer) clearTimeout(mouseDownDelayTimer);
+                    
+                    // Store initial values
                     dragStartTime = Date.now();
                     dragStartX = e.clientX;
                     dragStartY = e.clientY;
                     
-                    const workspaceRect = workspace.getBoundingClientRect();
-                    const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
-                    const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
-                    const startX = cursorX - label.x;
-                    const startY = cursorY - label.y;
-                    
-                    let lastMouseX = dragStartX;
-                    let lastMouseY = dragStartY;
-                    
-                    const onMouseMove = (e) => {
-                        lastMouseX = e.clientX;
-                        lastMouseY = e.clientY;
+                    // Wait a bit to see if dblclick fires before starting drag
+                    mouseDownDelayTimer = setTimeout(() => {
+                        if (isDoubleClick) {
+                            isDoubleClick = false;
+                            return;
+                        }
                         
-                        // Start dragging after small movement threshold
-                        const moveX = Math.abs(e.clientX - dragStartX);
-                        const moveY = Math.abs(e.clientY - dragStartY);
-                        if (!isDragging && (moveX > 3 || moveY > 3)) {
-                            isDragging = true;
-                            disableEditing(); // Cancel editing if dragging
-                            // Only prevent default once dragging actually starts
+                        // Start drag logic
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
+                        const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
+                        const startX = cursorX - label.x;
+                        const startY = cursorY - label.y;
+                        
+                        let lastMouseX = dragStartX;
+                        let lastMouseY = dragStartY;
+                        
+                        const onMouseMove = (e) => {
+                            lastMouseX = e.clientX;
+                            lastMouseY = e.clientY;
+                            
+                            // Start dragging after small movement threshold
+                            const moveX = Math.abs(e.clientX - dragStartX);
+                            const moveY = Math.abs(e.clientY - dragStartY);
+                            if (!isDragging && (moveX > 3 || moveY > 3)) {
+                                isDragging = true;
+                                disableEditing(); // Cancel editing if dragging
+                                if (mouseDownTimer) {
+                                    clearTimeout(mouseDownTimer);
+                                    mouseDownTimer = null;
+                                }
+                            }
+                            if (!isDragging) return;
+                            // Convert cursor position to workspace coordinates
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - startX;
+                            label.y = e.clientY - workspaceRect.top + workspace.scrollTop - startY;
+                            const guideCenterDuringDrag = getGuideCenter(workspace);
+                            label.offsetX = label.x - guideCenterDuringDrag.x;
+                            label.offsetY = label.y - guideCenterDuringDrag.y;
+                            container.style.left = label.x + 'px';
+                            container.style.top = label.y + 'px';
+                            
+                            // Update line if it exists
+                            const svgContainer = workspace.querySelector('#labelLinesSvg');
+                            if (svgContainer) {
+                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                                if (svgLine) {
+                                    svgLine.setAttribute('x1', label.x + offsetX);
+                                    svgLine.setAttribute('y1', label.y + offsetY);
+                                }
+                            }
+                            e.preventDefault();
+                        };
+                        
+                        const onMouseUp = (e) => {
+                            lastMouseX = e ? e.clientX : dragStartX;
+                            lastMouseY = e ? e.clientY : dragStartY;
+                            
+                            const wasDragging = isDragging;
+                            isDragging = false;
                             if (mouseDownTimer) {
                                 clearTimeout(mouseDownTimer);
                                 mouseDownTimer = null;
                             }
-                        }
-                        if (!isDragging) return;
-                        // Convert cursor position to workspace coordinates
-                        const workspaceRect = workspace.getBoundingClientRect();
-                        label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - startX;
-                        label.y = e.clientY - workspaceRect.top + workspace.scrollTop - startY;
-                        const guideCenterDuringDrag = getGuideCenter(workspace);
-                        label.offsetX = label.x - guideCenterDuringDrag.x;
-                        label.offsetY = label.y - guideCenterDuringDrag.y;
-                        container.style.left = label.x + 'px';
-                        container.style.top = label.y + 'px';
-                        
-                        // Update line if it exists
-                        const svgContainer = workspace.querySelector('#labelLinesSvg');
-                        if (svgContainer) {
-                            const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
-                            if (svgLine) {
-                                svgLine.setAttribute('x1', label.x + offsetX);
-                                svgLine.setAttribute('y1', label.y + offsetY);
+                            if (mouseDownDelayTimer) {
+                                clearTimeout(mouseDownDelayTimer);
+                                mouseDownDelayTimer = null;
                             }
-                        }
-                        e.preventDefault();
-                    };
-                    
-                    const onMouseUp = (e) => {
-                        lastMouseX = e ? e.clientX : dragStartX;
-                        lastMouseY = e ? e.clientY : dragStartY;
-                        
-                        const wasDragging = isDragging;
-                        isDragging = false;
-                        if (mouseDownTimer) {
-                            clearTimeout(mouseDownTimer);
-                            mouseDownTimer = null;
-                        }
-                        document.removeEventListener('mousemove', onMouseMove);
-                        document.removeEventListener('mouseup', onMouseUp);
-                        
-                        // Only update position if we were actually dragging
-                        if (wasDragging || (Math.abs(dragStartX - lastMouseX) > 3 || Math.abs(dragStartY - lastMouseY) > 3)) {
-                            // Update all labels with the same text across all indexes to match the new position
-                            relevantIndexes.forEach(idx => {
-                                idx.labels.forEach(lab => {
-                                    if (lab.text === label.text && lab.id !== label.id) {
-                                        lab.x = label.x;
-                                        lab.y = label.y;
-                                        lab.offsetX = label.offsetX;
-                                        lab.offsetY = label.offsetY;
-                                    }
-                                });
-                            });
+                            document.removeEventListener('mousemove', onMouseMove);
+                            document.removeEventListener('mouseup', onMouseUp);
                             
-                            // Re-render workspace to show updated positions
-                            renderWorkspace();
-                            saveToLocalStorage();
-                        }
-                    };
-                    
-                    // Delay preventing default to allow click/dblclick events to fire
-                    mouseDownTimer = setTimeout(() => {
-                        if (!isDragging) {
-                            e.preventDefault();
-                        }
-                    }, 10);
-                    
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
+                            // Only update position if we were actually dragging
+                            if (wasDragging || (Math.abs(dragStartX - lastMouseX) > 3 || Math.abs(dragStartY - lastMouseY) > 3)) {
+                                // Update all labels with the same text across all indexes to match the new position
+                                relevantIndexes.forEach(idx => {
+                                    idx.labels.forEach(lab => {
+                                        if (lab.text === label.text && lab.id !== label.id) {
+                                            lab.x = label.x;
+                                            lab.y = label.y;
+                                            lab.offsetX = label.offsetX;
+                                            lab.offsetY = label.offsetY;
+                                        }
+                                    });
+                                });
+                                
+                                // Re-render workspace to show updated positions
+                                renderWorkspace();
+                                saveToLocalStorage();
+                            }
+                        };
+                        
+                        // Delay preventing default to allow click/dblclick events to fire
+                        mouseDownTimer = setTimeout(() => {
+                            if (!isDragging) {
+                                e.preventDefault();
+                            }
+                        }, 10);
+                        
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('mouseup', onMouseUp);
+                    }, 250); // Wait 250ms to see if dblclick fires
                 });
 
                 // Touch support for mobile dragging and editing
@@ -3462,21 +3488,24 @@
                         e.stopPropagation();
                     }, 500); // 500ms for long press
                     
-                    // Double tap detection
+                    // Double tap detection - check before starting drag
                     const currentTime = Date.now();
                     const timeDiff = currentTime - lastTapTime;
                     
-                    if (timeDiff < 300 && timeDiff > 0) {
+                    if (timeDiff < 400 && timeDiff > 0) {
                         // Double tap detected
                         tapCount++;
                         if (tapCount === 2) {
+                            // Cancel long press and tap timer
                             clearTimeout(tapTimer);
                             clearTimeout(longPressTimer);
                             longPressTimer = null;
                             tapCount = 0;
+                            lastTapTime = 0;
                             enableEditing();
                             e.preventDefault();
                             e.stopPropagation();
+                            // Don't start drag if double tap
                             return;
                         }
                     } else {
@@ -3488,8 +3517,11 @@
                     // Reset tap count after delay
                     if (tapTimer) clearTimeout(tapTimer);
                     tapTimer = setTimeout(() => {
+                        if (tapCount === 1) {
+                            lastTapTime = 0;
+                        }
                         tapCount = 0;
-                    }, 300);
+                    }, 400);
 
                     const onTouchMove = (ev) => {
                         const touch = ev.touches && ev.touches[0];
