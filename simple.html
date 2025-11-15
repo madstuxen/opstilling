@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simplified Label Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f0f0f0;
+            padding: 20px;
+            -webkit-text-size-adjust: none;
+            touch-action: manipulation;
+        }
+        
+        #workspace {
+            width: 100%;
+            height: 80vh;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .label-container {
+            position: absolute;
+            cursor: move;
+            z-index: 20;
+            transform-origin: center center;
+            user-select: none;
+        }
+        
+        .label-input {
+            background: #e8dcc6;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            width: 156px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            position: relative;
+            transition: border-color 0.2s ease;
+        }
+        
+        .label-input.editing {
+            border-color: #a67c52;
+            cursor: default;
+        }
+        
+        .label-text-input {
+            border: none;
+            background: transparent;
+            outline: none;
+            text-align: left;
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 4px;
+            color: black;
+            font-family: 'Arial', sans-serif;
+            resize: none;
+            line-height: 1.2;
+            min-height: 64px;
+            field-sizing: content;
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+            pointer-events: none;
+            user-select: none;
+            cursor: move;
+        }
+        
+        .label-text-input.editing {
+            pointer-events: auto;
+            user-select: text;
+            cursor: text;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        
+        .label-text-input:focus {
+            outline: none;
+        }
+        
+        .label-number {
+            color: black;
+            font-size: 16px;
+            font-weight: bold;
+            line-height: 1;
+            align-self: flex-end;
+        }
+        
+        .label-delete-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            opacity: 0;
+            pointer-events: none;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 16px;
+            line-height: 18px;
+            cursor: pointer;
+            padding: 0;
+            text-align: center;
+            transition: opacity 0.2s ease;
+            z-index: 1;
+        }
+        
+        .label-container:hover .label-delete-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .label-delete-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simplified Label Test</h1>
+    <p><strong>Desktop:</strong> Klik for at redigere, træk for at flytte<br>
+    <strong>Mobile:</strong> Tap for at redigere, hold og træk for at flytte</p>
+    <div id="workspace"></div>
+
+    <script>
+        const workspace = document.getElementById('workspace');
+        const isMobile = 'ontouchstart' in window;
+        
+        // Create a test label
+        const label = {
+            id: 1,
+            text: 'Klik/tap for at redigere',
+            x: 200,
+            y: 200,
+            labelNumber: 1
+        };
+        
+        function createLabelElement() {
+            const container = document.createElement('div');
+            container.className = 'label-container';
+            container.dataset.labelId = label.id;
+            
+            const labelInput = document.createElement('div');
+            labelInput.className = 'label-input';
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = 'label-text-input';
+            textarea.value = label.text;
+            textarea.placeholder = 'Skriv her';
+            
+            const numberSpan = document.createElement('span');
+            numberSpan.className = 'label-number';
+            numberSpan.textContent = label.labelNumber;
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'label-delete-btn';
+            deleteBtn.textContent = '×';
+            deleteBtn.title = 'Slet';
+            
+            labelInput.appendChild(textarea);
+            labelInput.appendChild(numberSpan);
+            labelInput.appendChild(deleteBtn);
+            container.appendChild(labelInput);
+            
+            // Position
+            container.style.left = label.x + 'px';
+            container.style.top = label.y + 'px';
+            
+            workspace.appendChild(container);
+            
+            // State
+            let isEditing = false;
+            let isDragging = false;
+            
+            // Enable editing
+            function enableEditing() {
+                if (isEditing) return;
+                isEditing = true;
+                textarea.classList.add('editing');
+                labelInput.classList.add('editing');
+                container.style.cursor = 'default';
+                setTimeout(() => {
+                    textarea.focus();
+                    textarea.select();
+                }, 10);
+            }
+            
+            // Disable editing
+            function disableEditing() {
+                if (!isEditing) return;
+                isEditing = false;
+                textarea.classList.remove('editing');
+                labelInput.classList.remove('editing');
+                container.style.cursor = 'move';
+                textarea.blur();
+            }
+            
+            // Click outside to exit edit mode
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target) && isEditing) {
+                    disableEditing();
+                }
+            });
+            
+            // Update text
+            textarea.addEventListener('input', () => {
+                label.text = textarea.value;
+            });
+            
+            // Delete button
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                container.remove();
+            });
+            
+            // DESKTOP LOGIC
+            if (!isMobile) {
+                let mouseDownTime = 0;
+                let mouseDownX = 0;
+                let mouseDownY = 0;
+                let hasMoved = false;
+                
+                container.addEventListener('mousedown', (e) => {
+                    if (e.target === deleteBtn) return;
+                    if (isEditing && e.target === textarea) return;
+                    
+                    mouseDownTime = Date.now();
+                    mouseDownX = e.clientX;
+                    mouseDownY = e.clientY;
+                    hasMoved = false;
+                    isDragging = false;
+                    
+                    const workspaceRect = workspace.getBoundingClientRect();
+                    const startX = e.clientX - workspaceRect.left - label.x;
+                    const startY = e.clientY - workspaceRect.top - label.y;
+                    
+                    function onMouseMove(e) {
+                        const moveDistance = Math.sqrt(
+                            Math.pow(e.clientX - mouseDownX, 2) + 
+                            Math.pow(e.clientY - mouseDownY, 2)
+                        );
+                        
+                        if (moveDistance > 5) {
+                            hasMoved = true;
+                            isDragging = true;
+                            disableEditing();
+                            
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            label.x = e.clientX - workspaceRect.left - startX;
+                            label.y = e.clientY - workspaceRect.top - startY;
+                            container.style.left = label.x + 'px';
+                            container.style.top = label.y + 'px';
+                        }
+                        e.preventDefault();
+                    }
+                    
+                    function onMouseUp(e) {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                        
+                        // If didn't move and clicked quickly = enable editing
+                        if (!hasMoved && !isDragging) {
+                            enableEditing();
+                        }
+                        
+                        isDragging = false;
+                    }
+                    
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                    e.preventDefault();
+                });
+            }
+            
+            // MOBILE LOGIC
+            else {
+                let touchStartTime = 0;
+                let touchStartX = 0;
+                let touchStartY = 0;
+                let longPressTimer = null;
+                let hasMoved = false;
+                
+                container.addEventListener('touchstart', (e) => {
+                    if (e.target === deleteBtn) return;
+                    if (isEditing && e.target === textarea) return;
+                    if (!e.touches || e.touches.length === 0) return;
+                    
+                    const touch = e.touches[0];
+                    touchStartTime = Date.now();
+                    touchStartX = touch.clientX;
+                    touchStartY = touch.clientY;
+                    hasMoved = false;
+                    isDragging = false;
+                    
+                    const workspaceRect = workspace.getBoundingClientRect();
+                    const startX = touch.clientX - workspaceRect.left - label.x;
+                    const startY = touch.clientY - workspaceRect.top - label.y;
+                    
+                    // Long press = drag mode
+                    longPressTimer = setTimeout(() => {
+                        isDragging = true;
+                        disableEditing();
+                    }, 300);
+                    
+                    function onTouchMove(e) {
+                        if (!e.touches || e.touches.length === 0) return;
+                        const touch = e.touches[0];
+                        
+                        const moveDistance = Math.sqrt(
+                            Math.pow(touch.clientX - touchStartX, 2) + 
+                            Math.pow(touch.clientY - touchStartY, 2)
+                        );
+                        
+                        if (moveDistance > 5) {
+                            hasMoved = true;
+                            if (longPressTimer) {
+                                clearTimeout(longPressTimer);
+                                longPressTimer = null;
+                            }
+                            isDragging = true;
+                            disableEditing();
+                        }
+                        
+                        if (isDragging) {
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            label.x = touch.clientX - workspaceRect.left - startX;
+                            label.y = touch.clientY - workspaceRect.top - startY;
+                            container.style.left = label.x + 'px';
+                            container.style.top = label.y + 'px';
+                            e.preventDefault();
+                        }
+                    }
+                    
+                    function onTouchEnd(e) {
+                        if (longPressTimer) {
+                            clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                        }
+                        
+                        document.removeEventListener('touchmove', onTouchMove);
+                        document.removeEventListener('touchend', onTouchEnd);
+                        
+                        // If didn't move and was quick tap = enable editing
+                        if (!hasMoved && !isDragging) {
+                            enableEditing();
+                        }
+                        
+                        isDragging = false;
+                    }
+                    
+                    document.addEventListener('touchmove', onTouchMove, { passive: false });
+                    document.addEventListener('touchend', onTouchEnd);
+                }, { passive: false });
+            }
+        }
+        
+        // Initialize
+        createLabelElement();
+    </script>
+</body>
+</html>
