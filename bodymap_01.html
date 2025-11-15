@@ -16,7 +16,6 @@
         
         html {
             overflow-x: hidden;
-            touch-action: none;
         }
         
         body {
@@ -24,7 +23,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 0px;
-            touch-action: none;
+            touch-action: manipulation;  /* Same as drag.html */
             overflow-x: hidden;
         }
         
@@ -38,7 +37,6 @@
             display: flex;
             flex-direction: column;
             height: calc(100vh - 40px);
-            touch-action: none;
         }
         
         .header {
@@ -277,7 +275,6 @@
             flex: 1;
             overflow: hidden;
             min-height: 0;
-            touch-action: none;
         }
         
         .workspace-container {
@@ -286,7 +283,6 @@
             overflow: hidden;
             height: 100%;
             position: relative;
-            touch-action: none;
         }
         
         .workspace {
@@ -295,7 +291,7 @@
             background: #fafafa;
             overflow: hidden;
             cursor: default;
-            touch-action: none;  /* Ingen touch-action da workspace har overflow: hidden */
+            /* No touch-action - let label-container handle it like drag.html */
         }
         
         .history-sidebar {
@@ -3085,11 +3081,7 @@
                     let dragStartYPoint = 0;
                     
                     point.addEventListener('pointerdown', (e) => {
-                        // Immediately stop propagation and prevent default to avoid page dragging
-                        e.stopPropagation();
-                        e.preventDefault();
-                        
-                        // Capture pointer for consistent events (must be before other setup)
+                        // Capture pointer for consistent events - same as drag.html
                         point.setPointerCapture(e.pointerId);
                         
                         pointerDownTimePoint = Date.now();
@@ -3105,10 +3097,6 @@
                     point.addEventListener('pointermove', (e) => {
                         if (pointerDownTimePoint === 0) return;
                         
-                        // Immediately prevent default if pointer is down (don't wait for drag threshold)
-                        e.stopPropagation();
-                        e.preventDefault();
-                        
                         const moveDistance = Math.sqrt(
                             Math.pow(e.clientX - pointerDownXPoint, 2) + 
                             Math.pow(e.clientY - pointerDownYPoint, 2)
@@ -3120,6 +3108,8 @@
                         }
                         
                         if (isDraggingPoint) {
+                            // Only preventDefault when actually dragging - same as drag.html
+                            e.preventDefault();
                             
                             const workspaceRect = workspace.getBoundingClientRect();
                             label.pointerX = e.clientX - workspaceRect.left - dragStartXPoint;
@@ -3354,11 +3344,7 @@
                     if (e.target === deleteBtn) return;
                     if (isEditing && e.target === inputEl) return;
                     
-                    // Immediately stop propagation and prevent default to avoid page dragging
-                    e.stopPropagation();
-                    e.preventDefault();
-                    
-                    // Capture pointer for consistent events (must be before other setup)
+                    // Capture pointer for consistent events - same as drag.html
                     container.setPointerCapture(e.pointerId);
                     
                     pointerDownTime = Date.now();
@@ -3370,14 +3356,10 @@
                     const workspaceRect = workspace.getBoundingClientRect();
                     dragStartX = e.clientX - workspaceRect.left - label.x;
                     dragStartY = e.clientY - workspaceRect.top - label.y;
-                }, { passive: false }); // Important: non-passive to allow preventDefault
+                });
                 
                 container.addEventListener('pointermove', (e) => {
                     if (pointerDownTime === 0) return;
-                    
-                    // Immediately prevent default if pointer is down (don't wait for drag threshold)
-                    e.stopPropagation();
-                    e.preventDefault();
                     
                     const moveDistance = Math.sqrt(
                         Math.pow(e.clientX - pointerDownX, 2) + 
@@ -3392,6 +3374,8 @@
                     }
                     
                     if (isDragging) {
+                        // Only preventDefault when actually dragging - same as drag.html
+                        e.preventDefault();
                         
                         const workspaceRect = workspace.getBoundingClientRect();
                         label.x = e.clientX - workspaceRect.left - dragStartX;
