@@ -16,7 +16,7 @@
         
         html {
             overflow-x: hidden;
-            touch-action: manipulation;
+            touch-action: pan-y;
         }
         
         body {
@@ -24,7 +24,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 0px;
-            touch-action: manipulation;
+            touch-action: pan-y;
             overflow-x: hidden;
         }
         
@@ -38,7 +38,7 @@
             display: flex;
             flex-direction: column;
             height: calc(100vh - 40px);
-            touch-action: manipulation;
+            touch-action: pan-y;
         }
         
         .header {
@@ -277,7 +277,7 @@
             flex: 1;
             overflow: hidden;
             min-height: 0;
-            touch-action: manipulation;
+            touch-action: pan-y;
         }
         
         .workspace-container {
@@ -286,7 +286,7 @@
             overflow: hidden;
             height: 100%;
             position: relative;
-            touch-action: manipulation;
+            touch-action: pan-y;
         }
         
         .workspace {
@@ -3349,6 +3349,10 @@
                 container.addEventListener('pointerdown', (e) => {
                     if (e.target === deleteBtn) return;
                     if (isEditing && e.target === inputEl) return;
+                    
+                    // Stop propagation and prevent default to avoid page dragging
+                    e.stopPropagation();
+                    e.preventDefault();
                     
                     // Capture pointer for consistent events
                     container.setPointerCapture(e.pointerId);
