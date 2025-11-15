@@ -1314,6 +1314,8 @@
             text-align: center;
             transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
             z-index: 1;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
         .label-container:hover .label-delete-btn {
@@ -1343,6 +1345,8 @@
         .label-pointer-line {
             position: absolute;
             pointer-events: none;
+            user-select: none;
+            -webkit-user-select: none;
             z-index: 15;
             stroke: black;
             stroke-width: 3;
@@ -2649,6 +2653,8 @@
             svgContainer.style.width = minWorkspaceWidth + 'px';
             svgContainer.style.height = minWorkspaceHeight + 'px';
             svgContainer.style.pointerEvents = 'none';
+            svgContainer.style.userSelect = 'none';
+            svgContainer.style.webkitUserSelect = 'none';
             svgContainer.style.zIndex = '15';
             svgContainer.setAttribute('viewBox', `0 0 ${minWorkspaceWidth} ${minWorkspaceHeight}`);
             svgContainer.setAttribute('preserveAspectRatio', 'none');
@@ -2916,6 +2922,9 @@
                         line.setAttribute('stroke', pointerColorActive);
                         line.setAttribute('stroke-width', '3');
                         line.setAttribute('data-label-id', label.id);
+                        line.style.userSelect = 'none';
+                        line.style.webkitUserSelect = 'none';
+                        line.style.pointerEvents = 'none';
                         svgContainer.appendChild(line);
                     }
                     
