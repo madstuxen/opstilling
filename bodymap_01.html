@@ -3279,9 +3279,13 @@
                 
                 // Enable editing mode on textarea
                 const enableEditing = () => {
+                    justEnabledEditing = true;
                     inputEl.classList.add('editing');
-                    inputEl.focus();
-                    inputEl.select();
+                    setTimeout(() => {
+                        inputEl.focus();
+                        inputEl.select();
+                        justEnabledEditing = false;
+                    }, 10);
                 };
                 
                 // Disable editing mode on textarea
@@ -3304,9 +3308,13 @@
                     }
                     
                     isDoubleClick = true;
-                    enableEditing();
                     e.stopPropagation();
                     e.preventDefault();
+                    
+                    // Small delay to ensure mousedown handlers have finished
+                    setTimeout(() => {
+                        enableEditing();
+                    }, 10);
                     
                     // Reset double-click flag after a short delay
                     if (doubleClickTimer) clearTimeout(doubleClickTimer);
@@ -3315,9 +3323,13 @@
                     }, 300);
                 });
                 
-                // Blur textarea when clicking outside
+                // Blur textarea when clicking outside - but not immediately after editing starts
+                let justEnabledEditing = false;
                 inputEl.addEventListener('blur', () => {
-                    disableEditing();
+                    if (!justEnabledEditing) {
+                        disableEditing();
+                    }
+                    justEnabledEditing = false;
                 });
                 
                 let isDragging = false;
