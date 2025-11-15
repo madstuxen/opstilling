@@ -1286,7 +1286,7 @@
             cursor: text;
         }
         
-        .label-input:hover .label-text-input {
+        .label-input.label-active:hover .label-text-input {
             background: rgba(255, 255, 255, 0.6);
             border-radius: 4px;
             transition: background 0.2s ease;
@@ -3313,38 +3313,18 @@
                     disableEditing();
                 });
                 
-                // Long press on touch devices to edit
-                let longPressTimer = null;
-                container.addEventListener('touchstart', (e) => {
-                    if (e.target === deleteBtn) return;
-                    if (!e.touches || e.touches.length === 0) return;
-                    
-                    longPressTimer = setTimeout(() => {
-                        enableEditing();
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }, 500); // 500ms for long press
-                }, { passive: true });
-                
-                container.addEventListener('touchend', () => {
-                    if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                    }
-                });
-                
-                container.addEventListener('touchmove', () => {
-                    if (longPressTimer) {
-                        clearTimeout(longPressTimer);
-                        longPressTimer = null;
-                    }
-                });
-                
                 let isDragging = false;
                 let dragStartTime = 0;
                 let dragStartX = 0;
                 let dragStartY = 0;
                 let mouseDownTimer = null;
+                
+                // Touch state for mobile
+                let longPressTimer = null;
+                let touchStartTime = 0;
+                let lastTapTime = 0;
+                let tapCount = 0;
+                let tapTimer = null;
                 
                 container.addEventListener('mousedown', (e) => {
                     // Don't drag when clicking on delete button or if editing
@@ -3451,20 +3431,20 @@
                     document.addEventListener('mouseup', onMouseUp);
                 });
 
-                // Touch support for mobile dragging
+                // Touch support for mobile dragging and editing
                 let touchStartX = 0;
                 let touchStartY = 0;
-                let touchStartTime = 0;
                 let touchDragging = false;
+                let touchStartPos = { x: 0, y: 0 };
+                let touchStartOffset = { x: 0, y: 0 };
+                
                 container.addEventListener('touchstart', (e) => {
                     // Only don't drag when clicking on delete button or if editing
                     if (e.target === deleteBtn || inputEl.classList.contains('editing')) return;
-                    // Don't start drag if long pressing for editing
-                    if (longPressTimer) return;
                     if (!e.touches || e.touches.length === 0) return;
                     
-                    touchStartTime = Date.now();
                     const t = e.touches[0];
+                    touchStartTime = Date.now();
                     touchStartX = t.clientX;
                     touchStartY = t.clientY;
                     touchDragging = false;
@@ -3472,17 +3452,58 @@
                     const workspaceRect = workspace.getBoundingClientRect();
                     const cursorX = t.clientX - workspaceRect.left + workspace.scrollLeft;
                     const cursorY = t.clientY - workspaceRect.top + workspace.scrollTop;
-                    const startX = cursorX - label.x;
-                    const startY = cursorY - label.y;
+                    touchStartPos = { x: cursorX, y: cursorY };
+                    touchStartOffset = { x: cursorX - label.x, y: cursorY - label.y };
+                    
+                    // Start long press timer for editing
+                    longPressTimer = setTimeout(() => {
+                        enableEditing();
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }, 500); // 500ms for long press
+                    
+                    // Double tap detection
+                    const currentTime = Date.now();
+                    const timeDiff = currentTime - lastTapTime;
+                    
+                    if (timeDiff < 300 && timeDiff > 0) {
+                        // Double tap detected
+                        tapCount++;
+                        if (tapCount === 2) {
+                            clearTimeout(tapTimer);
+                            clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                            tapCount = 0;
+                            enableEditing();
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return;
+                        }
+                    } else {
+                        tapCount = 1;
+                    }
+                    
+                    lastTapTime = currentTime;
+                    
+                    // Reset tap count after delay
+                    if (tapTimer) clearTimeout(tapTimer);
+                    tapTimer = setTimeout(() => {
+                        tapCount = 0;
+                    }, 300);
 
                     const onTouchMove = (ev) => {
                         const touch = ev.touches && ev.touches[0];
                         if (!touch) return;
                         
-                        // Cancel long press if moving
+                        // Cancel long press and tap timers if moving
                         if (longPressTimer) {
                             clearTimeout(longPressTimer);
                             longPressTimer = null;
+                        }
+                        if (tapTimer) {
+                            clearTimeout(tapTimer);
+                            tapTimer = null;
+                            tapCount = 0;
                         }
                         
                         // Start dragging after small movement threshold
@@ -3496,8 +3517,8 @@
                         
                         // Convert cursor position to workspace coordinates
                         const workspaceRect = workspace.getBoundingClientRect();
-                        label.x = touch.clientX - workspaceRect.left + workspace.scrollLeft - startX;
-                        label.y = touch.clientY - workspaceRect.top + workspace.scrollTop - startY;
+                        label.x = touch.clientX - workspaceRect.left + workspace.scrollLeft - touchStartOffset.x;
+                        label.y = touch.clientY - workspaceRect.top + workspace.scrollTop - touchStartOffset.y;
                         const guideCenterDuringDrag = getGuideCenter(workspace);
                         label.offsetX = label.x - guideCenterDuringDrag.x;
                         label.offsetY = label.y - guideCenterDuringDrag.y;
@@ -3518,6 +3539,10 @@
 
                     const onTouchEnd = () => {
                         touchDragging = false;
+                        if (longPressTimer) {
+                            clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                        }
                         document.removeEventListener('touchmove', onTouchMove, { passive: false });
                         document.removeEventListener('touchend', onTouchEnd);
 
@@ -3540,8 +3565,7 @@
 
                     document.addEventListener('touchmove', onTouchMove, { passive: false });
                     document.addEventListener('touchend', onTouchEnd);
-                    e.preventDefault();
-                }, { passive: true });
+                }, { passive: false });
             } else {
                 // Make read-only for onion layers
                 inputEl.readOnly = true;
