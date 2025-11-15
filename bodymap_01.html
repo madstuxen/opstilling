@@ -851,6 +851,21 @@
             padding: 0;
             margin: 0;
             color: inherit;
+            pointer-events: none;
+            user-select: none;
+            cursor: default;
+        }
+        
+        .history-item-date.editing {
+            pointer-events: auto;
+            user-select: text;
+            cursor: text;
+        }
+        
+        .history-item:hover .history-item-date {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 4px;
+            transition: background 0.2s ease;
         }
         
         .history-item:focus-within .history-item-date {
@@ -1221,14 +1236,15 @@
             padding: 8px;
             font-size: 16px;
             font-weight: 500;
-            width: 130px;
+            width: 156px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             display: flex;
             gap: 8px;
             align-items: flex-start;
             position: relative;
-            max-height: 200px;
+            max-height: 260px;
             overflow-y: auto;
+            cursor: move;
         }
         
         .label-input::-webkit-scrollbar {
@@ -1241,7 +1257,7 @@
         }
         
         .label-input.label-active {
-            border: 2px solid #a67c52;
+            border: 3px solid #a67c52;
         }
         
         .label-text-input {
@@ -1257,9 +1273,23 @@
             font-family: 'Arial', sans-serif;
             resize: none;
             line-height: 1.2;
-            min-height: 49px;
+            min-height: 64px;
             field-sizing: content;
             touch-action: manipulation;
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        .label-text-input.editing {
+            pointer-events: auto;
+            user-select: text;
+            cursor: text;
+        }
+        
+        .label-input:hover .label-text-input {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 4px;
+            transition: background 0.2s ease;
         }
         
         .label-text-input:focus {
@@ -1321,19 +1351,33 @@
             pointer-events: none;
             z-index: 15;
             stroke: black;
-            stroke-width: 2;
+            stroke-width: 3;
         }
         
         .label-pointer-point {
             position: absolute;
-            width: 12px;
-            height: 12px;
+            width: 15px;
+            height: 15px;
             background: black;
             border-radius: 50%;
             cursor: move;
             transform: translate(-50%, -50%);
             z-index: 16;
             pointer-events: auto;
+        }
+        
+        .label-pointer-point::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: transparent;
+            pointer-events: auto;
+            cursor: move;
         }
         
         /* Mobile adjustments - only touch, header and toolbar */
@@ -2539,17 +2583,110 @@
                 deleteBtn.textContent = '×';
                 item.appendChild(deleteBtn);
 
+                const titleInput = item.querySelector('.history-item-date');
+                
+                // Double-click and editing state
+                let isDoubleClickHistory = false;
+                let doubleClickTimerHistory = null;
+                let longPressTimerHistory = null;
+                
+                // Enable editing mode on titleInput
+                const enableEditing = () => {
+                    titleInput.classList.add('editing');
+                    titleInput.focus();
+                    titleInput.select();
+                };
+                
+                // Disable editing mode on titleInput
+                const disableEditing = () => {
+                    titleInput.classList.remove('editing');
+                    titleInput.blur();
+                };
+                
+                // Single click handler with delay to allow dblclick to fire first
+                let clickTimerHistory = null;
                 item.addEventListener('click', (e) => {
+                    // Don't activate if clicking on delete button, title input, or if double-clicking
                     if (e.target.classList.contains('history-item-date')) return;
                     if (e.target.classList.contains('history-item-delete')) return;
-                    activeMapId = map ? map.id : index.mapId;
-                    activeIndexId = index.id;
-                    renderHistory();
-                    renderWorkspace();
-                    saveToLocalStorage();
+                    if (isDoubleClickHistory) {
+                        isDoubleClickHistory = false;
+                        return;
+                    }
+                    
+                    // Clear any existing timer
+                    if (clickTimerHistory) clearTimeout(clickTimerHistory);
+                    
+                    // Wait a bit to see if dblclick fires
+                    clickTimerHistory = setTimeout(() => {
+                        if (!isDoubleClickHistory) {
+                            activeMapId = map ? map.id : index.mapId;
+                            activeIndexId = index.id;
+                            renderHistory();
+                            renderWorkspace();
+                            saveToLocalStorage();
+                        }
+                    }, 250);
                 });
-
-                const titleInput = item.querySelector('.history-item-date');
+                
+                item.addEventListener('dblclick', (e) => {
+                    if (e.target === deleteBtn || e.target.classList.contains('history-item-delete')) return;
+                    if (e.target.classList.contains('history-item-meta') || 
+                        e.target.classList.contains('history-item-time') || 
+                        e.target.classList.contains('history-item-labels')) return;
+                    
+                    // Cancel single click
+                    if (clickTimerHistory) {
+                        clearTimeout(clickTimerHistory);
+                        clickTimerHistory = null;
+                    }
+                    
+                    isDoubleClickHistory = true;
+                    enableEditing();
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    // Reset double-click flag after a short delay
+                    if (doubleClickTimerHistory) clearTimeout(doubleClickTimerHistory);
+                    doubleClickTimerHistory = setTimeout(() => {
+                        isDoubleClickHistory = false;
+                    }, 300);
+                });
+                
+                // Blur titleInput when clicking outside
+                titleInput.addEventListener('blur', () => {
+                    disableEditing();
+                });
+                
+                // Long press on touch devices to edit
+                item.addEventListener('touchstart', (e) => {
+                    if (e.target === deleteBtn || e.target.classList.contains('history-item-delete')) return;
+                    if (e.target.classList.contains('history-item-meta') || 
+                        e.target.classList.contains('history-item-time') || 
+                        e.target.classList.contains('history-item-labels')) return;
+                    if (!e.touches || e.touches.length === 0) return;
+                    
+                    longPressTimerHistory = setTimeout(() => {
+                        enableEditing();
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }, 500); // 500ms for long press
+                }, { passive: true });
+                
+                item.addEventListener('touchend', () => {
+                    if (longPressTimerHistory) {
+                        clearTimeout(longPressTimerHistory);
+                        longPressTimerHistory = null;
+                    }
+                });
+                
+                item.addEventListener('touchmove', () => {
+                    if (longPressTimerHistory) {
+                        clearTimeout(longPressTimerHistory);
+                        longPressTimerHistory = null;
+                    }
+                });
+                
                 titleInput.addEventListener('change', (e) => {
                     const indexId = parseFloat(e.target.dataset.id);
                     const indexObj = dataIndexes.find(idx => idx.id === indexId);
@@ -2876,7 +3013,7 @@
                         line.setAttribute('y2', lineY2);
                         const pointerColorActive = mapColor || '#a67c52';
                         line.setAttribute('stroke', pointerColorActive);
-                        line.setAttribute('stroke-width', '2');
+                        line.setAttribute('stroke-width', '3');
                         line.setAttribute('data-label-id', label.id);
                         svgContainer.appendChild(line);
                     }
@@ -3042,7 +3179,7 @@
             const lightColor = lightenHex(darkColor, 0.65);
             const labelBackground = lightColor;
             container.innerHTML = `
-                <div class="label-input ${activeClass}" style="background:${labelBackground}; ${isActive ? `border:2px solid ${darkColor};` : ''}">
+                <div class="label-input ${activeClass}" style="background:${labelBackground}; ${isActive ? `border:3px solid ${darkColor};` : ''}">
                     <textarea class="label-text-input" placeholder="${placeholderText}">${label.text}</textarea>
                     <span class="label-number">${label.labelNumber}</span>
                     ${deleteBtnHtml}
@@ -3052,7 +3189,7 @@
             const labelInput = container.querySelector('.label-input');
             if (labelInput) {
                 labelInput.style.background = labelBackground;
-                labelInput.style.border = isActive ? `2px solid ${darkColor}` : 'none';
+                labelInput.style.border = isActive ? `3px solid ${darkColor}` : 'none';
             }
             const labelNumber = container.querySelector('.label-number');
             if (labelNumber) {
@@ -3140,19 +3277,113 @@
                     });
                 }
                 
+                // Enable editing mode on textarea
+                const enableEditing = () => {
+                    inputEl.classList.add('editing');
+                    inputEl.focus();
+                    inputEl.select();
+                };
+                
+                // Disable editing mode on textarea
+                const disableEditing = () => {
+                    inputEl.classList.remove('editing');
+                    inputEl.blur();
+                };
+                
+                // Double-click to edit
+                let isDoubleClick = false;
+                let doubleClickTimer = null;
+                
+                container.addEventListener('dblclick', (e) => {
+                    if (e.target === deleteBtn) return;
+                    isDoubleClick = true;
+                    enableEditing();
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    // Reset double-click flag after a short delay
+                    if (doubleClickTimer) clearTimeout(doubleClickTimer);
+                    doubleClickTimer = setTimeout(() => {
+                        isDoubleClick = false;
+                    }, 300);
+                });
+                
+                // Blur textarea when clicking outside
+                inputEl.addEventListener('blur', () => {
+                    disableEditing();
+                });
+                
+                // Long press on touch devices to edit
+                let longPressTimer = null;
+                container.addEventListener('touchstart', (e) => {
+                    if (e.target === deleteBtn) return;
+                    if (!e.touches || e.touches.length === 0) return;
+                    
+                    longPressTimer = setTimeout(() => {
+                        enableEditing();
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }, 500); // 500ms for long press
+                }, { passive: true });
+                
+                container.addEventListener('touchend', () => {
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                });
+                
+                container.addEventListener('touchmove', () => {
+                    if (longPressTimer) {
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
+                    }
+                });
+                
                 let isDragging = false;
+                let dragStartTime = 0;
+                let dragStartX = 0;
+                let dragStartY = 0;
+                let mouseDownTimer = null;
+                
                 container.addEventListener('mousedown', (e) => {
-                    // Only don't drag when clicking on the input itself or delete button
-                    if (e.target === inputEl || e.target === deleteBtn) return;
-                    isDragging = true;
+                    // Don't drag when clicking on delete button or if editing
+                    if (e.target === deleteBtn || inputEl.classList.contains('editing')) return;
+                    // Don't start drag if double-clicking
+                    if (isDoubleClick) {
+                        isDoubleClick = false;
+                        return;
+                    }
+                    
+                    dragStartTime = Date.now();
+                    dragStartX = e.clientX;
+                    dragStartY = e.clientY;
+                    
                     const workspaceRect = workspace.getBoundingClientRect();
-                    // Calculate initial offset in workspace coordinates
                     const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
                     const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
                     const startX = cursorX - label.x;
                     const startY = cursorY - label.y;
                     
+                    let lastMouseX = dragStartX;
+                    let lastMouseY = dragStartY;
+                    
                     const onMouseMove = (e) => {
+                        lastMouseX = e.clientX;
+                        lastMouseY = e.clientY;
+                        
+                        // Start dragging after small movement threshold
+                        const moveX = Math.abs(e.clientX - dragStartX);
+                        const moveY = Math.abs(e.clientY - dragStartY);
+                        if (!isDragging && (moveX > 3 || moveY > 3)) {
+                            isDragging = true;
+                            disableEditing(); // Cancel editing if dragging
+                            // Only prevent default once dragging actually starts
+                            if (mouseDownTimer) {
+                                clearTimeout(mouseDownTimer);
+                                mouseDownTimer = null;
+                            }
+                        }
                         if (!isDragging) return;
                         // Convert cursor position to workspace coordinates
                         const workspaceRect = workspace.getBoundingClientRect();
@@ -3173,52 +3404,96 @@
                                 svgLine.setAttribute('y1', label.y + offsetY);
                             }
                         }
+                        e.preventDefault();
                     };
                     
-                    const onMouseUp = () => {
+                    const onMouseUp = (e) => {
+                        lastMouseX = e ? e.clientX : dragStartX;
+                        lastMouseY = e ? e.clientY : dragStartY;
+                        
+                        const wasDragging = isDragging;
                         isDragging = false;
+                        if (mouseDownTimer) {
+                            clearTimeout(mouseDownTimer);
+                            mouseDownTimer = null;
+                        }
                         document.removeEventListener('mousemove', onMouseMove);
                         document.removeEventListener('mouseup', onMouseUp);
                         
-                        // Update all labels with the same text across all indexes to match the new position
-                        relevantIndexes.forEach(idx => {
-                            idx.labels.forEach(lab => {
-                                if (lab.text === label.text && lab.id !== label.id) {
-                                    lab.x = label.x;
-                                    lab.y = label.y;
-                                    lab.offsetX = label.offsetX;
-                                    lab.offsetY = label.offsetY;
-                                }
+                        // Only update position if we were actually dragging
+                        if (wasDragging || (Math.abs(dragStartX - lastMouseX) > 3 || Math.abs(dragStartY - lastMouseY) > 3)) {
+                            // Update all labels with the same text across all indexes to match the new position
+                            relevantIndexes.forEach(idx => {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === label.text && lab.id !== label.id) {
+                                        lab.x = label.x;
+                                        lab.y = label.y;
+                                        lab.offsetX = label.offsetX;
+                                        lab.offsetY = label.offsetY;
+                                    }
+                                });
                             });
-                        });
-                        
-                        // Re-render workspace to show updated positions
-                        renderWorkspace();
-                        saveToLocalStorage();
+                            
+                            // Re-render workspace to show updated positions
+                            renderWorkspace();
+                            saveToLocalStorage();
+                        }
                     };
+                    
+                    // Delay preventing default to allow click/dblclick events to fire
+                    mouseDownTimer = setTimeout(() => {
+                        if (!isDragging) {
+                            e.preventDefault();
+                        }
+                    }, 10);
                     
                     document.addEventListener('mousemove', onMouseMove);
                     document.addEventListener('mouseup', onMouseUp);
-                    e.preventDefault();
                 });
 
                 // Touch support for mobile dragging
+                let touchStartX = 0;
+                let touchStartY = 0;
+                let touchStartTime = 0;
+                let touchDragging = false;
                 container.addEventListener('touchstart', (e) => {
-                    if (e.target === inputEl || e.target === deleteBtn) return;
+                    // Only don't drag when clicking on delete button or if editing
+                    if (e.target === deleteBtn || inputEl.classList.contains('editing')) return;
+                    // Don't start drag if long pressing for editing
+                    if (longPressTimer) return;
                     if (!e.touches || e.touches.length === 0) return;
-                    isDragging = true;
+                    
+                    touchStartTime = Date.now();
                     const t = e.touches[0];
+                    touchStartX = t.clientX;
+                    touchStartY = t.clientY;
+                    touchDragging = false;
+                    
                     const workspaceRect = workspace.getBoundingClientRect();
-                    // Calculate initial offset in workspace coordinates
                     const cursorX = t.clientX - workspaceRect.left + workspace.scrollLeft;
                     const cursorY = t.clientY - workspaceRect.top + workspace.scrollTop;
                     const startX = cursorX - label.x;
                     const startY = cursorY - label.y;
 
                     const onTouchMove = (ev) => {
-                        if (!isDragging) return;
                         const touch = ev.touches && ev.touches[0];
                         if (!touch) return;
+                        
+                        // Cancel long press if moving
+                        if (longPressTimer) {
+                            clearTimeout(longPressTimer);
+                            longPressTimer = null;
+                        }
+                        
+                        // Start dragging after small movement threshold
+                        const moveX = Math.abs(touch.clientX - touchStartX);
+                        const moveY = Math.abs(touch.clientY - touchStartY);
+                        if (!touchDragging && (moveX > 5 || moveY > 5)) {
+                            touchDragging = true;
+                            disableEditing(); // Cancel editing if dragging
+                        }
+                        if (!touchDragging) return;
+                        
                         // Convert cursor position to workspace coordinates
                         const workspaceRect = workspace.getBoundingClientRect();
                         label.x = touch.clientX - workspaceRect.left + workspace.scrollLeft - startX;
@@ -3242,7 +3517,7 @@
                     };
 
                     const onTouchEnd = () => {
-                        isDragging = false;
+                        touchDragging = false;
                         document.removeEventListener('touchmove', onTouchMove, { passive: false });
                         document.removeEventListener('touchend', onTouchEnd);
 
