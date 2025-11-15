@@ -2634,18 +2634,14 @@
                 
                 // Click outside handling is done globally via event delegation
                 
-                // UNIFIED POINTER EVENTS (works for mouse, touch, pen) - exactly as drag.html
+                // Pointer events for history items - allow scrolling, only activate on click
                 item.addEventListener('pointerdown', (e) => {
                     // Don't activate if clicking on delete button
                     if (e.target === deleteBtn || e.target.classList.contains('history-item-delete')) return;
                     if (isEditingHistory && e.target === titleInput) return;
                     
-                    // Store original target before capture (e.target changes after setPointerCapture)
+                    // Store original target and position (but don't capture pointer - allow scrolling)
                     pointerDownTargetHistory = e.target;
-                    
-                    // Capture pointer for consistent events
-                    item.setPointerCapture(e.pointerId);
-                    
                     pointerDownTimeHistory = Date.now();
                     pointerDownXHistory = e.clientX;
                     pointerDownYHistory = e.clientY;
@@ -2660,7 +2656,7 @@
                         Math.pow(e.clientY - pointerDownYHistory, 2)
                     );
                     
-                    // Mark as moved if moved more than 5px
+                    // Mark as moved if moved more than 5px (this is scrolling, not clicking)
                     if (moveDistance > 5) {
                         hasMovedHistory = true;
                     }
@@ -2669,10 +2665,7 @@
                 item.addEventListener('pointerup', (e) => {
                     if (pointerDownTimeHistory === 0) return;
                     
-                    // Release pointer capture
-                    item.releasePointerCapture(e.pointerId);
-                    
-                    // If didn't move = enable editing or activate
+                    // If didn't move = enable editing or activate (not scrolling)
                     if (!hasMovedHistory) {
                         // Check if click was on titleInput by checking if pointer position is within titleInput bounds
                         // Since titleInput has pointer-events: none, e.target will be item, but we can check position
@@ -2707,7 +2700,6 @@
                 
                 // Cancel on pointer cancel (e.g., gesture interrupted)
                 item.addEventListener('pointercancel', (e) => {
-                    item.releasePointerCapture(e.pointerId);
                     pointerDownTimeHistory = 0;
                     hasMovedHistory = false;
                     pointerDownTargetHistory = null;
