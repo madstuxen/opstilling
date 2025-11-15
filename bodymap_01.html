@@ -3362,10 +3362,15 @@
                     // Prevent default on touch to stop scrolling
                     if (e.pointerType === 'touch') {
                         e.preventDefault();
+                        e.stopPropagation();
                     }
                     
-                    // Capture pointer
-                    container.setPointerCapture(e.pointerId);
+                    // Capture pointer BEFORE double-tap check
+                    try {
+                        container.setPointerCapture(e.pointerId);
+                    } catch (err) {
+                        // Ignore if capture fails
+                    }
                     
                     pointerDownTime = Date.now();
                     pointerDownX = e.clientX;
@@ -3386,12 +3391,15 @@
                             if (tapCount === 2) {
                                 // Double tap - enable editing
                                 clearTimeout(tapTimer);
+                                tapTimer = null;
                                 tapCount = 0;
                                 lastTapTime = 0;
                                 enableEditing();
                                 e.preventDefault();
                                 e.stopPropagation();
-                                container.releasePointerCapture(e.pointerId);
+                                try {
+                                    container.releasePointerCapture(e.pointerId);
+                                } catch (err) {}
                                 pointerDownTime = 0;
                                 return;
                             }
@@ -3429,11 +3437,17 @@
                             tapTimer = null;
                             tapCount = 0;
                         }
+                        
+                        // Ensure pointer capture when starting drag
+                        try {
+                            container.setPointerCapture(e.pointerId);
+                        } catch (err) {}
                     }
                     
                     if (isDragging) {
-                        // Prevent default to stop scrolling
+                        // Always prevent default when dragging to stop page scroll
                         e.preventDefault();
+                        e.stopPropagation();
                         
                         const workspaceRect = workspace.getBoundingClientRect();
                         label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - dragStartX;
@@ -3460,7 +3474,9 @@
                     if (pointerDownTime === 0) return;
                     
                     // Release pointer capture
-                    container.releasePointerCapture(e.pointerId);
+                    try {
+                        container.releasePointerCapture(e.pointerId);
+                    } catch (err) {}
                     
                     if (isDragging) {
                         // Update all labels with the same text across all indexes
@@ -3485,7 +3501,9 @@
                 });
                 
                 container.addEventListener('pointercancel', (e) => {
-                    container.releasePointerCapture(e.pointerId);
+                    try {
+                        container.releasePointerCapture(e.pointerId);
+                    } catch (err) {}
                     pointerDownTime = 0;
                     isDragging = false;
                     if (tapTimer) {
