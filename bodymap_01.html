@@ -2730,6 +2730,27 @@
             }
         }
         
+        // Single global click listener for all labels (event delegation)
+        let globalLabelClickHandler = null;
+        if (!globalLabelClickHandler) {
+            globalLabelClickHandler = (e) => {
+                // Find all active editing labels
+                const editingLabels = document.querySelectorAll('.label-text-input.editing');
+                editingLabels.forEach(inputEl => {
+                    const container = inputEl.closest('.label-container');
+                    if (container && !container.contains(e.target)) {
+                        const labelInput = container.querySelector('.label-input');
+                        if (labelInput) {
+                            labelInput.classList.remove('editing');
+                        }
+                        inputEl.classList.remove('editing');
+                        inputEl.blur();
+                    }
+                });
+            };
+            document.addEventListener('click', globalLabelClickHandler);
+        }
+        
         function renderWorkspace() {
             const workspace = document.getElementById('workspace');
             workspace.innerHTML = '';
@@ -3326,22 +3347,12 @@
                     inputEl.blur();
                 };
                 
-                // Click outside to exit edit mode
-                document.addEventListener('click', (e) => {
-                    if (!container.contains(e.target) && isEditing) {
-                        disableEditing();
-                    }
-                });
+                // Click outside handling is done globally via event delegation
                 
                 // UNIFIED POINTER EVENTS (works for mouse, touch, pen) - exactly as drag.html
                 container.addEventListener('pointerdown', (e) => {
                     if (e.target === deleteBtn) return;
                     if (isEditing && e.target === inputEl) return;
-                    
-                    // Prevent default on touch to stop scrolling
-                    if (e.pointerType === 'touch') {
-                        e.preventDefault();
-                    }
                     
                     // Capture pointer for consistent events
                     container.setPointerCapture(e.pointerId);
@@ -3353,8 +3364,8 @@
                     isDragging = false;
                     
                     const workspaceRect = workspace.getBoundingClientRect();
-                    dragStartX = e.clientX - workspaceRect.left + workspace.scrollLeft - label.x;
-                    dragStartY = e.clientY - workspaceRect.top + workspace.scrollTop - label.y;
+                    dragStartX = e.clientX - workspaceRect.left - label.x;
+                    dragStartY = e.clientY - workspaceRect.top - label.y;
                 });
                 
                 container.addEventListener('pointermove', (e) => {
@@ -3374,8 +3385,8 @@
                     
                     if (isDragging) {
                         const workspaceRect = workspace.getBoundingClientRect();
-                        label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - dragStartX;
-                        label.y = e.clientY - workspaceRect.top + workspace.scrollTop - dragStartY;
+                        label.x = e.clientX - workspaceRect.left - dragStartX;
+                        label.y = e.clientY - workspaceRect.top - dragStartY;
                         const guideCenterDuringDrag = getGuideCenter(workspace);
                         label.offsetX = label.x - guideCenterDuringDrag.x;
                         label.offsetY = label.y - guideCenterDuringDrag.y;
