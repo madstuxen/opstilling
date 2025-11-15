@@ -3339,10 +3339,18 @@
                     }
                 });
                 
+                // Animation frame for smooth dragging
+                let animationFrameId = null;
+                
                 // UNIFIED POINTER EVENTS (works for mouse, touch, pen)
                 container.addEventListener('pointerdown', (e) => {
                     if (e.target === deleteBtn) return;
                     if (isEditing && e.target === inputEl) return;
+                    
+                    // Prevent default on touch to stop scrolling on mobile
+                    if (e.pointerType === 'touch') {
+                        e.preventDefault();
+                    }
                     
                     // Capture pointer for consistent events
                     container.setPointerCapture(e.pointerId);
@@ -3361,6 +3369,11 @@
                 container.addEventListener('pointermove', (e) => {
                     if (pointerDownTime === 0) return;
                     
+                    // Always prevent default when dragging to stop page scroll
+                    if (isDragging || e.pointerType === 'touch') {
+                        e.preventDefault();
+                    }
+                    
                     const moveDistance = Math.sqrt(
                         Math.pow(e.clientX - pointerDownX, 2) + 
                         Math.pow(e.clientY - pointerDownY, 2)
@@ -3374,30 +3387,47 @@
                     }
                     
                     if (isDragging) {
-                        const workspaceRect = workspace.getBoundingClientRect();
-                        label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - dragStartX;
-                        label.y = e.clientY - workspaceRect.top + workspace.scrollTop - dragStartY;
-                        const guideCenterDuringDrag = getGuideCenter(workspace);
-                        label.offsetX = label.x - guideCenterDuringDrag.x;
-                        label.offsetY = label.y - guideCenterDuringDrag.y;
-                        container.style.left = label.x + 'px';
-                        container.style.top = label.y + 'px';
+                        // Store current coordinates before requestAnimationFrame
+                        const currentX = e.clientX;
+                        const currentY = e.clientY;
                         
-                        // Update line if it exists
-                        const svgContainer = workspace.querySelector('#labelLinesSvg');
-                        if (svgContainer) {
-                            const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
-                            if (svgLine) {
-                                svgLine.setAttribute('x1', label.x + offsetX);
-                                svgLine.setAttribute('y1', label.y + offsetY);
-                            }
+                        // Cancel any pending animation frame
+                        if (animationFrameId) {
+                            cancelAnimationFrame(animationFrameId);
                         }
-                        e.preventDefault();
+                        
+                        // Use requestAnimationFrame for smooth updates
+                        animationFrameId = requestAnimationFrame(() => {
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            label.x = currentX - workspaceRect.left + workspace.scrollLeft - dragStartX;
+                            label.y = currentY - workspaceRect.top + workspace.scrollTop - dragStartY;
+                            const guideCenterDuringDrag = getGuideCenter(workspace);
+                            label.offsetX = label.x - guideCenterDuringDrag.x;
+                            label.offsetY = label.y - guideCenterDuringDrag.y;
+                            container.style.left = label.x + 'px';
+                            container.style.top = label.y + 'px';
+                            
+                            // Update line if it exists
+                            const svgContainer = workspace.querySelector('#labelLinesSvg');
+                            if (svgContainer) {
+                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                                if (svgLine) {
+                                    svgLine.setAttribute('x1', label.x + offsetX);
+                                    svgLine.setAttribute('y1', label.y + offsetY);
+                                }
+                            }
+                        });
                     }
                 });
                 
                 container.addEventListener('pointerup', (e) => {
                     if (pointerDownTime === 0) return;
+                    
+                    // Cancel any pending animation frame
+                    if (animationFrameId) {
+                        cancelAnimationFrame(animationFrameId);
+                        animationFrameId = null;
+                    }
                     
                     // Release pointer capture
                     container.releasePointerCapture(e.pointerId);
@@ -3431,6 +3461,12 @@
                 
                 // Cancel on pointer cancel (e.g., gesture interrupted)
                 container.addEventListener('pointercancel', (e) => {
+                    // Cancel any pending animation frame
+                    if (animationFrameId) {
+                        cancelAnimationFrame(animationFrameId);
+                        animationFrameId = null;
+                    }
+                    
                     container.releasePointerCapture(e.pointerId);
                     pointerDownTime = 0;
                     isDragging = false;
