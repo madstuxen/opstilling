@@ -1339,10 +1339,12 @@
         @media (hover: none) and (pointer: coarse) {
             body {
                 padding: 0px;
+                overflow-x: hidden;
             }
             .container {
                 border-radius: 12px;
                 height: calc(100vh - 10px);
+                overflow-x: hidden;
             }
             .header {
                 padding: 5px;
@@ -1361,17 +1363,8 @@
                 border-radius: 8px;
                 min-width: auto;
             }
-            .main-content {
-                overflow: auto;
-                -webkit-overflow-scrolling: touch;
-            }
             .history-sidebar {
                 width: 200px;
-            }
-            .workspace {
-                overflow: auto;
-                -webkit-overflow-scrolling: touch;
-                touch-action: pan-x pan-y;
             }
         }
     </style>
