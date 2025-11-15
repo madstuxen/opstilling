@@ -1286,7 +1286,8 @@
             cursor: text;
         }
         
-        .label-input.label-active:hover .label-text-input {
+        .label-input.label-active:hover .label-text-input,
+        .label-input.label-active.clicked .label-text-input {
             background: rgba(255, 255, 255, 0.6);
             border-radius: 4px;
             transition: background 0.2s ease;
@@ -3301,13 +3302,23 @@
                 container.addEventListener('dblclick', (e) => {
                     if (e.target === deleteBtn) return;
                     
-                    // Cancel mousedown delay
+                    // Cancel click timer and mousedown delay
+                    if (clickTimer) {
+                        clearTimeout(clickTimer);
+                        clickTimer = null;
+                    }
                     if (mouseDownDelayTimer) {
                         clearTimeout(mouseDownDelayTimer);
                         mouseDownDelayTimer = null;
                     }
                     
                     isDoubleClick = true;
+                    isLabelClicked = false;
+                    const labelInput = container.querySelector('.label-input');
+                    if (labelInput) {
+                        labelInput.classList.remove('clicked');
+                    }
+                    
                     e.stopPropagation();
                     e.preventDefault();
                     
@@ -3328,8 +3339,25 @@
                 inputEl.addEventListener('blur', () => {
                     if (!justEnabledEditing) {
                         disableEditing();
+                        // Remove clicked state when blurring
+                        isLabelClicked = false;
+                        const labelInput = container.querySelector('.label-input');
+                        if (labelInput) {
+                            labelInput.classList.remove('clicked');
+                        }
                     }
                     justEnabledEditing = false;
+                });
+                
+                // Remove clicked state when clicking outside label
+                document.addEventListener('click', (e) => {
+                    if (!container.contains(e.target) && !e.target.closest('.label-container')) {
+                        isLabelClicked = false;
+                        const labelInput = container.querySelector('.label-input');
+                        if (labelInput) {
+                            labelInput.classList.remove('clicked');
+                        }
+                    }
                 });
                 
                 let isDragging = false;
@@ -3347,6 +3375,29 @@
                 
                 // Delay for mousedown to allow dblclick to fire first
                 let mouseDownDelayTimer = null;
+                let clickTimer = null;
+                let isLabelClicked = false;
+                
+                // Single click to make label "ready" (show textarea lighter)
+                container.addEventListener('click', (e) => {
+                    if (e.target === deleteBtn) return;
+                    if (inputEl.classList.contains('editing')) return;
+                    
+                    // Clear any existing timer
+                    if (clickTimer) clearTimeout(clickTimer);
+                    
+                    // Wait to see if it's a double-click
+                    clickTimer = setTimeout(() => {
+                        if (!isDoubleClick) {
+                            // Single click - make label "ready"
+                            isLabelClicked = true;
+                            const labelInput = container.querySelector('.label-input');
+                            if (labelInput) {
+                                labelInput.classList.add('clicked');
+                            }
+                        }
+                    }, 250);
+                });
                 
                 container.addEventListener('mousedown', (e) => {
                     // Don't drag when clicking on delete button or if editing
