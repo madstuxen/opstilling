@@ -3093,11 +3093,11 @@
                     let dragStartYPoint = 0;
                     
                     point.addEventListener('pointerdown', (e) => {
-                        // Stop propagation and prevent default to avoid page dragging
+                        // Immediately stop propagation and prevent default to avoid page dragging
                         e.stopPropagation();
                         e.preventDefault();
                         
-                        // Capture pointer for consistent events
+                        // Capture pointer for consistent events (must be before other setup)
                         point.setPointerCapture(e.pointerId);
                         
                         pointerDownTimePoint = Date.now();
@@ -3113,6 +3113,10 @@
                     point.addEventListener('pointermove', (e) => {
                         if (pointerDownTimePoint === 0) return;
                         
+                        // Immediately prevent default if pointer is down (don't wait for drag threshold)
+                        e.stopPropagation();
+                        e.preventDefault();
+                        
                         const moveDistance = Math.sqrt(
                             Math.pow(e.clientX - pointerDownXPoint, 2) + 
                             Math.pow(e.clientY - pointerDownYPoint, 2)
@@ -3124,9 +3128,6 @@
                         }
                         
                         if (isDraggingPoint) {
-                            // Stop propagation and prevent default to avoid page dragging
-                            e.stopPropagation();
-                            e.preventDefault();
                             
                             const workspaceRect = workspace.getBoundingClientRect();
                             label.pointerX = e.clientX - workspaceRect.left - dragStartXPoint;
@@ -3361,11 +3362,11 @@
                     if (e.target === deleteBtn) return;
                     if (isEditing && e.target === inputEl) return;
                     
-                    // Stop propagation and prevent default to avoid page dragging
+                    // Immediately stop propagation and prevent default to avoid page dragging
                     e.stopPropagation();
                     e.preventDefault();
                     
-                    // Capture pointer for consistent events
+                    // Capture pointer for consistent events (must be before other setup)
                     container.setPointerCapture(e.pointerId);
                     
                     pointerDownTime = Date.now();
@@ -3377,10 +3378,14 @@
                     const workspaceRect = workspace.getBoundingClientRect();
                     dragStartX = e.clientX - workspaceRect.left - label.x;
                     dragStartY = e.clientY - workspaceRect.top - label.y;
-                });
+                }, { passive: false }); // Important: non-passive to allow preventDefault
                 
                 container.addEventListener('pointermove', (e) => {
                     if (pointerDownTime === 0) return;
+                    
+                    // Immediately prevent default if pointer is down (don't wait for drag threshold)
+                    e.stopPropagation();
+                    e.preventDefault();
                     
                     const moveDistance = Math.sqrt(
                         Math.pow(e.clientX - pointerDownX, 2) + 
@@ -3395,9 +3400,6 @@
                     }
                     
                     if (isDragging) {
-                        // Stop propagation and prevent default to avoid page dragging
-                        e.stopPropagation();
-                        e.preventDefault();
                         
                         const workspaceRect = workspace.getBoundingClientRect();
                         label.x = e.clientX - workspaceRect.left - dragStartX;
