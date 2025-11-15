@@ -14,17 +14,13 @@
             box-sizing: border-box;
         }
         
-        html {
-            overflow-x: hidden;
-        }
-        
         body {
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 0px;
-            touch-action: manipulation;  /* Same as drag.html */
-            overflow-x: hidden;
+            touch-action: manipulation;
+            -webkit-text-size-adjust: none;
         }
         
         .container {
@@ -291,7 +287,7 @@
             background: #fafafa;
             overflow: hidden;
             cursor: default;
-            /* No touch-action - let label-container handle it like drag.html */
+            touch-action: none;
         }
         
         .history-sidebar {
@@ -490,7 +486,6 @@
             gap: 12px;
             overflow-y: auto;
             padding-right: 6px;
-            touch-action: pan-y;  /* Allow vertical scroll in map manager */
         }
 
         .map-manager-item {
@@ -812,7 +807,6 @@
             overflow-x: hidden;
             padding: 10px;
             min-height: 0; /* Important for flex scrolling */
-            touch-action: pan-y;  /* Allow vertical scroll in history list */
         }
         
         .history-item {
@@ -823,8 +817,6 @@
             transition: transform 0.15s ease, box-shadow 0.15s ease;
             border: 2px solid transparent;
             position: relative;
-            user-select: none;
-            touch-action: none;
         }
         
         .history-item:hover {
@@ -861,21 +853,6 @@
             padding: 0;
             margin: 0;
             color: inherit;
-            pointer-events: none;
-            user-select: none;
-            cursor: default;
-        }
-        
-        .history-item-date.editing {
-            pointer-events: auto;
-            user-select: text;
-            cursor: text;
-        }
-        
-        .history-item:hover .history-item-date {
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 4px;
-            transition: background 0.2s ease;
         }
         
         .history-item:focus-within .history-item-date {
@@ -1243,7 +1220,7 @@
         
         .label-input {
             background: #e8dcc6;
-            border: 2px solid transparent;
+            border: none;
             border-radius: 12px;
             padding: 8px;
             font-size: 16px;
@@ -1257,13 +1234,6 @@
             max-height: 260px;
             overflow-y: auto;
             cursor: move;
-            transition: border-color 0.2s ease;
-            touch-action: pan-y;  /* Allow vertical scroll in label textarea when editing */
-        }
-        
-        .label-input.editing {
-            border-color: #a67c52;
-            cursor: default;
         }
         
         .label-input::-webkit-scrollbar {
@@ -1277,6 +1247,17 @@
         
         .label-input.label-active {
             border: 3px solid #a67c52;
+        }
+        
+        .label-input.editing {
+            border: 3px solid #a67c52;
+            cursor: default;
+        }
+        
+        .label-input:hover .label-text-input {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 4px;
+            transition: background 0.2s ease;
         }
         
         .label-text-input {
@@ -1303,11 +1284,6 @@
             pointer-events: auto;
             user-select: text;
             cursor: text;
-        }
-        
-        .label-text-input.editing {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
         }
         
         .label-text-input:focus {
@@ -2601,106 +2577,17 @@
                 deleteBtn.textContent = '×';
                 item.appendChild(deleteBtn);
 
+                item.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('history-item-date')) return;
+                    if (e.target.classList.contains('history-item-delete')) return;
+                    activeMapId = map ? map.id : index.mapId;
+                    activeIndexId = index.id;
+                    renderHistory();
+                    renderWorkspace();
+                    saveToLocalStorage();
+                });
+
                 const titleInput = item.querySelector('.history-item-date');
-                
-                // State for pointer events - exactly as drag.html
-                let isEditingHistory = false;
-                let pointerDownTimeHistory = 0;
-                let pointerDownXHistory = 0;
-                let pointerDownYHistory = 0;
-                let hasMovedHistory = false;
-                let pointerDownTargetHistory = null; // Store original target
-                
-                // Enable editing mode on titleInput
-                const enableEditing = () => {
-                    if (isEditingHistory) return;
-                    isEditingHistory = true;
-                    titleInput.classList.add('editing');
-                    titleInput.focus();
-                    titleInput.select();
-                };
-                
-                // Disable editing mode on titleInput
-                const disableEditing = () => {
-                    if (!isEditingHistory) return;
-                    isEditingHistory = false;
-                    titleInput.classList.remove('editing');
-                    titleInput.blur();
-                };
-                
-                // Click outside handling is done globally via event delegation
-                
-                // Pointer events for history items - allow scrolling, only activate on click
-                item.addEventListener('pointerdown', (e) => {
-                    // Don't activate if clicking on delete button
-                    if (e.target === deleteBtn || e.target.classList.contains('history-item-delete')) return;
-                    if (isEditingHistory && e.target === titleInput) return;
-                    
-                    // Store original target and position (but don't capture pointer - allow scrolling)
-                    pointerDownTargetHistory = e.target;
-                    pointerDownTimeHistory = Date.now();
-                    pointerDownXHistory = e.clientX;
-                    pointerDownYHistory = e.clientY;
-                    hasMovedHistory = false;
-                });
-                
-                item.addEventListener('pointermove', (e) => {
-                    if (pointerDownTimeHistory === 0) return;
-                    
-                    const moveDistance = Math.sqrt(
-                        Math.pow(e.clientX - pointerDownXHistory, 2) + 
-                        Math.pow(e.clientY - pointerDownYHistory, 2)
-                    );
-                    
-                    // Mark as moved if moved more than 5px (this is scrolling, not clicking)
-                    if (moveDistance > 5) {
-                        hasMovedHistory = true;
-                    }
-                });
-                
-                item.addEventListener('pointerup', (e) => {
-                    if (pointerDownTimeHistory === 0) return;
-                    
-                    // If didn't move = enable editing or activate (not scrolling)
-                    if (!hasMovedHistory) {
-                        // Check if click was on titleInput by checking if pointer position is within titleInput bounds
-                        // Since titleInput has pointer-events: none, e.target will be item, but we can check position
-                        // Use pointerDown position (original click position) for more accurate detection
-                        const titleInputRect = titleInput.getBoundingClientRect();
-                        const clickWasOnTitleInput = (
-                            pointerDownXHistory >= titleInputRect.left &&
-                            pointerDownXHistory <= titleInputRect.right &&
-                            pointerDownYHistory >= titleInputRect.top &&
-                            pointerDownYHistory <= titleInputRect.bottom
-                        );
-                        
-                        if (clickWasOnTitleInput) {
-                            // Clicked on title input - enable editing
-                            e.preventDefault();
-                            enableEditing();
-                        } else {
-                            // Clicked elsewhere - activate the history item
-                            activeMapId = map ? map.id : index.mapId;
-                            activeIndexId = index.id;
-                            renderHistory();
-                            renderWorkspace();
-                            saveToLocalStorage();
-                        }
-                    }
-                    
-                    // Reset state
-                    pointerDownTimeHistory = 0;
-                    hasMovedHistory = false;
-                    pointerDownTargetHistory = null;
-                });
-                
-                // Cancel on pointer cancel (e.g., gesture interrupted)
-                item.addEventListener('pointercancel', (e) => {
-                    pointerDownTimeHistory = 0;
-                    hasMovedHistory = false;
-                    pointerDownTargetHistory = null;
-                });
-                
                 titleInput.addEventListener('change', (e) => {
                     const indexId = parseFloat(e.target.dataset.id);
                     const indexObj = dataIndexes.find(idx => idx.id === indexId);
@@ -2732,37 +2619,6 @@
                 list.scrollTop = 0;
                 shouldScrollHistoryToTop = false;
             }
-        }
-        
-        // Single global click listener for all labels and history items (event delegation)
-        let globalClickHandler = null;
-        if (!globalClickHandler) {
-            globalClickHandler = (e) => {
-                // Find all active editing labels
-                const editingLabels = document.querySelectorAll('.label-text-input.editing');
-                editingLabels.forEach(inputEl => {
-                    const container = inputEl.closest('.label-container');
-                    if (container && !container.contains(e.target)) {
-                        const labelInput = container.querySelector('.label-input');
-                        if (labelInput) {
-                            labelInput.classList.remove('editing');
-                        }
-                        inputEl.classList.remove('editing');
-                        inputEl.blur();
-                    }
-                });
-                
-                // Find all active editing history items
-                const editingHistoryItems = document.querySelectorAll('.history-item-date.editing');
-                editingHistoryItems.forEach(titleInput => {
-                    const item = titleInput.closest('.history-item');
-                    if (item && !item.contains(e.target)) {
-                        titleInput.classList.remove('editing');
-                        titleInput.blur();
-                    }
-                });
-            };
-            document.addEventListener('click', globalClickHandler);
         }
         
         function renderWorkspace() {
@@ -3072,100 +2928,70 @@
                     point.style.opacity = opacity;
                     point.style.background = mapColor || '#a67c52';
                     
-                    // UNIFIED POINTER EVENTS for point dragging (works for mouse, touch, pen)
-                    let isDraggingPoint = false;
-                    let pointerDownTimePoint = 0;
-                    let pointerDownXPoint = 0;
-                    let pointerDownYPoint = 0;
-                    let dragStartXPoint = 0;
-                    let dragStartYPoint = 0;
+                    // Add dragging functionality using pointer events
+                    let pointDragging = false;
+                    let pointDragStartX = 0;
+                    let pointDragStartY = 0;
                     
                     point.addEventListener('pointerdown', (e) => {
-                        // Capture pointer for consistent events
+                        pointDragging = true;
                         point.setPointerCapture(e.pointerId);
                         
-                        pointerDownTimePoint = Date.now();
-                        pointerDownXPoint = e.clientX;
-                        pointerDownYPoint = e.clientY;
-                        isDraggingPoint = false;
-                        
                         const workspaceRect = workspace.getBoundingClientRect();
-                        dragStartXPoint = e.clientX - workspaceRect.left - label.pointerX;
-                        dragStartYPoint = e.clientY - workspaceRect.top - label.pointerY;
+                        const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
+                        const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
+                        pointDragStartX = cursorX - label.pointerX;
+                        pointDragStartY = cursorY - label.pointerY;
+                        e.preventDefault();
                     });
                     
                     point.addEventListener('pointermove', (e) => {
-                        if (pointerDownTimePoint === 0) return;
+                        if (!pointDragging) return;
                         
-                        const moveDistance = Math.sqrt(
-                            Math.pow(e.clientX - pointerDownXPoint, 2) + 
-                            Math.pow(e.clientY - pointerDownYPoint, 2)
-                        );
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        label.pointerX = e.clientX - workspaceRect.left + workspace.scrollLeft - pointDragStartX;
+                        label.pointerY = e.clientY - workspaceRect.top + workspace.scrollTop - pointDragStartY;
+                        const guideCenterDuringDrag = getGuideCenter(workspace);
+                        label.pointerOffsetX = label.pointerX - guideCenterDuringDrag.x;
+                        label.pointerOffsetY = label.pointerY - guideCenterDuringDrag.y;
+                        point.style.left = label.pointerX + 'px';
+                        point.style.top = label.pointerY + 'px';
                         
-                        // Start dragging if moved more than 5px
-                        if (moveDistance > 5 && !isDraggingPoint) {
-                            isDraggingPoint = true;
-                        }
-                        
-                        if (isDraggingPoint) {
-                            e.preventDefault();
-                            
-                            const workspaceRect = workspace.getBoundingClientRect();
-                            label.pointerX = e.clientX - workspaceRect.left - dragStartXPoint;
-                            label.pointerY = e.clientY - workspaceRect.top - dragStartYPoint;
-                            
-                            const guideCenterDuringDrag = getGuideCenter(workspace);
-                            label.pointerOffsetX = label.pointerX - guideCenterDuringDrag.x;
-                            label.pointerOffsetY = label.pointerY - guideCenterDuringDrag.y;
-                            
-                            point.style.left = label.pointerX + 'px';
-                            point.style.top = label.pointerY + 'px';
-                            
-                            // Update line in SVG container
-                            const svgContainer = workspace.querySelector('#labelLinesSvg');
-                            if (svgContainer) {
-                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
-                                if (svgLine) {
-                                    svgLine.setAttribute('x2', label.pointerX);
-                                    svgLine.setAttribute('y2', label.pointerY);
-                                }
+                        // Update line in SVG container
+                        const svgContainer = workspace.querySelector('#labelLinesSvg');
+                        if (svgContainer) {
+                            const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                            if (svgLine) {
+                                svgLine.setAttribute('x2', label.pointerX);
+                                svgLine.setAttribute('y2', label.pointerY);
                             }
-                            
-                            e.preventDefault();
                         }
+                        e.preventDefault();
                     });
                     
                     point.addEventListener('pointerup', (e) => {
-                        if (pointerDownTimePoint === 0) return;
-                        
-                        // Release pointer capture
+                        if (!pointDragging) return;
+                        pointDragging = false;
                         point.releasePointerCapture(e.pointerId);
                         
-                        if (isDraggingPoint) {
-                            // Update all labels with the same text across all indexes to match the new pointer position
-                            mapIndexes.forEach(idx => {
-                                idx.labels.forEach(lab => {
-                                    if (lab.text === label.text && lab.id !== label.id) {
-                                        lab.pointerX = label.pointerX;
-                                        lab.pointerY = label.pointerY;
-                                        lab.pointerOffsetX = label.pointerOffsetX;
-                                        lab.pointerOffsetY = label.pointerOffsetY;
-                                    }
-                                });
+                        // Update all labels with the same text across all indexes to match the new pointer position
+                        mapIndexes.forEach(idx => {
+                            idx.labels.forEach(lab => {
+                                if (lab.text === label.text && lab.id !== label.id) {
+                                    lab.pointerX = label.pointerX;
+                                    lab.pointerY = label.pointerY;
+                                    lab.pointerOffsetX = label.pointerOffsetX;
+                                    lab.pointerOffsetY = label.pointerOffsetY;
+                                }
                             });
-                            saveToLocalStorage();
-                        }
+                        });
                         
-                        // Reset state
-                        pointerDownTimePoint = 0;
-                        isDraggingPoint = false;
+                        saveToLocalStorage();
                     });
                     
-                    // Cancel on pointer cancel (e.g., gesture interrupted)
                     point.addEventListener('pointercancel', (e) => {
+                        pointDragging = false;
                         point.releasePointerCapture(e.pointerId);
-                        pointerDownTimePoint = 0;
-                        isDraggingPoint = false;
                     });
                     
                     workspace.appendChild(point);
@@ -3297,7 +3123,7 @@
                     });
                 }
                 
-                // State
+                // State for drag and edit
                 let isEditing = false;
                 let isDragging = false;
                 let pointerDownTime = 0;
@@ -3312,10 +3138,7 @@
                     if (isEditing) return;
                     isEditing = true;
                     inputEl.classList.add('editing');
-                    const labelInput = container.querySelector('.label-input');
-                    if (labelInput) {
-                        labelInput.classList.add('editing');
-                    }
+                    labelInput.classList.add('editing');
                     container.style.cursor = 'default';
                     setTimeout(() => {
                         inputEl.focus();
@@ -3328,26 +3151,29 @@
                     if (!isEditing) return;
                     isEditing = false;
                     inputEl.classList.remove('editing');
-                    const labelInput = container.querySelector('.label-input');
-                    if (labelInput) {
-                        labelInput.classList.remove('editing');
-                    }
+                    labelInput.classList.remove('editing');
                     container.style.cursor = 'move';
                     inputEl.blur();
                 };
                 
-                // Click outside handling is done globally via event delegation
+                // Click outside to exit edit mode
+                document.addEventListener('click', (e) => {
+                    if (!container.contains(e.target) && isEditing) {
+                        disableEditing();
+                    }
+                });
                 
-                // UNIFIED POINTER EVENTS (works for mouse, touch, pen) - same aggressive locking as point
+                // Blur textarea when clicking outside
+                inputEl.addEventListener('blur', () => {
+                    disableEditing();
+                });
+                
+                // UNIFIED POINTER EVENTS (works for mouse, touch, pen)
                 container.addEventListener('pointerdown', (e) => {
                     if (e.target === deleteBtn) return;
                     if (isEditing && e.target === inputEl) return;
                     
-                    // Immediately stop propagation and prevent default to avoid page dragging (same as point)
-                    e.stopPropagation();
-                    e.preventDefault();
-                    
-                    // Capture pointer for consistent events (must be before other setup)
+                    // Capture pointer for consistent events
                     container.setPointerCapture(e.pointerId);
                     
                     pointerDownTime = Date.now();
@@ -3357,16 +3183,12 @@
                     isDragging = false;
                     
                     const workspaceRect = workspace.getBoundingClientRect();
-                    dragStartX = e.clientX - workspaceRect.left - label.x;
-                    dragStartY = e.clientY - workspaceRect.top - label.y;
+                    dragStartX = e.clientX - workspaceRect.left + workspace.scrollLeft - label.x;
+                    dragStartY = e.clientY - workspaceRect.top + workspace.scrollTop - label.y;
                 });
                 
                 container.addEventListener('pointermove', (e) => {
                     if (pointerDownTime === 0) return;
-                    
-                    // Immediately prevent default if pointer is down (don't wait for drag threshold) - same as point
-                    e.stopPropagation();
-                    e.preventDefault();
                     
                     const moveDistance = Math.sqrt(
                         Math.pow(e.clientX - pointerDownX, 2) + 
@@ -3381,10 +3203,9 @@
                     }
                     
                     if (isDragging) {
-                        
                         const workspaceRect = workspace.getBoundingClientRect();
-                        label.x = e.clientX - workspaceRect.left - dragStartX;
-                        label.y = e.clientY - workspaceRect.top - dragStartY;
+                        label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - dragStartX;
+                        label.y = e.clientY - workspaceRect.top + workspace.scrollTop - dragStartY;
                         const guideCenterDuringDrag = getGuideCenter(workspace);
                         label.offsetX = label.x - guideCenterDuringDrag.x;
                         label.offsetY = label.y - guideCenterDuringDrag.y;
@@ -3400,6 +3221,7 @@
                                 svgLine.setAttribute('y1', label.y + offsetY);
                             }
                         }
+                        e.preventDefault();
                     }
                 });
                 
@@ -3413,7 +3235,7 @@
                     if (!hasMoved && !isDragging) {
                         enableEditing();
                     } else if (isDragging) {
-                        // Update all labels with the same text across all indexes
+                        // Update all labels with the same text across all indexes to match the new position
                         relevantIndexes.forEach(idx => {
                             idx.labels.forEach(lab => {
                                 if (lab.text === label.text && lab.id !== label.id) {
@@ -3425,6 +3247,7 @@
                             });
                         });
                         
+                        // Re-render workspace to show updated positions
                         renderWorkspace();
                         saveToLocalStorage();
                     }
@@ -3850,14 +3673,25 @@
                 }
             }
             
-            // Focus the newly created textarea after a short delay
+            // Focus the newly created textarea after a short delay, but only if not dragging
             setTimeout(() => {
                 const labels = workspace.querySelectorAll('.label-text-input');
                 if (labels.length > 0) {
                     const lastLabel = labels[labels.length - 1];
-                    lastLabel.focus();
+                    const container = lastLabel.closest('.label-container');
+                    if (container) {
+                        // Enable editing mode (which will focus the textarea)
+                        const labelInput = container.querySelector('.label-input');
+                        if (labelInput && !labelInput.classList.contains('editing')) {
+                            lastLabel.classList.add('editing');
+                            labelInput.classList.add('editing');
+                            container.style.cursor = 'default';
+                            lastLabel.focus();
+                            lastLabel.select();
+                        }
+                    }
                 }
-            }, 100);
+            }, 150);
             saveToLocalStorage();
         }
         
