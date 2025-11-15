@@ -16,7 +16,7 @@
         
         html {
             overflow-x: hidden;
-            touch-action: pan-y;
+            touch-action: none;
         }
         
         body {
@@ -24,7 +24,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 0px;
-            touch-action: pan-y;
+            touch-action: none;
             overflow-x: hidden;
         }
         
@@ -38,7 +38,7 @@
             display: flex;
             flex-direction: column;
             height: calc(100vh - 40px);
-            touch-action: pan-y;
+            touch-action: none;
         }
         
         .header {
@@ -277,7 +277,7 @@
             flex: 1;
             overflow: hidden;
             min-height: 0;
-            touch-action: pan-y;
+            touch-action: none;
         }
         
         .workspace-container {
@@ -286,7 +286,7 @@
             overflow: hidden;
             height: 100%;
             position: relative;
-            touch-action: pan-y;
+            touch-action: none;
         }
         
         .workspace {
@@ -295,7 +295,7 @@
             background: #fafafa;
             overflow: hidden;
             cursor: default;
-            touch-action: pan-y pan-x;  /* Tillad scroll, men ikke zoom */
+            touch-action: none;  /* Ingen touch-action da workspace har overflow: hidden */
         }
         
         .history-sidebar {
@@ -494,6 +494,7 @@
             gap: 12px;
             overflow-y: auto;
             padding-right: 6px;
+            touch-action: pan-y;  /* Allow vertical scroll in map manager */
         }
 
         .map-manager-item {
@@ -815,6 +816,7 @@
             overflow-x: hidden;
             padding: 10px;
             min-height: 0; /* Important for flex scrolling */
+            touch-action: pan-y;  /* Allow vertical scroll in history list */
         }
         
         .history-item {
@@ -1260,6 +1262,7 @@
             overflow-y: auto;
             cursor: move;
             transition: border-color 0.2s ease;
+            touch-action: pan-y;  /* Allow vertical scroll in label textarea when editing */
         }
         
         .label-input.editing {
