@@ -3090,6 +3090,10 @@
                     let dragStartYPoint = 0;
                     
                     point.addEventListener('pointerdown', (e) => {
+                        // Stop propagation and prevent default to avoid page dragging
+                        e.stopPropagation();
+                        e.preventDefault();
+                        
                         // Capture pointer for consistent events
                         point.setPointerCapture(e.pointerId);
                         
@@ -3117,6 +3121,10 @@
                         }
                         
                         if (isDraggingPoint) {
+                            // Stop propagation and prevent default to avoid page dragging
+                            e.stopPropagation();
+                            e.preventDefault();
+                            
                             const workspaceRect = workspace.getBoundingClientRect();
                             label.pointerX = e.clientX - workspaceRect.left - dragStartXPoint;
                             label.pointerY = e.clientY - workspaceRect.top - dragStartYPoint;
@@ -3384,6 +3392,10 @@
                     }
                     
                     if (isDragging) {
+                        // Stop propagation and prevent default to avoid page dragging
+                        e.stopPropagation();
+                        e.preventDefault();
+                        
                         const workspaceRect = workspace.getBoundingClientRect();
                         label.x = e.clientX - workspaceRect.left - dragStartX;
                         label.y = e.clientY - workspaceRect.top - dragStartY;
@@ -3402,7 +3414,6 @@
                                 svgLine.setAttribute('y1', label.y + offsetY);
                             }
                         }
-                        e.preventDefault();
                     }
                 });
                 
