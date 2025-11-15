@@ -1335,15 +1335,12 @@
             pointer-events: auto;
         }
         
-        /* Mobile adjustments */
+        /* Mobile adjustments - only touch, header and toolbar */
         @media (hover: none) and (pointer: coarse) {
             body {
-                padding: 0px;
                 overflow-x: hidden;
             }
             .container {
-                border-radius: 12px;
-                height: calc(100vh - 10px);
                 overflow-x: hidden;
             }
             .header {
@@ -1362,9 +1359,6 @@
                 font-size: 13px;
                 border-radius: 8px;
                 min-width: auto;
-            }
-            .history-sidebar {
-                width: 200px;
             }
         }
     </style>
