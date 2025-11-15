@@ -2610,6 +2610,7 @@
                 let pointerDownXHistory = 0;
                 let pointerDownYHistory = 0;
                 let hasMovedHistory = false;
+                let pointerDownTargetHistory = null; // Store original target
                 
                 // Enable editing mode on titleInput
                 const enableEditing = () => {
@@ -2628,18 +2629,16 @@
                     titleInput.blur();
                 };
                 
-                // Click outside to exit edit mode
-                document.addEventListener('click', (e) => {
-                    if (!item.contains(e.target) && isEditingHistory) {
-                        disableEditing();
-                    }
-                });
+                // Click outside handling is done globally via event delegation
                 
                 // UNIFIED POINTER EVENTS (works for mouse, touch, pen) - exactly as drag.html
                 item.addEventListener('pointerdown', (e) => {
-                    // Don't activate if clicking on delete button or title input
+                    // Don't activate if clicking on delete button
                     if (e.target === deleteBtn || e.target.classList.contains('history-item-delete')) return;
                     if (isEditingHistory && e.target === titleInput) return;
+                    
+                    // Store original target before capture (e.target changes after setPointerCapture)
+                    pointerDownTargetHistory = e.target;
                     
                     // Capture pointer for consistent events
                     item.setPointerCapture(e.pointerId);
@@ -2672,8 +2671,20 @@
                     
                     // If didn't move = enable editing or activate
                     if (!hasMovedHistory) {
-                        if (e.target.classList.contains('history-item-date')) {
+                        // Check if click was on titleInput by checking if pointer position is within titleInput bounds
+                        // Since titleInput has pointer-events: none, e.target will be item, but we can check position
+                        // Use pointerDown position (original click position) for more accurate detection
+                        const titleInputRect = titleInput.getBoundingClientRect();
+                        const clickWasOnTitleInput = (
+                            pointerDownXHistory >= titleInputRect.left &&
+                            pointerDownXHistory <= titleInputRect.right &&
+                            pointerDownYHistory >= titleInputRect.top &&
+                            pointerDownYHistory <= titleInputRect.bottom
+                        );
+                        
+                        if (clickWasOnTitleInput) {
                             // Clicked on title input - enable editing
+                            e.preventDefault();
                             enableEditing();
                         } else {
                             // Clicked elsewhere - activate the history item
@@ -2688,6 +2699,7 @@
                     // Reset state
                     pointerDownTimeHistory = 0;
                     hasMovedHistory = false;
+                    pointerDownTargetHistory = null;
                 });
                 
                 // Cancel on pointer cancel (e.g., gesture interrupted)
@@ -2695,6 +2707,7 @@
                     item.releasePointerCapture(e.pointerId);
                     pointerDownTimeHistory = 0;
                     hasMovedHistory = false;
+                    pointerDownTargetHistory = null;
                 });
                 
                 titleInput.addEventListener('change', (e) => {
@@ -2730,10 +2743,10 @@
             }
         }
         
-        // Single global click listener for all labels (event delegation)
-        let globalLabelClickHandler = null;
-        if (!globalLabelClickHandler) {
-            globalLabelClickHandler = (e) => {
+        // Single global click listener for all labels and history items (event delegation)
+        let globalClickHandler = null;
+        if (!globalClickHandler) {
+            globalClickHandler = (e) => {
                 // Find all active editing labels
                 const editingLabels = document.querySelectorAll('.label-text-input.editing');
                 editingLabels.forEach(inputEl => {
@@ -2747,8 +2760,18 @@
                         inputEl.blur();
                     }
                 });
+                
+                // Find all active editing history items
+                const editingHistoryItems = document.querySelectorAll('.history-item-date.editing');
+                editingHistoryItems.forEach(titleInput => {
+                    const item = titleInput.closest('.history-item');
+                    if (item && !item.contains(e.target)) {
+                        titleInput.classList.remove('editing');
+                        titleInput.blur();
+                    }
+                });
             };
-            document.addEventListener('click', globalLabelClickHandler);
+            document.addEventListener('click', globalClickHandler);
         }
         
         function renderWorkspace() {
@@ -3058,88 +3081,50 @@
                     point.style.opacity = opacity;
                     point.style.background = mapColor || '#a67c52';
                     
-                    // Add dragging functionality
-                    let isDragging = false;
-                    point.addEventListener('mousedown', (e) => {
-                        isDragging = true;
+                    // UNIFIED POINTER EVENTS for point dragging (works for mouse, touch, pen)
+                    let isDraggingPoint = false;
+                    let pointerDownTimePoint = 0;
+                    let pointerDownXPoint = 0;
+                    let pointerDownYPoint = 0;
+                    let dragStartXPoint = 0;
+                    let dragStartYPoint = 0;
+                    
+                    point.addEventListener('pointerdown', (e) => {
+                        // Capture pointer for consistent events
+                        point.setPointerCapture(e.pointerId);
+                        
+                        pointerDownTimePoint = Date.now();
+                        pointerDownXPoint = e.clientX;
+                        pointerDownYPoint = e.clientY;
+                        isDraggingPoint = false;
+                        
                         const workspaceRect = workspace.getBoundingClientRect();
-                        // Calculate initial offset in workspace coordinates
-                        const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
-                        const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
-                        const startX = cursorX - label.pointerX;
-                        const startY = cursorY - label.pointerY;
-                        
-                        const onMouseMove = (e) => {
-                            if (!isDragging) return;
-                            // Convert cursor position to workspace coordinates
-                            const workspaceRect = workspace.getBoundingClientRect();
-                            label.pointerX = e.clientX - workspaceRect.left + workspace.scrollLeft - startX;
-                            label.pointerY = e.clientY - workspaceRect.top + workspace.scrollTop - startY;
-                            const guideCenterDuringDrag = getGuideCenter(workspace);
-                            label.pointerOffsetX = label.pointerX - guideCenterDuringDrag.x;
-                            label.pointerOffsetY = label.pointerY - guideCenterDuringDrag.y;
-                            point.style.left = label.pointerX + 'px';
-                            point.style.top = label.pointerY + 'px';
-                            
-                            // Update line in SVG container
-                            const svgContainer = workspace.querySelector('#labelLinesSvg');
-                            if (svgContainer) {
-                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
-                                if (svgLine) {
-                                    svgLine.setAttribute('x2', label.pointerX);
-                                    svgLine.setAttribute('y2', label.pointerY);
-                                }
-                            }
-                            e.preventDefault();
-                        };
-                        
-                        const onMouseUp = () => {
-                            isDragging = false;
-                            document.removeEventListener('mousemove', onMouseMove);
-                            document.removeEventListener('mouseup', onMouseUp);
-                            
-                            // Update all labels with the same text across all indexes to match the new pointer position
-                            mapIndexes.forEach(idx => {
-                                idx.labels.forEach(lab => {
-                                    if (lab.text === label.text && lab.id !== label.id) {
-                                        lab.pointerX = label.pointerX;
-                                        lab.pointerY = label.pointerY;
-                                        lab.pointerOffsetX = label.pointerOffsetX;
-                                        lab.pointerOffsetY = label.pointerOffsetY;
-                                    }
-                                });
-                            });
-                            saveToLocalStorage();
-                        };
-                        
-                        document.addEventListener('mousemove', onMouseMove);
-                        document.addEventListener('mouseup', onMouseUp);
-                        e.preventDefault();
+                        dragStartXPoint = e.clientX - workspaceRect.left - label.pointerX;
+                        dragStartYPoint = e.clientY - workspaceRect.top - label.pointerY;
                     });
                     
-                    // Touch support for mobile dragging
-                    point.addEventListener('touchstart', (e) => {
-                        if (!e.touches || e.touches.length === 0) return;
-                        isDragging = true;
-                        const touch = e.touches[0];
-                        const workspaceRect = workspace.getBoundingClientRect();
-                        // Calculate initial offset in workspace coordinates
-                        const cursorX = touch.clientX - workspaceRect.left + workspace.scrollLeft;
-                        const cursorY = touch.clientY - workspaceRect.top + workspace.scrollTop;
-                        const startX = cursorX - label.pointerX;
-                        const startY = cursorY - label.pointerY;
-
-                        const onTouchMove = (ev) => {
-                            if (!isDragging) return;
-                            const touch = ev.touches && ev.touches[0];
-                            if (!touch) return;
-                            // Convert cursor position to workspace coordinates
+                    point.addEventListener('pointermove', (e) => {
+                        if (pointerDownTimePoint === 0) return;
+                        
+                        const moveDistance = Math.sqrt(
+                            Math.pow(e.clientX - pointerDownXPoint, 2) + 
+                            Math.pow(e.clientY - pointerDownYPoint, 2)
+                        );
+                        
+                        // Start dragging if moved more than 5px
+                        if (moveDistance > 5 && !isDraggingPoint) {
+                            isDraggingPoint = true;
+                        }
+                        
+                        if (isDraggingPoint) {
                             const workspaceRect = workspace.getBoundingClientRect();
-                            label.pointerX = touch.clientX - workspaceRect.left + workspace.scrollLeft - startX;
-                            label.pointerY = touch.clientY - workspaceRect.top + workspace.scrollTop - startY;
+                            label.pointerX = e.clientX - workspaceRect.left - dragStartXPoint;
+                            label.pointerY = e.clientY - workspaceRect.top - dragStartYPoint;
+                            
                             const guideCenterDuringDrag = getGuideCenter(workspace);
                             label.pointerOffsetX = label.pointerX - guideCenterDuringDrag.x;
                             label.pointerOffsetY = label.pointerY - guideCenterDuringDrag.y;
+                            
                             point.style.left = label.pointerX + 'px';
                             point.style.top = label.pointerY + 'px';
                             
@@ -3152,14 +3137,18 @@
                                     svgLine.setAttribute('y2', label.pointerY);
                                 }
                             }
-                            ev.preventDefault();
-                        };
-
-                        const onTouchEnd = () => {
-                            isDragging = false;
-                            document.removeEventListener('touchmove', onTouchMove, { passive: false });
-                            document.removeEventListener('touchend', onTouchEnd);
                             
+                            e.preventDefault();
+                        }
+                    });
+                    
+                    point.addEventListener('pointerup', (e) => {
+                        if (pointerDownTimePoint === 0) return;
+                        
+                        // Release pointer capture
+                        point.releasePointerCapture(e.pointerId);
+                        
+                        if (isDraggingPoint) {
                             // Update all labels with the same text across all indexes to match the new pointer position
                             mapIndexes.forEach(idx => {
                                 idx.labels.forEach(lab => {
@@ -3172,12 +3161,19 @@
                                 });
                             });
                             saveToLocalStorage();
-                        };
-
-                        document.addEventListener('touchmove', onTouchMove, { passive: false });
-                        document.addEventListener('touchend', onTouchEnd);
-                        e.preventDefault();
-                    }, { passive: true });
+                        }
+                        
+                        // Reset state
+                        pointerDownTimePoint = 0;
+                        isDraggingPoint = false;
+                    });
+                    
+                    // Cancel on pointer cancel (e.g., gesture interrupted)
+                    point.addEventListener('pointercancel', (e) => {
+                        point.releasePointerCapture(e.pointerId);
+                        pointerDownTimePoint = 0;
+                        isDraggingPoint = false;
+                    });
                     
                     workspace.appendChild(point);
                 }
