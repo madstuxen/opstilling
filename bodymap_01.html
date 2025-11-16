@@ -306,6 +306,11 @@
             z-index: 30;
         }
         
+        /* Disable history panel completely */
+        .history-sidebar {
+            display: none !important;
+        }
+        
         .history-sidebar.collapsed {
             transform: translateX(212px);
         }
@@ -1532,6 +1537,8 @@
         let showOnionLayers = true; // Toggle for showing onion layers
         // Experimental flag: disable all relative (guide-centered) label/pointer calculations
         const USE_RELATIVE_OFFSETS = false;
+        // Disable history panel and its logic
+        const USE_HISTORY = false;
         let historyFilterMapId = 'all'; // Current filter selection for history
         
         // Main data structure for saving/loading
@@ -2018,6 +2025,7 @@
         }
 
         function renderHistoryFilterOptions() {
+            if (!USE_HISTORY) return;
             const filterEl = document.getElementById('historyFilter');
             if (!filterEl) return;
 
@@ -2036,6 +2044,7 @@
         }
 
         function setHistoryFilter(value) {
+            if (!USE_HISTORY) return;
             historyFilterMapId = value === 'all' ? 'all' : parseFloat(value);
             ensureDefaultMap();
             if (historyFilterMapId !== 'all') {
@@ -2531,6 +2540,7 @@
         }
         
         function renderHistory() {
+            if (!USE_HISTORY) return;
             const list = document.getElementById('historyList');
             list.innerHTML = '';
             
