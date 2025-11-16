@@ -207,6 +207,13 @@
             cursor: default;
             pointer-events: none;
         }
+        .nav-button.nav-checkin {
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+        }
+        .nav-button.nav-checkin:hover:not(.active) {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
         
         .nav-button:nth-child(1) {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -972,15 +979,21 @@
             transition: border-color 0.2s ease, background-color 0.2s ease;
         }
 
-        .dialog-history-item-title-input:hover {
+        /* Only show edit affordance on active item */
+        .dialog-history-item.active .dialog-history-item-title-input:hover {
             border-color: rgba(99, 102, 241, 0.25);
             background: rgba(99, 102, 241, 0.06);
+            cursor: text;
         }
 
-        .dialog-history-item-title-input:focus {
+        .dialog-history-item.active .dialog-history-item-title-input:focus {
             outline: none;
             border-color: #6366f1;
             background: rgba(99, 102, 241, 0.12);
+        }
+        .dialog-history-item .dialog-history-item-title-input[readonly] {
+            cursor: default;
+            opacity: 0.98;
         }
         
         .dialog-history-item-meta {
@@ -1396,6 +1409,7 @@
                     <a href="compare_01.html" class="nav-button">Ligheder</a>
                     <a href="bodymap_01.html" class="nav-button">BodyMap</a>
                     <a href="logbog_01.html" class="nav-button">Logbog</a>
+                    <a href="index.html" class="nav-button nav-checkin">Check in</a>
                 </div>
             </div>
             <h1>Dialog</h1>
@@ -1804,7 +1818,8 @@ let dialogHistoryCollapsed = false;
                 const day = String(date.getDate()).padStart(2, '0');
                 const hours = String(date.getHours()).padStart(2, '0');
                 const minutes = String(date.getMinutes()).padStart(2, '0');
-                return `${year}-${month}-${day} ${hours}:${minutes}`;
+                // DD-MM-YYYY HH:MM for display; sorting uses timestamps elsewhere
+                return `${day}-${month}-${year} ${hours}:${minutes}`;
             } catch (_) {
                 return isoString;
             }
@@ -1868,7 +1883,23 @@ let dialogHistoryCollapsed = false;
                     item.appendChild(deleteBtn);
                     listEl.appendChild(item);
 
-                    titleInput.addEventListener('click', e => e.stopPropagation());
+                    // Make input read-only unless this history item is active
+                    if (!isActive) {
+                        titleInput.readOnly = true;
+                        titleInput.tabIndex = -1;
+                    } else {
+                        titleInput.readOnly = false;
+                        titleInput.tabIndex = 0;
+                    }
+                    titleInput.addEventListener('click', e => {
+                        if (!isActive) {
+                            // Activate this session instead of editing when non-active
+                            e.stopPropagation();
+                            loadSavedDialog(session.id);
+                        } else {
+                            e.stopPropagation();
+                        }
+                    });
                     titleInput.addEventListener('keydown', e => {
                         if (e.key === 'Enter') {
                             e.preventDefault();

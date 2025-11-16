@@ -198,6 +198,13 @@
             cursor: default;
             pointer-events: none;
         }
+        .nav-button.nav-checkin {
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+        }
+        .nav-button.nav-checkin:hover:not(.active) {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
         
         .nav-button:nth-child(1) {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -1453,6 +1460,7 @@
                     <a href="compare_01.html" class="nav-button">Ligheder</a>
                     <a href="bodymap_01.html" class="nav-button">BodyMap</a>
                     <a href="logbog_01.html" class="nav-button">Logbog</a>
+                    <a href="index.html" class="nav-button nav-checkin">Check in</a>
                 </div>
             </div>
             <h1>Forskelle og ligheder</h1>

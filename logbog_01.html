@@ -192,6 +192,14 @@
             cursor: default;
             pointer-events: none;
         }
+        /* Check in button (purple) */
+        .nav-button.nav-checkin {
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+        }
+        .nav-button.nav-checkin:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
 
         .content {
             padding: 24px;
@@ -691,7 +699,7 @@
             border: none;
             background: rgba(255, 255, 255, 0.92);
             color: #1f2937;
-            font-size: 1rem;
+            font-size: 16px; /* avoid iOS zoom on focus */
             line-height: 1.6;
             resize: vertical;
             overflow-y: auto;
@@ -719,6 +727,7 @@
             background: rgba(139, 92, 246, 0.08);
             border: 1px solid rgba(124, 58, 237, 0.25);
             color: #312e81;
+            font-size: 16px; /* ensure >=16px for iOS */
         }
 
         .dreams-title {
@@ -861,6 +870,7 @@
                     <a href="compare_01.html" class="nav-button">Ligheder</a>
                     <a href="bodymap_01.html" class="nav-button">BodyMap</a>
                     <a href="logbog_01.html" class="nav-button active">Logbog</a>
+                    <a href="index.html" class="nav-button nav-checkin">Check in</a>
                 </div>
             </div>
             <h1>Logbog</h1>
@@ -1027,12 +1037,26 @@
                 let mutated = false;
                 const normalizedEntries = parsed.map(entry => {
                     if (!entry || typeof entry !== 'object') return entry;
+                    // Normalize date to ISO YYYY-MM-DD
                     const normalizedKey = normalizeDateKey(entry.date);
+                    let nextEntry = entry;
                     if (normalizedKey && normalizedKey !== entry.date) {
                         mutated = true;
-                        return { ...entry, date: normalizedKey };
+                        nextEntry = { ...nextEntry, date: normalizedKey };
                     }
-                    return entry;
+                    // Ensure timestamp (ISO 8601). For legacy entries without timestamp, derive from date at local midnight
+                    if (!nextEntry.timestamp) {
+                        const derived = new Date(`${normalizedKey || entry.date}T00:00:00`);
+                        if (!Number.isNaN(derived.getTime())) {
+                            nextEntry = { ...nextEntry, timestamp: derived.toISOString() };
+                            mutated = true;
+                        } else {
+                            // Fallback to "now"
+                            nextEntry = { ...nextEntry, timestamp: new Date().toISOString() };
+                            mutated = true;
+                        }
+                    }
+                    return nextEntry;
                 });
 
                 if (mutated) {
@@ -1306,7 +1330,7 @@
             const entries = getLogbookData();
             let entry = entries.find(item => item.date === dateKey);
             if (!entry) {
-                entry = { date: dateKey, dagbog: '', dreams: '' };
+                entry = { date: dateKey, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
                 entries.push(entry);
             }
 
@@ -1318,7 +1342,11 @@
         function getSortedLogEntries() {
             return getLogbookData()
                 .slice()
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
+                .sort((a, b) => {
+                    const tb = new Date(b.timestamp || `${b.date}T00:00:00`).getTime();
+                    const ta = new Date(a.timestamp || `${a.date}T00:00:00`).getTime();
+                    return tb - ta; // newer first
+                });
         }
 
         function formatLogHistoryDate(dateStr, options) {
@@ -1368,7 +1396,18 @@
                 const metaEl = document.createElement('div');
                 metaEl.className = 'log-history-item-meta';
                 const dateMeta = document.createElement('span');
-                dateMeta.textContent = entry.date;
+                // Show date as DD-MM-YYYY
+                (function() {
+                    const d = entry.date;
+                    if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+                        const [y, m, day] = d.split('-');
+                        dateMeta.textContent = `${day}-${m}-${y}`;
+                    } else {
+                        // Fallback to locale
+                        const parsed = new Date(`${entry.date}T00:00:00`);
+                        dateMeta.textContent = Number.isNaN(parsed.getTime()) ? entry.date : parsed.toLocaleDateString('da-DK');
+                    }
+                })();
                 const charCount = document.createElement('span');
                 const totalChars = (entry.dagbog || '').length + (entry.dreams || '').length;
                 charCount.textContent = `${totalChars} tegn`;

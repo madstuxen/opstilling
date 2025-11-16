@@ -178,6 +178,14 @@
             cursor: default;
             pointer-events: none;
         }
+        /* Check in button (purple) */
+        .nav-button.nav-checkin {
+            background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+        }
+        .nav-button.nav-checkin:hover:not(.active) {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
         
         .nav-button:nth-child(1) {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -1438,6 +1446,7 @@
                     <a href="compare_01.html" class="nav-button">Ligheder</a>
                     <a href="bodymap_01.html" class="nav-button">BodyMap</a>
                     <a href="logbog_01.html" class="nav-button">Logbog</a>
+                    <a href="index.html" class="nav-button nav-checkin">Check in</a>
                 </div>
             </div>
             <h1>Body Map</h1>
@@ -4158,14 +4167,28 @@
 
         function promptCleanupEmptyLayersOnLoad() {
             try {
+                // Do not apply cleanup if there is only one layer total
+                if (!Array.isArray(dataIndexes) || dataIndexes.length <= 1) return;
                 // Collect empty indexes (no labels)
                 const emptyIndexes = dataIndexes.filter(idx => Array.isArray(idx.labels) ? idx.labels.length === 0 : true);
                 if (!emptyIndexes.length) return;
+                // Sort empty by timestamp (newest first), keep the newest empty, delete the rest
+                const sortedEmpty = emptyIndexes
+                    .slice()
+                    .sort((a, b) => new Date(ensureIndexTimestamp(b)).getTime() - new Date(ensureIndexTimestamp(a)).getTime());
+                const toKeep = sortedEmpty[0] ? new Set([sortedEmpty[0].id]) : new Set();
+                const toDelete = sortedEmpty.filter(idx => !toKeep.has(idx.id));
+                if (!toDelete.length) return;
+                // Ensure we will not remove to below one total index
+                if ((dataIndexes.length - toDelete.length) < 1) return;
                 const shouldDelete = confirm('Der findes lag uden labels. Vil du slette dem?');
                 if (!shouldDelete) return;
-                const emptyIds = new Set(emptyIndexes.map(idx => idx.id));
+                const emptyIds = new Set(toDelete.map(idx => idx.id));
                 // Remove empty indexes
-                dataIndexes = dataIndexes.filter(idx => !emptyIds.has(idx.id));
+                const nextDataIndexes = dataIndexes.filter(idx => !emptyIds.has(idx.id));
+                // Safety: ensure at least one layer remains
+                if (nextDataIndexes.length < 1) return;
+                dataIndexes = nextDataIndexes;
                 // Remove maps that end up without any indexes (but keep at least one map)
                 const mapHasIndex = new Set(dataIndexes.map(idx => idx.mapId));
                 maps = maps.filter((m, i, arr) => {
