@@ -1530,6 +1530,8 @@
         let shouldScrollHistoryToBottom = false;
         let shouldScrollHistoryToTop = false;
         let showOnionLayers = true; // Toggle for showing onion layers
+        // Experimental flag: disable all relative (guide-centered) label/pointer calculations
+        const USE_RELATIVE_OFFSETS = false;
         let historyFilterMapId = 'all'; // Current filter selection for history
         
         // Main data structure for saving/loading
@@ -2868,29 +2870,35 @@
             
             // Only render labels for onion layers (not the guide figure itself)
             layerIndex.labels.forEach(label => {
-                if (typeof label.offsetX !== 'number' || typeof label.offsetY !== 'number') {
-                    const absX = typeof label.x === 'number' ? label.x : guideCenter.x;
-                    const absY = typeof label.y === 'number' ? label.y : guideCenter.y;
-                    label.offsetX = absX - guideCenter.x;
-                    label.offsetY = absY - guideCenter.y;
+                let labelAbsX, labelAbsY, pointerAbsX, pointerAbsY;
+                if (USE_RELATIVE_OFFSETS) {
+                    if (typeof label.offsetX !== 'number' || typeof label.offsetY !== 'number') {
+                        const absX = typeof label.x === 'number' ? label.x : guideCenter.x;
+                        const absY = typeof label.y === 'number' ? label.y : guideCenter.y;
+                        label.offsetX = absX - guideCenter.x;
+                        label.offsetY = absY - guideCenter.y;
+                    }
+                    labelAbsX = guideCenter.x + (label.offsetX ?? 0);
+                    labelAbsY = guideCenter.y + (label.offsetY ?? 0);
+                    label.x = labelAbsX;
+                    label.y = labelAbsY;
+                    if (typeof label.pointerOffsetX !== 'number' || typeof label.pointerOffsetY !== 'number') {
+                        const fallbackPointerX = typeof label.pointerX === 'number' ? label.pointerX : labelAbsX;
+                        const fallbackPointerY = typeof label.pointerY === 'number' ? label.pointerY : labelAbsY;
+                        label.pointerOffsetX = fallbackPointerX - guideCenter.x;
+                        label.pointerOffsetY = fallbackPointerY - guideCenter.y;
+                    }
+                    pointerAbsX = guideCenter.x + (label.pointerOffsetX ?? 0);
+                    pointerAbsY = guideCenter.y + (label.pointerOffsetY ?? 0);
+                    label.pointerX = pointerAbsX;
+                    label.pointerY = pointerAbsY;
+                } else {
+                    // Absolute positioning only (no relative recalculation)
+                    labelAbsX = typeof label.x === 'number' ? label.x : guideCenter.x;
+                    labelAbsY = typeof label.y === 'number' ? label.y : guideCenter.y;
+                    pointerAbsX = typeof label.pointerX === 'number' ? label.pointerX : labelAbsX;
+                    pointerAbsY = typeof label.pointerY === 'number' ? label.pointerY : labelAbsY;
                 }
-                
-                const labelAbsX = guideCenter.x + (label.offsetX ?? 0);
-                const labelAbsY = guideCenter.y + (label.offsetY ?? 0);
-                label.x = labelAbsX;
-                label.y = labelAbsY;
-                
-                if (typeof label.pointerOffsetX !== 'number' || typeof label.pointerOffsetY !== 'number') {
-                    const fallbackPointerX = typeof label.pointerX === 'number' ? label.pointerX : labelAbsX;
-                    const fallbackPointerY = typeof label.pointerY === 'number' ? label.pointerY : labelAbsY;
-                    label.pointerOffsetX = fallbackPointerX - guideCenter.x;
-                    label.pointerOffsetY = fallbackPointerY - guideCenter.y;
-                }
-                
-                const pointerAbsX = guideCenter.x + (label.pointerOffsetX ?? 0);
-                const pointerAbsY = guideCenter.y + (label.pointerOffsetY ?? 0);
-                label.pointerX = pointerAbsX;
-                label.pointerY = pointerAbsY;
                 
                 // Calculate displacement vector from guide center to label position
                 const dx = labelAbsX - guideCenterX;
@@ -2978,10 +2986,12 @@
                         pointDragging = false;
                         point.releasePointerCapture(e.pointerId);
                         
-                        // Compute and persist relative pointer offsets once at drag end
-                        const guideCenterAfterDrag = getGuideCenter(workspace);
-                        label.pointerOffsetX = label.pointerX - guideCenterAfterDrag.x;
-                        label.pointerOffsetY = label.pointerY - guideCenterAfterDrag.y;
+                        // Optionally compute relative pointer offsets once at drag end
+                        if (USE_RELATIVE_OFFSETS) {
+                            const guideCenterAfterDrag = getGuideCenter(workspace);
+                            label.pointerOffsetX = label.pointerX - guideCenterAfterDrag.x;
+                            label.pointerOffsetY = label.pointerY - guideCenterAfterDrag.y;
+                        }
                         
                         // Update all labels with the same text across all indexes to match the new pointer position
                         mapIndexes.forEach(idx => {
@@ -2989,8 +2999,10 @@
                                 if (lab.text === label.text && lab.id !== label.id) {
                                     lab.pointerX = label.pointerX;
                                     lab.pointerY = label.pointerY;
-                                    lab.pointerOffsetX = label.pointerOffsetX;
-                                    lab.pointerOffsetY = label.pointerOffsetY;
+                                    if (USE_RELATIVE_OFFSETS) {
+                                        lab.pointerOffsetX = label.pointerOffsetX;
+                                        lab.pointerOffsetY = label.pointerOffsetY;
+                                    }
                                 }
                             });
                         });
@@ -3247,10 +3259,12 @@
                     if (!hasMoved && !isDragging) {
                         enableEditing();
                     } else if (isDragging) {
-                        // Compute and persist relative label offsets once at drag end
-                        const guideCenterAfterDrag = getGuideCenter(workspace);
-                        label.offsetX = label.x - guideCenterAfterDrag.x;
-                        label.offsetY = label.y - guideCenterAfterDrag.y;
+                        // Optionally compute and persist relative label offsets once at drag end
+                        if (USE_RELATIVE_OFFSETS) {
+                            const guideCenterAfterDrag = getGuideCenter(workspace);
+                            label.offsetX = label.x - guideCenterAfterDrag.x;
+                            label.offsetY = label.y - guideCenterAfterDrag.y;
+                        }
                         
                         // Update all labels with the same text across all indexes to match the new position
                         relevantIndexes.forEach(idx => {
@@ -3258,8 +3272,10 @@
                                 if (lab.text === label.text && lab.id !== label.id) {
                                     lab.x = label.x;
                                     lab.y = label.y;
-                                    lab.offsetX = label.offsetX;
-                                    lab.offsetY = label.offsetY;
+                                    if (USE_RELATIVE_OFFSETS) {
+                                        lab.offsetX = label.offsetX;
+                                        lab.offsetY = label.offsetY;
+                                    }
                                 }
                             });
                         });
