@@ -3179,20 +3179,17 @@
                         point.addEventListener('touchend', () => {
                             if (!touchDragging) return;
                             touchDragging = false;
-                            if (USE_RELATIVE_OFFSETS) {
-                                const guideCenterAfterDrag = getGuideCenter(workspace);
-                                label.pointerOffsetX = label.pointerX - guideCenterAfterDrag.x;
-                                label.pointerOffsetY = label.pointerY - guideCenterAfterDrag.y;
-                            }
+                            // Always compute relative pointer offsets once at drag end (mobile)
+                            const guideCenterAfterDrag = getGuideCenter(workspace);
+                            label.pointerOffsetX = label.pointerX - guideCenterAfterDrag.x;
+                            label.pointerOffsetY = label.pointerY - guideCenterAfterDrag.y;
                             mapIndexes.forEach(idx => {
                                 idx.labels.forEach(lab => {
                                     if (lab.text === label.text && lab.id !== label.id) {
                                         lab.pointerX = label.pointerX;
                                         lab.pointerY = label.pointerY;
-                                        if (USE_RELATIVE_OFFSETS) {
-                                            lab.pointerOffsetX = label.pointerOffsetX;
-                                            lab.pointerOffsetY = label.pointerOffsetY;
-                                        }
+                                        lab.pointerOffsetX = label.pointerOffsetX;
+                                        lab.pointerOffsetY = label.pointerOffsetY;
                                     }
                                 });
                             });
@@ -3538,20 +3535,17 @@
                         if (!touchHasMoved && !touchDragging) {
                             enableEditing();
                         } else if (touchDragging) {
-                            if (USE_RELATIVE_OFFSETS) {
-                                const guideCenterAfterDrag = getGuideCenter(workspace);
-                                label.offsetX = label.x - guideCenterAfterDrag.x;
-                                label.offsetY = label.y - guideCenterAfterDrag.y;
-                            }
+                            // Always compute and persist relative label offsets once at drag end (mobile)
+                            const guideCenterAfterDrag = getGuideCenter(workspace);
+                            label.offsetX = label.x - guideCenterAfterDrag.x;
+                            label.offsetY = label.y - guideCenterAfterDrag.y;
                             relevantIndexes.forEach(idx => {
                                 idx.labels.forEach(lab => {
                                     if (lab.text === label.text && lab.id !== label.id) {
                                         lab.x = label.x;
                                         lab.y = label.y;
-                                        if (USE_RELATIVE_OFFSETS) {
-                                            lab.offsetX = label.offsetX;
-                                            lab.offsetY = label.offsetY;
-                                        }
+                                        lab.offsetX = label.offsetX;
+                                        lab.offsetY = label.offsetY;
                                     }
                                 });
                             });
