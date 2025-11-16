@@ -306,10 +306,7 @@
             z-index: 30;
         }
         
-        /* Disable history panel completely */
-        .history-sidebar {
-            display: none !important;
-        }
+        /* History panel visible (re-enabled) */
         
         .history-sidebar.collapsed {
             transform: translateX(212px);
@@ -1538,9 +1535,9 @@
         let shouldScrollHistoryToTop = false;
         let showOnionLayers = true; // Toggle for showing onion layers
         // Experimental flag: disable all relative (guide-centered) label/pointer calculations
-        const USE_RELATIVE_OFFSETS = false;
+        const USE_RELATIVE_OFFSETS = true;
         // Disable history panel and its logic
-        const USE_HISTORY = false;
+        const USE_HISTORY = true;
         const isMobile = 'ontouchstart' in window;
         let historyFilterMapId = 'all'; // Current filter selection for history
         
