@@ -287,7 +287,7 @@
             background: #fafafa;
             overflow: hidden;
             cursor: default;
-            touch-action: none;
+            touch-action: manipulation;
         }
         
         .history-sidebar {
@@ -2116,6 +2116,9 @@
             }
         }
         
+        // Global drag guard to avoid interfering renders during drag
+        let isBodymapDragging = false;
+        
         // Initialize
         async function init() {
             // Load animations
@@ -2655,24 +2658,24 @@
             workspace.appendChild(svgContainer);
             
             const activePosition = mapIndexes.findIndex(idx => idx.id === activeIndexId);
-            const layersToShow = mapIndexes.slice(Math.max(0, activePosition - 5), activePosition + 1);
+            // Simplify: only render the active layer (no onion layers)
+            const layersToShow = [mapIndexes[activePosition]];
 
             const guideFigure = createGuideFigure();
             workspace.appendChild(guideFigure);
             
-            requestAnimationFrame(() => {
-                const workspaceWidth = workspace.scrollWidth || workspace.offsetWidth || minWorkspaceWidth;
-                const workspaceHeight = workspace.scrollHeight || workspace.offsetHeight || minWorkspaceHeight;
-                svgContainer.style.width = workspaceWidth + 'px';
-                svgContainer.style.height = workspaceHeight + 'px';
-                svgContainer.setAttribute('viewBox', `0 0 ${workspaceWidth} ${workspaceHeight}`);
-            });
+            // Directly size SVG to current workspace bounds (no rAF needed)
+            const workspaceWidth = workspace.scrollWidth || workspace.offsetWidth || minWorkspaceWidth;
+            const workspaceHeight = workspace.scrollHeight || workspace.offsetHeight || minWorkspaceHeight;
+            svgContainer.style.width = workspaceWidth + 'px';
+            svgContainer.style.height = workspaceHeight + 'px';
+            svgContainer.setAttribute('viewBox', `0 0 ${workspaceWidth} ${workspaceHeight}`);
             
             layersToShow.forEach((layerIndex, idx) => {
                 if (!showOnionLayers && layerIndex.id !== activeIndexId) {
                     return;
                 }
-                const layerNum = layersToShow.length - 1 - idx;
+                const layerNum = 0;
                 renderOnionLayer(layerIndex, layerNum, workspace, svgContainer, activeMap.color);
             });
         }
@@ -2937,6 +2940,7 @@
                     let pointDragStartY = 0;
                     
                     point.addEventListener('pointerdown', (e) => {
+                        isBodymapDragging = true;
                         pointDragging = true;
                         point.setPointerCapture(e.pointerId);
                         
@@ -2992,9 +2996,13 @@
                         });
                         
                         saveToLocalStorage();
+                        isBodymapDragging = false;
+                        // Re-render once after drag end to sync onion layers
+                        renderWorkspace();
                     });
                     
                     point.addEventListener('pointercancel', (e) => {
+                        isBodymapDragging = false;
                         pointDragging = false;
                         point.releasePointerCapture(e.pointerId);
                     });
@@ -3020,7 +3028,8 @@
             container.style.left = (label.x + offsetX) + 'px';
             container.style.top = (label.y + offsetY) + 'px';
             container.style.opacity = opacity;
-            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            // Simplify: no per-layer scaling like onion-layers; match simple/opstilling behavior
+            container.style.transform = `translate(-50%, -50%)`;
             
             // Create label with number badge and delete button
             const deleteBtnHtml = isActive ? '<button class="label-delete-btn" title="Slet label">×</button>' : '';
@@ -3179,6 +3188,7 @@
                     if (isEditing && e.target === inputEl) return;
                     
                     // Capture pointer for consistent events
+                    isBodymapDragging = true;
                     container.setPointerCapture(e.pointerId);
                     
                     pointerDownTime = Date.now();
@@ -3263,6 +3273,7 @@
                     pointerDownTime = 0;
                     isDragging = false;
                     hasMoved = false;
+                    isBodymapDragging = false;
                 });
                 
                 // Cancel on pointer cancel (e.g., gesture interrupted)
@@ -3271,6 +3282,7 @@
                     pointerDownTime = 0;
                     isDragging = false;
                     hasMoved = false;
+                    isBodymapDragging = false;
                 });
             } else {
                 // Make read-only for onion layers
@@ -3820,9 +3832,20 @@
         
         // Initialize on load
         init();
-        window.addEventListener('resize', () => {
-            renderWorkspace();
-        });
+        // Debounced resize handler to avoid re-render spam while resizing
+        (function() {
+            let resizeTimer = null;
+            window.addEventListener('resize', () => {
+                if (resizeTimer) {
+                    clearTimeout(resizeTimer);
+                }
+                resizeTimer = setTimeout(() => {
+                    if (!isBodymapDragging) {
+                        renderWorkspace();
+                    }
+                }, 120);
+            });
+        })();
 
         function buildMapColorGrid() {
             if (!mapColorGridEl) return;
