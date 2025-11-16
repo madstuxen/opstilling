@@ -3830,6 +3830,21 @@
             saveToLocalStorage();
         }
         
+        // Track last workspace size to avoid renders on scroll-only changes
+        let lastWorkspaceSize = { w: 0, h: 0 };
+        function renderIfWorkspaceSizeChanged() {
+            const workspace = document.getElementById('workspace');
+            if (!workspace) return;
+            const w = workspace.clientWidth;
+            const h = workspace.clientHeight;
+            if (w !== lastWorkspaceSize.w || h !== lastWorkspaceSize.h) {
+                lastWorkspaceSize = { w, h };
+                if (!isBodymapDragging) {
+                    renderWorkspace();
+                }
+            }
+        }
+        
         // Initialize on load
         init();
         // Debounced resize handler to avoid re-render spam while resizing
@@ -3840,12 +3855,23 @@
                     clearTimeout(resizeTimer);
                 }
                 resizeTimer = setTimeout(() => {
-                    if (!isBodymapDragging) {
-                        renderWorkspace();
-                    }
+                    renderIfWorkspaceSizeChanged();
                 }, 120);
             });
         })();
+        
+        // Observe workspace size changes (not scroll) and re-render only when size actually changes
+        document.addEventListener('DOMContentLoaded', () => {
+            const workspace = document.getElementById('workspace');
+            if (!workspace) return;
+            // Initialize baseline
+            lastWorkspaceSize = { w: workspace.clientWidth, h: workspace.clientHeight };
+            const ro = new ResizeObserver(() => {
+                // ResizeObserver fires on content box size changes, not scroll
+                renderIfWorkspaceSizeChanged();
+            });
+            ro.observe(workspace);
+        });
 
         function buildMapColorGrid() {
             if (!mapColorGridEl) return;
