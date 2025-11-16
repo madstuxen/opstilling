@@ -468,6 +468,43 @@ function applyFlagsToShadowDOM(shadowRoot, flags) {
         if (oldStyle) oldStyle.remove();
         shadowRoot.appendChild(noButtonsStyle);
     }
+    
+    // Apply blurBG if both transparentBG and blurBG are active
+    if (flags.transparentBG && flags.blurBG) {
+        // Apply blur to overlay
+        if (window.coachingOverlay && window.coachingOverlay.overlay) {
+            window.coachingOverlay.overlay.style.backdropFilter = 'blur(5px)';
+            window.coachingOverlay.overlay.style.webkitBackdropFilter = 'blur(5px)';
+        }
+        // Apply blur to shadow DOM content
+        const dialogPopup = shadowRoot.querySelector('.dialog-popup');
+        if (dialogPopup) {
+            dialogPopup.style.backdropFilter = 'blur(5px)';
+            dialogPopup.style.webkitBackdropFilter = 'blur(5px)';
+        }
+        const content = shadowRoot.querySelector('.content');
+        if (content) {
+            content.style.backdropFilter = 'blur(5px)';
+            content.style.webkitBackdropFilter = 'blur(5px)';
+        }
+        // Add style to shadow DOM
+        const blurStyle = document.createElement('style');
+        blurStyle.id = 'blurBGStyle';
+        blurStyle.textContent = `
+            .dialog-popup { 
+                backdrop-filter: blur(5px) !important; 
+                -webkit-backdrop-filter: blur(5px) !important; 
+            }
+            .content { 
+                backdrop-filter: blur(5px) !important; 
+                -webkit-backdrop-filter: blur(5px) !important; 
+            }
+        `;
+        // Remove old style if exists
+        const oldBlurStyle = shadowRoot.querySelector('#blurBGStyle');
+        if (oldBlurStyle) oldBlurStyle.remove();
+        shadowRoot.appendChild(blurStyle);
+    }
 }
 
 /**
@@ -824,6 +861,42 @@ async function startCoachingSession(contentElement, dataSource) {
                     .content { background: transparent !important; }
                 `;
                 shadowRootForFlags.appendChild(transparentStyle);
+            }
+        }
+        
+        // Apply blurBG if both transparentBG and blurBG are active
+        if (flags.transparentBG && flags.blurBG) {
+            // Apply blur to overlay
+            if (coachingOverlay && coachingOverlay.overlay) {
+                coachingOverlay.overlay.style.backdropFilter = 'blur(5px)';
+                coachingOverlay.overlay.style.webkitBackdropFilter = 'blur(5px)';
+            }
+            // Apply blur to shadow DOM content
+            if (shadowRootForFlags) {
+                const dialogPopup = shadowRootForFlags.querySelector('.dialog-popup');
+                if (dialogPopup) {
+                    dialogPopup.style.backdropFilter = 'blur(5px)';
+                    dialogPopup.style.webkitBackdropFilter = 'blur(5px)';
+                }
+                const content = shadowRootForFlags.querySelector('.content');
+                if (content) {
+                    content.style.backdropFilter = 'blur(5px)';
+                    content.style.webkitBackdropFilter = 'blur(5px)';
+                }
+                // Add style to shadow DOM
+                const blurStyle = document.createElement('style');
+                blurStyle.id = 'blurBGStyle';
+                blurStyle.textContent = `
+                    .dialog-popup { 
+                        backdrop-filter: blur(5px) !important; 
+                        -webkit-backdrop-filter: blur(5px) !important; 
+                    }
+                    .content { 
+                        backdrop-filter: blur(5px) !important; 
+                        -webkit-backdrop-filter: blur(5px) !important; 
+                    }
+                `;
+                shadowRootForFlags.appendChild(blurStyle);
             }
         }
         

@@ -2960,9 +2960,6 @@
                         const workspaceRect = workspace.getBoundingClientRect();
                         label.pointerX = e.clientX - workspaceRect.left + workspace.scrollLeft - pointDragStartX;
                         label.pointerY = e.clientY - workspaceRect.top + workspace.scrollTop - pointDragStartY;
-                        const guideCenterDuringDrag = getGuideCenter(workspace);
-                        label.pointerOffsetX = label.pointerX - guideCenterDuringDrag.x;
-                        label.pointerOffsetY = label.pointerY - guideCenterDuringDrag.y;
                         point.style.left = label.pointerX + 'px';
                         point.style.top = label.pointerY + 'px';
                         
@@ -2982,6 +2979,11 @@
                         if (!pointDragging) return;
                         pointDragging = false;
                         point.releasePointerCapture(e.pointerId);
+                        
+                        // Compute and persist relative pointer offsets once at drag end
+                        const guideCenterAfterDrag = getGuideCenter(workspace);
+                        label.pointerOffsetX = label.pointerX - guideCenterAfterDrag.x;
+                        label.pointerOffsetY = label.pointerY - guideCenterAfterDrag.y;
                         
                         // Update all labels with the same text across all indexes to match the new pointer position
                         mapIndexes.forEach(idx => {
@@ -3215,9 +3217,6 @@
                         const workspaceRect = workspace.getBoundingClientRect();
                         label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - dragStartX;
                         label.y = e.clientY - workspaceRect.top + workspace.scrollTop - dragStartY;
-                        const guideCenterDuringDrag = getGuideCenter(workspace);
-                        label.offsetX = label.x - guideCenterDuringDrag.x;
-                        label.offsetY = label.y - guideCenterDuringDrag.y;
                         container.style.left = label.x + 'px';
                         container.style.top = label.y + 'px';
                         
@@ -3244,6 +3243,11 @@
                     if (!hasMoved && !isDragging) {
                         enableEditing();
                     } else if (isDragging) {
+                        // Compute and persist relative label offsets once at drag end
+                        const guideCenterAfterDrag = getGuideCenter(workspace);
+                        label.offsetX = label.x - guideCenterAfterDrag.x;
+                        label.offsetY = label.y - guideCenterAfterDrag.y;
+                        
                         // Update all labels with the same text across all indexes to match the new position
                         relevantIndexes.forEach(idx => {
                             idx.labels.forEach(lab => {
