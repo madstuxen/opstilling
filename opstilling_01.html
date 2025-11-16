@@ -425,9 +425,7 @@
 				z-index: 1000;
 			}
 
-			.part.selected {
-				box-shadow: 0 0 0 2px #4f46e5, 0 0 0 4px rgba(79, 70, 229, 0.3);
-			}
+/* selection styling removed */
         
 			/* Global body toggle - skjul kun torso, arme og ben */
 			.hide-bodies .torso,
@@ -776,10 +774,7 @@
         }
 
         /* On mobile (tap selection), show controls when selected too */
-        .part.selected .control-btn {
-            display: flex !important;
-            pointer-events: auto;
-        }
+        /* selection-based control visibility removed */
         
         .delete-btn {
             transform: translate(18px, -52px);
@@ -1012,27 +1007,9 @@
 		
 		
         
-        .instructions {
-            padding: 20px;
-            background: #f1f5f9;
-            color: #475569;
-            text-align: center;
-            border-top: 1px solid #e2e8f0;
-        }
+        /* .instructions removed */
         
-        .notes-title {
-            background: #f8fafc;
-            padding: 15px 20px 5px 20px;
-            border-top: 1px solid #e2e8f0;
-            text-align: center;
-        }
-        
-        .notes-title h3 {
-            margin: 0;
-            color: #475569;
-            font-size: 18px;
-            font-weight: 600;
-        }
+        /* .notes-title removed */
         
         .notes-section {
             background: #f8fafc;
@@ -1051,6 +1028,7 @@
         .groups-section {
 			flex: 0 0 250px;
 			min-width: 250px;
+            display: none !important;
 		}
         
         .groups-section h4 {
@@ -1104,6 +1082,7 @@
             flex: 0 0 auto;
             min-width: 150px;
             max-width: 200px;
+            display: none !important;
         }
         
         .keywords-section h4 {
@@ -1140,6 +1119,7 @@
             font-family: inherit;
             background: white;
             margin-bottom: 10px;
+            display: none !important;
         }
         
         .group-input:focus, .keyword-input:focus, .group-dropdown:focus {
@@ -1322,7 +1302,7 @@
 			touch-action: pan-x pan-y;
 			box-sizing: border-box;
 		}
-		.notes-title h3 { font-size: 16px; }
+		/* .notes-title h3 removed */
 		.groups-section h4, .keywords-section h4, .notes-container h4 { font-size: 14px; }
 		.keyword-input, .group-input, .group-dropdown { font-size: 13px; }
 		/* Make notes section horizontally scrollable on touch */
@@ -1367,14 +1347,14 @@
         </div>
         
         <div class="toolbar">
-            <select id="themeSelect" onchange="changeTheme()">
+            <select id="themeSelect" onchange="changeTheme()" style="display:none;">
 				<option value="">Vælg tema...</option>
 				<option value="ifs_default">IFS Standard</option>
 				<option value="Skygge">Skyggearbejde</option>
 			</select>
 			
 			
-            <select id="backgroundSelect" onchange="changeBackground()">
+            <select id="backgroundSelect" onchange="changeBackground()" style="display:none;">
                 <option value="none">Ingen baggrund</option>
                 <option value="har_onsker">Har/Ønsker</option>
                 <option value="xy_axes">X/Y Akser</option>
@@ -1397,84 +1377,13 @@
         </div>
         
         <div class="workspace" id="workspace">
-            <div class="workspace-content">
-                <div class="background-layer" id="backgroundLayer"></div>
-                <div class="background-labels" id="backgroundLabels"></div>
-            </div>
+            <div class="workspace-content"></div>
         </div>
         
-        <div class="notes-title">
-			<div style="display: flex; gap: 20px; align-items: center; justify-content: center; padding: 10px 0;">
-				<label style="display: flex; align-items: center; gap: 5px; font-size: 14px; color: #475569;">
-					<input type="checkbox" id="keywordsVisible" class="visibility-checkbox">
-					Stikord (vises på cirklen)
-				</label>
-				<label style="display: flex; align-items: center; gap: 5px; font-size: 14px; color: #475569;">
-					<input type="checkbox" id="bodiesVisible" class="visibility-checkbox" checked>
-					Kroppe synlige
-				</label>
-			</div>
-		</div>
+        <!-- notes-title removed -->
         
         <div class="notes-section">
             <div class="notes-content">
-                <div class="groups-section">
-                    <h4>Cirkler</h4>
-                    <div id="groupFields">
-                        <div class="group-input-container">
-                            <input type="text" class="group-input" id="group1" placeholder="Gruppe 1" value="Manager" maxlength="50">
-                            <button class="group-color-btn" id="groupColor1" data-color-index="0" onclick="changeGroupColor(1)">C</button>
-                        </div>
-                        <div class="group-input-container">
-                            <input type="text" class="group-input" id="group2" placeholder="Gruppe 2" value="Brandmand" maxlength="50">
-                            <button class="group-color-btn" id="groupColor2" data-color-index="1" onclick="changeGroupColor(2)">C</button>
-                        </div>
-                        <div class="group-input-container">
-                            <input type="text" class="group-input" id="group3" placeholder="Gruppe 3" value="Eksileret" maxlength="50">
-                            <button class="group-color-btn" id="groupColor3" data-color-index="2" onclick="changeGroupColor(3)">C</button>
-                        </div>
-                        <div class="group-input-container">
-                            <input type="text" class="group-input" id="group4" placeholder="Gruppe 4" value="Ekstern" maxlength="50">
-                            <button class="group-color-btn" id="groupColor4" data-color-index="3" onclick="changeGroupColor(4)">C</button>
-                        </div>
-                        <div class="group-input-container">
-                            <input type="text" class="group-input" id="group5" placeholder="Gruppe 5" maxlength="50">
-                            <button class="group-color-btn" id="groupColor5" data-color-index="4" onclick="changeGroupColor(5)">C</button>
-                        </div>
-                        <div class="group-input-container">
-                            <input type="text" class="group-input" id="group6" placeholder="Gruppe 6" maxlength="50">
-                            <button class="group-color-btn" id="groupColor6" data-color-index="5" onclick="changeGroupColor(6)">C</button>
-                        </div>
-                    </div>
-                    <div id="groupDropdown" style="display: none;">
-                        <select class="group-dropdown" id="partGroupSelect" onchange="handleGroupSelection(this)">
-                            <option value="">Vælg gruppe...</option>
-                        </select>
-                    </div>
-					<div id="poseControls" style="display: none;">
-						<div style="font-size: 14px; font-weight: 500; color: #374151; margin-top: 10px; margin-bottom: 5px;">Pose:</div>
-						<div style="display: flex; align-items: center; gap: 8px;">
-							<select class="group-dropdown" id="partPoseSelect" onchange="applyPartPose(this.value)" style="flex: 1;">
-								<option value="">Standard pose</option>
-							</select>
-							<div style="display: flex; align-items: center; gap: 4px;">
-								<input type="checkbox" id="partMirrorPose" onchange="togglePartMirror()" style="width: 12px; height: 12px;">
-								<label for="partMirrorPose" style="font-size: 10px; color: #6b7280;">Spejl</label>
-							</div>
-						</div>
-					</div>
-                </div>
-                
-                <div class="keywords-section">
-                    <h4>Stikord</h4>
-                    <input type="text" class="keyword-input" id="keyword1" placeholder="Alder" maxlength="70">
-                    <input type="text" class="keyword-input" id="keyword2" placeholder="Relation" maxlength="70">
-                    <input type="text" class="keyword-input" id="keyword3" placeholder="køn" maxlength="70">
-                    <input type="text" class="keyword-input" id="keyword4" placeholder="Stikord 4" maxlength="70">
-                    <input type="text" class="keyword-input" id="keyword5" placeholder="Stikord 5" maxlength="70">
-                    <input type="text" class="keyword-input" id="keyword6" placeholder="Stikord 6" maxlength="70">
-                </div>
-                
                 <div class="notes-container">
                     <h4 id="notesContainerTitle">Noter til opstilling</h4>
 
@@ -1484,9 +1393,6 @@
             </div>
         </div>
         
-        <div class="instructions">
-            <p><strong>Sådan bruger du værktøjet:</strong> Vælg baggrund fra dropdown, tilføj dele ved at skrive navn og klikke "Tilføj Del" eller trykke Enter. Træk delene rundt for at se deres forhold til hinanden. Hold musen over en del for at se kontrolknapperne: × for at slette, T for at redigere navn, ↑↓ for lag, +− for størrelse, C for farve. Klik på en del for at vælge den og redigere dens stikord og noter. Definer cirkler i venstre kolonne og tildel valgte dele til cirkler. Gem din opstilling som CSV-fil og indlæs den senere. <strong>NYT:</strong> Hver baggrund gemmer sine egne positioner og størrelser - skift mellem baggrunde for forskellige visninger af samme dele!</p>
-        </div>
     </div>
 
     <!-- Color Picker Modal -->
@@ -1539,7 +1445,7 @@
         let partCounter = 0;
         let draggedElement = null;
         let offset = { x: 0, y: 0 };
-        let selectedPart = null;
+        let selectedPart = null; // selection disabled; kept for compatibility but unused
         let colorIndex = 0;
 		let generalNotes = '';
 		
@@ -1552,6 +1458,191 @@
         // Simpel Shared Data System
         const SHARED_DATA_KEY = 'relationsSetupData';
         let isLoadingSetup = false;
+        
+        // New persistent data model for Opstilling
+        const OPSTILLING_STORAGE_KEY = 'opstillingData';
+        let OpstillingData = null; // { version, updated, activeCollectionId, activeSetupId, collections: [...] }
+        
+        function loadOpstillingDataFromLocalStorage() {
+            try {
+                const raw = localStorage.getItem(OPSTILLING_STORAGE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+                return parsed;
+            } catch (_) {
+                return null;
+            }
+        }
+        
+        function saveOpstillingDataToLocalStorage() {
+            try {
+                if (!OpstillingData) return false;
+                OpstillingData.updated = new Date().toISOString();
+                localStorage.setItem(OPSTILLING_STORAGE_KEY, JSON.stringify(OpstillingData));
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+        
+        function ensureDefaultOpstillingData() {
+            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
+                OpstillingData = {
+                    version: '1.0',
+                    updated: new Date().toISOString(),
+                    activeCollectionId: 1,
+                    activeSetupId: 1,
+                    collections: []
+                };
+            }
+            if (!Array.isArray(OpstillingData.collections) || OpstillingData.collections.length === 0) {
+                OpstillingData.collections = [{
+                    id: 1,
+                    name: 'Samling 1',
+                    setups: []
+                }];
+                OpstillingData.activeCollectionId = 1;
+            }
+            const collection = OpstillingData.collections.find(c => c.id === OpstillingData.activeCollectionId) || OpstillingData.collections[0];
+            if (!collection.setups || collection.setups.length === 0) {
+                const initialSetup = {
+                    id: 1,
+                    name: 'Opstilling 1',
+                    notes: '',
+                    parts: []
+                };
+                collection.setups = [initialSetup];
+                OpstillingData.activeSetupId = 1;
+            }
+            // Do not overwrite existing setups content here; just ensure structure exists
+            saveOpstillingDataToLocalStorage();
+        }
+        
+        function getActiveCollection() {
+            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) return null;
+            return OpstillingData.collections.find(c => c.id === OpstillingData.activeCollectionId) || OpstillingData.collections[0] || null;
+        }
+        
+        function getActiveSetup() {
+            const col = getActiveCollection();
+            if (!col || !Array.isArray(col.setups)) return null;
+            return col.setups.find(s => s.id === OpstillingData.activeSetupId) || col.setups[0] || null;
+        }
+        
+        function exportCurrentPartsToModel() {
+            const parts = document.querySelectorAll('.part');
+            const result = [];
+            parts.forEach(part => {
+                const name = part.querySelector('.part-name')?.textContent || '';
+                const x = parseInt(part.style.left) || 0;
+                const y = parseInt(part.style.top) || 0;
+                const size = parseFloat(part.getAttribute('data-part-scale') || '1') || 1;
+                const poseAttr = part.getAttribute('data-pose') || '';
+                const pose = poseAttr; // keep raw pose id/name for now
+                const flipped = part.getAttribute('data-mirror') === 'true';
+                const layer = parseInt(part.getAttribute('data-layer') || '1') || 1;
+                const colorIndexAttr = Number.parseInt(part.getAttribute('data-color-index'), 10);
+                const fallbackColorIndex = Number.isNaN(colorIndexAttr) ? 0 : colorIndexAttr;
+                const color = part.getAttribute('data-custom-color') || partColors[fallbackColorIndex] || '#f59e0b';
+                result.push({ name, x, y, size, pose, flipped, layer, color });
+            });
+            return result;
+        }
+        
+        function syncCurrentWorkspaceToActiveSetup() {
+            if (!OpstillingData) return;
+            const setup = getActiveSetup();
+            if (!setup) return;
+            setup.notes = generalNotes || '';
+            setup.parts = exportCurrentPartsToModel();
+            saveOpstillingDataToLocalStorage();
+        }
+
+        // Load setup from opstillingData structure
+        function loadSetupFromOpstillingData(setup) {
+            if (!setup) return false;
+            try {
+                isLoadingSetup = true;
+                // Clear current workspace
+                const workspace = document.getElementById('workspace');
+                const workspaceContent = workspace.querySelector('.workspace-content');
+                workspaceContent.innerHTML = `
+                    <div class="background-layer" id="backgroundLayer"></div>
+                    <div class="background-labels" id="backgroundLabels"></div>
+                `;
+                selectedPart = null;
+                draggedElement = null;
+                dragState = null;
+                colorIndex = 0;
+                
+                // Restore general notes
+                generalNotes = setup.notes || '';
+                const notesEl = document.getElementById('partNotes');
+                if (notesEl) {
+                    notesEl.value = generalNotes;
+                    notesEl.placeholder = 'Generelle noter til hele opstillingen...';
+                }
+                
+                // Load parts
+                if (Array.isArray(setup.parts) && setup.parts.length > 0) {
+                    setup.parts.forEach(p => {
+                        loadPartFromData({
+                            name: p.name || '',
+                            x: Number(p.x) || 0,
+                            y: Number(p.y) || 0,
+                            size: Number(p.size) || 1,
+                            color: p.color || '',
+                            borderColor: '',
+                            layer: Number(p.layer) || 1,
+                            notes: '',
+                            keywords: [],
+                            groupIndex: '',
+                            group: '',
+                            poseName: (p.pose || ''),
+                            mirror: !!p.flipped
+                        });
+                    });
+                }
+                
+                // Render
+                renderBackground();
+                renderLabels();
+                saveCharactersToShared();
+                return true;
+            } catch (e) {
+                console.error('Fejl ved indlæsning fra opstillingData:', e);
+                return false;
+            } finally {
+                isLoadingSetup = false;
+            }
+        }
+        
+        // Load active setup from opstillingData, or fallback to legacy storage
+        function loadActiveOpstilling() {
+            // First try to load from new opstillingData structure
+            if (OpstillingData && Array.isArray(OpstillingData.collections) && OpstillingData.collections.length > 0) {
+                const activeSetup = getActiveSetup();
+                if (activeSetup && (Array.isArray(activeSetup.parts) && activeSetup.parts.length > 0 || activeSetup.notes)) {
+                    const loaded = loadSetupFromOpstillingData(activeSetup);
+                    if (loaded) {
+                        console.log('Opstilling indlæst fra opstillingData');
+                        return true;
+                    }
+                }
+            }
+            
+            // Fallback to legacy current_opstilling storage
+            const loaded = loadCurrentOpstillingFromStorage();
+            if (loaded) {
+                console.log('Opstilling indlæst fra legacy localStorage');
+                // Sync to new structure
+                try { syncCurrentWorkspaceToActiveSetup(); } catch(_) {}
+                return true;
+            }
+            
+            return false;
+        }
         
         function saveCharactersToShared() {
             if (isLoadingSetup) return;
@@ -1641,65 +1732,7 @@
 		
 		
 		
-		const presets = {
-    ifs_default: `
-# Gruppenavne
-Gruppe1;Manager;#ef4444
-Gruppe2;Brandmand;#f97316
-Gruppe3;Eksileret;#eab308
-Gruppe4;Ekstern;#22c55e
-Gruppe5;;#06b6d4
-Gruppe6;;#3b82f6
-
-# Alle Baggrund Labels
-har_onsker;topLeft;Har/Ønsker
-har_onsker;topRight;Har/Ønsker-ikke
-har_onsker;bottomLeft;Har ikke/Ønsker
-har_onsker;bottomRight;Har ikke/Ønsker ikke
-xy_axes;xLabel;X-akse
-xy_axes;yLabel;Y-akse
-timeline;title;Tidslinje
-timeline;start;Start
-timeline;end;Slut
-for_imod;left;For
-for_imod;right;Imod
-drama_trekant;offer;Offer
-drama_trekant;hjaelper;Hjælper
-drama_trekant;boeddel;Bøddel
-mandala;kerne;Kerne
-mandala;primaer;Primær
-mandala;sekundaer;Sekundær
-mandala;periferi;Periferi`,
-
-    Skygge: `
-# Gruppenavne
-Gruppe1;Skygge;#2e2e2e
-Gruppe2;Maske;#f90606
-Gruppe3;Bevidst;#80f906
-Gruppe4;;#22c55e
-Gruppe5;;#06b6d4
-Gruppe6;;#3b82f6
-
-# Alle Baggrund Labels
-har_onsker;topLeft;Bevidst/Positiv
-har_onsker;topRight;Bevidst/Negativ
-har_onsker;bottomLeft;Skygge/Positiv
-har_onsker;bottomRight;Skygge/Negativ
-xy_axes;xLabel;X-akse
-xy_axes;yLabel;Y-akse
-timeline;title;Tidslinje
-timeline;start;Start
-timeline;end;Slut
-for_imod;left;For
-for_imod;right;Imod
-drama_trekant;offer;Offer
-drama_trekant;hjaelper;Hjælper
-drama_trekant;boeddel;Bøddel
-mandala;kerne;Kerne
-mandala;primaer;Primær
-mandala;sekundaer;Sekundær
-mandala;periferi;Periferi`
-};
+		const presets = {};
 
         
         const defaultLabels = {
@@ -2364,254 +2397,37 @@ function closeKeywordsPopup() {
 		
 		// preset parsers isedet for at læse fra fil læses fra defaults
 		// Funktion til at parse grupper fra linjer
-			function parseGroupsFromLines(lines) {
-				for (let line of lines) {
-					if (line.trim() === '' || !line.startsWith('Gruppe')) continue;
-					
-					const parts = line.split(';');
-					if (parts.length >= 3) {
-						const groupNumber = parts[0].replace('Gruppe', '');
-						const groupName = parts[1] || '';
-						const groupColor = parts[2] || '';
-						
-						const groupInput = document.getElementById(`group${groupNumber}`);
-						if (groupInput) {
-							groupInput.value = groupName;
-						}
-						
-						const colorBtn = document.getElementById(`groupColor${groupNumber}`);
-						if (colorBtn && groupColor) {
-							colorBtn.style.backgroundColor = groupColor;
-							colorBtn.setAttribute('data-custom-color', groupColor);
-							colorBtn.removeAttribute('data-color-index');
-						}
-					}
-				}
-			}
+			function parseGroupsFromLines(lines) { /* no-op */ }
 		
 		// Funktion til at parse labels fra linjer
-			function parseLabelsFromLines(lines) {
-				let inLabelSection = false;
-				for (let line of lines) {
-					const trimmedLine = line.trim();
-					
-					if (trimmedLine === '# Alle Baggrund Labels') {
-						inLabelSection = true;
-						continue;
-					}
-					
-					if (inLabelSection && (trimmedLine === '' || trimmedLine.startsWith('#'))) {
-						break;
-					}
-					
-					if (inLabelSection && trimmedLine !== '') {
-						const parts = line.split(';');
-						if (parts.length >= 3) {
-							const bg = parts[0];
-							const key = parts[1];
-							const value = parts[2] || '';
-							
-							if (!backgroundLabels[bg]) {
-								backgroundLabels[bg] = { ...defaultLabels[bg] };
-							}
-							
-							backgroundLabels[bg][key] = value;
-						}
-					}
-				}
-			}
+			function parseLabelsFromLines(lines) { /* no-op */ }
 
 			// Funktion til at indlæse preset
-			function loadPreset(presetName) {
-				if (!presets[presetName]) {
-					alert('Preset ikke fundet!');
-					return;
-				}
-				
-				try {
-					const lines = presets[presetName].split('\n');
-					
-					// Parse grupper og labels
-					parseGroupsFromLines(lines);
-					parseLabelsFromLines(lines);
-					
-					// Opdater labels for nuværende baggrund
-					renderLabels();
-					
-					alert(`Preset "${presetName}" indlæst!`);
-					
-				} catch (error) {
-					console.error('Fejl ved indlæsning af preset:', error);
-					alert('Der opstod en fejl ved indlæsning af preset.');
-				}
-			}
+			function loadPreset(presetName) { /* no-op */ }
 		
 		
 			// Funktion til at håndtere tema-ændring
-			function changeTheme() {
-				const select = document.getElementById('themeSelect');
-				const selectedTheme = select.value;
-				
-				if (selectedTheme && selectedTheme !== '') {
-					loadPreset(selectedTheme);
-					// Reset dropdown til neutral position
-					select.value = '';
-				}
-			}		
+			function changeTheme() { /* no-op */ }		
 		
         
         // Background functions
         function changeBackground() {
-            const select = document.getElementById('backgroundSelect');
-            const newBackground = select.value;
-            
-            // Opdater current background
-            currentBackground = newBackground;
-            
-            if (!backgroundLabels[currentBackground]) {
-                backgroundLabels[currentBackground] = { ...defaultLabels[currentBackground] };
-            }
-            
-            renderBackground();
-            renderLabels();
-            if (!isLoadingSetup) {
+            // Background drawings disabled
+            currentBackground = 'none';
+            const layer = document.getElementById('backgroundLayer');
+            const labels = document.getElementById('backgroundLabels');
+            if (layer) layer.innerHTML = '';
+            if (labels) labels.innerHTML = '';
+            if (typeof renderLabels === 'function') renderLabels();
+            if (!isLoadingSetup && typeof saveCurrentOpstillingToStorage === 'function') {
                 saveCurrentOpstillingToStorage();
             }
         }
         
         function renderBackground() {
             const layer = document.getElementById('backgroundLayer');
-            layer.innerHTML = '';
-            
-            if (currentBackground === 'none') return;
-            
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.style.width = '100%';
-            svg.style.height = '100%';
-            
-            if (currentBackground === 'har_onsker') {
-                // Stiplede linjer for Har/ønsker
-                const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                vLine.setAttribute('x1', '50%');
-                vLine.setAttribute('y1', '0%');
-                vLine.setAttribute('x2', '50%');
-                vLine.setAttribute('y2', '100%');
-                vLine.setAttribute('stroke', '#94a3b8');
-                vLine.setAttribute('stroke-width', '2');
-                vLine.setAttribute('stroke-dasharray', '5,5');
-                svg.appendChild(vLine);
-                
-                const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                hLine.setAttribute('x1', '0%');
-                hLine.setAttribute('y1', '50%');
-                hLine.setAttribute('x2', '100%');
-                hLine.setAttribute('y2', '50%');
-                hLine.setAttribute('stroke', '#94a3b8');
-                hLine.setAttribute('stroke-width', '2');
-                hLine.setAttribute('stroke-dasharray', '5,5');
-                svg.appendChild(hLine);
-            }
-            else if (currentBackground === 'xy_axes') {
-                // X/Y akser
-                const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                xAxis.setAttribute('x1', '10%');
-                xAxis.setAttribute('y1', '90%');
-                xAxis.setAttribute('x2', '90%');
-                xAxis.setAttribute('y2', '90%');
-                xAxis.setAttribute('stroke', '#475569');
-                xAxis.setAttribute('stroke-width', '3');
-                svg.appendChild(xAxis);
-                
-                const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                yAxis.setAttribute('x1', '10%');
-                yAxis.setAttribute('y1', '10%');
-                yAxis.setAttribute('x2', '10%');
-                yAxis.setAttribute('y2', '90%');
-                yAxis.setAttribute('stroke', '#475569');
-                yAxis.setAttribute('stroke-width', '3');
-                svg.appendChild(yAxis);
-            }
-            else if (currentBackground === 'timeline') {
-                // Tidslinje i bunden
-                const timeline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                timeline.setAttribute('x1', '10%');
-                timeline.setAttribute('y1', '90%');
-                timeline.setAttribute('x2', '90%');
-                timeline.setAttribute('y2', '90%');
-                timeline.setAttribute('stroke', '#475569');
-                timeline.setAttribute('stroke-width', '4');
-                svg.appendChild(timeline);
-                
-                // 5 markeringer
-                for (let i = 20; i <= 80; i += 15) {
-                    const mark = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    mark.setAttribute('x1', `${i}%`);
-                    mark.setAttribute('y1', '85%');
-                    mark.setAttribute('x2', `${i}%`);
-                    mark.setAttribute('y2', '95%');
-                    mark.setAttribute('stroke', '#475569');
-                    mark.setAttribute('stroke-width', '2');
-                    svg.appendChild(mark);
-                }
-            }
-            else if (currentBackground === 'for_imod') {
-                // Stiplet midterlinje
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', '50%');
-                line.setAttribute('y1', '0%');
-                line.setAttribute('x2', '50%');
-                line.setAttribute('y2', '100%');
-                line.setAttribute('stroke', '#94a3b8');
-                line.setAttribute('stroke-width', '2');
-                line.setAttribute('stroke-dasharray', '5,5');
-                svg.appendChild(line);
-            } else if (currentBackground === 'drama_trekant') {
-                // Trekant med tre linjer
-                const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line1.setAttribute('x1', '50%');
-                line1.setAttribute('y1', '15%');
-                line1.setAttribute('x2', '20%');
-                line1.setAttribute('y2', '80%');
-                line1.setAttribute('stroke', '#475569');
-                line1.setAttribute('stroke-width', '3');
-                svg.appendChild(line1);
-                
-                const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line2.setAttribute('x1', '50%');
-                line2.setAttribute('y1', '15%');
-                line2.setAttribute('x2', '80%');
-                line2.setAttribute('y2', '80%');
-                line2.setAttribute('stroke', '#475569');
-                line2.setAttribute('stroke-width', '3');
-                svg.appendChild(line2);
-                
-                const line3 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line3.setAttribute('x1', '20%');
-                line3.setAttribute('y1', '80%');
-                line3.setAttribute('x2', '80%');
-                line3.setAttribute('y2', '80%');
-                line3.setAttribute('stroke', '#475569');
-                line3.setAttribute('stroke-width', '3');
-                svg.appendChild(line3);
-            }else if (currentBackground === 'mandala') {
-			// Mandala med 4 koncentriske cirkler
-			const centerX = 50, centerY = 50, maxRadius = 40;
-			
-			for (let i = 1; i <= 4; i++) {
-				const radius = (maxRadius / 4) * i;
-				const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-				circle.setAttribute('cx', `${centerX}%`);
-				circle.setAttribute('cy', `${centerY}%`);
-				circle.setAttribute('r', `${radius}%`);
-				circle.setAttribute('fill', 'none');
-				circle.setAttribute('stroke', '#94a3b8');
-				circle.setAttribute('stroke-width', '1.5');
-				circle.setAttribute('opacity', '0.6');
-				svg.appendChild(circle);
-			}
-		}
-            
-            layer.appendChild(svg);
+            if (layer) layer.innerHTML = '';
+            return;
         }
         
         function renderLabels() {
@@ -2672,54 +2488,7 @@ function closeKeywordsPopup() {
         }
         
         // Part management functions (updated for multi-background)
-        function selectPart(e) {
-            try {
-                if (e.target.classList.contains('control-btn')) return;
-                const clickedPart = e.currentTarget;
-                
-                if (selectedPart === clickedPart) {
-					selectedPart.classList.remove('selected');
-					selectedPart = null;
-					updateGroupsDisplay();
-
-					const titleElement = document.getElementById('profileTitle');
-					if (titleElement) titleElement.textContent = '';
-
-					document.getElementById('notesContainerTitle').textContent = 'Noter til opstilling';
-
-					const notesEl = document.getElementById('partNotes');
-					notesEl.value = generalNotes;
-					notesEl.placeholder = 'Generelle noter til hele opstillingen...';
-                    for (let i = 1; i <= 6; i++) {
-                        document.getElementById(`keyword${i}`).value = '';
-                    }
-                    return;
-                }
-                
-                if (selectedPart) {
-                    selectedPart.classList.remove('selected');
-                }
-                
-                selectedPart = e.currentTarget;
-				selectedPart.classList.add('selected');
-
-				const name = selectedPart.querySelector('.part-name').textContent;
-				const notes = selectedPart.getAttribute('data-notes') || '';
-
-				document.getElementById('notesContainerTitle').textContent = `Noter til ${name}`;
-				document.getElementById('partNotes').value = notes;
-				document.getElementById('partNotes').placeholder = `Detaljerede noter til "${name}"`;
-                
-                for (let i = 1; i <= 6; i++) {
-                    const keyword = selectedPart.getAttribute(`data-keyword${i}`) || '';
-                    document.getElementById(`keyword${i}`).value = keyword;
-                }
-                
-                updateGroupsDisplay();
-            } catch (error) {
-                console.error('Fejl i selectPart:', error);
-            }
-        }
+        function selectPart(e) { /* selection disabled */ }
         
         function changeGroupColor(groupNumber) {
             const colorBtn = document.getElementById(`groupColor${groupNumber}`);
@@ -2767,58 +2536,7 @@ function closeKeywordsPopup() {
             }
         }
         
-        function updateGroupsDisplay() {
-			const groupFields = document.getElementById('groupFields');
-			const groupDropdown = document.getElementById('groupDropdown');
-			const poseControls = document.getElementById('poseControls');
-			const keywordsSection = document.querySelector('.keywords-section');
-			
-			if (selectedPart) {
-				groupFields.style.display = 'none';
-				groupDropdown.style.display = 'block';
-				poseControls.style.display = 'block';
-				keywordsSection.style.display = 'block';
-				
-				updateGroupDropdown();
-				updatePoseDropdown();
-				
-				let currentIndex = selectedPart.getAttribute('data-group-index') || '';
-				if (!currentIndex) {
-					const fallbackName = selectedPart.getAttribute('data-group') || '';
-					currentIndex = findGroupIndexByName(fallbackName);
-					if (currentIndex) {
-						selectedPart.setAttribute('data-group-index', currentIndex);
-					}
-				}
-				document.getElementById('partGroupSelect').value = currentIndex;
-				
-				// Update pose controls
-				const currentPose = selectedPart.getAttribute('data-pose') || '';
-				const currentMirror = selectedPart.getAttribute('data-mirror') === 'true';
-				document.getElementById('partPoseSelect').value = currentPose;
-				document.getElementById('partMirrorPose').checked = currentMirror;
-				
-				// Ensure the visual state matches the saved state
-				// If there's a pose, reapply it to ensure consistency
-				if (currentPose !== '') {
-					const poseIndex = parseInt(currentPose);
-					if (!isNaN(poseIndex) && poseLibrary[poseIndex]) {
-						applyPose(selectedPart, poseIndex, currentMirror);
-					}
-				}
-				
-				const groupName = getPartGroupName(selectedPart);
-				if (groupName) {
-					applyGroupStylingToPart(selectedPart, currentIndex);
-				}
-				
-			} else {
-				groupFields.style.display = 'block';
-				groupDropdown.style.display = 'none';
-				poseControls.style.display = 'none';
-				keywordsSection.style.display = 'none';
-			}
-		}
+        function updateGroupsDisplay() { /* selection UI disabled */ }
         
         function updatePartKeywords(part) {
             const keywordsAbove = part.querySelector('.keywords-above');
@@ -2843,14 +2561,9 @@ function closeKeywordsPopup() {
             keywordsAbove.innerHTML = above.join('<br>');
             keywordsBelow.innerHTML = below.join('<br>');
             
-            const keywordsVisible = document.getElementById('keywordsVisible').checked;
-            if (!keywordsVisible) {
-                keywordsAbove.style.display = 'none';
-                keywordsBelow.style.display = 'none';
-            } else {
-                keywordsAbove.style.display = 'block';
-                keywordsBelow.style.display = 'block';
-            }
+            // Always show keywords (keywords toggle removed)
+            keywordsAbove.style.display = 'block';
+            keywordsBelow.style.display = 'block';
         }
         
         function addPart(name = null, x = null, y = null, skipPopup = false, disableAnimations = false) {
@@ -2892,7 +2605,7 @@ function closeKeywordsPopup() {
 				
                 
                 part.setAttribute('data-color-index', colorIndex.toString());
-                part.setAttribute('data-notes', '');
+                // per-part notes removed
                 part.setAttribute('data-layer', newLayer.toString());
                 part.setAttribute('data-group', '');
 				part.setAttribute('data-part-scale', '1');
@@ -3011,7 +2724,7 @@ function closeKeywordsPopup() {
 				legParts.forEach(leg => leg.style.background = darkerColor);
                 
                 part.addEventListener('pointerdown', startDrag);
-                part.addEventListener('click', selectPart);
+                // selection disabled
                 part.addEventListener('dragstart', (e) => e.preventDefault());
                 
                 const deleteBtn = part.querySelector('.delete-btn');
@@ -3438,14 +3151,12 @@ function closeKeywordsPopup() {
                 }
                 newPart.setAttribute('data-layer', layer.toString());
                 newPart.style.zIndex = layer + 10;
-                newPart.setAttribute('data-notes', notes);
+                // per-part notes removed; ignore notes from imports
                 newPart.setAttribute('data-group', group);
                 newPart.setAttribute('data-part-scale', size.toString());
                 newPart.style.transform = `scale(${size})`;
 
-                for (let i = 0; i < 6; i++) {
-                    newPart.setAttribute(`data-keyword${i + 1}`, keywords[i] || '');
-                }
+                // keywords removed
 
                 newPart.setAttribute('data-mirror', mirror ? 'true' : 'false');
 
@@ -3476,32 +3187,31 @@ function closeKeywordsPopup() {
                 armParts.forEach(arm => arm.style.background = darkerColor);
                 legParts.forEach(leg => leg.style.background = darkerColor);
 
-                updatePartKeywords(newPart);
+                // keywords and groups removed
 
+                // Restore pose + mirror (supports both index and name)
                 if (poseName) {
-                    const poseIndex = poseLibrary.findIndex(p => p.name === poseName);
-                    if (poseIndex !== -1) {
+                    const maybeIndex = Number(poseName);
+                    if (!Number.isNaN(maybeIndex)) {
+                        // Stored as numeric index
+                        const poseIndex = maybeIndex;
                         newPart.setAttribute('data-pose', poseIndex.toString());
                         applyPose(newPart, poseIndex, mirror);
                     } else {
-                        newPart.setAttribute('data-pose', poseName);
-                        resetPose(newPart);
+                        // Stored as pose name
+                        const poseIndex = poseLibrary.findIndex(p => p && p.name === poseName);
+                        if (poseIndex !== -1) {
+                            newPart.setAttribute('data-pose', poseIndex.toString());
+                            applyPose(newPart, poseIndex, mirror);
+                        } else {
+                            // Unknown pose – keep attribute but reset visual pose
+                            newPart.setAttribute('data-pose', poseName);
+                            resetPose(newPart);
+                        }
                     }
                 } else {
                     newPart.setAttribute('data-pose', '');
                     resetPose(newPart);
-                }
-
-                const effectiveIndex = groupIndex || findGroupIndexByName(group);
-                if (effectiveIndex) {
-                    newPart.setAttribute('data-group-index', effectiveIndex);
-                    const resolvedName = getGroupNameByIndex(effectiveIndex) || group;
-                    newPart.setAttribute('data-group', resolvedName);
-                    applyGroupStylingToPart(newPart, effectiveIndex);
-                } else {
-                    newPart.setAttribute('data-group-index', '');
-                    newPart.setAttribute('data-group', group);
-                    clearGroupStyling(newPart);
                 }
 
                 requestAnimationFrame(() => {
@@ -3554,50 +3264,21 @@ function closeKeywordsPopup() {
 				dragState = null;
 				
                 updateGroupsDisplay();
-                document.getElementById('partNotes').value = '';
-                document.getElementById('partNotes').placeholder = 'Generelle noter for opstillingen. Klik evt på en cirkel for at vælge den og redigere dens information...';
-                
-                for (let i = 1; i <= 6; i++) {
-                    document.getElementById(`keyword${i}`).value = '';
+                const notesEl = document.getElementById('partNotes');
+                if (notesEl) {
+                    notesEl.value = '';
+                    notesEl.placeholder = 'Generelle noter for opstillingen...';
                 }
 				
-				// Nulstil alle background labels til default
-				backgroundLabels = {};
-				allBackgrounds.forEach(bg => {
-					if (defaultLabels[bg]) {
-						backgroundLabels[bg] = { ...defaultLabels[bg] };
-					}
-				});
-                
+				// Background labels/groups removed; no reset needed
                 renderBackground();
-				
-				// Nulstil gruppenavne til default
-				const defaultGroupNames = ['Manager', 'Brandmand', 'Eksileret', 'Ekstern', '', ''];
-				for (let i = 1; i <= 6; i++) {
-					const groupInput = document.getElementById(`group${i}`);
-					if (groupInput) {
-						groupInput.value = defaultGroupNames[i-1];
-					}
-					
-					// Nulstil gruppe farver til default
-					const colorBtn = document.getElementById(`groupColor${i}`);
-					if (colorBtn) {
-						colorBtn.setAttribute('data-color-index', (i-1).toString());
-						colorBtn.style.backgroundColor = groupColors[i-1];
-						colorBtn.removeAttribute('data-custom-color');
-					}
-				}
 
 				// Nulstil colorIndex så nye dele starter forfra med farver
 				colorIndex = 0;
 				
                 renderLabels();
                 
-                // Clear shared characters in localStorage
-                try {
-                    localStorage.setItem('relationsSetupData', JSON.stringify({ characters: [], lastUpdated: new Date().toISOString() }));
-                    localStorage.removeItem('current_opstilling');
-                } catch(_) {}
+                // Note: We do NOT clear opstillingData or any saved data - only UI is cleared
 
             } catch (error) {
                 console.error('Fejl i clearAll:', error);
@@ -3668,7 +3349,7 @@ function closeKeywordsPopup() {
             const sanitizeNotes = (value) => sanitize(value).replace(/\n/g, '\\n');
             const parts = document.querySelectorAll('.part');
 
-            let csv = 'Navn;PosX;PosY;Størrelse;Farve;Lag;Noter;Stikord1;Stikord2;Stikord3;Stikord4;Stikord5;Stikord6;GruppeIndex;Gruppe;Pose;Mirror\n';
+            let csv = 'Navn;PosX;PosY;Størrelse;Farve;Lag;Pose;Mirror\n';
 
             parts.forEach(part => {
                 const name = part.querySelector('.part-name')?.textContent || '';
@@ -3682,18 +3363,7 @@ function closeKeywordsPopup() {
                 const color = part.getAttribute('data-custom-color') || partColors[fallbackColorIndex] || '#f59e0b';
 
                 const layer = part.getAttribute('data-layer') || '1';
-                const notes = part.getAttribute('data-notes') || '';
-
-                const keywords = [];
-                for (let i = 1; i <= 6; i++) {
-                    keywords.push(part.getAttribute(`data-keyword${i}`) || '');
-                }
-
-                let groupIndex = part.getAttribute('data-group-index') || '';
-                if (!groupIndex) {
-                    groupIndex = findGroupIndexByName(part.getAttribute('data-group') || '');
-                }
-                const group = getPartGroupName(part);
+                // removed: per-part notes, keywords, group index/name
                 const poseAttr = part.getAttribute('data-pose') || '';
                 let poseName = '';
                 if (poseAttr !== '') {
@@ -3714,10 +3384,6 @@ function closeKeywordsPopup() {
                     Number(size.toFixed(4)),
                     sanitize(color),
                     layer,
-                    sanitizeNotes(notes),
-                    ...keywords.map(sanitize),
-                    sanitize(groupIndex),
-                    sanitize(group),
                     sanitize(poseName),
                     mirror ? 'true' : 'false'
                 ];
@@ -3725,28 +3391,12 @@ function closeKeywordsPopup() {
                 csv += row.join(';') + '\n';
             });
 
-            csv += '\n# Gruppenavne\n';
-            for (let i = 1; i <= 6; i++) {
-                const groupInput = document.getElementById(`group${i}`);
-                const colorBtn = document.getElementById(`groupColor${i}`);
-                const groupName = groupInput ? groupInput.value : '';
-                const groupColor = colorBtn ? (colorBtn.getAttribute('data-custom-color') || colorBtn.style.backgroundColor || '') : '';
-                csv += `Gruppe${i};${sanitize(groupName)};${sanitize(groupColor)}\n`;
-            }
-
-            csv += '\n# Alle Baggrund Labels\n';
-            const activeBackground = currentBackground || 'none';
-            const activeLabels = backgroundLabels[activeBackground] || {};
-            Object.keys(activeLabels).forEach(key => {
-                const value = activeLabels[key] || '';
-                csv += `${sanitize(activeBackground)};${sanitize(key)};${sanitize(value)}\n`;
-            });
+            // removed: group names/colors and background labels sections
 
             csv += '\n# Generelle Noter\n';
             csv += sanitizeNotes(generalNotes) + '\n';
 
-            csv += '\n# Selected Background\n';
-            csv += `${sanitize(currentBackground || '')}\n`;
+            // removed: Selected Background section
 
             return csv;
         }
@@ -3755,6 +3405,8 @@ function closeKeywordsPopup() {
             try {
                 const csv = buildOpstillingCsv();
                 localStorage.setItem('current_opstilling', csv);
+                // Also persist to new structured storage
+                try { syncCurrentWorkspaceToActiveSetup(); } catch(_) {}
             } catch (error) {
                 console.error('Fejl ved gemning til localStorage:', error);
             }
@@ -3944,14 +3596,14 @@ function closeKeywordsPopup() {
         }
         
         document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize new Opstilling data structure
+            OpstillingData = loadOpstillingDataFromLocalStorage();
+            ensureDefaultOpstillingData();
             // Load pose library first
             await loadPoseLibrary();
             
-            // Try to load current opstilling from localStorage
-            const loaded = loadCurrentOpstillingFromStorage();
-            if (loaded) {
-                console.log('Opstilling indlæst fra localStorage');
-            }
+            // Load active opstilling (from opstillingData or legacy storage)
+            loadActiveOpstilling();
             
             try {
 				
@@ -4034,27 +3686,11 @@ function closeKeywordsPopup() {
                 
                 const partNotesTextarea = document.getElementById('partNotes');
 				partNotesTextarea.addEventListener('input', function() {
-					if (selectedPart) {
-						selectedPart.setAttribute('data-notes', this.value);
-					} else {
-						generalNotes = this.value;
-					}
+					generalNotes = this.value;
 					saveCurrentOpstillingToStorage();
 				});
                 
-                for (let i = 1; i <= 6; i++) {
-                    const keywordInput = document.getElementById(`keyword${i}`);
-                    if (keywordInput) {
-                        keywordInput.addEventListener('input', function() {
-                            if (selectedPart) {
-                                selectedPart.setAttribute(`data-keyword${i}`, this.value);
-                                updatePartKeywords(selectedPart);
-                                // Auto-save after keyword input
-                                saveCharactersToShared();
-                            }
-                        });
-                    }
-                }
+                // Removed keyword inputs (#keyword1..#keyword6) – no listeners needed
                 
                 const workspace = document.getElementById('workspace');
                 workspace.addEventListener('click', handleWorkspaceClick);
@@ -4093,36 +3729,11 @@ function closeKeywordsPopup() {
                     });
                 }
                 
-                const keywordsVisibleCheckbox = document.getElementById('keywordsVisible');
-                if (keywordsVisibleCheckbox) {
-                    keywordsVisibleCheckbox.addEventListener('change', function() {
-                        const allParts = document.querySelectorAll('.part');
-                        allParts.forEach(part => {
-                            updatePartKeywords(part);
-                        });
-                    });
-                }
-				
-				const bodiesVisibleCheckbox = document.getElementById('bodiesVisible');
-                if (bodiesVisibleCheckbox) {
-                    bodiesVisibleCheckbox.addEventListener('change', toggleAllBodies);
-                }
+                // removed: keywordsVisible and bodiesVisible checkboxes and listeners
                 
                 updateGroupsDisplay();
                 
-                // Add event listeners for group inputs
-                for (let i = 1; i <= 6; i++) {
-                    const groupInput = document.getElementById(`group${i}`);
-                    if (groupInput) {
-                        groupInput.addEventListener('input', function() {
-                            refreshPartsForGroup(String(i));
-                            updateGroupDropdown();
-                            if (!isLoadingSetup) {
-                                saveCharactersToShared();
-                            }
-                        });
-                    }
-                }
+                // Removed group inputs (#group1..#group6) – no listeners needed
                 
                 // Initialize background
                 renderBackground();
@@ -4131,25 +3742,15 @@ function closeKeywordsPopup() {
             } catch (error) {
                 console.error('Fejl ved initialisering:', error);
             }
+            
+            // Initial sync to persistent opstilling model
+            try { syncCurrentWorkspaceToActiveSetup(); } catch(_) {}
         });
         
         document.addEventListener('dragover', (e) => e.preventDefault());
         document.addEventListener('drop', (e) => e.preventDefault());
 		
-		function toggleAllBodies() {
-			try {
-				const workspace = document.getElementById('workspace');
-				const checkbox = document.getElementById('bodiesVisible');
-				
-				if (checkbox.checked) {
-					workspace.classList.remove('hide-bodies');
-				} else {
-					workspace.classList.add('hide-bodies');
-				}
-			} catch (error) {
-				console.error('Fejl i toggleAllBodies:', error);
-			}
-		}
+		// toggleAllBodies removed; bodies are always visible
 		
 		// Navigation overlay toggle function
 		function toggleNavBox() {
@@ -4249,23 +3850,10 @@ function closeKeywordsPopup() {
                     partNotesField.placeholder = 'Generelle noter for opstillingen. Klik evt på en cirkel for at vælge den og redigere dens information...';
                 }
 
-                for (let i = 1; i <= 6; i++) {
-                    const keywordInput = document.getElementById(`keyword${i}`);
-                    if (keywordInput) {
-                        keywordInput.value = '';
-                    }
-                }
-
-                backgroundLabels = {};
-                allBackgrounds.forEach(bg => {
-                    if (defaultLabels[bg]) {
-                        backgroundLabels[bg] = { ...defaultLabels[bg] };
-                    }
-                });
-
+                // keywords and background labels removed
                 renderBackground();
                 colorIndex = 0;
-                renderLabels();
+                // labels rendering removed
 
                 for (let line of lines) {
                     if (line.trim() === '' || line.startsWith('#') || line.includes('Navn;PosX')) continue;
@@ -4323,74 +3911,11 @@ function closeKeywordsPopup() {
                     }
                 }
 
-                // Load group names and colors
-                for (let line of lines) {
-                    if (line.trim() === '' || !line.startsWith('Gruppe')) continue;
-                    const parts = line.split(';');
-                    if (parts.length >= 3) {
-                        const groupNumber = parts[0].replace('Gruppe', '');
-                        const groupName = parts[1] || '';
-                        const groupColor = parts[2] || '';
+                // Ignore any saved group names/colors in import
 
-                        const groupInput = document.getElementById(`group${groupNumber}`);
-                        if (groupInput) {
-                            groupInput.value = groupName;
-                        }
+                // Ignore applying any group-based borders
 
-                        const colorBtn = document.getElementById(`groupColor${groupNumber}`);
-                        if (colorBtn && groupColor) {
-                            colorBtn.style.backgroundColor = groupColor;
-                            colorBtn.setAttribute('data-custom-color', groupColor);
-                            colorBtn.removeAttribute('data-color-index');
-                        }
-                    }
-                }
-
-                // Apply group borders after colors are loaded
-                document.querySelectorAll('.part').forEach(part => {
-                    const partGroup = part.getAttribute('data-group');
-                    if (partGroup) {
-                        for (let i = 1; i <= 6; i++) {
-                            const groupInput = document.getElementById(`group${i}`);
-                            if (groupInput && groupInput.value.trim() === partGroup) {
-                                const colorBtn = document.getElementById(`groupColor${i}`);
-                                const groupColor = colorBtn.getAttribute('data-custom-color') || colorBtn.style.backgroundColor;
-                                const head = part.querySelector('.head');
-                                if (groupColor && head) {
-                                    head.style.border = `4px solid ${groupColor}`;
-                                }
-                                break;
-                            }
-                        }
-                    }
-                });
-
-                // Load background labels
-                let inLabelSection = false;
-                for (let line of lines) {
-                    const trimmedLine = line.trim();
-                    if (trimmedLine === '# Alle Baggrund Labels') {
-                        inLabelSection = true;
-                        continue;
-                    }
-                    if (inLabelSection && (trimmedLine === '' || trimmedLine.startsWith('#'))) {
-                        break;
-                    }
-                    if (inLabelSection && trimmedLine !== '') {
-                        const parts = line.split(';');
-                        if (parts.length >= 3) {
-                            const bg = parts[0];
-                            const key = parts[1];
-                            const value = parts[2] || '';
-
-                            if (!backgroundLabels[bg]) {
-                                backgroundLabels[bg] = { ...defaultLabels[bg] };
-                            }
-
-                            backgroundLabels[bg][key] = value;
-                        }
-                    }
-                }
+                // Ignore any saved background labels in import
 
                 // Load general notes
                 let inNotesSection = false;
@@ -4414,15 +3939,13 @@ function closeKeywordsPopup() {
                     partNotesField.placeholder = 'Generelle noter til hele opstillingen...';
                 }
 
+                // Force no background regardless of saved data
                 const backgroundSelect = document.getElementById('backgroundSelect');
-                const targetBackground = selectedBackgroundFromFile ?? defaultBackground;
                 if (backgroundSelect) {
-                    backgroundSelect.value = targetBackground || 'none';
+                    backgroundSelect.value = 'none';
                 }
-                currentBackground = targetBackground || 'none';
+                currentBackground = 'none';
                 changeBackground();
-
-                renderLabels();
 
                 document.querySelectorAll('.part').forEach(part => {
                     const partGroup = part.getAttribute('data-group');
