@@ -1361,6 +1361,7 @@
             transform: translate(-50%, -50%);
             z-index: 16;
             pointer-events: auto;
+            touch-action: none;
         }
         
         .label-pointer-point::before {
@@ -1539,6 +1540,7 @@
         const USE_RELATIVE_OFFSETS = false;
         // Disable history panel and its logic
         const USE_HISTORY = false;
+        const isMobile = 'ontouchstart' in window;
         let historyFilterMapId = 'all'; // Current filter selection for history
         
         // Main data structure for saving/loading
@@ -3029,6 +3031,66 @@
                         point.releasePointerCapture(e.pointerId);
                     });
                     
+                    // Mobile touch fallback for pointer drag
+                    if (isMobile) {
+                        let touchDragging = false;
+                        let touchStartDX = 0;
+                        let touchStartDY = 0;
+                        point.addEventListener('touchstart', (e) => {
+                            if (!e.touches || e.touches.length === 0) return;
+                            isBodymapDragging = true;
+                            touchDragging = true;
+                            const t = e.touches[0];
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            const cursorX = t.clientX - workspaceRect.left + workspace.scrollLeft;
+                            const cursorY = t.clientY - workspaceRect.top + workspace.scrollTop;
+                            touchStartDX = cursorX - label.pointerX;
+                            touchStartDY = cursorY - label.pointerY;
+                        }, { passive: false });
+                        point.addEventListener('touchmove', (e) => {
+                            if (!touchDragging || !e.touches || e.touches.length === 0) return;
+                            const t = e.touches[0];
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            label.pointerX = t.clientX - workspaceRect.left + workspace.scrollLeft - touchStartDX;
+                            label.pointerY = t.clientY - workspaceRect.top + workspace.scrollTop - touchStartDY;
+                            point.style.left = label.pointerX + 'px';
+                            point.style.top = label.pointerY + 'px';
+                            const svgContainer = workspace.querySelector('#labelLinesSvg');
+                            if (svgContainer) {
+                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                                if (svgLine) {
+                                    svgLine.setAttribute('x2', label.pointerX);
+                                    svgLine.setAttribute('y2', label.pointerY);
+                                }
+                            }
+                            e.preventDefault();
+                        }, { passive: false });
+                        point.addEventListener('touchend', () => {
+                            if (!touchDragging) return;
+                            touchDragging = false;
+                            if (USE_RELATIVE_OFFSETS) {
+                                const guideCenterAfterDrag = getGuideCenter(workspace);
+                                label.pointerOffsetX = label.pointerX - guideCenterAfterDrag.x;
+                                label.pointerOffsetY = label.pointerY - guideCenterAfterDrag.y;
+                            }
+                            mapIndexes.forEach(idx => {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === label.text && lab.id !== label.id) {
+                                        lab.pointerX = label.pointerX;
+                                        lab.pointerY = label.pointerY;
+                                        if (USE_RELATIVE_OFFSETS) {
+                                            lab.pointerOffsetX = label.pointerOffsetX;
+                                            lab.pointerOffsetY = label.pointerOffsetY;
+                                        }
+                                    }
+                                });
+                            });
+                            saveToLocalStorage();
+                            isBodymapDragging = false;
+                            renderWorkspace();
+                        });
+                    }
+                    
                     workspace.appendChild(point);
                 }
                 
@@ -3310,6 +3372,84 @@
                     hasMoved = false;
                     isBodymapDragging = false;
                 });
+                
+                // Mobile touch fallback for label drag
+                if (isMobile) {
+                    let touchStartX = 0;
+                    let touchStartY = 0;
+                    let startDX = 0;
+                    let startDY = 0;
+                    let touchHasMoved = false;
+                    let touchDragging = false;
+                    container.addEventListener('touchstart', (e) => {
+                        if (e.target === deleteBtn) return;
+                        if (isEditing && e.target === inputEl) return;
+                        if (!e.touches || e.touches.length === 0) return;
+                        isBodymapDragging = true;
+                        const t = e.touches[0];
+                        touchStartX = t.clientX;
+                        touchStartY = t.clientY;
+                        touchHasMoved = false;
+                        touchDragging = false;
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        startDX = t.clientX - workspaceRect.left + workspace.scrollLeft - label.x;
+                        startDY = t.clientY - workspaceRect.top + workspace.scrollTop - label.y;
+                    }, { passive: false });
+                    container.addEventListener('touchmove', (e) => {
+                        if (!e.touches || e.touches.length === 0) return;
+                        const t = e.touches[0];
+                        const moveDistance = Math.sqrt(Math.pow(t.clientX - touchStartX, 2) + Math.pow(t.clientY - touchStartY, 2));
+                        if (moveDistance > 5 && !touchDragging) {
+                            touchHasMoved = true;
+                            touchDragging = true;
+                            disableEditing();
+                        }
+                        if (touchDragging) {
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            label.x = t.clientX - workspaceRect.left + workspace.scrollLeft - startDX;
+                            label.y = t.clientY - workspaceRect.top + workspace.scrollTop - startDY;
+                            container.style.left = label.x + 'px';
+                            container.style.top = label.y + 'px';
+                            const svgContainer = workspace.querySelector('#labelLinesSvg');
+                            if (svgContainer) {
+                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                                if (svgLine) {
+                                    svgLine.setAttribute('x1', label.x + offsetX);
+                                    svgLine.setAttribute('y1', label.y + offsetY);
+                                }
+                            }
+                            e.preventDefault();
+                        }
+                    }, { passive: false });
+                    container.addEventListener('touchend', () => {
+                        if (!touchHasMoved && !touchDragging) {
+                            enableEditing();
+                        } else if (touchDragging) {
+                            if (USE_RELATIVE_OFFSETS) {
+                                const guideCenterAfterDrag = getGuideCenter(workspace);
+                                label.offsetX = label.x - guideCenterAfterDrag.x;
+                                label.offsetY = label.y - guideCenterAfterDrag.y;
+                            }
+                            relevantIndexes.forEach(idx => {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === label.text && lab.id !== label.id) {
+                                        lab.x = label.x;
+                                        lab.y = label.y;
+                                        if (USE_RELATIVE_OFFSETS) {
+                                            lab.offsetX = label.offsetX;
+                                            lab.offsetY = label.offsetY;
+                                        }
+                                    }
+                                });
+                            });
+                            renderWorkspace();
+                            saveToLocalStorage();
+                        }
+                        touchDragging = false;
+                        touchHasMoved = false;
+                        isBodymapDragging = false;
+                    });
+                }
             } else {
                 // Make read-only for onion layers
                 inputEl.readOnly = true;
