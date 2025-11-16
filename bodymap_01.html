@@ -857,6 +857,25 @@
             color: inherit;
         }
         
+        /* Make it clear when title is editable on active item */
+        .history-item.active .history-item-date {
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 6px;
+            padding: 2px 6px;
+            cursor: text;
+            transition: background 0.15s ease, box-shadow 0.15s ease;
+        }
+        .history-item.active .history-item-date:hover,
+        .history-item.active .history-item-date:focus {
+            background: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
+        }
+        /* Non-active items look read-only */
+        .history-item .history-item-date[readonly] {
+            cursor: default;
+            opacity: 0.95;
+        }
+        
         .history-item:focus-within .history-item-date {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 4px;
@@ -1534,8 +1553,6 @@
         let shouldScrollHistoryToBottom = false;
         let shouldScrollHistoryToTop = false;
         let showOnionLayers = true; // Toggle for showing onion layers
-        // Experimental flag: disable all relative (guide-centered) label/pointer calculations
-        const USE_RELATIVE_OFFSETS = true;
         // Disable history panel and its logic
         const USE_HISTORY = true;
         const isMobile = 'ontouchstart' in window;
@@ -1616,7 +1633,7 @@
             if (maps.length === 0) {
                 const defaultMap = {
                     id: mapCounter++,
-                    name: bodymapTitle || 'BodyMap',
+                    name: 'BodyMap 1',
                     color: MAP_COLORS[0]
                 };
                 maps.push(defaultMap);
@@ -1659,16 +1676,22 @@
         function ensureLayerTitlesForMap(mapId) {
             const mapIndexes = getIndexesForMap(mapId)
                 .sort((a, b) => new Date(ensureIndexTimestamp(a)) - new Date(ensureIndexTimestamp(b)));
+            // Determine current max "Lag N" number without changing existing titles
             let maxNumber = 0;
             mapIndexes.forEach(idx => {
                 const currentTitle = (idx.title || '').trim();
                 const existingNumber = extractLayerNumber(currentTitle);
-                if (!currentTitle || currentTitle.toLowerCase() === 'lag') {
+                if (existingNumber !== null) {
+                    maxNumber = Math.max(maxNumber, existingNumber);
+                }
+            });
+            // Only assign titles to indices that have no title (do not overwrite any existing titles)
+            mapIndexes.forEach(idx => {
+                const currentTitle = (idx.title || '').trim();
+                if (!currentTitle) {
                     const nextNumber = maxNumber + 1;
                     idx.title = `Lag ${nextNumber}`;
                     maxNumber = nextNumber;
-                } else if (existingNumber !== null) {
-                    maxNumber = Math.max(maxNumber, existingNumber);
                 }
             });
         }
@@ -1681,13 +1704,16 @@
             if (!index.timestamp) {
                 const dateStr = index.date || '';
                 const timeStr = index.time || '00:00';
-                const parts = dateStr.split(/[\.\-/]/);
-                if (parts.length >= 3) {
-                    const day = parseInt(parts[0], 10);
+                // Expect ISO date format YYYY-MM-DD everywhere
+                const parts = dateStr.split('-');
+                if (parts.length === 3) {
+                    const year = parseInt(parts[0], 10);
                     const month = parseInt(parts[1], 10) - 1;
-                    const year = parseInt(parts[2], 10);
-                    const [hour = '0', minute = '0'] = timeStr.split(':');
-                    const timestampDate = new Date(year, month, day, parseInt(hour, 10), parseInt(minute, 10));
+                    const day = parseInt(parts[2], 10);
+                    const [hourStr = '0', minuteStr = '0'] = (timeStr || '').split(/[:.]/);
+                    const hour = parseInt(hourStr, 10);
+                    const minute = parseInt(minuteStr, 10);
+                    const timestampDate = new Date(year, month, day, Number.isFinite(hour) ? hour : 0, Number.isFinite(minute) ? minute : 0);
                     index.timestamp = timestampDate.toISOString();
                 } else {
                     index.timestamp = new Date().toISOString();
@@ -1734,6 +1760,15 @@
         let newMapDraftName = '';
         let newMapColorDirty = false;
         let mapManagerNewRowEl = null;
+
+        function formatDkDate(dateStr) {
+            // Convert YYYY-MM-DD -> DD-MM-YYYY for display
+            if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                const [y, m, d] = dateStr.split('-');
+                return `${d}-${m}-${y}`;
+            }
+            return dateStr || '';
+        }
 
         function openMapManager() {
             if (!mapManagerOverlayEl) {
@@ -1794,23 +1829,15 @@
                     newMapNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
                 }
             } else {
-                newMapColorBtnEl.style.background = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)';
+                // Default: show the default map color (red) until user edits
+                const baseColor = MAP_COLOR_PRESETS[0] || '#ef4444';
+                newMapColorBtnEl.style.background = baseColor;
                 newMapColorBtnEl.style.color = '#ffffff';
                 if (newMapNameInputEl) {
-                    newMapNameInputEl.style.background = '#f8fafc';
-                    newMapNameInputEl.style.boxShadow = '0 0 0 1px rgba(99, 102, 241, 0.18)';
+                    newMapNameInputEl.style.background = lightenHex(baseColor, 0.85);
+                    newMapNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
                 }
             }
-        }
-
-        function hexToRgba(hex, alpha = 1) {
-            if (!hex) return `rgba(99, 102, 241, ${alpha})`;
-            const sanitized = hex.replace('#', '');
-            const bigint = parseInt(sanitized, 16);
-            const r = (bigint >> 16) & 255;
-            const g = (bigint >> 8) & 255;
-            const b = bigint & 255;
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
         }
 
         function renderMapManagerList() {
@@ -1977,6 +2004,11 @@
         }
 
         function deleteMap(mapId) {
+            // Prevent deleting the last remaining map
+            if (maps.length <= 1) {
+                alert('Du kan ikke slette det sidste bodymap.');
+                return;
+            }
             const map = getMapById(mapId);
             if (!map) return;
             if (!confirm(`Vil du slette alle lag og labels på "${map.name}"?`)) {
@@ -2139,7 +2171,13 @@
                 // If no saved data, create first index and default to showing layers
                 showOnionLayers = true;
                 updateLayerToggleUI();
-                createNewIndex({ autoScroll: true });
+                ensureDefaultMap();
+                const firstIndex = createNewIndex({ autoScroll: true });
+                // Force explicit title "Lag 1" for the very first layer
+                if (firstIndex) {
+                    firstIndex.title = 'Lag 1';
+                }
+                saveToLocalStorage();
             }
             // Load history sidebar collapsed state
             const isCollapsed = localStorage.getItem('body_historySidebarCollapsed') === 'true';
@@ -2154,6 +2192,8 @@
                 }
             }
             updateLayerToggleUI();
+            // Cleanup: ask to remove empty layers (no labels)
+            promptCleanupEmptyLayersOnLoad();
         }
         
         // Update BodyMapData structure with current state
@@ -2178,6 +2218,8 @@
                 mapId: index.mapId,
                 date: index.date,
                 time: index.time,
+                timestamp: ensureIndexTimestamp(index),
+                Timestamp: ensureIndexTimestamp(index), // explicit duplicate for external visibility
                 title: index.title || '',
                 labels: index.labels.map(label => ({
                     id: label.id,
@@ -2510,11 +2552,13 @@
                 return `${year}-${month}-${day}`;
             };
 
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
             const index = {
                 id: indexCounter++,
                 mapId: targetMapId,
                 date: formatIsoDate(now),
-                time: now.toLocaleTimeString('da-DK', {hour: '2-digit', minute: '2-digit'}),
+                time: `${hh}:${mm}`,
                 title: generateDefaultLayerTitle(targetMapId),
                 labels: [],
                 timestamp: now.toISOString()
@@ -2548,7 +2592,14 @@
             renderHistoryFilterOptions();
             ensureLayerTitles();
             
-            const sortedEntries = getFilteredSortedEntries();
+            // Single source of truth: newest-first (descending) by index.timestamp
+            const sortedEntries = getFilteredSortedEntries()
+                .slice()
+                .sort((a, b) => {
+                    const ta = new Date(ensureIndexTimestamp(a.index)).getTime();
+                    const tb = new Date(ensureIndexTimestamp(b.index)).getTime();
+                    return tb - ta; // newer first
+                });
 
             sortedEntries.forEach(({ index, map, timestamp }) => {
                 const item = document.createElement('div');
@@ -2573,13 +2624,16 @@
                 const titleDisplay = index.title || 'Lag';
                 const titleWrapper = document.createElement('div');
                 titleWrapper.className = 'history-item-title';
-                titleWrapper.innerHTML = `<input type="text" class="history-item-date" value="${titleDisplay}" data-id="${index.id}">`;
+                // Editable title input only when this item is active
+                titleWrapper.innerHTML = `<input type="text" class="history-item-date" value="${titleDisplay}" data-id="${index.id}" title="Rediger titel">`;
                 item.appendChild(titleWrapper);
 
                 const metaWrapper = document.createElement('div');
                 metaWrapper.className = 'history-item-meta';
+                const ts = ensureIndexTimestamp(index);
+                const dateDk = formatDkDate(index.date);
                 metaWrapper.innerHTML = `
-                    <span class="history-item-time">${index.date} ${index.time}</span>
+                    <span class="history-item-time">${dateDk} ${index.time}</span>
                     <span class="history-item-labels">Labels: ${index.labels.length}</span>
                 `;
                 item.appendChild(metaWrapper);
@@ -2591,31 +2645,55 @@
                 item.appendChild(deleteBtn);
 
                 item.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('history-item-date')) return;
+                    // If clicking title on active item, allow editing (no activation toggle)
+                    if (e.target.classList.contains('history-item-date') && isActive) return;
                     if (e.target.classList.contains('history-item-delete')) return;
-                    activeMapId = map ? map.id : index.mapId;
-                    activeIndexId = index.id;
-                    renderHistory();
-                    renderWorkspace();
-                    saveToLocalStorage();
+                    // For non-active items (including clicking their title), activate this item
+                    if (!isActive) {
+                        activeMapId = map ? map.id : index.mapId;
+                        activeIndexId = index.id;
+                        renderHistory();
+                        renderWorkspace();
+                        saveToLocalStorage();
+                    }
                 });
 
+                // Title edit handler: only update title, never date/time/timestamp
                 const titleInput = item.querySelector('.history-item-date');
+                // Make input read-only unless this is the active item
+                if (!isActive) {
+                    titleInput.readOnly = true;
+                    titleInput.tabIndex = -1;
+                } else {
+                    titleInput.readOnly = false;
+                    titleInput.tabIndex = 0;
+                }
+                titleInput.addEventListener('focus', (e) => {
+                    // If not active, redirect focus to activation
+                    if (!isActive) {
+                        e.preventDefault();
+                        item.click();
+                        return;
+                    }
+                });
                 titleInput.addEventListener('change', (e) => {
                     const indexId = parseFloat(e.target.dataset.id);
                     const indexObj = dataIndexes.find(idx => idx.id === indexId);
                     if (indexObj) {
                         indexObj.title = e.target.value;
+                        // Do NOT touch indexObj.date, indexObj.time, or indexObj.timestamp here.
                         saveToLocalStorage();
+                        // Re-render to show updated title but keep ordering (timestamp unchanged)
+                        renderHistory();
                     }
                 });
-
                 deleteBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const indexId = parseFloat(e.target.dataset.id);
                     deleteIndex(indexId);
                 });
 
+                // Append in order (already newest-first)
                 list.appendChild(item);
             });
             
@@ -2642,12 +2720,18 @@
             const activeMap = getMapById(activeMapId);
             if (!activeMap) return;
 
-            const mapIndexes = getIndexesForMap(activeMap.id).sort((a, b) => a.id - b.id);
+            // Sort map indexes by timestamp (newest first) to support onion-skinning by recency
+            const mapIndexes = getIndexesForMap(activeMap.id).sort((a, b) => {
+                const ta = new Date(ensureIndexTimestamp(a)).getTime();
+                const tb = new Date(ensureIndexTimestamp(b)).getTime();
+                return tb - ta;
+            });
             if (!mapIndexes.length) return;
 
             let activeIndex = mapIndexes.find(idx => idx.id === activeIndexId);
             if (!activeIndex) {
-                activeIndex = mapIndexes[mapIndexes.length - 1];
+                // If not found, pick the newest (position 0)
+                activeIndex = mapIndexes[0];
                 activeIndexId = activeIndex.id;
             }
 
@@ -2670,8 +2754,21 @@
             workspace.appendChild(svgContainer);
             
             const activePosition = mapIndexes.findIndex(idx => idx.id === activeIndexId);
-            // Simplify: only render the active layer (no onion layers)
-            const layersToShow = [mapIndexes[activePosition]];
+            // Build layers to show: active + up to 4 older (total up to 5) by recency
+            let layersToShow = [];
+            if (showOnionLayers) {
+                const slice = mapIndexes.slice(activePosition, activePosition + 5); // active first (newer) to older
+                // Render active first, then older; we'll control stacking via z-index
+                for (let i = 0; i < slice.length; i++) {
+                    const layerIdx = slice[i];
+                    // layerNum: 0 = active (newest), increases with age
+                    const layerNum = i;
+                    layersToShow.push({ layerIndex: layerIdx, layerNum });
+                }
+            } else {
+                // Only active
+                layersToShow = [{ layerIndex: mapIndexes[activePosition], layerNum: 0 }];
+            }
 
             const guideFigure = createGuideFigure();
             workspace.appendChild(guideFigure);
@@ -2683,12 +2780,11 @@
             svgContainer.style.height = workspaceHeight + 'px';
             svgContainer.setAttribute('viewBox', `0 0 ${workspaceWidth} ${workspaceHeight}`);
             
-            layersToShow.forEach((layerIndex, idx) => {
+            layersToShow.forEach(({ layerIndex, layerNum }) => {
                 if (!showOnionLayers && layerIndex.id !== activeIndexId) {
                     return;
                 }
-                const layerNum = 0;
-                renderOnionLayer(layerIndex, layerNum, workspace, svgContainer, activeMap.color);
+                renderOnionLayer(layerIndex, layerNum, workspace, svgContainer, activeMap.color, mapIndexes);
             });
         }
         
@@ -2851,7 +2947,7 @@
             }
         }
         
-        function renderOnionLayer(layerIndex, layerNum, workspace, svgContainer, mapColor) {
+        function renderOnionLayer(layerIndex, layerNum, workspace, svgContainer, mapColor, sortedMapIndexes) {
             // Calculate opacity and scale based on distance from active
             // First layer gets big jump, then linear
             const opacity = layerNum === 0 ? 1 : 0.6 - (layerNum - 1) * 0.1;
@@ -2880,35 +2976,47 @@
             
             // Only render labels for onion layers (not the guide figure itself)
             layerIndex.labels.forEach(label => {
-                let labelAbsX, labelAbsY, pointerAbsX, pointerAbsY;
-                if (USE_RELATIVE_OFFSETS) {
-                    if (typeof label.offsetX !== 'number' || typeof label.offsetY !== 'number') {
-                        const absX = typeof label.x === 'number' ? label.x : guideCenter.x;
-                        const absY = typeof label.y === 'number' ? label.y : guideCenter.y;
-                        label.offsetX = absX - guideCenter.x;
-                        label.offsetY = absY - guideCenter.y;
+                // Compute display label number: number of same text in older entries + 1
+                try {
+                    if (sortedMapIndexes && Array.isArray(sortedMapIndexes)) {
+                        const currentPos = sortedMapIndexes.findIndex(idx => idx.id === layerIndex.id);
+                        const older = currentPos >= 0 ? sortedMapIndexes.slice(currentPos + 1) : [];
+                        let olderCount = 0;
+                        older.forEach(idx => {
+                            if (Array.isArray(idx.labels)) {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === label.text && lab.text && lab.text.trim() !== '') {
+                                        olderCount++;
+                                    }
+                                });
+                            }
+                        });
+                        label._displayLabelNumber = olderCount + 1;
                     }
-                    labelAbsX = guideCenter.x + (label.offsetX ?? 0);
-                    labelAbsY = guideCenter.y + (label.offsetY ?? 0);
-                    label.x = labelAbsX;
-                    label.y = labelAbsY;
-                    if (typeof label.pointerOffsetX !== 'number' || typeof label.pointerOffsetY !== 'number') {
-                        const fallbackPointerX = typeof label.pointerX === 'number' ? label.pointerX : labelAbsX;
-                        const fallbackPointerY = typeof label.pointerY === 'number' ? label.pointerY : labelAbsY;
-                        label.pointerOffsetX = fallbackPointerX - guideCenter.x;
-                        label.pointerOffsetY = fallbackPointerY - guideCenter.y;
-                    }
-                    pointerAbsX = guideCenter.x + (label.pointerOffsetX ?? 0);
-                    pointerAbsY = guideCenter.y + (label.pointerOffsetY ?? 0);
-                    label.pointerX = pointerAbsX;
-                    label.pointerY = pointerAbsY;
-                } else {
-                    // Absolute positioning only (no relative recalculation)
-                    labelAbsX = typeof label.x === 'number' ? label.x : guideCenter.x;
-                    labelAbsY = typeof label.y === 'number' ? label.y : guideCenter.y;
-                    pointerAbsX = typeof label.pointerX === 'number' ? label.pointerX : labelAbsX;
-                    pointerAbsY = typeof label.pointerY === 'number' ? label.pointerY : labelAbsY;
+                } catch (e) {
+                    // ignore counting errors; fall back to stored number
                 }
+                // Always use relative model: compute absolute from offsets around guide center
+                if (typeof label.offsetX !== 'number' || typeof label.offsetY !== 'number') {
+                    const absX0 = typeof label.x === 'number' ? label.x : guideCenter.x;
+                    const absY0 = typeof label.y === 'number' ? label.y : guideCenter.y;
+                    label.offsetX = absX0 - guideCenter.x;
+                    label.offsetY = absY0 - guideCenter.y;
+                }
+                const labelAbsX = guideCenter.x + (label.offsetX ?? 0);
+                const labelAbsY = guideCenter.y + (label.offsetY ?? 0);
+                label.x = labelAbsX;
+                label.y = labelAbsY;
+                if (typeof label.pointerOffsetX !== 'number' || typeof label.pointerOffsetY !== 'number') {
+                    const fallbackPointerX = typeof label.pointerX === 'number' ? label.pointerX : labelAbsX;
+                    const fallbackPointerY = typeof label.pointerY === 'number' ? label.pointerY : labelAbsY;
+                    label.pointerOffsetX = fallbackPointerX - guideCenter.x;
+                    label.pointerOffsetY = fallbackPointerY - guideCenter.y;
+                }
+                const pointerAbsX = guideCenter.x + (label.pointerOffsetX ?? 0);
+                const pointerAbsY = guideCenter.y + (label.pointerOffsetY ?? 0);
+                label.pointerX = pointerAbsX;
+                label.pointerY = pointerAbsY;
                 
                 // Calculate displacement vector from guide center to label position
                 const dx = labelAbsX - guideCenterX;
@@ -2957,77 +3065,73 @@
                     let pointDragStartX = 0;
                     let pointDragStartY = 0;
                     
-                    point.addEventListener('pointerdown', (e) => {
-                        isBodymapDragging = true;
-                        pointDragging = true;
-                        point.setPointerCapture(e.pointerId);
+                    if (!isMobile) {
+                        point.addEventListener('pointerdown', (e) => {
+                            isBodymapDragging = true;
+                            pointDragging = true;
+                            point.setPointerCapture(e.pointerId);
+                            
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
+                            const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
+                            pointDragStartX = cursorX - label.pointerX;
+                            pointDragStartY = cursorY - label.pointerY;
+                            e.preventDefault();
+                        });
                         
-                        const workspaceRect = workspace.getBoundingClientRect();
-                        const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
-                        const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
-                        pointDragStartX = cursorX - label.pointerX;
-                        pointDragStartY = cursorY - label.pointerY;
-                        e.preventDefault();
-                    });
-                    
-                    point.addEventListener('pointermove', (e) => {
-                        if (!pointDragging) return;
-                        
-                        const workspaceRect = workspace.getBoundingClientRect();
-                        label.pointerX = e.clientX - workspaceRect.left + workspace.scrollLeft - pointDragStartX;
-                        label.pointerY = e.clientY - workspaceRect.top + workspace.scrollTop - pointDragStartY;
-                        point.style.left = label.pointerX + 'px';
-                        point.style.top = label.pointerY + 'px';
-                        
-                        // Update line in SVG container
-                        const svgContainer = workspace.querySelector('#labelLinesSvg');
-                        if (svgContainer) {
-                            const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
-                            if (svgLine) {
-                                svgLine.setAttribute('x2', label.pointerX);
-                                svgLine.setAttribute('y2', label.pointerY);
+                        point.addEventListener('pointermove', (e) => {
+                            if (!pointDragging) return;
+                            
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            label.pointerX = e.clientX - workspaceRect.left + workspace.scrollLeft - pointDragStartX;
+                            label.pointerY = e.clientY - workspaceRect.top + workspace.scrollTop - pointDragStartY;
+                            point.style.left = label.pointerX + 'px';
+                            point.style.top = label.pointerY + 'px';
+                            
+                            // Update line in SVG container
+                            const svgContainer = workspace.querySelector('#labelLinesSvg');
+                            if (svgContainer) {
+                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                                if (svgLine) {
+                                    svgLine.setAttribute('x2', label.pointerX);
+                                    svgLine.setAttribute('y2', label.pointerY);
+                                }
                             }
-                        }
-                        e.preventDefault();
-                    });
-                    
-                    point.addEventListener('pointerup', (e) => {
-                        if (!pointDragging) return;
-                        pointDragging = false;
-                        point.releasePointerCapture(e.pointerId);
+                            e.preventDefault();
+                        });
                         
-                        // Optionally compute relative pointer offsets once at drag end
-                        if (USE_RELATIVE_OFFSETS) {
+                        point.addEventListener('pointerup', (e) => {
+                            if (!pointDragging) return;
+                            pointDragging = false;
+                            point.releasePointerCapture(e.pointerId);
+                            
+                            // Compute relative pointer offsets once at drag end
                             const guideCenterAfterDrag = getGuideCenter(workspace);
                             label.pointerOffsetX = label.pointerX - guideCenterAfterDrag.x;
                             label.pointerOffsetY = label.pointerY - guideCenterAfterDrag.y;
-                        }
-                        
-                        // Update all labels with the same text across all indexes to match the new pointer position
-                        mapIndexes.forEach(idx => {
-                            idx.labels.forEach(lab => {
-                                if (lab.text === label.text && lab.id !== label.id) {
-                                    lab.pointerX = label.pointerX;
-                                    lab.pointerY = label.pointerY;
-                                    if (USE_RELATIVE_OFFSETS) {
+                            
+                            // Update all labels with the same text across all indexes: only offsets
+                            mapIndexes.forEach(idx => {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === label.text && lab.id !== label.id) {
                                         lab.pointerOffsetX = label.pointerOffsetX;
                                         lab.pointerOffsetY = label.pointerOffsetY;
                                     }
-                                }
+                                });
                             });
+                            
+                            saveToLocalStorage();
+                            isBodymapDragging = false;
+                            // Re-render once after drag end to sync onion layers
+                            renderWorkspace();
                         });
                         
-                        saveToLocalStorage();
-                        isBodymapDragging = false;
-                        // Re-render once after drag end to sync onion layers
-                        renderWorkspace();
-                    });
-                    
-                    point.addEventListener('pointercancel', (e) => {
-                        isBodymapDragging = false;
-                        pointDragging = false;
-                        point.releasePointerCapture(e.pointerId);
-                    });
+                        point.addEventListener('pointercancel', (e) => {
+                            isBodymapDragging = false;
+                            pointDragging = false;
+                            point.releasePointerCapture(e.pointerId);
+                        });
+                    }
                     
                     // Mobile touch fallback for pointer drag
                     if (isMobile) {
@@ -3092,12 +3196,12 @@
                     workspace.appendChild(point);
                 }
                 
-                const labelEl = createLabelElement(label, isActive, opacity, scale, offsetX, offsetY, mapColor, layerIndex.mapId);
+                const labelEl = createLabelElement(label, isActive, opacity, scale, offsetX, offsetY, mapColor, layerIndex.mapId, layerNum);
                 workspace.appendChild(labelEl);
             });
         }
         
-        function createLabelElement(label, isActive, opacity, scale, offsetX = 0, offsetY = 0, mapColor = '#e8dcc6', mapId = null) {
+        function createLabelElement(label, isActive, opacity, scale, offsetX = 0, offsetY = 0, mapColor = '#e8dcc6', mapId = null, layerNum = 0) {
             const container = document.createElement('div');
             container.className = 'label-container';
             if (!isActive) {
@@ -3112,6 +3216,9 @@
             container.style.opacity = opacity;
             // Simplify: no per-layer scaling like onion-layers; match simple/opstilling behavior
             container.style.transform = `translate(-50%, -50%)`;
+            // Ensure stacking: newer layers (layerNum 0) above older ones
+            const layerZ = 200 - layerNum;
+            container.style.zIndex = String(Math.max(layerZ, 21));
             
             // Create label with number badge and delete button
             const deleteBtnHtml = isActive ? '<button class="label-delete-btn" title="Slet label">×</button>' : '';
@@ -3120,10 +3227,13 @@
             const darkColor = mapColor || '#a67c52';
             const lightColor = lightenHex(darkColor, 0.65);
             const labelBackground = lightColor;
+            const displayNumber = (typeof label._displayLabelNumber === 'number' && label._displayLabelNumber > 0)
+                ? label._displayLabelNumber
+                : label.labelNumber;
             container.innerHTML = `
                 <div class="label-input ${activeClass}" style="background:${labelBackground}; ${isActive ? `border:3px solid ${darkColor};` : ''}">
                     <textarea class="label-text-input" placeholder="${placeholderText}">${label.text}</textarea>
-                    <span class="label-number">${label.labelNumber}</span>
+                    <span class="label-number">${displayNumber}</span>
                     ${deleteBtnHtml}
                 </div>
             `;
@@ -3265,111 +3375,107 @@
                 });
                 
                 // UNIFIED POINTER EVENTS (works for mouse, touch, pen)
-                container.addEventListener('pointerdown', (e) => {
-                    if (e.target === deleteBtn) return;
-                    if (isEditing && e.target === inputEl) return;
-                    
-                    // Capture pointer for consistent events
-                    isBodymapDragging = true;
-                    container.setPointerCapture(e.pointerId);
-                    
-                    pointerDownTime = Date.now();
-                    pointerDownX = e.clientX;
-                    pointerDownY = e.clientY;
-                    hasMoved = false;
-                    isDragging = false;
-                    
-                    const workspaceRect = workspace.getBoundingClientRect();
-                    dragStartX = e.clientX - workspaceRect.left + workspace.scrollLeft - label.x;
-                    dragStartY = e.clientY - workspaceRect.top + workspace.scrollTop - label.y;
-                });
-                
-                container.addEventListener('pointermove', (e) => {
-                    if (pointerDownTime === 0) return;
-                    
-                    const moveDistance = Math.sqrt(
-                        Math.pow(e.clientX - pointerDownX, 2) + 
-                        Math.pow(e.clientY - pointerDownY, 2)
-                    );
-                    
-                    // Start dragging if moved more than 5px
-                    if (moveDistance > 5 && !isDragging) {
-                        hasMoved = true;
-                        isDragging = true;
-                        disableEditing();
-                    }
-                    
-                    if (isDragging) {
-                        const workspaceRect = workspace.getBoundingClientRect();
-                        label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - dragStartX;
-                        label.y = e.clientY - workspaceRect.top + workspace.scrollTop - dragStartY;
-                        container.style.left = label.x + 'px';
-                        container.style.top = label.y + 'px';
+                if (!isMobile) {
+                    container.addEventListener('pointerdown', (e) => {
+                        if (e.target === deleteBtn) return;
+                        if (isEditing && e.target === inputEl) return;
                         
-                        // Update line if it exists
-                        const svgContainer = workspace.querySelector('#labelLinesSvg');
-                        if (svgContainer) {
-                            const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
-                            if (svgLine) {
-                                svgLine.setAttribute('x1', label.x + offsetX);
-                                svgLine.setAttribute('y1', label.y + offsetY);
-                            }
+                        // Capture pointer for consistent events
+                        isBodymapDragging = true;
+                        container.setPointerCapture(e.pointerId);
+                        
+                        pointerDownTime = Date.now();
+                        pointerDownX = e.clientX;
+                        pointerDownY = e.clientY;
+                        hasMoved = false;
+                        isDragging = false;
+                        
+                        const workspaceRect = workspace.getBoundingClientRect();
+                        dragStartX = e.clientX - workspaceRect.left + workspace.scrollLeft - label.x;
+                        dragStartY = e.clientY - workspaceRect.top + workspace.scrollTop - label.y;
+                    });
+                    
+                    container.addEventListener('pointermove', (e) => {
+                        if (pointerDownTime === 0) return;
+                        
+                        const moveDistance = Math.sqrt(
+                            Math.pow(e.clientX - pointerDownX, 2) + 
+                            Math.pow(e.clientY - pointerDownY, 2)
+                        );
+                        
+                        // Start dragging if moved more than 5px
+                        if (moveDistance > 5 && !isDragging) {
+                            hasMoved = true;
+                            isDragging = true;
+                            disableEditing();
                         }
-                        e.preventDefault();
-                    }
-                });
-                
-                container.addEventListener('pointerup', (e) => {
-                    if (pointerDownTime === 0) return;
+                        
+                        if (isDragging) {
+                            const workspaceRect = workspace.getBoundingClientRect();
+                            label.x = e.clientX - workspaceRect.left + workspace.scrollLeft - dragStartX;
+                            label.y = e.clientY - workspaceRect.top + workspace.scrollTop - dragStartY;
+                            container.style.left = label.x + 'px';
+                            container.style.top = label.y + 'px';
+                            
+                            // Update line if it exists
+                            const svgContainer = workspace.querySelector('#labelLinesSvg');
+                            if (svgContainer) {
+                                const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
+                                if (svgLine) {
+                                    svgLine.setAttribute('x1', label.x + offsetX);
+                                    svgLine.setAttribute('y1', label.y + offsetY);
+                                }
+                            }
+                            e.preventDefault();
+                        }
+                    });
                     
-                    // Release pointer capture
-                    container.releasePointerCapture(e.pointerId);
-                    
-                    // If didn't move = enable editing
-                    if (!hasMoved && !isDragging) {
-                        enableEditing();
-                    } else if (isDragging) {
-                        // Optionally compute and persist relative label offsets once at drag end
-                        if (USE_RELATIVE_OFFSETS) {
+                    container.addEventListener('pointerup', (e) => {
+                        if (pointerDownTime === 0) return;
+                        
+                        // Release pointer capture
+                        container.releasePointerCapture(e.pointerId);
+                        
+                        // If didn't move = enable editing
+                        if (!hasMoved && !isDragging) {
+                            enableEditing();
+                        } else if (isDragging) {
+                            // Compute and persist relative label offsets once at drag end
                             const guideCenterAfterDrag = getGuideCenter(workspace);
                             label.offsetX = label.x - guideCenterAfterDrag.x;
                             label.offsetY = label.y - guideCenterAfterDrag.y;
-                        }
-                        
-                        // Update all labels with the same text across all indexes to match the new position
-                        relevantIndexes.forEach(idx => {
-                            idx.labels.forEach(lab => {
-                                if (lab.text === label.text && lab.id !== label.id) {
-                                    lab.x = label.x;
-                                    lab.y = label.y;
-                                    if (USE_RELATIVE_OFFSETS) {
+                            
+                            // Update all labels with the same text across all indexes: only offsets
+                            relevantIndexes.forEach(idx => {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === label.text && lab.id !== label.id) {
                                         lab.offsetX = label.offsetX;
                                         lab.offsetY = label.offsetY;
                                     }
-                                }
+                                });
                             });
-                        });
+                            
+                            // Re-render workspace to show updated positions
+                            renderWorkspace();
+                            saveToLocalStorage();
+                        }
                         
-                        // Re-render workspace to show updated positions
-                        renderWorkspace();
-                        saveToLocalStorage();
-                    }
+                        // Reset state
+                        pointerDownTime = 0;
+                        isDragging = false;
+                        hasMoved = false;
+                        isBodymapDragging = false;
+                    });
                     
-                    // Reset state
-                    pointerDownTime = 0;
-                    isDragging = false;
-                    hasMoved = false;
-                    isBodymapDragging = false;
-                });
-                
-                // Cancel on pointer cancel (e.g., gesture interrupted)
-                container.addEventListener('pointercancel', (e) => {
-                    container.releasePointerCapture(e.pointerId);
-                    pointerDownTime = 0;
-                    isDragging = false;
-                    hasMoved = false;
-                    isBodymapDragging = false;
-                });
+                    // Cancel on pointer cancel (e.g., gesture interrupted)
+                    container.addEventListener('pointercancel', (e) => {
+                        container.releasePointerCapture(e.pointerId);
+                        pointerDownTime = 0;
+                        isDragging = false;
+                        hasMoved = false;
+                        isBodymapDragging = false;
+                    });
+                }
                 
                 // Mobile touch fallback for label drag
                 if (isMobile) {
@@ -3843,9 +3949,9 @@
             renderHistory();
             renderWorkspace();
             
-            // Play random animation every 11th label (surprise!)
+            // Play random animation every 7th label (surprise!)
             // Must be AFTER renderWorkspace() so guideFigure exists and isn't replaced
-            if (totalLabelsCreated % 11 === 0) {
+            if (totalLabelsCreated % 7 === 0) {
                 const animationNames = Object.keys(animationsLibrary);
                 if (animationNames.length > 0) {
                     const randomAnimName = animationNames[Math.floor(Math.random() * animationNames.length)];
@@ -4048,6 +4154,40 @@
                 swatch.onclick = () => handleMapColorSelected(color);
                 mapColorGridEl.appendChild(swatch);
             });
+        }
+
+        function promptCleanupEmptyLayersOnLoad() {
+            try {
+                // Collect empty indexes (no labels)
+                const emptyIndexes = dataIndexes.filter(idx => Array.isArray(idx.labels) ? idx.labels.length === 0 : true);
+                if (!emptyIndexes.length) return;
+                const shouldDelete = confirm('Der findes lag uden labels. Vil du slette dem?');
+                if (!shouldDelete) return;
+                const emptyIds = new Set(emptyIndexes.map(idx => idx.id));
+                // Remove empty indexes
+                dataIndexes = dataIndexes.filter(idx => !emptyIds.has(idx.id));
+                // Remove maps that end up without any indexes (but keep at least one map)
+                const mapHasIndex = new Set(dataIndexes.map(idx => idx.mapId));
+                maps = maps.filter((m, i, arr) => {
+                    const keep = mapHasIndex.has(m.id) || arr.length === 1;
+                    return keep;
+                });
+                // Fix active pointers if they point to removed items
+                if (!dataIndexes.find(idx => idx.id === activeIndexId)) {
+                    const fallback = dataIndexes
+                        .slice()
+                        .sort((a, b) => new Date(ensureIndexTimestamp(b)).getTime() - new Date(ensureIndexTimestamp(a)).getTime())[0];
+                    activeIndexId = fallback ? fallback.id : null;
+                }
+                if (!maps.find(m => m.id === activeMapId)) {
+                    activeMapId = maps.length ? maps[0].id : null;
+                }
+                renderHistory();
+                renderWorkspace();
+                saveToLocalStorage();
+            } catch (e) {
+                // Ignore cleanup failures
+            }
         }
 
         if (dataIndexes.length === 0 && maps.length > 0) {
