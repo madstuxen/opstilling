@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Relative Label Positioning</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f0f0f0;
+            padding: 20px;
+            -webkit-text-size-adjust: none;
+            touch-action: pan-y;
+            overflow: hidden;
+        }
+        
+        #workspace {
+            width: 100%;
+            height: 80vh;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            touch-action: auto;
+        }
+        
+        #centerCross {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        #centerCross::before,
+        #centerCross::after {
+            content: '';
+            position: absolute;
+            background: #e74c3c;
+        }
+        
+        #centerCross::before {
+            left: 50%;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            transform: translateX(-50%);
+        }
+        
+        #centerCross::after {
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 3px;
+            transform: translateY(-50%);
+        }
+        
+        .label-container {
+            position: absolute;
+            cursor: move;
+            z-index: 20;
+            transform-origin: center center;
+            user-select: none;
+            touch-action: none;
+        }
+        
+        .label-input {
+            background: #e8dcc6;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            width: 156px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            position: relative;
+            transition: border-color 0.2s ease;
+        }
+        
+        .label-input.editing {
+            border-color: #a67c52;
+            cursor: default;
+        }
+        
+        .label-text-input {
+            border: none;
+            background: transparent;
+            outline: none;
+            text-align: left;
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 4px;
+            color: black;
+            font-family: 'Arial', sans-serif;
+            resize: none;
+            line-height: 1.2;
+            min-height: 64px;
+            field-sizing: content;
+            touch-action: manipulation;
+            -webkit-text-size-adjust: 100%;
+            pointer-events: none;
+            user-select: none;
+            cursor: move;
+        }
+        
+        .label-text-input.editing {
+            pointer-events: auto;
+            user-select: text;
+            cursor: text;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        
+        .label-text-input:focus {
+            outline: none;
+        }
+        
+        .label-number {
+            color: black;
+            font-size: 16px;
+            font-weight: bold;
+            line-height: 1;
+            align-self: flex-end;
+        }
+        
+        .label-delete-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            opacity: 0;
+            pointer-events: none;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 16px;
+            line-height: 18px;
+            cursor: pointer;
+            padding: 0;
+            text-align: center;
+            transition: opacity 0.2s ease;
+            z-index: 1;
+        }
+        
+        .label-container:hover .label-delete-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .label-delete-btn:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        #info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Relative Label Positioning</h1>
+    <p><strong>Labels are positioned relative to center cross.</strong> Resize window to test!</p>
+    <div id="workspace">
+        <div id="centerCross"></div>
+    </div>
+    <div id="info">
+        Center: <span id="centerPos">-</span><br>
+        Label offset: <span id="labelOffset">-</span>
+    </div>
+
+    <script>
+        const workspace = document.getElementById('workspace');
+        
+        // Get center point of workspace
+        function getCenterPoint() {
+            const rect = workspace.getBoundingClientRect();
+            return {
+                x: rect.width / 2,
+                y: rect.height / 2
+            };
+        }
+        
+        // Label data with OFFSET from center
+        const label = {
+            id: 1,
+            text: 'Drag mig!',
+            offsetX: 100,  // Offset from center
+            offsetY: -50,  // Offset from center
+            labelNumber: 1
+        };
+        
+        function updateInfo() {
+            const center = getCenterPoint();
+            document.getElementById('centerPos').textContent = `${Math.round(center.x)}, ${Math.round(center.y)}`;
+            document.getElementById('labelOffset').textContent = `${Math.round(label.offsetX)}, ${Math.round(label.offsetY)}`;
+        }
+        
+        function positionLabel(container) {
+            const center = getCenterPoint();
+            // Calculate absolute position from offset
+            const x = center.x + label.offsetX;
+            const y = center.y + label.offsetY;
+            
+            container.style.left = x + 'px';
+            container.style.top = y + 'px';
+            container.style.transform = 'translate(-50%, -50%)';
+            
+            updateInfo();
+        }
+        
+        function createLabelElement() {
+            const container = document.createElement('div');
+            container.className = 'label-container';
+            container.dataset.labelId = label.id;
+            
+            const labelInput = document.createElement('div');
+            labelInput.className = 'label-input';
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = 'label-text-input';
+            textarea.value = label.text;
+            textarea.placeholder = 'Skriv her';
+            
+            const numberSpan = document.createElement('span');
+            numberSpan.className = 'label-number';
+            numberSpan.textContent = label.labelNumber;
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'label-delete-btn';
+            deleteBtn.textContent = '×';
+            deleteBtn.title = 'Slet';
+            
+            labelInput.appendChild(textarea);
+            labelInput.appendChild(numberSpan);
+            labelInput.appendChild(deleteBtn);
+            container.appendChild(labelInput);
+            
+            workspace.appendChild(container);
+            
+            // Position initially
+            positionLabel(container);
+            
+            // State
+            let isEditing = false;
+            let isDragging = false;
+            let pointerDownTime = 0;
+            let pointerDownX = 0;
+            let pointerDownY = 0;
+            let hasMoved = false;
+            let dragStartOffsetX = 0;
+            let dragStartOffsetY = 0;
+            
+            // Enable editing
+            function enableEditing() {
+                if (isEditing) return;
+                isEditing = true;
+                textarea.classList.add('editing');
+                labelInput.classList.add('editing');
+                container.style.cursor = 'default';
+                setTimeout(() => {
+                    textarea.focus();
+                    textarea.select();
+                }, 10);
+            }
+            
+            // Disable editing
+            function disableEditing() {
+                if (!isEditing) return;
+                isEditing = false;
+                textarea.classList.remove('editing');
+                labelInput.classList.remove('editing');
+                container.style.cursor = 'move';
+                textarea.blur();
+            }
+            
+            // Click outside to exit edit mode
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target) && isEditing) {
+                    disableEditing();
+                }
+            });
+            
+            // Update text
+            textarea.addEventListener('input', () => {
+                label.text = textarea.value;
+            });
+            
+            // Delete button
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                container.remove();
+            });
+            
+            // UNIFIED POINTER EVENTS
+            container.addEventListener('pointerdown', (e) => {
+                if (e.target === deleteBtn) return;
+                if (isEditing && e.target === textarea) return;
+                
+                e.stopPropagation();
+                e.preventDefault();
+                
+                container.setPointerCapture(e.pointerId);
+                
+                pointerDownTime = Date.now();
+                pointerDownX = e.clientX;
+                pointerDownY = e.clientY;
+                hasMoved = false;
+                isDragging = false;
+                
+                // Store current offset at start of drag
+                dragStartOffsetX = label.offsetX;
+                dragStartOffsetY = label.offsetY;
+            });
+            
+            container.addEventListener('pointermove', (e) => {
+                if (pointerDownTime === 0) return;
+                
+                const moveDistance = Math.sqrt(
+                    Math.pow(e.clientX - pointerDownX, 2) + 
+                    Math.pow(e.clientY - pointerDownY, 2)
+                );
+                
+                if (moveDistance > 5 && !isDragging) {
+                    hasMoved = true;
+                    isDragging = true;
+                    disableEditing();
+                }
+                
+                if (isDragging) {
+                    // Calculate movement delta
+                    const deltaX = e.clientX - pointerDownX;
+                    const deltaY = e.clientY - pointerDownY;
+                    
+                    // Update offset (relative to center)
+                    label.offsetX = dragStartOffsetX + deltaX;
+                    label.offsetY = dragStartOffsetY + deltaY;
+                    
+                    // Reposition
+                    positionLabel(container);
+                    
+                    e.preventDefault();
+                }
+            });
+            
+            container.addEventListener('pointerup', (e) => {
+                if (pointerDownTime === 0) return;
+                
+                container.releasePointerCapture(e.pointerId);
+                
+                if (!hasMoved && !isDragging) {
+                    enableEditing();
+                }
+                
+                pointerDownTime = 0;
+                isDragging = false;
+                hasMoved = false;
+            });
+            
+            container.addEventListener('pointercancel', (e) => {
+                container.releasePointerCapture(e.pointerId);
+                pointerDownTime = 0;
+                isDragging = false;
+                hasMoved = false;
+            });
+            
+            return container;
+        }
+        
+        // Initialize
+        const labelContainer = createLabelElement();
+        
+        // Reposition on window resize
+        window.addEventListener('resize', () => {
+            positionLabel(labelContainer);
+        });
+        
+        // Update info periodically
+        setInterval(updateInfo, 100);
+    </script>
+</body>
+</html>
