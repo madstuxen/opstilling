@@ -28,6 +28,9 @@
             border-radius: 0px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 40px);
         }
         
         .header {
@@ -125,6 +128,24 @@
         
         .clear-btn:hover {
             box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3) !important;
+        }
+        
+        button[onclick="createNewSetup()"] {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+            color: white !important;
+        }
+        
+        button[onclick="createNewSetup()"]:hover {
+            box-shadow: 0 5px 15px rgba(251, 191, 36, 0.3) !important;
+        }
+        
+        button[onclick="addPart()"] {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%) !important;
+            color: white !important;
+        }
+        
+        button[onclick="addPart()"]:hover {
+            box-shadow: 0 5px 15px rgba(30, 64, 175, 0.3) !important;
         }
         
         .save-btn {
@@ -311,12 +332,30 @@
             box-shadow: 0 5px 15px rgba(71, 85, 105, 0.3);
         }
         
+        .main-content {
+            position: relative;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .workspace-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+            position: relative;
+        }
+        
         .workspace {
+            flex: 1;
+            position: relative;
             height: 600px;
             max-height: 600px;
             min-height: 600px;
             width: 100%;
-            max-width: 1600px;
+            max-width: 1200px;
             min-width: 0;
             position: relative;
             background: #fafafa;
@@ -346,6 +385,606 @@
             height: 100%;
             z-index: 1;
             pointer-events: none;
+        }
+        
+        /* History Sidebar (from bodymap_01.html) */
+        .history-sidebar {
+            width: 250px;
+            background: #f8fafc;
+            border-left: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+            z-index: 4000;
+        }
+        
+        .history-sidebar.collapsed {
+            transform: translateX(212px);
+        }
+        
+        .history-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .history-sidebar.collapsed .history-content {
+            display: none;
+        }
+        
+        .history-sidebar.collapsed .history-header {
+            justify-content: center;
+            font-size: 0;
+            padding-left: 16px;
+        }
+        
+        .history-header {
+            background: #e2e8f0;
+            padding: 10px 12px 10px 40px;
+            text-align: center;
+            font-weight: bold;
+            color: #374151;
+            border-bottom: 2px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            height: 50px;
+            min-height: 50px;
+            max-height: 50px;
+            box-sizing: border-box;
+            position: relative;
+        }
+        
+        .history-filter {
+            flex: 1;
+            min-width: 180px;
+            padding: 6px 14px 6px 16px;
+            border-radius: 8px;
+            border: 1px solid #cbd5f5;
+            background: #ffffff;
+            color: #1f2937;
+            font-size: 16px;
+            font-weight: 600;
+            outline: none;
+            appearance: none;
+            margin: 0 8px 0 0;
+            position: relative;
+            background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%);
+            background-position: calc(100% - 16px) 50%, calc(100% - 9px) 50%;
+            background-size: 7px 7px, 7px 7px;
+            background-repeat: no-repeat;
+        }
+        
+        .history-filter:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        
+        .collapse-toggle {
+            position: absolute;
+            left: 2px;
+            top: 12px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            z-index: 100;
+            padding: 0;
+        }
+        
+        .collapse-toggle:hover {
+            background: #4338ca;
+            transform: scale(1.1);
+        }
+        
+        .collapse-toggle-bottom {
+            top: auto;
+            bottom: 8px;
+        }
+        
+        .history-header {
+            position: relative;
+        }
+        
+        .history-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: #e2e8f0;
+            border-bottom: 1px solid #d1d5db;
+            flex-shrink: 0;
+        }
+        
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: white !important;
+            cursor: pointer;
+            font-size: 0;
+            color: black;
+            transition: all 0.2s;
+            position: relative;
+            padding: 0;
+        }
+        
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .nav-btn#navUp::before {
+            border-bottom: 12px solid black;
+            border-top: none;
+        }
+        
+        .nav-btn#navDown::before {
+            border-top: 12px solid black;
+            border-bottom: none;
+        }
+        
+        .nav-btn:hover {
+            background: #f3f4f6;
+        }
+        
+        .nav-btn:hover::before {
+            opacity: 0.7;
+        }
+        
+        .nav-btn:disabled {
+            background: #d1d5db;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .nav-btn:disabled::before {
+            opacity: 0.4;
+        }
+        
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 10px;
+            min-height: 0;
+        }
+        
+        .history-item {
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        
+        .history-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
+        }
+        
+        .history-item.active {
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
+        }
+        
+        .history-item-collection {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        
+        .history-item-title {
+            margin-bottom: 6px;
+        }
+        
+        .history-item-date {
+            font-weight: bold;
+            font-size: 16px;
+            border: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            color: inherit;
+        }
+        
+        .history-item.active .history-item-date {
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 6px;
+            padding: 2px 6px;
+            cursor: text;
+            transition: background 0.15s ease, box-shadow 0.15s ease;
+        }
+        
+        .history-item.active .history-item-date:hover,
+        .history-item.active .history-item-date:focus {
+            background: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
+        }
+        
+        .history-item .history-item-date[readonly] {
+            cursor: default;
+            opacity: 0.95;
+        }
+        
+        .history-item-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+            opacity: 0.85;
+            gap: 10px;
+        }
+        
+        .history-item-time,
+        .history-item-parts {
+            white-space: nowrap;
+        }
+        
+        .history-item-delete {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            background: #ef4444;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .history-item:hover .history-item-delete {
+            opacity: 1;
+        }
+        
+        .history-item-delete:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+        
+        .nav-btn-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Samling Manager Overlay (from map manager) */
+        .samling-manager-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+        }
+        
+        .samling-manager-overlay.show {
+            display: flex;
+        }
+        
+        .samling-manager-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(4px);
+        }
+        
+        .samling-manager-panel {
+            position: relative;
+            width: min(520px, 90vw);
+            max-height: 80vh;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25);
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            z-index: 1;
+        }
+        
+        .samling-manager-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        
+        .samling-manager-header h2 {
+            font-size: 1.25rem;
+            color: #111827;
+        }
+        
+        .samling-manager-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 10px;
+            background: #e2e8f0;
+            color: #1f2937;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        
+        .samling-manager-close:hover {
+            background: #cbd5f5;
+            transform: scale(1.05);
+        }
+        
+        .samling-manager-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+        
+        .samling-manager-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        
+        .samling-name-btn {
+            flex: 1;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            color: #1f2937;
+        }
+        
+        .samling-name-input {
+            flex: 1;
+            border-radius: 10px;
+            border: 1px solid #cbd5f5;
+            padding: 10px 14px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: box-shadow 0.2s ease;
+            color: #1f2937;
+            background: #f8fafc;
+        }
+        
+        .samling-name-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+        }
+        
+        .samling-name-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+        }
+        
+        .samling-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .samling-action-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .samling-action-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+        }
+        
+        .samling-action-btn.delete {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        }
+        
+        .samling-action-btn.color {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+        
+        .samling-manager-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 4px 0;
+        }
+        
+        .samling-manager-new {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        
+        .samling-manager-new input {
+            flex: 1;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            background: #f8fafc;
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.18);
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        
+        .samling-manager-new input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+            transform: translateY(-1px);
+        }
+        
+        .samling-manager-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .samling-color-select {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            color: #ffffff;
+        }
+        
+        .samling-color-select:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
+        }
+        
+        .samling-color-select span[aria-hidden="true"] {
+            color: inherit;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        
+        .samling-manager-new .samling-create-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .samling-manager-new .samling-create-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+        }
+        
+        .samling-color-picker-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.35);
+            z-index: 5001;
+        }
+        
+        .samling-color-picker-modal.show {
+            display: flex;
+        }
+        
+        .samling-color-picker {
+            width: calc(32px * 6 + 8px * 5 + 16px * 2);
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .samling-color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 32px);
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .samling-color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .samling-color-swatch:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
         
         .background-labels {
@@ -1363,8 +2002,10 @@
                 <option value="drama_trekant">Drama Trekant</option>
 				<option value="mandala">Mandala Cirkel</option>
             </select>
+            <button onclick="openSamlingManager()">Ny Samling</button>
+            <button onclick="createNewSetup()">Ny Opstilling</button>
             <input type="text" id="partName" placeholder="Navn på del (f.eks. Beskytteren, Den Kritiske, Det Sårede Barn...)" maxlength="30">
-            <button onclick="addPart()">Tilføj Del</button>
+            <button onclick="addPart()">Ny Deltager</button>
             <button onclick="saveSetup()" class="save-btn">Gem Opstilling</button>
             <button onclick="loadSetup()" class="load-btn">Indlæs Opstilling</button>
             <button onclick="exportAsImage()" class="export-btn">Gem Billede</button>
@@ -1376,19 +2017,40 @@
             <div class="toolbar-separator"></div>
         </div>
         
-        <div class="workspace" id="workspace">
-            <div class="workspace-content"></div>
-        </div>
-        
-        <!-- notes-title removed -->
-        
-        <div class="notes-section">
-            <div class="notes-content">
-                <div class="notes-container">
-                    <h4 id="notesContainerTitle">Noter til opstilling</h4>
+        <div class="main-content">
+            <div class="workspace-container">
+                <div class="workspace" id="workspace">
+                    <div class="workspace-content"></div>
+                </div>
+                
+                <div class="history-sidebar" id="historySidebar">
+                    <div class="history-header">
+                        <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
+                        <select id="historyFilter" class="history-filter" onchange="setHistoryFilter(this.value)"></select>
+                    </div>
+                    <div class="history-content">
+                        <div class="history-navigation">
+                            <div class="nav-btn-group">
+                                <button class="nav-btn" id="navUp" onclick="navigateHistory(-1)" title="Gå ned"></button>
+                                <button class="nav-btn" id="navDown" onclick="navigateHistory(1)" title="Gå op"></button>
+                            </div>
+                        </div>
+                        <div class="history-list" id="historyList"></div>
+                    </div>
+                    <button class="collapse-toggle collapse-toggle-bottom" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
+                </div>
+                
+                <!-- notes-title removed -->
+                
+                <div class="notes-section">
+                    <div class="notes-content">
+                        <div class="notes-container">
+                            <h4 id="notesContainerTitle">Noter</h4>
 
 					
-                    <textarea id="partNotes" placeholder="Generelle noter for opstillingen.Klik evt på en cirkel for at vælge den og redigere dens information..."></textarea>
+                            <textarea id="partNotes" placeholder="Generelle noter for opstillingen"></textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1425,6 +2087,39 @@
 			<input type="text" class="keywords-popup-input" id="popupKeyword5" placeholder="Stikord 5" maxlength="70">
 			<input type="text" class="keywords-popup-input" id="popupKeyword6" placeholder="Stikord 6" maxlength="70">
 			<button class="keywords-popup-button" onclick="closeKeywordsPopup()">Senere</button>
+		</div>
+	</div>
+	
+	<!-- Samling Manager Overlay -->
+	<div class="samling-manager-overlay" id="samlingManagerOverlay">
+		<div class="samling-manager-backdrop" onclick="closeSamlingManager()"></div>
+		<div class="samling-manager-panel">
+			<div class="samling-manager-header">
+				<h2>Samlinger</h2>
+				<button class="samling-manager-close" onclick="closeSamlingManager()" title="Luk">×</button>
+			</div>
+			<div class="samling-manager-list" id="samlingManagerList"></div>
+			<div class="samling-manager-divider"></div>
+			<div class="samling-manager-new" id="samlingManagerNewRow">
+				<input type="text" id="newSamlingName" placeholder="Ny samling-navn" autocomplete="off">
+				<div class="samling-manager-actions">
+					<button class="samling-color-select" id="newSamlingColorBtn" onclick="openSamlingColorPicker({ type: 'new' })" title="Vælg farve">
+						<span class="sr-only">Vælg farve</span>
+						<span aria-hidden="true">C</span>
+					</button>
+					<button class="samling-create-btn" onclick="confirmCreateSamling()" title="Opret samling">✓</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Samling Color Picker Modal -->
+	<div class="samling-color-picker-modal" id="samlingColorPickerModal" onclick="backdropCloseSamlingHandler(event)">
+		<div class="samling-color-picker" onclick="event.stopPropagation()">
+			<div class="samling-color-picker-header">
+				<h3>Vælg farve</h3>
+			</div>
+			<div class="samling-color-grid" id="samlingColorGrid"></div>
 		</div>
 	</div>
 	
@@ -1500,21 +2195,44 @@
                 OpstillingData.collections = [{
                     id: 1,
                     name: 'Samling 1',
+                    color: SAMLING_COLOR_PRESETS[0],
                     setups: []
                 }];
                 OpstillingData.activeCollectionId = 1;
             }
+            // Ensure all collections have colors
+            OpstillingData.collections.forEach((collection, idx) => {
+                if (!collection.color) {
+                    collection.color = SAMLING_COLOR_PRESETS[idx % SAMLING_COLOR_PRESETS.length];
+                }
+            });
             const collection = OpstillingData.collections.find(c => c.id === OpstillingData.activeCollectionId) || OpstillingData.collections[0];
             if (!collection.setups || collection.setups.length === 0) {
+                const now = new Date().toISOString();
                 const initialSetup = {
                     id: 1,
                     name: 'Opstilling 1',
                     notes: '',
-                    parts: []
+                    parts: [],
+                    timestamp: now,
+                    updated: now
                 };
                 collection.setups = [initialSetup];
                 OpstillingData.activeSetupId = 1;
             }
+            // Ensure all setups have timestamps
+            OpstillingData.collections.forEach(collection => {
+                if (Array.isArray(collection.setups)) {
+                    collection.setups.forEach(setup => {
+                        if (!setup.timestamp) {
+                            setup.timestamp = setup.updated || new Date().toISOString();
+                        }
+                        if (!setup.updated) {
+                            setup.updated = setup.timestamp || new Date().toISOString();
+                        }
+                    });
+                }
+            });
             // Do not overwrite existing setups content here; just ensure structure exists
             saveOpstillingDataToLocalStorage();
         }
@@ -1529,6 +2247,72 @@
             if (!col || !Array.isArray(col.setups)) return null;
             return col.setups.find(s => s.id === OpstillingData.activeSetupId) || col.setups[0] || null;
         }
+        
+        // Color presets for collections (from bodymap)
+        const SAMLING_COLOR_PRESETS = [
+            '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
+            '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
+        ];
+        
+        // Helper functions for colors (from bodymap)
+        function hexToRgba(hex, alpha) {
+            if (!hex) {
+                return `rgba(232, 220, 198, ${alpha})`;
+            }
+            const normalized = hex.replace('#', '');
+            if (normalized.length === 3) {
+                const r = parseInt(normalized[0] + normalized[0], 16);
+                const g = parseInt(normalized[1] + normalized[1], 16);
+                const b = parseInt(normalized[2] + normalized[2], 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            if (normalized.length === 6) {
+                const r = parseInt(normalized.substring(0, 2), 16);
+                const g = parseInt(normalized.substring(2, 4), 16);
+                const b = parseInt(normalized.substring(4, 6), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            return hex;
+        }
+        
+        function lightenHex(hex, amount = 0.5) {
+            if (!hex) return '#f2e7d2';
+            const normalized = hex.replace('#', '');
+            const expand = normalized.length === 3
+                ? normalized.split('').map(ch => ch + ch).join('')
+                : normalized.padEnd(6, '0');
+            const r = parseInt(expand.substring(0, 2), 16);
+            const g = parseInt(expand.substring(2, 4), 16);
+            const b = parseInt(expand.substring(4, 6), 16);
+            const clampAmount = Math.max(0, Math.min(1, amount));
+            const newR = Math.round(r + (255 - r) * clampAmount);
+            const newG = Math.round(g + (255 - g) * clampAmount);
+            const newB = Math.round(b + (255 - b) * clampAmount);
+            return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+        }
+        
+        function formatDkDate(dateStr) {
+            // Convert ISO date to DD-MM-YYYY for display
+            if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+                const datePart = dateStr.split('T')[0];
+                const [y, m, d] = datePart.split('-');
+                return `${d}-${m}-${y}`;
+            }
+            return dateStr || '';
+        }
+        
+        // History sidebar state
+        let historyFilterCollectionId = 'all';
+        let samlingManagerOverlayEl = null;
+        let samlingManagerListEl = null;
+        let newSamlingNameInputEl = null;
+        let newSamlingColorBtnEl = null;
+        let samlingColorPickerModalEl = null;
+        let samlingColorGridEl = null;
+        let samlingColorPickerTarget = null;
+        let newSamlingDraftColor = SAMLING_COLOR_PRESETS[0];
+        let newSamlingDraftName = '';
+        let newSamlingColorDirty = false;
         
         function exportCurrentPartsToModel() {
             const parts = document.querySelectorAll('.part');
@@ -1550,13 +2334,775 @@
             return result;
         }
         
+        function updateNotesTitle() {
+            const titleEl = document.getElementById('notesContainerTitle');
+            if (!titleEl) return;
+            const activeSetup = getActiveSetup();
+            const activeCollection = getActiveCollection();
+            if (activeSetup && activeCollection) {
+                const setupName = activeSetup.name || 'Opstilling';
+                const collectionName = activeCollection.name || 'Samling';
+                titleEl.textContent = `Noter til ${setupName} i ${collectionName}`;
+            } else {
+                titleEl.textContent = 'Noter';
+            }
+        }
+        
         function syncCurrentWorkspaceToActiveSetup() {
             if (!OpstillingData) return;
             const setup = getActiveSetup();
             if (!setup) return;
             setup.notes = generalNotes || '';
             setup.parts = exportCurrentPartsToModel();
+            const now = new Date().toISOString();
+            setup.updated = now;
+            if (!setup.timestamp) {
+                setup.timestamp = now;
+            }
             saveOpstillingDataToLocalStorage();
+        }
+        
+        function createNewCollection() {
+            if (!OpstillingData) {
+                OpstillingData = {
+                    version: '1.0',
+                    updated: new Date().toISOString(),
+                    activeCollectionId: null,
+                    activeSetupId: null,
+                    collections: []
+                };
+            }
+            
+            // Find highest collection ID
+            let maxId = 0;
+            if (Array.isArray(OpstillingData.collections)) {
+                OpstillingData.collections.forEach(c => {
+                    if (c.id > maxId) maxId = c.id;
+                });
+            }
+            
+            const newId = maxId + 1;
+            const collectionName = prompt('Navn på ny samling:', `Samling ${newId}`);
+            if (!collectionName || collectionName.trim() === '') return;
+            
+            // Save current workspace before switching
+            syncCurrentWorkspaceToActiveSetup();
+            
+            // Create new collection with default setup
+            const newCollection = {
+                id: newId,
+                name: collectionName.trim(),
+                setups: [{
+                    id: 1,
+                    name: 'Opstilling 1',
+                    notes: '',
+                    parts: []
+                }]
+            };
+            
+            if (!Array.isArray(OpstillingData.collections)) {
+                OpstillingData.collections = [];
+            }
+            OpstillingData.collections.push(newCollection);
+            OpstillingData.activeCollectionId = newId;
+            OpstillingData.activeSetupId = 1;
+            
+            saveOpstillingDataToLocalStorage();
+            
+            // Load the new empty setup
+            loadSetupFromOpstillingData(newCollection.setups[0]);
+        }
+        
+        function createNewSetup() {
+            if (!OpstillingData) {
+                ensureDefaultOpstillingData();
+            }
+            
+            let collection = getActiveCollection();
+            if (!collection) {
+                ensureDefaultOpstillingData();
+                collection = getActiveCollection();
+                if (!collection) {
+                    // If still no collection, create a default one
+                    ensureDefaultOpstillingData();
+                    collection = getActiveCollection();
+                }
+            }
+            
+            // Find highest setup ID in current collection
+            let maxId = 0;
+            if (Array.isArray(collection.setups)) {
+                collection.setups.forEach(s => {
+                    if (s.id > maxId) maxId = s.id;
+                });
+            }
+            
+            const newId = maxId + 1;
+            const setupName = `Opstilling ${newId}`;
+            
+            // Save current workspace before switching
+            syncCurrentWorkspaceToActiveSetup();
+            
+            // Create new setup
+            const now = new Date().toISOString();
+            const newSetup = {
+                id: newId,
+                name: setupName,
+                notes: '',
+                parts: [],
+                timestamp: now,
+                updated: now
+            };
+            
+            if (!Array.isArray(collection.setups)) {
+                collection.setups = [];
+            }
+            collection.setups.push(newSetup);
+            OpstillingData.activeSetupId = newId;
+            
+            saveOpstillingDataToLocalStorage();
+            
+            // Load the new empty setup
+            loadSetupFromOpstillingData(newSetup);
+            updateNotesTitle();
+            // Save to current_opstilling when creating new setup
+            saveCurrentOpstillingToStorage();
+            renderHistory();
+            
+            // Make the new history item's name editable and focus it
+            requestAnimationFrame(() => {
+                const newHistoryItem = document.querySelector(`.history-item.active input[data-setup-id="${newId}"]`);
+                if (newHistoryItem) {
+                    newHistoryItem.readOnly = false;
+                    newHistoryItem.focus();
+                    newHistoryItem.select();
+                }
+            });
+        }
+        
+        // ===== HISTORY SIDEBAR FUNCTIONS (from bodymap_01.html) =====
+        
+        function getAllSetupsSorted() {
+            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) return [];
+            const allSetups = [];
+            OpstillingData.collections.forEach(collection => {
+                if (Array.isArray(collection.setups)) {
+                    collection.setups.forEach(setup => {
+                        // Ensure setup has timestamp
+                        if (!setup.timestamp && setup.updated) {
+                            setup.timestamp = setup.updated;
+                        } else if (!setup.timestamp) {
+                            setup.timestamp = new Date().toISOString();
+                        }
+                        allSetups.push({
+                            setup,
+                            collection,
+                            timestamp: new Date(setup.timestamp)
+                        });
+                    });
+                }
+            });
+            // Sort by timestamp descending (newest first)
+            allSetups.sort((a, b) => b.timestamp - a.timestamp);
+            return allSetups;
+        }
+        
+        function getFilteredSortedSetups() {
+            const all = getAllSetupsSorted();
+            if (historyFilterCollectionId === 'all') {
+                return all;
+            }
+            const filterId = parseFloat(historyFilterCollectionId);
+            return all.filter(entry => entry.collection && entry.collection.id === filterId);
+        }
+        
+        function renderHistoryFilterOptions() {
+            const filterEl = document.getElementById('historyFilter');
+            if (!filterEl) return;
+            
+            const desiredValue = historyFilterCollectionId === 'all' ? 'all' : String(historyFilterCollectionId);
+            const options = ['<option value="all">Vis alle</option>'];
+            
+            if (OpstillingData && Array.isArray(OpstillingData.collections)) {
+                const sortedCollections = [...OpstillingData.collections].sort((a, b) => 
+                    (a.name || '').localeCompare(b.name || '', 'da', { sensitivity: 'base' })
+                );
+                sortedCollections.forEach(collection => {
+                    options.push(`<option value="${collection.id}">${collection.name || 'Samling'}</option>`);
+                });
+            }
+            
+            filterEl.innerHTML = options.join('');
+            const allowedValues = ['all', ...(OpstillingData?.collections || []).map(c => String(c.id))];
+            const nextValue = allowedValues.includes(desiredValue) ? desiredValue : 'all';
+            filterEl.value = nextValue;
+            historyFilterCollectionId = nextValue === 'all' ? 'all' : parseFloat(nextValue);
+        }
+        
+        function setHistoryFilter(value) {
+            historyFilterCollectionId = value === 'all' ? 'all' : parseFloat(value);
+            renderHistory();
+        }
+        
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            if (!list) return;
+            list.innerHTML = '';
+            
+            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
+                ensureDefaultOpstillingData();
+            }
+            
+            renderHistoryFilterOptions();
+            
+            const sortedEntries = getFilteredSortedSetups();
+            const activeSetup = getActiveSetup();
+            const activeCollection = getActiveCollection();
+            
+            sortedEntries.forEach(({ setup, collection }) => {
+                const item = document.createElement('div');
+                const isActive = setup.id === OpstillingData.activeSetupId && 
+                                collection.id === OpstillingData.activeCollectionId;
+                item.className = `history-item ${isActive ? 'active' : ''}`;
+                
+                const collectionColor = collection.color || SAMLING_COLOR_PRESETS[0];
+                const collectionName = collection.name || 'Samling';
+                
+                const baseBackground = lightenHex(collectionColor, isActive ? 0.35 : 0.7);
+                item.style.backgroundColor = baseBackground;
+                item.style.color = '#1f2937';
+                item.style.borderColor = isActive ? collectionColor : 'transparent';
+                
+                const collectionBadge = document.createElement('div');
+                collectionBadge.className = 'history-item-collection';
+                collectionBadge.textContent = collectionName;
+                collectionBadge.style.backgroundColor = collectionColor;
+                collectionBadge.style.color = '#ffffff';
+                item.appendChild(collectionBadge);
+                
+                const titleDisplay = setup.name || 'Opstilling';
+                const titleWrapper = document.createElement('div');
+                titleWrapper.className = 'history-item-title';
+                titleWrapper.innerHTML = `<input type="text" class="history-item-date" value="${titleDisplay}" data-collection-id="${collection.id}" data-setup-id="${setup.id}" title="Rediger titel">`;
+                item.appendChild(titleWrapper);
+                
+                const metaWrapper = document.createElement('div');
+                metaWrapper.className = 'history-item-meta';
+                const timestamp = setup.timestamp || setup.updated || new Date().toISOString();
+                const dateObj = new Date(timestamp);
+                const dateDk = formatDkDate(dateObj.toISOString().split('T')[0]);
+                const timeStr = dateObj.toTimeString().split(' ')[0].substring(0, 5);
+                const partsCount = Array.isArray(setup.parts) ? setup.parts.length : 0;
+                metaWrapper.innerHTML = `
+                    <span class="history-item-time">${dateDk} ${timeStr}</span>
+                    <span class="history-item-parts">Del: ${partsCount}</span>
+                `;
+                item.appendChild(metaWrapper);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'history-item-delete';
+                deleteBtn.dataset.collectionId = collection.id;
+                deleteBtn.dataset.setupId = setup.id;
+                deleteBtn.textContent = '×';
+                item.appendChild(deleteBtn);
+                
+                item.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('history-item-date') && isActive) return;
+                    if (e.target.classList.contains('history-item-delete')) return;
+                    if (!isActive) {
+                        OpstillingData.activeCollectionId = collection.id;
+                        OpstillingData.activeSetupId = setup.id;
+                        saveOpstillingDataToLocalStorage();
+                        loadSetupFromOpstillingData(setup);
+                        updateNotesTitle();
+                        // Save to current_opstilling when switching
+                        saveCurrentOpstillingToStorage();
+                        renderHistory();
+                    }
+                });
+                
+                const titleInput = item.querySelector('.history-item-date');
+                if (!isActive) {
+                    titleInput.readOnly = true;
+                    titleInput.tabIndex = -1;
+                } else {
+                    titleInput.readOnly = false;
+                    titleInput.tabIndex = 0;
+                }
+                titleInput.addEventListener('focus', (e) => {
+                    if (!isActive) {
+                        e.preventDefault();
+                        item.click();
+                        return;
+                    }
+                });
+                titleInput.addEventListener('change', (e) => {
+                    const collectionId = parseFloat(e.target.dataset.collectionId);
+                    const setupId = parseFloat(e.target.dataset.setupId);
+                    const collection = OpstillingData.collections.find(c => c.id === collectionId);
+                    if (collection) {
+                        const setup = collection.setups.find(s => s.id === setupId);
+                        if (setup) {
+                            setup.name = e.target.value;
+                            saveOpstillingDataToLocalStorage();
+                            renderHistory();
+                        }
+                    }
+                });
+                
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const collectionId = parseFloat(e.target.dataset.collectionId);
+                    const setupId = parseFloat(e.target.dataset.setupId);
+                    deleteSetup(collectionId, setupId);
+                });
+                
+                list.appendChild(item);
+            });
+            
+            const navUp = document.getElementById('navUp');
+            const navDown = document.getElementById('navDown');
+            const canNavigate = sortedEntries.length > 1;
+            if (navUp) navUp.disabled = !canNavigate;
+            if (navDown) navDown.disabled = !canNavigate;
+        }
+        
+        function navigateHistory(direction) {
+            const sortedEntries = getFilteredSortedSetups();
+            if (!sortedEntries.length) return;
+            
+            const activeSetup = getActiveSetup();
+            const activeCollection = getActiveCollection();
+            let currentPos = sortedEntries.findIndex(entry => 
+                entry.setup.id === OpstillingData.activeSetupId && 
+                entry.collection.id === OpstillingData.activeCollectionId
+            );
+            if (currentPos === -1) {
+                currentPos = 0;
+            }
+            
+            if (direction > 0) {
+                if (currentPos < sortedEntries.length - 1) {
+                    currentPos += 1;
+                }
+            } else {
+                if (currentPos > 0) {
+                    currentPos -= 1;
+                }
+            }
+            
+            const targetEntry = sortedEntries[currentPos];
+            OpstillingData.activeCollectionId = targetEntry.collection.id;
+            OpstillingData.activeSetupId = targetEntry.setup.id;
+            saveOpstillingDataToLocalStorage();
+            loadSetupFromOpstillingData(targetEntry.setup);
+            updateNotesTitle();
+            // Save to current_opstilling when switching
+            saveCurrentOpstillingToStorage();
+            renderHistory();
+        }
+        
+        function toggleHistorySidebar() {
+            const sidebar = document.getElementById('historySidebar');
+            const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
+            if (!sidebar || !toggleBtns.length) return;
+            
+            sidebar.classList.toggle('collapsed');
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('opstilling_historySidebarCollapsed', isCollapsed);
+            toggleBtns.forEach(btn => {
+                btn.textContent = isCollapsed ? '<' : '>';
+            });
+        }
+        
+        function deleteSetup(collectionId, setupId) {
+            const collection = OpstillingData.collections.find(c => c.id === collectionId);
+            if (!collection || !Array.isArray(collection.setups)) return;
+            
+            if (collection.setups.length <= 1) {
+                alert('Du kan ikke slette den sidste opstilling i en samling. Slet samlingen i stedet.');
+                return;
+            }
+            
+            if (!confirm('Er du sikker på du vil slette denne opstilling?')) {
+                return;
+            }
+            
+            collection.setups = collection.setups.filter(s => s.id !== setupId);
+            
+            if (OpstillingData.activeSetupId === setupId && OpstillingData.activeCollectionId === collectionId) {
+                if (collection.setups.length > 0) {
+                    OpstillingData.activeSetupId = collection.setups[collection.setups.length - 1].id;
+                } else {
+                    // Find another collection with setups
+                    const otherCollection = OpstillingData.collections.find(c => 
+                        c.id !== collectionId && Array.isArray(c.setups) && c.setups.length > 0
+                    );
+                    if (otherCollection) {
+                        OpstillingData.activeCollectionId = otherCollection.id;
+                        OpstillingData.activeSetupId = otherCollection.setups[otherCollection.setups.length - 1].id;
+                    }
+                }
+            }
+            
+            saveOpstillingDataToLocalStorage();
+            const activeSetup = getActiveSetup();
+            if (activeSetup) {
+                loadSetupFromOpstillingData(activeSetup);
+            }
+            renderHistory();
+        }
+        
+        // ===== SAMLING MANAGER FUNCTIONS (from map manager) =====
+        
+        function openSamlingManager() {
+            if (!samlingManagerOverlayEl) {
+                samlingManagerOverlayEl = document.getElementById('samlingManagerOverlay');
+                samlingManagerListEl = document.getElementById('samlingManagerList');
+                newSamlingNameInputEl = document.getElementById('newSamlingName');
+                newSamlingColorBtnEl = document.getElementById('newSamlingColorBtn');
+            }
+            if (!samlingColorPickerModalEl) {
+                samlingColorPickerModalEl = document.getElementById('samlingColorPickerModal');
+            }
+            if (!samlingColorGridEl) {
+                samlingColorGridEl = document.getElementById('samlingColorGrid');
+            }
+            if (newSamlingNameInputEl) {
+                newSamlingDraftName = newSamlingNameInputEl.value;
+            }
+            if (samlingColorGridEl && samlingColorGridEl.childElementCount === 0) {
+                buildSamlingColorGrid();
+            }
+            if (!samlingManagerOverlayEl) return;
+            resetNewSamlingDraft();
+            renderSamlingManagerList();
+            samlingManagerOverlayEl.classList.add('show');
+            setTimeout(() => {
+                if (newSamlingNameInputEl) {
+                    newSamlingNameInputEl.focus();
+                }
+            }, 80);
+        }
+        
+        function closeSamlingManager() {
+            if (samlingManagerOverlayEl) {
+                samlingManagerOverlayEl.classList.remove('show');
+            }
+            closeSamlingColorPicker();
+        }
+        
+        function resetNewSamlingDraft() {
+            newSamlingDraftColor = SAMLING_COLOR_PRESETS[0];
+            newSamlingDraftName = '';
+            newSamlingColorDirty = false;
+            if (newSamlingNameInputEl) {
+                newSamlingNameInputEl.value = '';
+            }
+            updateNewSamlingColorButton();
+        }
+        
+        function updateNewSamlingColorButton() {
+            if (!newSamlingColorBtnEl) return;
+            if (newSamlingColorDirty) {
+                const baseColor = newSamlingDraftColor || SAMLING_COLOR_PRESETS[0];
+                newSamlingColorBtnEl.style.background = baseColor;
+                newSamlingColorBtnEl.style.color = '#ffffff';
+                if (newSamlingNameInputEl) {
+                    newSamlingNameInputEl.style.background = lightenHex(baseColor, 0.85);
+                    newSamlingNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
+                }
+            } else {
+                const baseColor = SAMLING_COLOR_PRESETS[0] || '#ef4444';
+                newSamlingColorBtnEl.style.background = baseColor;
+                newSamlingColorBtnEl.style.color = '#ffffff';
+                if (newSamlingNameInputEl) {
+                    newSamlingNameInputEl.style.background = lightenHex(baseColor, 0.85);
+                    newSamlingNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
+                }
+            }
+        }
+        
+        function renderSamlingManagerList() {
+            if (!samlingManagerListEl) return;
+            samlingManagerListEl.innerHTML = '';
+            
+            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
+                ensureDefaultOpstillingData();
+            }
+            
+            OpstillingData.collections.forEach(collection => {
+                const item = document.createElement('div');
+                item.className = 'samling-manager-item';
+                
+                const nameBtn = document.createElement('button');
+                nameBtn.className = 'samling-name-btn';
+                nameBtn.textContent = collection.name || 'Samling';
+                const baseColor = collection.color || SAMLING_COLOR_PRESETS[0];
+                nameBtn.style.background = lightenHex(baseColor, 0.7);
+                nameBtn.style.border = `1px solid ${baseColor}`;
+                nameBtn.addEventListener('click', () => beginSamlingNameInlineEdit(collection, nameBtn));
+                
+                const actions = document.createElement('div');
+                actions.className = 'samling-item-actions';
+                
+                const colorBtn = document.createElement('button');
+                colorBtn.className = 'samling-action-btn color';
+                colorBtn.textContent = 'C';
+                colorBtn.style.background = collection.color || SAMLING_COLOR_PRESETS[0];
+                colorBtn.onclick = () => openSamlingColorPicker({ type: 'samling', collectionId: collection.id });
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'samling-action-btn delete';
+                deleteBtn.textContent = '✕';
+                deleteBtn.onclick = () => deleteSamling(collection.id);
+                
+                actions.appendChild(colorBtn);
+                actions.appendChild(deleteBtn);
+                
+                item.appendChild(nameBtn);
+                item.appendChild(actions);
+                samlingManagerListEl.appendChild(item);
+            });
+            
+            newSamlingNameInputEl = document.getElementById('newSamlingName');
+            newSamlingColorBtnEl = document.getElementById('newSamlingColorBtn');
+            if (newSamlingNameInputEl) {
+                newSamlingNameInputEl.value = newSamlingDraftName;
+                newSamlingNameInputEl.addEventListener('input', (e) => {
+                    newSamlingDraftName = e.target.value;
+                });
+            }
+            updateNewSamlingColorButton();
+        }
+        
+        function beginSamlingNameInlineEdit(collection, buttonEl) {
+            if (!collection || !buttonEl) return;
+            const baseColor = collection.color || SAMLING_COLOR_PRESETS[0];
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'samling-name-input';
+            input.value = collection.name || 'Samling';
+            input.style.background = lightenHex(baseColor, 0.7);
+            input.style.borderColor = baseColor;
+            
+            let finished = false;
+            const commit = (shouldSave) => {
+                if (finished) return;
+                finished = true;
+                const newName = input.value.trim();
+                if (shouldSave && newName && newName !== collection.name) {
+                    collection.name = newName;
+                    renderHistoryFilterOptions();
+                    renderHistory();
+                    saveOpstillingDataToLocalStorage();
+                }
+                renderSamlingManagerList();
+            };
+            
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    commit(true);
+                } else if (event.key === 'Escape') {
+                    commit(false);
+                }
+            });
+            
+            input.addEventListener('blur', () => commit(true));
+            
+            buttonEl.replaceWith(input);
+            input.focus();
+            input.select();
+        }
+        
+        function openSamlingColorPicker(target) {
+            if (!samlingColorPickerModalEl) {
+                samlingColorPickerModalEl = document.getElementById('samlingColorPickerModal');
+                samlingColorGridEl = document.getElementById('samlingColorGrid');
+            }
+            if (!samlingColorPickerModalEl || !samlingColorGridEl) return;
+            samlingColorPickerTarget = target;
+            samlingColorPickerModalEl.classList.add('show');
+        }
+        
+        function closeSamlingColorPicker() {
+            samlingColorPickerTarget = null;
+            if (samlingColorPickerModalEl) {
+                samlingColorPickerModalEl.classList.remove('show');
+            }
+        }
+        
+        function backdropCloseSamlingHandler(event) {
+            if (event.target === samlingColorPickerModalEl) {
+                closeSamlingColorPicker();
+            }
+        }
+        
+        function handleSamlingColorSelected(color) {
+            if (!samlingColorPickerTarget) return;
+            if (samlingColorPickerTarget.type === 'samling') {
+                applySamlingColor(samlingColorPickerTarget.collectionId, color);
+                renderHistory();
+                saveOpstillingDataToLocalStorage();
+            } else if (samlingColorPickerTarget.type === 'new') {
+                newSamlingDraftColor = color;
+                newSamlingColorDirty = true;
+                updateNewSamlingColorButton();
+            }
+            closeSamlingColorPicker();
+        }
+        
+        function applySamlingColor(collectionId, color) {
+            const collection = OpstillingData.collections.find(c => c.id === collectionId);
+            if (!collection) return;
+            collection.color = color;
+            renderHistory();
+            renderSamlingManagerList();
+            renderHistoryFilterOptions();
+            saveOpstillingDataToLocalStorage();
+        }
+        
+        function confirmCreateSamling() {
+            if (!newSamlingNameInputEl) return;
+            const name = newSamlingNameInputEl.value.trim();
+            if (!name) {
+                newSamlingNameInputEl.focus();
+                return;
+            }
+            const color = newSamlingDraftColor || SAMLING_COLOR_PRESETS[0];
+            
+            // Save current workspace before switching
+            syncCurrentWorkspaceToActiveSetup();
+            
+            // Find highest collection ID
+            let maxId = 0;
+            if (Array.isArray(OpstillingData.collections)) {
+                OpstillingData.collections.forEach(c => {
+                    if (c.id > maxId) maxId = c.id;
+                });
+            }
+            const newId = maxId + 1;
+            
+            const newCollection = {
+                id: newId,
+                name,
+                color,
+                setups: [{
+                    id: 1,
+                    name: 'Opstilling 1',
+                    notes: '',
+                    parts: [],
+                    timestamp: new Date().toISOString(),
+                    updated: new Date().toISOString()
+                }]
+            };
+            
+            if (!Array.isArray(OpstillingData.collections)) {
+                OpstillingData.collections = [];
+            }
+            OpstillingData.collections.push(newCollection);
+            OpstillingData.activeCollectionId = newId;
+            OpstillingData.activeSetupId = 1;
+            
+            saveOpstillingDataToLocalStorage();
+            
+            // Load the new empty setup - this will set isLoadingSetup to false in finally block
+            const loaded = loadSetupFromOpstillingData(newCollection.setups[0]);
+            
+            // Save to current_opstilling when creating new collection
+            saveCurrentOpstillingToStorage();
+            
+            // Ensure workspace is ready and history is updated
+            renderHistory();
+            renderSamlingManagerList();
+            
+            // Use requestAnimationFrame to ensure DOM is fully updated
+            requestAnimationFrame(() => {
+                // Verify active setup is set correctly
+                const activeSetup = getActiveSetup();
+                if (activeSetup && activeSetup.id === 1 && OpstillingData.activeCollectionId === newId) {
+                    // Everything is ready - workspace should be functional now
+                    // Force a re-render of history to ensure active state is correct
+                    renderHistory();
+                }
+            });
+            
+            if (newSamlingNameInputEl) {
+                newSamlingNameInputEl.value = '';
+            }
+            resetNewSamlingDraft();
+            closeSamlingManager();
+        }
+        
+        function deleteSamling(collectionId) {
+            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) return;
+            
+            // Prevent deleting the last remaining collection
+            if (OpstillingData.collections.length <= 1) {
+                alert('Du kan ikke slette den sidste samling.');
+                return;
+            }
+            
+            const collection = OpstillingData.collections.find(c => c.id === collectionId);
+            if (!collection) return;
+            
+            if (!confirm(`Vil du slette alle opstillinger i "${collection.name}"?`)) {
+                return;
+            }
+            
+            closeSamlingColorPicker();
+            OpstillingData.collections = OpstillingData.collections.filter(c => c.id !== collectionId);
+            
+            if (OpstillingData.activeCollectionId === collectionId) {
+                OpstillingData.activeCollectionId = null;
+            }
+            
+            // Find a new active collection and setup
+            if (OpstillingData.collections.length > 0) {
+                const fallbackCollection = OpstillingData.collections[OpstillingData.collections.length - 1];
+                OpstillingData.activeCollectionId = fallbackCollection.id;
+                if (Array.isArray(fallbackCollection.setups) && fallbackCollection.setups.length > 0) {
+                    OpstillingData.activeSetupId = fallbackCollection.setups[fallbackCollection.setups.length - 1].id;
+                } else {
+                    // Create default setup
+                    fallbackCollection.setups = [{
+                        id: 1,
+                        name: 'Opstilling 1',
+                        notes: '',
+                        parts: [],
+                        timestamp: new Date().toISOString(),
+                        updated: new Date().toISOString()
+                    }];
+                    OpstillingData.activeSetupId = 1;
+                }
+            }
+            
+            saveOpstillingDataToLocalStorage();
+            const activeSetup = getActiveSetup();
+            if (activeSetup) {
+                loadSetupFromOpstillingData(activeSetup);
+            }
+            renderHistoryFilterOptions();
+            renderHistory();
+            renderSamlingManagerList();
+        }
+        
+        function buildSamlingColorGrid() {
+            if (!samlingColorGridEl) return;
+            samlingColorGridEl.innerHTML = '';
+            SAMLING_COLOR_PRESETS.forEach(color => {
+                const swatch = document.createElement('button');
+                swatch.className = 'samling-color-swatch';
+                swatch.style.background = color;
+                swatch.title = color;
+                swatch.onclick = () => handleSamlingColorSelected(color);
+                samlingColorGridEl.appendChild(swatch);
+            });
+        }
+        
+        // Update createNewCollection to use overlay instead
+        function createNewCollection() {
+            openSamlingManager();
         }
 
         // Load setup from opstillingData structure
@@ -1564,6 +3110,14 @@
             if (!setup) return false;
             try {
                 isLoadingSetup = true;
+                // Ensure setup has timestamp
+                if (!setup.timestamp) {
+                    setup.timestamp = setup.updated || new Date().toISOString();
+                }
+                if (!setup.updated) {
+                    setup.updated = setup.timestamp || new Date().toISOString();
+                }
+                
                 // Clear current workspace
                 const workspace = document.getElementById('workspace');
                 const workspaceContent = workspace.querySelector('.workspace-content');
@@ -1583,6 +3137,9 @@
                     notesEl.value = generalNotes;
                     notesEl.placeholder = 'Generelle noter til hele opstillingen...';
                 }
+                
+                // Update notes title
+                updateNotesTitle();
                 
                 // Load parts
                 if (Array.isArray(setup.parts) && setup.parts.length > 0) {
@@ -1608,13 +3165,16 @@
                 // Render
                 renderBackground();
                 renderLabels();
-                saveCharactersToShared();
+                // Don't call saveCharactersToShared here - isLoadingSetup is still true
+                // It will be called after isLoadingSetup is set to false
                 return true;
             } catch (e) {
                 console.error('Fejl ved indlæsning fra opstillingData:', e);
                 return false;
             } finally {
                 isLoadingSetup = false;
+                // After loading is complete, sync to ensure data is saved
+                syncCurrentWorkspaceToActiveSetup();
             }
         }
         
@@ -1700,6 +3260,9 @@
             
             // Also save to current_opstilling
             saveCurrentOpstillingToStorage();
+            // Sync to opstillingData and update history
+            syncCurrentWorkspaceToActiveSetup();
+            renderHistory();
         }
         
         const partColors = [
@@ -2748,6 +4311,16 @@ function closeKeywordsPopup() {
                 workspaceContent.appendChild(part);
 				resetPose(part);
 				
+				// Automatically make name editable for new parts
+				if (!skipPopup) {
+					setTimeout(() => {
+						const nameSpan = part.querySelector('.part-name');
+						if (nameSpan) {
+							editName(nameSpan);
+						}
+					}, 100);
+				}
+				
 				// Update shared data
 				saveCharactersToShared();
                 
@@ -2768,7 +4341,7 @@ function closeKeywordsPopup() {
                 if (selectedPart === part) {
 					selectedPart = null;
 					updateGroupsDisplay();
-					document.getElementById('notesContainerTitle').textContent = 'Noter til opstilling';
+					updateNotesTitle();
 					document.getElementById('partNotes').value = '';
 					document.getElementById('partNotes').placeholder = 'Generelle noter til hele opstillingen...';
 					for (let i = 1; i <= 6; i++) {
@@ -3250,35 +4823,31 @@ function closeKeywordsPopup() {
 
         function clearAll() {
             try {
-                const workspace = document.getElementById('workspace');
-                const workspaceContent = workspace.querySelector('.workspace-content');
-                workspaceContent.innerHTML = `
-                    <div class="background-layer" id="backgroundLayer"></div>
-                    <div class="background-labels" id="backgroundLabels"></div>
-                `;
-                selectedPart = null;
-				generalNotes = '';
-				
-				// Clean up drag state
-				draggedElement = null;
-				dragState = null;
-				
-                updateGroupsDisplay();
+                // Remove all parts from workspace
+                const parts = document.querySelectorAll('.part');
+                parts.forEach(part => part.remove());
+                
+                // Clear notes
+                generalNotes = '';
                 const notesEl = document.getElementById('partNotes');
                 if (notesEl) {
                     notesEl.value = '';
                     notesEl.placeholder = 'Generelle noter for opstillingen...';
                 }
-				
-				// Background labels/groups removed; no reset needed
-                renderBackground();
-
-				// Nulstil colorIndex så nye dele starter forfra med farver
-				colorIndex = 0;
-				
-                renderLabels();
                 
-                // Note: We do NOT clear opstillingData or any saved data - only UI is cleared
+                // Clean up drag state
+                selectedPart = null;
+                draggedElement = null;
+                dragState = null;
+                
+                // Reset color index
+                colorIndex = 0;
+                
+                // Update the active setup in opstillingData
+                syncCurrentWorkspaceToActiveSetup();
+                
+                // Save to current_opstilling
+                saveCurrentOpstillingToStorage();
 
             } catch (error) {
                 console.error('Fejl i clearAll:', error);
@@ -3574,7 +5143,7 @@ function closeKeywordsPopup() {
 						const titleElement = document.getElementById('profileTitle');
 						if (titleElement) titleElement.textContent = '';
 
-						document.getElementById('notesContainerTitle').textContent = 'Noter til opstilling';
+						updateNotesTitle();
 
 						const notesEl = document.getElementById('partNotes');
 						notesEl.value = generalNotes;
@@ -3604,6 +5173,20 @@ function closeKeywordsPopup() {
             
             // Load active opstilling (from opstillingData or legacy storage)
             loadActiveOpstilling();
+            
+            // Initialize history sidebar
+            renderHistory();
+            const isCollapsed = localStorage.getItem('opstilling_historySidebarCollapsed') === 'true';
+            const sidebar = document.getElementById('historySidebar');
+            if (sidebar) {
+                const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
+                if (isCollapsed) {
+                    sidebar.classList.add('collapsed');
+                    toggleBtns.forEach(btn => btn.textContent = '<');
+                } else {
+                    toggleBtns.forEach(btn => btn.textContent = '>');
+                }
+            }
             
             try {
 				
@@ -3786,6 +5369,25 @@ function closeKeywordsPopup() {
 					}
 				});
 				
+				// Close overlays on Escape key
+				document.addEventListener('keydown', (e) => {
+					if (e.key === 'Escape') {
+						if (samlingColorPickerModalEl && samlingColorPickerModalEl.classList.contains('show')) {
+							closeSamlingColorPicker();
+						} else if (samlingManagerOverlayEl && samlingManagerOverlayEl.classList.contains('show')) {
+							closeSamlingManager();
+						}
+					}
+				});
+				
+				// Close color picker on backdrop click
+				document.addEventListener('mousedown', (e) => {
+					if (!samlingColorPickerModalEl || !samlingColorPickerModalEl.classList.contains('show')) return;
+					if (e.target.closest('.samling-color-picker')) return;
+					if (e.target.closest('.samling-action-btn.color')) return;
+					closeSamlingColorPicker();
+				});
+				
 				// Use event delegation for nav button clicks (only one listener instead of multiple)
 				navBox.addEventListener('click', function(e) {
 					const navButton = e.target.closest('.nav-button');
@@ -3847,7 +5449,7 @@ function closeKeywordsPopup() {
                 const partNotesField = document.getElementById('partNotes');
                 if (partNotesField) {
                     partNotesField.value = '';
-                    partNotesField.placeholder = 'Generelle noter for opstillingen. Klik evt på en cirkel for at vælge den og redigere dens information...';
+                    partNotesField.placeholder = 'Generelle noter for opstillingen';
                 }
 
                 // keywords and background labels removed

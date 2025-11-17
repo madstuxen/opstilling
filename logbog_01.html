@@ -202,17 +202,18 @@
         }
 
         .content {
-            padding: 24px;
+            padding: 10px;
+            padding-right: 24px;
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 6px;
             width: 100%;
         }
 
         .card {
             background: #f5f5f8;
             border-radius: 18px;
-            padding: 20px 24px;
+            padding: 10px 15px;
             box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
         }
 
@@ -225,9 +226,9 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 10px;
             width: 100%;
-            padding-right: 24px;
+            padding-right: 10px;
         }
 
         .log-history-sidebar {
@@ -448,7 +449,7 @@
 
         .activities-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, 130px);
+            grid-template-columns: repeat(auto-fit, 140px);
             gap: 10px;
             justify-content: flex-start;
         }
@@ -469,7 +470,7 @@
             gap: 6px;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            width: 130px;
+            width: 140px;
             min-height: 100px;
         }
 
@@ -490,7 +491,7 @@
             text-transform: none;
             letter-spacing: 0.02em;
             opacity: 1;
-            width: 130px;
+            width: 140px;
         }
 
         .activity-time {
@@ -541,7 +542,7 @@
             font-weight: 600;
             letter-spacing: 0.02em;
             text-transform: none;
-            width: 130px;
+            width: 140px;
         }
 
         .activity-empty-circle {
@@ -701,9 +702,9 @@
             color: #1f2937;
             font-size: 16px; /* avoid iOS zoom on focus */
             line-height: 1.6;
-            resize: vertical;
+            resize: none;
             overflow-y: auto;
-            max-height: 620px;
+            max-height: 450px;
         }
 
         .journal-entry textarea:focus {
@@ -720,6 +721,8 @@
 
         .journal-entry textarea {
             background: #ffffff;
+            height: auto;
+            min-height: 200px;
         }
 
         .dreams-entry textarea {
@@ -754,6 +757,50 @@
             position: absolute;
             top: -10px;
             right: 0;
+        }
+
+        .checkin-view-toggle {
+            padding: 6px 12px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 40px;
+        }
+
+        .checkin-view-toggle:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+
+        .checkin-view-toggle.active {
+            background: #10b981;
+        }
+
+        .chart-tooltip {
+            position: absolute;
+            background: white;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            pointer-events: none;
+            z-index: 1000;
+            font-size: 12px;
+        }
+
+        .chart-tooltip p {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .chart-tooltip p:not(:first-child) {
+            margin-top: 4px;
+            font-weight: normal;
         }
 
         .collapse-btn {
@@ -796,11 +843,15 @@
 
         .chart-wrapper {
             position: relative;
-            padding: 24px 0 8px;
+            padding: 0px 0 11px;
+            margin-left: 44px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
         }
 
         .chart-canvas {
-            width: 100%;
+            display: block;
             height: 240px;
             border-radius: 16px;
             background: white;
@@ -810,7 +861,7 @@
         .checkins-side-icons {
             position: absolute;
             left: 1px;
-            top: 24px;
+            top: -5px;
             width: 42px;
             height: 240px;
             display: flex;
@@ -818,6 +869,7 @@
             justify-content: space-between;
             align-items: center;
             pointer-events: none;
+            z-index: 10;
         }
 
         .checkins-side-icons img {
@@ -917,17 +969,21 @@
                             <div class="card-title">
                                 <strong>CHECKINS</strong>
                             </div>
+                            <button class="checkin-view-toggle" id="toggleCheckinView" title="Skift visning">Detaljeret</button>
                     <button class="collapse-btn" id="toggleCheckins" title="Fold checkins">
                         <span class="arrow">&gt;</span>
                     </button>
                         </div>
                         <div class="checkins-body" id="checkinsBody">
-                            <div class="chart-wrapper">
+                            <div style="position: relative;">
                                 <div class="checkins-side-icons">
                                     <img src="imagefiles/sun.svg" alt="Høj energi" style="margin-top: 70%;">
                                     <img src="imagefiles/cloud.svg" alt="Lav energi" style="margin-bottom: 70%;">
                                 </div>
-                                <canvas class="chart-canvas" id="checkinChart"></canvas>
+                                <div class="chart-wrapper">
+                                    <canvas class="chart-canvas" id="checkinChart"></canvas>
+                                    <div class="chart-tooltip" id="checkinTooltip" style="display: none;"></div>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -1015,6 +1071,7 @@
         const LOG_HISTORY_COLLAPSED_KEY = 'logbog_historySidebarCollapsed';
         const BODYMAP_STORAGE_KEY = 'bodymapData';
         const DIALOG_STORAGE_KEY = 'dialogData';
+        const OPSTILLING_STORAGE_KEY = 'opstillingData';
 
         function getTodayDateKey() {
             return new Date().toISOString().split('T')[0];
@@ -1104,6 +1161,18 @@
                 return { sessions, activeDialogId: parsed.activeDialogId || null };
             } catch (error) {
                 console.warn('Kunne ikke læse dialogData:', error);
+                return null;
+            }
+        }
+
+        function getOpstillingData() {
+            try {
+                const raw = localStorage.getItem(OPSTILLING_STORAGE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : null;
+            } catch (error) {
+                console.warn('Kunne ikke læse opstillingData:', error);
                 return null;
             }
         }
@@ -1324,6 +1393,55 @@
             };
         }
 
+        function getOpstillingActivityInfo(dateKey) {
+            if (!dateKey) {
+                return { hasEntries: false };
+            }
+
+            const opstillingData = getOpstillingData();
+            if (!opstillingData || !Array.isArray(opstillingData.collections)) {
+                return { hasEntries: false };
+            }
+
+            const matches = [];
+            opstillingData.collections.forEach(collection => {
+                if (!Array.isArray(collection.setups)) return;
+                collection.setups.forEach(setup => {
+                    const source = setup.timestamp || setup.updated;
+                    if (!source) return;
+                    const timestamp = new Date(source);
+                    if (Number.isNaN(timestamp.getTime())) return;
+                    const normalized = formatDateKey(timestamp);
+                    if (normalized !== dateKey) return;
+                    matches.push({ setup, collection, timestamp });
+                });
+            });
+
+            if (!matches.length) {
+                return { hasEntries: false };
+            }
+
+            matches.sort((a, b) => b.timestamp - a.timestamp);
+            const latest = matches[0];
+            const setupName = latest.setup.name || 'Opstilling';
+            const collectionName = latest.collection.name || 'Samling';
+            const partsCount = Array.isArray(latest.setup.parts) ? latest.setup.parts.length : 0;
+            const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+
+            const count = matches.length;
+            const displayText = count === 1 
+                ? `${setupName} i ${collectionName}`
+                : `${setupName} i ${collectionName} (+${count - 1} ${count === 2 ? 'anden' : 'andre'})`;
+
+            return {
+                hasEntries: true,
+                displayText,
+                latestTime,
+                partsCount,
+                count
+            };
+        }
+
         let activeLogDate = getTodayDateKey();
 
         function upsertLogbookEntry(dateKey, partial) {
@@ -1450,13 +1568,92 @@
             const dreamEntryEl = document.getElementById('dreamEntry');
             if (logbookEntryEl) {
                 logbookEntryEl.value = entry.dagbog || '';
+                autoResizeTextarea(logbookEntryEl);
             }
             if (dreamEntryEl) {
                 dreamEntryEl.value = entry.dreams || '';
+                autoResizeTextarea(dreamEntryEl);
             }
 
             renderActivitiesForDate(activeLogDate);
             renderLogHistory();
+            // Scroll chart to show the selected date
+            scrollChartToDate(activeLogDate);
+        }
+        
+        function scrollChartToDate(dateKey) {
+            const chartWrapper = document.querySelector('.chart-wrapper');
+            if (!chartWrapper) return;
+            
+            const canvas = document.getElementById('checkinChart');
+            if (!canvas) return;
+            
+            // Wait for chart to render, then scroll
+            requestAnimationFrame(async () => {
+                const rawData = await loadCheckinData();
+                const { labels } = processCheckinData(rawData);
+                
+                // Find the index of the selected date
+                let dateIndex = labels.findIndex(label => label === dateKey);
+                
+                if (dateIndex === -1) {
+                    // Date not found - find the closest date and scroll in the right direction
+                    const targetDate = new Date(dateKey + 'T00:00:00');
+                    if (isNaN(targetDate.getTime())) {
+                        // Invalid date, scroll to newest days (right edge)
+                        chartWrapper.scrollLeft = chartWrapper.scrollWidth - chartWrapper.clientWidth;
+                        return;
+                    }
+                    
+                    // Find closest date
+                    let closestIndex = -1;
+                    let minDiff = Infinity;
+                    labels.forEach((label, idx) => {
+                        const labelDate = new Date(label + 'T00:00:00');
+                        if (!isNaN(labelDate.getTime())) {
+                            const diff = Math.abs(targetDate - labelDate);
+                            if (diff < minDiff) {
+                                minDiff = diff;
+                                closestIndex = idx;
+                            }
+                        }
+                    });
+                    
+                    if (closestIndex === -1) {
+                        // No valid dates found, scroll to newest days
+                        chartWrapper.scrollLeft = chartWrapper.scrollWidth - chartWrapper.clientWidth;
+                        return;
+                    }
+                    
+                    // Check if we should scroll left (older) or right (newer)
+                    const closestDate = new Date(labels[closestIndex] + 'T00:00:00');
+                    if (targetDate < closestDate) {
+                        // Target is older - scroll to left edge (oldest days)
+                        chartWrapper.scrollLeft = 0;
+                        return;
+                    } else {
+                        // Target is newer - scroll to right edge (newest days)
+                        chartWrapper.scrollLeft = chartWrapper.scrollWidth - chartWrapper.clientWidth;
+                        return;
+                    }
+                }
+                
+                // Calculate x position for the date at kl. 12 (midpoint)
+                const padding = { left: 44, right: 28 };
+                const canvasWidth = parseFloat(canvas.style.width) || canvas.width / (window.devicePixelRatio || 1);
+                const chartWidth = canvasWidth - padding.left - padding.right;
+                const xMin = 0; // First day starts at index 0 (kl. 00:00)
+                const xMax = labels.length > 1 ? labels.length : 1;
+                const xRange = xMax - xMin;
+                const step = labels.length > 1 ? chartWidth / xRange : chartWidth;
+                
+                // Position at kl. 12 (dateIndex + 0.5)
+                const targetX = padding.left + ((dateIndex + 0.5) - xMin) * step;
+                
+                // Scroll so the date is at the right edge of the visible area
+                const scrollTarget = targetX - chartWrapper.clientWidth + padding.right;
+                chartWrapper.scrollLeft = Math.max(0, Math.min(scrollTarget, chartWrapper.scrollWidth - chartWrapper.clientWidth));
+            });
         }
 
         function updateActiveLogEntry(field, value) {
@@ -1482,9 +1679,11 @@
 
             if (document.activeElement !== logbookEntryEl) {
                 logbookEntryEl.value = entry.dagbog || '';
+                autoResizeTextarea(logbookEntryEl);
             }
             if (document.activeElement !== dreamEntryEl) {
                 dreamEntryEl.value = entry.dreams || '';
+                autoResizeTextarea(dreamEntryEl);
             }
         }
 
@@ -1509,6 +1708,11 @@
 
         function handleBodymapStorageEvent(event) {
             if (event.key && event.key !== BODYMAP_STORAGE_KEY) return;
+            renderActivitiesForDate(activeLogDate);
+        }
+
+        function handleOpstillingStorageEvent(event) {
+            if (event.key && event.key !== OPSTILLING_STORAGE_KEY) return;
             renderActivitiesForDate(activeLogDate);
         }
 
@@ -1565,6 +1769,20 @@
         let logbookInputHandler = null;
         let dreamInputHandler = null;
 
+        function autoResizeTextarea(textarea) {
+            if (!textarea) return;
+            textarea.style.height = 'auto';
+            const scrollHeight = textarea.scrollHeight;
+            const maxHeight = 450; // max-height in pixels
+            if (scrollHeight <= maxHeight) {
+                textarea.style.height = scrollHeight + 'px';
+                textarea.style.overflowY = 'hidden';
+            } else {
+                textarea.style.height = maxHeight + 'px';
+                textarea.style.overflowY = 'auto';
+            }
+        }
+
         function hydrateLogbookFields() {
             const logbookEntryEl = document.getElementById('logbookEntry');
             const dreamEntryEl = document.getElementById('dreamEntry');
@@ -1581,14 +1799,20 @@
             // Create new handlers
             logbookInputHandler = () => {
                 updateActiveLogEntry('dagbog', logbookEntryEl.value);
+                autoResizeTextarea(logbookEntryEl);
             };
             dreamInputHandler = () => {
                 updateActiveLogEntry('dreams', dreamEntryEl.value);
+                autoResizeTextarea(dreamEntryEl);
             };
 
             // Add new listeners
             logbookEntryEl.addEventListener('input', logbookInputHandler);
             dreamEntryEl.addEventListener('input', dreamInputHandler);
+
+            // Auto-resize on load
+            autoResizeTextarea(logbookEntryEl);
+            autoResizeTextarea(dreamEntryEl);
 
             setActiveLogDate(activeLogDate);
         }
@@ -1724,6 +1948,20 @@
                     isEmptyState = true;
                     emptyTextLabel = 'Lav en dialog';
                     }
+                } else if (activity.type === 'opstilling') {
+                    const info = getOpstillingActivityInfo(normalizedKey);
+                    if (info.hasEntries) {
+                        displayTime = info.latestTime || displayTime;
+                        const partsSuffix = typeof info.partsCount === 'number' && info.partsCount > 0
+                            ? ` · ${info.partsCount} ${info.partsCount === 1 ? 'deltager' : 'deltagere'}`
+                            : '';
+                        displayText = (info.displayText || displayText) + partsSuffix;
+                        const opstillingLabel = info.count === 1 ? '1 opstilling' : `${info.count} opstillinger`;
+                        badgeText = opstillingLabel;
+                    } else {
+                        isEmptyState = true;
+                        emptyTextLabel = 'Lav en opstilling';
+                    }
                 }
 
                 if (isEmptyState) {
@@ -1766,8 +2004,11 @@
             });
         }
 
-        function loadCheckinData() {
+        let checkinDetailedView = true;
+
+        async function loadCheckinData() {
             try {
+                // Load from localStorage
                 const raw = localStorage.getItem('forside_checkin_data');
                 if (!raw) {
                     return [];
@@ -1778,10 +2019,15 @@
                 }
                 return parsed
                     .filter(entry => typeof entry.status === 'number')
-                    .map(entry => ({
-                        date: entry.date ? new Date(entry.date) : new Date(),
-                        status: Math.max(0, Math.min(100, Number(entry.status)))
-                    }))
+                    .map(entry => {
+                        const dateObj = entry.date ? new Date(entry.date) : new Date();
+                        return {
+                            date: dateObj,
+                            status: Math.max(0, Math.min(100, Number(entry.status))),
+                            dateKey: dateObj.toISOString().split('T')[0],
+                            time: dateObj.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', hour12: false })
+                        };
+                    })
                     .sort((a, b) => a.date - b.date);
             } catch (error) {
                 console.error('Fejl ved indlæsning af check-in data:', error);
@@ -1789,20 +2035,136 @@
             }
         }
 
-        function renderCheckinChart() {
+        function processCheckinData(data) {
+            if (!data || !Array.isArray(data) || data.length === 0) {
+                return { data: [], labels: [] };
+            }
+
+            // Group by date
+            const groupedByDate = data.reduce((acc, entry) => {
+                if (!entry || !entry.dateKey) return acc;
+                if (!acc[entry.dateKey]) {
+                    acc[entry.dateKey] = [];
+                }
+                acc[entry.dateKey].push(entry);
+                return acc;
+            }, {});
+
+            // Get unique dates with data, sorted (oldest first for display)
+            const uniqueDates = Object.keys(groupedByDate).sort();
+
+            if (checkinDetailedView) {
+                // Detailed view: show all entries with horizontal offset
+                const processedData = [];
+                uniqueDates.forEach((dateKey, dateIndex) => {
+                    const dayEntries = groupedByDate[dateKey];
+                    const isMorning = (timeStr) => {
+                        const hour = parseInt(timeStr.split(':')[0]);
+                        return hour < 12;
+                    };
+
+                    if (dayEntries.length === 1) {
+                        // Single entry: use precise time position
+                        let timeOffset = 0.5; // Default to noon if time parsing fails
+                        if (dayEntries[0].time && typeof dayEntries[0].time === 'string') {
+                            // Handle both ':' and '.' as separators
+                            const timeParts = dayEntries[0].time.split(/[:.]/);
+                            if (timeParts.length >= 2) {
+                                const hours = parseInt(timeParts[0], 10);
+                                const minutes = parseInt(timeParts[1], 10);
+                                if (!isNaN(hours) && !isNaN(minutes)) {
+                                    const timeInHours = hours + minutes / 60;
+                                    timeOffset = timeInHours / 24;
+                                }
+                            }
+                        }
+                        processedData.push({
+                            x: dateIndex + timeOffset,
+                            y: dayEntries[0].status,
+                            date: dateKey,
+                            time: dayEntries[0].time,
+                            size: 100,
+                            originalDate: dayEntries[0].date
+                        });
+                    } else {
+                        // Multiple entries: use precise time position for each
+                        dayEntries.forEach((entry, idx) => {
+                            let timeOffset = 0.5; // Default to noon if time parsing fails
+                            if (entry.time && typeof entry.time === 'string') {
+                                // Handle both ':' and '.' as separators
+                                const timeParts = entry.time.split(/[:.]/);
+                                if (timeParts.length >= 2) {
+                                    const hours = parseInt(timeParts[0], 10);
+                                    const minutes = parseInt(timeParts[1], 10);
+                                    if (!isNaN(hours) && !isNaN(minutes)) {
+                                        const timeInHours = hours + minutes / 60;
+                                        timeOffset = timeInHours / 24;
+                                    }
+                                }
+                            }
+                            
+                            processedData.push({
+                                x: dateIndex + timeOffset,
+                                y: entry.status,
+                                date: dateKey,
+                                time: entry.time,
+                                size: 80,
+                                originalDate: entry.date
+                            });
+                        });
+                    }
+                });
+                return { data: processedData, labels: uniqueDates };
+            } else {
+                // Simple view: average per day, positioned at noon (kl. 12)
+                const processedData = uniqueDates.map((dateKey, dateIndex) => {
+                    const dayEntries = groupedByDate[dateKey];
+                    const avgStatus = dayEntries.reduce((sum, e) => sum + e.status, 0) / dayEntries.length;
+                    return {
+                        x: dateIndex + 0.5, // Position at noon (kl. 12)
+                        y: Math.round(avgStatus),
+                        date: dateKey,
+                        count: dayEntries.length,
+                        size: 100,
+                        originalDate: dayEntries[0].date
+                    };
+                });
+                return { data: processedData, labels: uniqueDates };
+            }
+        }
+
+        async function renderCheckinChart() {
             const canvas = document.getElementById('checkinChart');
+            if (!canvas) return;
+            const tooltip = document.getElementById('checkinTooltip');
             const ctx = canvas.getContext('2d');
-            const data = loadCheckinData();
+            const rawData = await loadCheckinData();
+            const { data, labels } = processCheckinData(rawData);
             const parent = canvas.parentElement;
 
             const dpr = window.devicePixelRatio || 1;
-            const width = parent.clientWidth;
+            const baseWidth = parent.clientWidth;
             const height = 240;
+            
+            // Calculate canvas width: if we have more than 7 days, make it wider for scrolling
+            const MAX_VISIBLE_DAYS = 7;
+            const dayCount = labels.length;
+            const width = dayCount > MAX_VISIBLE_DAYS 
+                ? baseWidth * (dayCount / MAX_VISIBLE_DAYS)
+                : baseWidth;
 
             canvas.width = width * dpr;
             canvas.height = height * dpr;
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
+
+            // Auto-scroll to show active date if canvas is wider than parent
+            if (width > baseWidth) {
+                requestAnimationFrame(() => {
+                    // Scroll to active date if it exists, otherwise scroll to newest days
+                    scrollChartToDate(activeLogDate);
+                });
+            }
 
             ctx.scale(dpr, dpr);
             ctx.clearRect(0, 0, width, height);
@@ -1821,18 +2183,6 @@
             ctx.fillRect(padding.left, padding.top + chartHeight / 2, chartWidth, chartHeight / 2);
             ctx.restore();
 
-            // Background grid
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = '#e5e7eb';
-            ctx.fillStyle = '#9ca3af';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle';
-
-            for (let yValue = 0; yValue <= 100; yValue += 10) {
-                // Linjer fjernet for et renere udtryk
-            }
-
             if (!data.length) {
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -1842,7 +2192,24 @@
                 return;
             }
 
-            const average = data.reduce((sum, entry) => sum + entry.status, 0) / data.length;
+            // Calculate average as: average of all days' averages
+            // Group raw data by date
+            const groupedByDate = rawData.reduce((acc, entry) => {
+                if (!entry || !entry.dateKey) return acc;
+                if (!acc[entry.dateKey]) {
+                    acc[entry.dateKey] = [];
+                }
+                acc[entry.dateKey].push(entry);
+                return acc;
+            }, {});
+            
+            // Calculate average per day, then average of those
+            const dayAverages = Object.values(groupedByDate).map(dayEntries => {
+                return dayEntries.reduce((sum, e) => sum + e.status, 0) / dayEntries.length;
+            });
+            const average = dayAverages.length > 0 
+                ? dayAverages.reduce((sum, avg) => sum + avg, 0) / dayAverages.length 
+                : 0;
             const yAverage = padding.top + chartHeight - (average / 100) * chartHeight;
 
             // Average zone
@@ -1864,35 +2231,152 @@
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Lilla graf
-            const step = chartWidth / Math.max(data.length - 1, 1);
+            // Sort data by x for line drawing
+            const sortedData = data.slice().sort((a, b) => a.x - b.x);
+
+            // No padding - chart starts at kl. 00:00 of first day and ends at kl. 24:00 of last day
+            const xMin = 0; // First day starts at index 0 (kl. 00:00)
+            // Last day index is (labels.length - 1), kl. 24:00 is at (labels.length - 1) + 1.0 = labels.length
+            const xMax = labels.length > 1 ? labels.length : 1;
+            const xRange = xMax - xMin;
+            
+            // Draw line connecting points
+            const step = labels.length > 1 ? chartWidth / xRange : chartWidth;
             ctx.strokeStyle = '#8b5cf6';
-            ctx.lineWidth = 7;
+            ctx.lineWidth = 5;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
             ctx.beginPath();
 
-            data.forEach((entry, index) => {
-                const x = padding.left + (data.length === 1 ? chartWidth / 2 : index * step);
-                const y = padding.top + chartHeight - (entry.status / 100) * chartHeight;
+            if (sortedData.length === 0) {
+                // No data, don't draw line
+            } else if (sortedData.length === 1) {
+                // Single point: draw horizontal line from first day's kl. 00:00 to end of last day (kl. 24:00)
+                const point = sortedData[0];
+                const x = padding.left + (labels.length === 1 ? chartWidth / 2 : (point.x - xMin) * step);
+                const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
+                const firstDayStartX = padding.left + (0 - xMin) * step; // kl. 00:00 of first day
+                const lastDayIndex = labels.length - 1;
+                const lastDayEndX = padding.left + ((lastDayIndex + 1.0) - xMin) * step;
+                ctx.moveTo(firstDayStartX, y);
+                ctx.lineTo(lastDayEndX, y);
+            } else {
+                // Multiple points: horizontal line to first, connect all, horizontal line from last
+                const firstPoint = sortedData[0];
+                const lastPoint = sortedData[sortedData.length - 1];
+                const firstX = padding.left + (labels.length === 1 ? chartWidth / 2 : (firstPoint.x - xMin) * step);
+                const firstY = padding.top + chartHeight - (firstPoint.y / 100) * chartHeight;
+                const lastX = padding.left + (labels.length === 1 ? chartWidth / 2 : (lastPoint.x - xMin) * step);
+                const lastY = padding.top + chartHeight - (lastPoint.y / 100) * chartHeight;
 
-                if (index === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            });
+                // Convert points to screen coordinates
+                const screenPoints = sortedData.map((point) => ({
+                    x: padding.left + (labels.length === 1 ? chartWidth / 2 : (point.x - xMin) * step),
+                    y: padding.top + chartHeight - (point.y / 100) * chartHeight
+                }));
+
+                // Start with horizontal line from first day's kl. 00:00 to first point
+                const firstDayStartX = padding.left + (0 - xMin) * step; // kl. 00:00 of first day
+                ctx.moveTo(firstDayStartX, screenPoints[0].y);
+                ctx.lineTo(screenPoints[0].x, screenPoints[0].y);
+
+                // Connect all points with straight lines
+                sortedData.forEach((point, index) => {
+                    const x = padding.left + (labels.length === 1 ? chartWidth / 2 : (point.x - xMin) * step);
+                    const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
+
+                    if (index === 0) {
+                        ctx.lineTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+
+                // End with horizontal line from last point to end of last day (kl. 24:00)
+                // Last day index is (labels.length - 1), so kl. 24:00 is at (labels.length - 1) + 1.0 = labels.length
+                const lastDayIndex = labels.length - 1;
+                const lastDayEndX = padding.left + ((lastDayIndex + 1.0) - xMin) * step;
+                ctx.lineTo(lastDayEndX, lastY);
+            }
             ctx.stroke();
 
-            // Points
-            ctx.fillStyle = '#8b5cf6';
-            data.forEach((entry, index) => {
-                const x = padding.left + (data.length === 1 ? chartWidth / 2 : index * step);
-                const y = padding.top + chartHeight - (entry.status / 100) * chartHeight;
+            // Draw midnight markers (kl. 24) in detailed view only
+            if (checkinDetailedView && labels.length > 0) {
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 1;
+                // Solid line (no dash)
+                
+                labels.forEach((dateKey, index) => {
+                    // Calculate x position for midnight (kl. 24) - this is at the end of each day (index + 1.0)
+                    // This represents 24:00 / 00:00 of the next day
+                    const x = padding.left + ((index + 1.0) - xMin) * step;
+                    
+                    // Draw vertical line from top to bottom of chart area
+                    ctx.beginPath();
+                    ctx.moveTo(x, padding.top);
+                    ctx.lineTo(x, padding.top + chartHeight);
+                    ctx.stroke();
+                });
+            }
 
-                ctx.beginPath();
-                ctx.arc(x, y, 10, 0, Math.PI * 2);
-                ctx.fill();
+            // Store point positions for hover detection
+            const pointPositions = [];
+
+            // Draw points
+            if (checkinDetailedView && sortedData.length > 0) {
+                console.log('Rendering points:', {
+                    firstPoint: sortedData[0],
+                    xMin,
+                    xMax,
+                    xRange,
+                    step,
+                    chartWidth
+                });
+            }
+            
+            sortedData.forEach((point, idx) => {
+                const x = padding.left + (labels.length === 1 ? chartWidth / 2 : (point.x - xMin) * step);
+                const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
+                const radius = point.size / 15;
+                const isHollow = !checkinDetailedView && point.count > 1;
+
+                // Skip if coordinates are invalid
+                if (isNaN(x) || isNaN(y) || isNaN(radius)) {
+                    console.warn('Invalid point coordinates:', { x, y, radius, point });
+                    return;
+                }
+                
+                // Debug first few points
+                if (checkinDetailedView && idx < 5) {
+                    console.log('Point rendering:', {
+                        pointX: point.x,
+                        calculatedX: x,
+                        time: point.time,
+                        date: point.date
+                    });
+                }
+
+                pointPositions.push({
+                    x, y, radius, point
+                });
+
+                if (isHollow) {
+                    // Hollow circle for multiple entries in simple view
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.strokeStyle = '#8b5cf6';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                } else {
+                    // Filled circle - darker for single entries (size 100)
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    const isSingleEntry = point.size === 100;
+                    ctx.fillStyle = isSingleEntry ? '#6d28d9' : '#8b5cf6'; // Darker purple for single entries
+                    ctx.fill();
+                }
             });
 
             // X-axis labels
@@ -1901,14 +2385,70 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
 
-            data.forEach((entry, index) => {
-                const x = padding.left + (data.length === 1 ? chartWidth / 2 : index * step);
-                const label = entry.date.toLocaleDateString('da-DK', {
+            labels.forEach((dateKey, index) => {
+                // Position labels at noon (kl. 12) - index + 0.5
+                const x = padding.left + (labels.length === 1 ? chartWidth / 2 : (index + 0.5 - xMin) * step);
+                const dateObj = new Date(dateKey);
+                const label = dateObj.toLocaleDateString('da-DK', {
                     day: '2-digit',
                     month: 'short'
                 });
                 ctx.fillText(label, x, height - padding.bottom + 12);
             });
+
+            // Hover functionality - remove old listeners first
+            const oldMouseMove = canvas.onmousemove;
+            const oldMouseLeave = canvas.onmouseleave;
+            canvas.onmousemove = null;
+            canvas.onmouseleave = null;
+
+            // Use a single event handler function
+            const handleMouseMove = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width) / dpr;
+                const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height) / dpr;
+
+                let hoveredPoint = null;
+                for (const pos of pointPositions) {
+                    const distance = Math.sqrt(Math.pow(mouseX - pos.x, 2) + Math.pow(mouseY - pos.y, 2));
+                    if (distance <= pos.radius + 5) {
+                        hoveredPoint = pos;
+                        break;
+                    }
+                }
+
+                if (hoveredPoint) {
+                    tooltip.style.display = 'block';
+                    if (checkinDetailedView) {
+                        // Detailed view: show time and value
+                        tooltip.innerHTML = `
+                            <p>Tid: ${hoveredPoint.point.time || 'N/A'}</p>
+                            <p>Værdi: ${hoveredPoint.point.y}</p>
+                        `;
+                    } else {
+                        // Simple view: show only value
+                        tooltip.innerHTML = `
+                            <p>Værdi: ${hoveredPoint.point.y}</p>
+                        `;
+                    }
+                    const tooltipX = e.clientX - rect.left + 10;
+                    const tooltipY = e.clientY - rect.top - 40;
+                    tooltip.style.left = `${tooltipX}px`;
+                    tooltip.style.top = `${tooltipY}px`;
+                    canvas.style.cursor = 'pointer';
+                } else {
+                    tooltip.style.display = 'none';
+                    canvas.style.cursor = 'default';
+                }
+            };
+
+            const handleMouseLeave = () => {
+                tooltip.style.display = 'none';
+                canvas.style.cursor = 'default';
+            };
+
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseleave', handleMouseLeave);
         }
 
         // DEBUG HELPERS - remove before production
@@ -2090,6 +2630,22 @@
                     body.classList.remove('expanded');
                 }
             });
+
+            // Toggle view button
+            const toggleViewBtn = document.getElementById('toggleCheckinView');
+            if (toggleViewBtn) {
+                const updateToggleButton = () => {
+                    toggleViewBtn.textContent = checkinDetailedView ? 'Detaljeret' : 'Simpel';
+                    toggleViewBtn.classList.toggle('active', !checkinDetailedView);
+                };
+                updateToggleButton();
+
+                toggleViewBtn.addEventListener('click', () => {
+                    checkinDetailedView = !checkinDetailedView;
+                    updateToggleButton();
+                    renderCheckinChart();
+                });
+            }
         }
 
         function hydrateHeaderDates() {
@@ -2260,6 +2816,7 @@
 
             window.addEventListener('storage', handleLogbookStorageEvent);
             window.addEventListener('storage', handleBodymapStorageEvent);
+            window.addEventListener('storage', handleOpstillingStorageEvent);
 
             const historySidebar = document.getElementById('logHistorySidebar');
             if (historySidebar) {

@@ -747,6 +747,11 @@
             transform: scale(1.1);
         }
         
+        .collapse-toggle-bottom {
+            top: auto;
+            bottom: 8px;
+        }
+        
         .history-header {
             position: relative;
         }
@@ -1484,6 +1489,7 @@
                     </div>
                     <div class="history-list" id="historyList"></div>
                 </div>
+                <button class="collapse-toggle collapse-toggle-bottom" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
             </div>
         </div>
     </div>
@@ -2192,12 +2198,12 @@
             const isCollapsed = localStorage.getItem('body_historySidebarCollapsed') === 'true';
             const sidebar = document.getElementById('historySidebar');
             if (sidebar) {
-                const toggleBtn = sidebar.querySelector('.collapse-toggle');
+                const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
                 if (isCollapsed) {
                     sidebar.classList.add('collapsed');
-                    if (toggleBtn) toggleBtn.textContent = '<';
+                    toggleBtns.forEach(btn => btn.textContent = '<');
                 } else {
-                    if (toggleBtn) toggleBtn.textContent = '>';
+                    toggleBtns.forEach(btn => btn.textContent = '>');
                 }
             }
             updateLayerToggleUI();
@@ -2540,13 +2546,17 @@
         // Toggle history sidebar collapse/expand
         function toggleHistorySidebar() {
             const sidebar = document.getElementById('historySidebar');
-            const toggleBtn = sidebar.querySelector('.collapse-toggle');
+            const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
+            if (!sidebar || !toggleBtns.length) return;
+            
             sidebar.classList.toggle('collapsed');
             // Save state to localStorage
             const isCollapsed = sidebar.classList.contains('collapsed');
             localStorage.setItem('body_historySidebarCollapsed', isCollapsed);
             // Update arrow direction: > when expanded, < when collapsed
-            toggleBtn.textContent = isCollapsed ? '<' : '>';
+            toggleBtns.forEach(btn => {
+                btn.textContent = isCollapsed ? '<' : '>';
+            });
         }
         
         function createNewIndex(options = {}) {
