@@ -760,25 +760,20 @@
         }
 
         .checkin-view-toggle {
-            padding: 6px 12px;
-            background: #4f46e5;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
+            width: 40px;
+            height: 40px;
             cursor: pointer;
             transition: all 0.3s ease;
             margin-right: 40px;
+            background: white;
+            border-radius: 8px;
+            padding: 6px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
         }
 
         .checkin-view-toggle:hover {
-            background: #4338ca;
-            transform: translateY(-1px);
-        }
-
-        .checkin-view-toggle.active {
-            background: #10b981;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
         .chart-tooltip {
@@ -969,7 +964,7 @@
                             <div class="card-title">
                                 <strong>CHECKINS</strong>
                             </div>
-                            <button class="checkin-view-toggle" id="toggleCheckinView" title="Skift visning">Detaljeret</button>
+                            <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="Skift visning" title="Skift visning">
                     <button class="collapse-btn" id="toggleCheckins" title="Fold checkins">
                         <span class="arrow">&gt;</span>
                     </button>
@@ -2323,17 +2318,6 @@
             const pointPositions = [];
 
             // Draw points
-            if (checkinDetailedView && sortedData.length > 0) {
-                console.log('Rendering points:', {
-                    firstPoint: sortedData[0],
-                    xMin,
-                    xMax,
-                    xRange,
-                    step,
-                    chartWidth
-                });
-            }
-            
             sortedData.forEach((point, idx) => {
                 const x = padding.left + (labels.length === 1 ? chartWidth / 2 : (point.x - xMin) * step);
                 const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
@@ -2342,18 +2326,7 @@
 
                 // Skip if coordinates are invalid
                 if (isNaN(x) || isNaN(y) || isNaN(radius)) {
-                    console.warn('Invalid point coordinates:', { x, y, radius, point });
                     return;
-                }
-                
-                // Debug first few points
-                if (checkinDetailedView && idx < 5) {
-                    console.log('Point rendering:', {
-                        pointX: point.x,
-                        calculatedX: x,
-                        time: point.time,
-                        date: point.date
-                    });
                 }
 
                 pointPositions.push({
@@ -2635,8 +2608,9 @@
             const toggleViewBtn = document.getElementById('toggleCheckinView');
             if (toggleViewBtn) {
                 const updateToggleButton = () => {
-                    toggleViewBtn.textContent = checkinDetailedView ? 'Detaljeret' : 'Simpel';
-                    toggleViewBtn.classList.toggle('active', !checkinDetailedView);
+                    toggleViewBtn.src = checkinDetailedView 
+                        ? 'imagefiles/simpleCurve.svg' 
+                        : 'imagefiles/detailedCurve.svg';
                 };
                 updateToggleButton();
 
