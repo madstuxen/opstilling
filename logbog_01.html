@@ -2314,7 +2314,7 @@
                     if (info.hasEntries) {
                         displayTime = info.latestTime || displayTime;
                         displayText = info.displayText || displayText;
-                        const compareLabel = info.count === 1 ? '1 sammenligning' : `${info.count} sammenligninger`;
+                        const compareLabel = info.count === 1 ? '1 sammen-<br>ligning' : `${info.count} sammen-<br>ligninger`;
                         badgeText = compareLabel;
                     } else {
                         isEmptyState = true;
@@ -2352,7 +2352,11 @@
                     if (badgeText) {
                         const badgeEl = document.createElement('div');
                         badgeEl.className = 'activity-meta';
-                        badgeEl.textContent = badgeText;
+                        if (activity.type === 'relationer') {
+                            badgeEl.innerHTML = badgeText;
+                        } else {
+                            badgeEl.textContent = badgeText;
+                        }
                         tile.appendChild(badgeEl);
                     }
                 }
