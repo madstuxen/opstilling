@@ -1222,9 +1222,9 @@
                 <button class="checkin-modal-close" id="closeCheckinModal">&times;</button>
             </div>
             <div class="checkin-slider-container">
-                <img src="imagefiles/sun.svg" alt="Høj energi" class="checkin-slider-icon checkin-slider-icon-left">
+                <img src="imagefiles/cloud.svg" alt="Lav energi" class="checkin-slider-icon checkin-slider-icon-left">
                 <input type="range" min="0" max="100" value="50" class="checkin-slider" id="checkinSlider">
-                <img src="imagefiles/cloud.svg" alt="Lav energi" class="checkin-slider-icon checkin-slider-icon-right">
+                <img src="imagefiles/sun.svg" alt="Høj energi" class="checkin-slider-icon checkin-slider-icon-right">
             </div>
             <div class="checkin-slider-value" id="checkinSliderValue">50</div>
             <button class="checkin-save-btn" id="saveCheckinBtn">Check-in</button>
@@ -2384,8 +2384,16 @@
         let checkinDetailedView = false; // Default to simple view
         let checkinDaysView = 5; // Default to 5 days
 
+        // Temporary debug data storage (doesn't overwrite localStorage)
+        let debugCheckinData = null;
+
         async function loadCheckinData() {
             try {
+                // If debug data is loaded, use it instead of localStorage
+                if (debugCheckinData !== null) {
+                    return debugCheckinData;
+                }
+
                 // Load from localStorage
                 const raw = localStorage.getItem('forside_checkin_data');
                 if (!raw) {
@@ -2415,7 +2423,7 @@
 
         function processCheckinData(data) {
             if (!data || !Array.isArray(data) || data.length === 0) {
-                return { data: [], labels: [] };
+                return { data: [], labels: [], totalDays: 0 };
             }
 
             // Group by date
@@ -2429,15 +2437,14 @@
             }, {});
 
             // Get unique dates with data, sorted (oldest first for display)
+            // Always use ALL days - no filtering
             const allUniqueDates = Object.keys(groupedByDate).sort();
-            
-            // Only show the last checkinDaysView days
-            const uniqueDates = allUniqueDates.slice(-checkinDaysView);
 
             if (checkinDetailedView) {
                 // Detailed view: show all entries with horizontal offset
                 const processedData = [];
-                uniqueDates.forEach((dateKey, dateIndex) => {
+                // Process ALL days, not just the visible ones
+                allUniqueDates.forEach((dateKey, dateIndex) => {
                     const dayEntries = groupedByDate[dateKey];
                     const isMorning = (timeStr) => {
                         const hour = parseInt(timeStr.split(':')[0]);
@@ -2495,10 +2502,11 @@
                         });
                     }
                 });
-                return { data: processedData, labels: uniqueDates };
+                return { data: processedData, labels: allUniqueDates, totalDays: allUniqueDates.length };
             } else {
                 // Simple view: average per day, positioned at noon (kl. 12)
-                const processedData = uniqueDates.map((dateKey, dateIndex) => {
+                // Process ALL days, not just the visible ones
+                const processedData = allUniqueDates.map((dateKey, dateIndex) => {
                     const dayEntries = groupedByDate[dateKey];
                     const avgStatus = dayEntries.reduce((sum, e) => sum + e.status, 0) / dayEntries.length;
                     return {
@@ -2510,7 +2518,7 @@
                         originalDate: dayEntries[0].date
                     };
                 });
-                return { data: processedData, labels: uniqueDates };
+                return { data: processedData, labels: allUniqueDates, totalDays: allUniqueDates.length };
             }
         }
 
@@ -2520,7 +2528,7 @@
             const tooltip = document.getElementById('checkinTooltip');
             const ctx = canvas.getContext('2d');
             const rawData = await loadCheckinData();
-            const { data, labels } = processCheckinData(rawData);
+            const { data, labels, totalDays } = processCheckinData(rawData);
             const parent = canvas.parentElement;
 
             const dpr = window.devicePixelRatio || 1;
@@ -2528,9 +2536,9 @@
             const height = 240;
             
             // Calculate canvas width: if we have more than checkinDaysView days, make it wider for scrolling
-            const dayCount = labels.length;
-            const width = dayCount > checkinDaysView 
-                ? baseWidth * (dayCount / checkinDaysView)
+            // Use totalDays (all available data) instead of labels.length (filtered data) for width calculation
+            const width = totalDays > checkinDaysView 
+                ? baseWidth * (totalDays / checkinDaysView)
                 : baseWidth;
 
             canvas.width = width * dpr;
@@ -2636,6 +2644,7 @@
                 const x = padding.left + (point.x - xMin) * step;
                 const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
                 const firstDayStartX = padding.left + (0 - xMin) * step; // kl. 00:00 of first day
+                // Use the actual last day index from all labels (all available data)
                 const lastDayIndex = labels.length - 1;
                 const lastDayEndX = padding.left + ((lastDayIndex + 1.0) - xMin) * step;
                 ctx.moveTo(firstDayStartX, y);
@@ -2673,7 +2682,7 @@
                 });
 
                 // End with horizontal line from last point to end of last day (kl. 24:00)
-                // Last day index is (labels.length - 1), so kl. 24:00 is at (labels.length - 1) + 1.0 = labels.length
+                // Use the actual last day index from all labels (all available data) for proper scrolling
                 const lastDayIndex = labels.length - 1;
                 const lastDayEndX = padding.left + ((lastDayIndex + 1.0) - xMin) * step;
                 ctx.lineTo(lastDayEndX, lastY);
@@ -2960,6 +2969,51 @@
             } catch (error) {
                 console.error('Failed to load debug body data:', error);
             }
+        }
+
+        async function read_debug_checkin() {
+            console.warn('read_debug_checkin is a temporary debugging helper and should be removed before release.');
+            try {
+                const response = await fetch('testcheckin.json', { cache: 'no-cache' });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} ${response.statusText}`);
+                }
+                const payload = await response.json();
+                if (!Array.isArray(payload)) {
+                    throw new Error('testcheckin.json does not contain an array');
+                }
+
+                // Convert to the same format as loadCheckinData returns
+                const processedData = payload
+                    .filter(entry => entry && typeof entry === 'object' && typeof entry.status === 'number')
+                    .map(entry => {
+                        const dateObj = entry.date ? new Date(entry.date) : new Date();
+                        return {
+                            date: dateObj,
+                            status: Math.max(0, Math.min(100, Number(entry.status))),
+                            dateKey: dateObj.toISOString().split('T')[0],
+                            time: dateObj.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', hour12: false })
+                        };
+                    })
+                    .sort((a, b) => a.date - b.date);
+
+                // Store in debug variable (doesn't overwrite localStorage)
+                debugCheckinData = processedData;
+                
+                // Re-render chart with debug data
+                renderCheckinChart();
+                
+                console.info(`Loaded ${processedData.length} check-in entries from testcheckin.json (temporary, not saved to localStorage)`);
+            } catch (error) {
+                console.error('Failed to load debug check-in data:', error);
+            }
+        }
+
+        // Function to clear debug data and return to localStorage
+        function clear_debug_checkin() {
+            debugCheckinData = null;
+            renderCheckinChart();
+            console.info('Cleared debug check-in data, returning to localStorage');
         }
 
         function initCheckinViewToggle() {
