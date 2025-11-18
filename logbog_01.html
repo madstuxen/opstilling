@@ -579,7 +579,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            padding: 18px;
+            padding: 0;
             border-radius: 18px;
         }
 
@@ -588,6 +588,7 @@
         }
 
         .dreams-entry {
+            padding: 18px;
             background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(124, 58, 237, 0.12) 100%);
             border: 1px solid rgba(124, 58, 237, 0.2);
         }
@@ -602,6 +603,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            padding-left: 18px;
         }
 
         .journal-title {
@@ -727,6 +729,7 @@
 
         .dreams-entry textarea {
             min-height: 160px;
+            padding: 18px;
             background: rgba(139, 92, 246, 0.08);
             border: 1px solid rgba(124, 58, 237, 0.25);
             color: #312e81;
@@ -751,29 +754,81 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
+            padding-bottom: 9px;
         }
 
-        .checkins-header .collapse-btn {
-            position: absolute;
-            top: -10px;
-            right: 0;
-        }
 
         .checkin-view-toggle {
             width: 40px;
             height: 40px;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-right: 40px;
+            margin-right: 0;
             background: white;
             border-radius: 8px;
-            padding: 6px;
+            padding: 0;
             box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            display: block;
+            object-fit: cover;
         }
 
         .checkin-view-toggle:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .checkin-add-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: white;
+            color: #7c3aed;
+            font-size: 28px;
+            font-weight: 300;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .checkin-add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
+
+        .checkin-days-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: white;
+            color: #7c3aed;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .checkin-days-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+        }
+
+        .checkin-days-btn.active {
+            background: #7c3aed;
+            color: white;
         }
 
         .chart-tooltip {
@@ -827,13 +882,8 @@
         }
 
         .checkins-body {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease;
-        }
-
-        .checkins-body.expanded {
-            max-height: 480px;
+            max-height: none;
+            overflow: visible;
         }
 
         .chart-wrapper {
@@ -892,6 +942,151 @@
             width: 16px;
             height: 16px;
             border-radius: 999px;
+        }
+
+        .checkin-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.35);
+            z-index: 5001;
+        }
+
+        .checkin-modal.show {
+            display: flex;
+        }
+
+        .checkin-modal-content {
+            background: white;
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+            width: 90%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .checkin-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .checkin-modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .checkin-modal-close {
+            background: none;
+            border: none;
+            font-size: 32px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+
+        .checkin-modal-close:hover {
+            color: #1f2937;
+        }
+
+        .checkin-slider-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            padding: 10px 0;
+        }
+
+        .checkin-slider-icon {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+        }
+
+        .checkin-slider {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: #e5e7eb;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .checkin-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #7c3aed;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .checkin-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+        }
+
+        .checkin-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #7c3aed;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .checkin-slider::-moz-range-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+        }
+
+        .checkin-slider-value {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #7c3aed;
+        }
+
+        .checkin-save-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        .checkin-save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+        }
+
+        .checkin-save-btn:active {
+            transform: translateY(0);
         }
 
         .empty-state {
@@ -964,10 +1159,13 @@
                             <div class="card-title">
                                 <strong>CHECKINS</strong>
                             </div>
-                            <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="Skift visning" title="Skift visning">
-                    <button class="collapse-btn" id="toggleCheckins" title="Fold checkins">
-                        <span class="arrow">&gt;</span>
-                    </button>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 18px;">
+                                <button class="checkin-days-btn" data-days="1" title="Vis 1 dag">1</button>
+                                <button class="checkin-days-btn" data-days="5" title="Vis 5 dage">5</button>
+                                <button class="checkin-days-btn" data-days="10" title="Vis 10 dage">10</button>
+                                <button class="checkin-add-btn" id="openCheckinModal" title="Tilføj check-in">+</button>
+                                <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="Skift visning" title="Skift visning">
+                            </div>
                         </div>
                         <div class="checkins-body" id="checkinsBody">
                             <div style="position: relative;">
@@ -1001,6 +1199,22 @@
         </div>
     </div>
     <div class="nav-overlay" id="navOverlay"></div>
+
+    <div class="checkin-modal" id="checkinModal">
+        <div class="checkin-modal-content">
+            <div class="checkin-modal-header">
+                <h2>Check-in</h2>
+                <button class="checkin-modal-close" id="closeCheckinModal">&times;</button>
+            </div>
+            <div class="checkin-slider-container">
+                <img src="imagefiles/sun.svg" alt="Høj energi" class="checkin-slider-icon checkin-slider-icon-left">
+                <input type="range" min="0" max="100" value="50" class="checkin-slider" id="checkinSlider">
+                <img src="imagefiles/cloud.svg" alt="Lav energi" class="checkin-slider-icon checkin-slider-icon-right">
+            </div>
+            <div class="checkin-slider-value" id="checkinSliderValue">50</div>
+            <button class="checkin-save-btn" id="saveCheckinBtn">Check-in</button>
+        </div>
+    </div>
 
     <script>
         const activityStyles = {
@@ -1056,7 +1270,7 @@
             {
                 id: 4,
                 type: 'relationer',
-                label: 'Forskelle',
+                label: 'Ligheder',
                 text: 'Forskel far',
                 time: '18:45',
             }
@@ -1067,6 +1281,7 @@
         const BODYMAP_STORAGE_KEY = 'bodymapData';
         const DIALOG_STORAGE_KEY = 'dialogData';
         const OPSTILLING_STORAGE_KEY = 'opstillingData';
+        const COMPARE_STORAGE_KEY = 'compareData';
 
         function getTodayDateKey() {
             return new Date().toISOString().split('T')[0];
@@ -1152,6 +1367,13 @@
                 if (!raw) return null;
                 const parsed = JSON.parse(raw);
                 if (!parsed || typeof parsed !== 'object') return null;
+                
+                // Check if it's the new structure (has collections)
+                if (parsed.collections && Array.isArray(parsed.collections)) {
+                    return parsed; // Return new structure
+                }
+                
+                // Legacy structure - return old format for backwards compatibility
                 const sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
                 return { sessions, activeDialogId: parsed.activeDialogId || null };
             } catch (error) {
@@ -1168,6 +1390,18 @@
                 return parsed && typeof parsed === 'object' ? parsed : null;
             } catch (error) {
                 console.warn('Kunne ikke læse opstillingData:', error);
+                return null;
+            }
+        }
+
+        function getCompareData() {
+            try {
+                const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : null;
+            } catch (error) {
+                console.warn('Kunne ikke læse compareData:', error);
                 return null;
             }
         }
@@ -1349,7 +1583,62 @@
             }
 
             const dialogData = getDialogData();
-            if (!dialogData || !Array.isArray(dialogData.sessions) || !dialogData.sessions.length) {
+            if (!dialogData) {
+                return { hasEntries: false };
+            }
+
+            // Check if it's the new structure (has collections)
+            if (dialogData.collections && Array.isArray(dialogData.collections)) {
+                const matches = [];
+                dialogData.collections.forEach(collection => {
+                    if (!Array.isArray(collection.dialogs)) return;
+                    collection.dialogs.forEach(dialog => {
+                        const source = dialog.timestamp || dialog.updated;
+                        if (!source) return;
+                        const timestamp = new Date(source);
+                        if (Number.isNaN(timestamp.getTime())) return;
+                        const normalized = formatDateKey(timestamp);
+                        if (normalized !== dateKey) return;
+                        matches.push({ dialog, collection, timestamp });
+                    });
+                });
+
+                if (!matches.length) {
+                    return { hasEntries: false };
+                }
+
+                matches.sort((a, b) => b.timestamp - a.timestamp);
+                const latest = matches[0];
+                const leftParticipant = latest.dialog.participants?.left || {};
+                const rightParticipant = latest.dialog.participants?.right || {};
+                let leftName = leftParticipant.name || 'Venstre';
+                let rightName = rightParticipant.name || 'Højre';
+                
+                // Truncate names to 10 characters with ".."
+                const truncateName = (name) => {
+                    if (name.length > 10) {
+                        return name.substring(0, 10) + '..';
+                    }
+                    return name;
+                };
+                leftName = truncateName(leftName);
+                rightName = truncateName(rightName);
+                
+                const messageCount = Array.isArray(latest.dialog.messages) ? latest.dialog.messages.length : 0;
+                const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+
+                const count = matches.length;
+                return {
+                    hasEntries: true,
+                    displayText: `${leftName} & ${rightName}`,
+                    latestTime,
+                    messageCount,
+                    count
+                };
+            }
+
+            // Legacy structure (old sessions format)
+            if (!Array.isArray(dialogData.sessions) || !dialogData.sessions.length) {
                 return { hasEntries: false };
             }
 
@@ -1433,6 +1722,64 @@
                 displayText,
                 latestTime,
                 partsCount,
+                count
+            };
+        }
+
+        function getCompareActivityInfo(dateKey) {
+            if (!dateKey) {
+                return { hasEntries: false };
+            }
+
+            const compareData = getCompareData();
+            if (!compareData || !Array.isArray(compareData.collections)) {
+                return { hasEntries: false };
+            }
+
+            const matches = [];
+            compareData.collections.forEach(collection => {
+                if (!Array.isArray(collection.comparisons)) return;
+                collection.comparisons.forEach(comparison => {
+                    const source = comparison.timestamp || comparison.updated;
+                    if (!source) return;
+                    const timestamp = new Date(source);
+                    if (Number.isNaN(timestamp.getTime())) return;
+                    const normalized = formatDateKey(timestamp);
+                    if (normalized !== dateKey) return;
+                    matches.push({ comparison, collection, timestamp });
+                });
+            });
+
+            if (!matches.length) {
+                return { hasEntries: false };
+            }
+
+            matches.sort((a, b) => b.timestamp - a.timestamp);
+            const latest = matches[0];
+            const leftParticipant = latest.comparison.leftParticipant || {};
+            const rightParticipant = latest.comparison.rightParticipant || {};
+            let leftName = leftParticipant.name || 'Venstre';
+            let rightName = rightParticipant.name || 'Højre';
+            
+            // Truncate names to 10 characters with ".."
+            const truncateName = (name) => {
+                if (name.length > 10) {
+                    return name.substring(0, 10) + '..';
+                }
+                return name;
+            };
+            leftName = truncateName(leftName);
+            rightName = truncateName(rightName);
+            
+            const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+
+            const count = matches.length;
+            const displayText = `${leftName} & ${rightName}`;
+
+            return {
+                hasEntries: true,
+                displayText,
+                latestTime,
                 count
             };
         }
@@ -1711,6 +2058,11 @@
             renderActivitiesForDate(activeLogDate);
         }
 
+        function handleCompareStorageEvent(event) {
+            if (event.key && event.key !== COMPARE_STORAGE_KEY) return;
+            renderActivitiesForDate(activeLogDate);
+        }
+
         function updateLogHistoryNavState() {
             const entries = getSortedLogEntries();
             const prevBtn = document.getElementById('logHistoryPrev');
@@ -1957,6 +2309,17 @@
                         isEmptyState = true;
                         emptyTextLabel = 'Lav en opstilling';
                     }
+                } else if (activity.type === 'relationer') {
+                    const info = getCompareActivityInfo(normalizedKey);
+                    if (info.hasEntries) {
+                        displayTime = info.latestTime || displayTime;
+                        displayText = info.displayText || displayText;
+                        const compareLabel = info.count === 1 ? '1 sammenligning' : `${info.count} sammenligninger`;
+                        badgeText = compareLabel;
+                    } else {
+                        isEmptyState = true;
+                        emptyTextLabel = 'Find ligheder';
+                    }
                 }
 
                 if (isEmptyState) {
@@ -1999,7 +2362,8 @@
             });
         }
 
-        let checkinDetailedView = true;
+        let checkinDetailedView = false; // Default to simple view
+        let checkinDaysView = 5; // Default to 5 days
 
         async function loadCheckinData() {
             try {
@@ -2046,7 +2410,10 @@
             }, {});
 
             // Get unique dates with data, sorted (oldest first for display)
-            const uniqueDates = Object.keys(groupedByDate).sort();
+            const allUniqueDates = Object.keys(groupedByDate).sort();
+            
+            // Only show the last checkinDaysView days
+            const uniqueDates = allUniqueDates.slice(-checkinDaysView);
 
             if (checkinDetailedView) {
                 // Detailed view: show all entries with horizontal offset
@@ -2141,11 +2508,10 @@
             const baseWidth = parent.clientWidth;
             const height = 240;
             
-            // Calculate canvas width: if we have more than 7 days, make it wider for scrolling
-            const MAX_VISIBLE_DAYS = 7;
+            // Calculate canvas width: if we have more than checkinDaysView days, make it wider for scrolling
             const dayCount = labels.length;
-            const width = dayCount > MAX_VISIBLE_DAYS 
-                ? baseWidth * (dayCount / MAX_VISIBLE_DAYS)
+            const width = dayCount > checkinDaysView 
+                ? baseWidth * (dayCount / checkinDaysView)
                 : baseWidth;
 
             canvas.width = width * dpr;
@@ -2232,11 +2598,11 @@
             // No padding - chart starts at kl. 00:00 of first day and ends at kl. 24:00 of last day
             const xMin = 0; // First day starts at index 0 (kl. 00:00)
             // Last day index is (labels.length - 1), kl. 24:00 is at (labels.length - 1) + 1.0 = labels.length
-            const xMax = labels.length > 1 ? labels.length : 1;
+            const xMax = labels.length;
             const xRange = xMax - xMin;
             
             // Draw line connecting points
-            const step = labels.length > 1 ? chartWidth / xRange : chartWidth;
+            const step = chartWidth / xRange;
             ctx.strokeStyle = '#8b5cf6';
             ctx.lineWidth = 5;
             ctx.lineJoin = 'round';
@@ -2248,7 +2614,7 @@
             } else if (sortedData.length === 1) {
                 // Single point: draw horizontal line from first day's kl. 00:00 to end of last day (kl. 24:00)
                 const point = sortedData[0];
-                const x = padding.left + (labels.length === 1 ? chartWidth / 2 : (point.x - xMin) * step);
+                const x = padding.left + (point.x - xMin) * step;
                 const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
                 const firstDayStartX = padding.left + (0 - xMin) * step; // kl. 00:00 of first day
                 const lastDayIndex = labels.length - 1;
@@ -2259,14 +2625,14 @@
                 // Multiple points: horizontal line to first, connect all, horizontal line from last
                 const firstPoint = sortedData[0];
                 const lastPoint = sortedData[sortedData.length - 1];
-                const firstX = padding.left + (labels.length === 1 ? chartWidth / 2 : (firstPoint.x - xMin) * step);
+                const firstX = padding.left + (firstPoint.x - xMin) * step;
                 const firstY = padding.top + chartHeight - (firstPoint.y / 100) * chartHeight;
-                const lastX = padding.left + (labels.length === 1 ? chartWidth / 2 : (lastPoint.x - xMin) * step);
+                const lastX = padding.left + (lastPoint.x - xMin) * step;
                 const lastY = padding.top + chartHeight - (lastPoint.y / 100) * chartHeight;
 
                 // Convert points to screen coordinates
                 const screenPoints = sortedData.map((point) => ({
-                    x: padding.left + (labels.length === 1 ? chartWidth / 2 : (point.x - xMin) * step),
+                    x: padding.left + (point.x - xMin) * step,
                     y: padding.top + chartHeight - (point.y / 100) * chartHeight
                 }));
 
@@ -2277,7 +2643,7 @@
 
                 // Connect all points with straight lines
                 sortedData.forEach((point, index) => {
-                    const x = padding.left + (labels.length === 1 ? chartWidth / 2 : (point.x - xMin) * step);
+                    const x = padding.left + (point.x - xMin) * step;
                     const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
 
                     if (index === 0) {
@@ -2319,7 +2685,7 @@
 
             // Draw points
             sortedData.forEach((point, idx) => {
-                const x = padding.left + (labels.length === 1 ? chartWidth / 2 : (point.x - xMin) * step);
+                const x = padding.left + (point.x - xMin) * step;
                 const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
                 const radius = point.size / 15;
                 const isHollow = !checkinDetailedView && point.count > 1;
@@ -2360,7 +2726,7 @@
 
             labels.forEach((dateKey, index) => {
                 // Position labels at noon (kl. 12) - index + 0.5
-                const x = padding.left + (labels.length === 1 ? chartWidth / 2 : (index + 0.5 - xMin) * step);
+                const x = padding.left + (index + 0.5 - xMin) * step;
                 const dateObj = new Date(dateKey);
                 const label = dateObj.toLocaleDateString('da-DK', {
                     day: '2-digit',
@@ -2577,33 +2943,7 @@
             }
         }
 
-        function initCollapsible() {
-            const button = document.getElementById('toggleCheckins');
-            const body = document.getElementById('checkinsBody');
-            const arrowEl = button.querySelector('.arrow');
-            let expanded = true;
-
-            const updateArrowRotation = () => {
-                if (!arrowEl) return;
-                arrowEl.style.transform = expanded ? 'rotate(-90deg)' : 'rotate(90deg)';
-            };
-
-            updateArrowRotation();
-            body.classList.add('expanded');
-            setTimeout(renderCheckinChart, 180);
-
-            button.addEventListener('click', () => {
-                expanded = !expanded;
-                updateArrowRotation();
-
-                if (expanded) {
-                    body.classList.add('expanded');
-                    setTimeout(renderCheckinChart, 180);
-                } else {
-                    body.classList.remove('expanded');
-                }
-            });
-
+        function initCheckinViewToggle() {
             // Toggle view button
             const toggleViewBtn = document.getElementById('toggleCheckinView');
             if (toggleViewBtn) {
@@ -2620,6 +2960,165 @@
                     renderCheckinChart();
                 });
             }
+        }
+
+        function initCheckinDaysButtons() {
+            const daysButtons = document.querySelectorAll('.checkin-days-btn');
+            if (!daysButtons.length) return;
+
+            // Set initial active button (5 days)
+            daysButtons.forEach(btn => {
+                const days = parseInt(btn.getAttribute('data-days'), 10);
+                if (days === checkinDaysView) {
+                    btn.classList.add('active');
+                }
+            });
+
+            daysButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const days = parseInt(btn.getAttribute('data-days'), 10);
+                    checkinDaysView = days;
+                    
+                    // If 1 day is selected, automatically enable detailed view
+                    if (days === 1) {
+                        checkinDetailedView = true;
+                        const toggleViewBtn = document.getElementById('toggleCheckinView');
+                        if (toggleViewBtn) {
+                            // Update toggle button icon to reflect detailed view
+                            toggleViewBtn.src = checkinDetailedView 
+                                ? 'imagefiles/simpleCurve.svg' 
+                                : 'imagefiles/detailedCurve.svg';
+                        }
+                    }
+                    
+                    // Update active state
+                    daysButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // Re-render chart with new days view
+                    renderCheckinChart();
+                });
+            });
+        }
+
+        function initCheckinModal() {
+            const modal = document.getElementById('checkinModal');
+            const openBtn = document.getElementById('openCheckinModal');
+            const closeBtn = document.getElementById('closeCheckinModal');
+            const slider = document.getElementById('checkinSlider');
+            const sliderValue = document.getElementById('checkinSliderValue');
+            const saveBtn = document.getElementById('saveCheckinBtn');
+
+            if (!modal || !openBtn || !closeBtn || !slider || !sliderValue || !saveBtn) return;
+
+            // Check if user can make a new check-in
+            const checkIfCanMakeCheckin = () => {
+                const now = new Date();
+                let existingData = [];
+                try {
+                    const raw = localStorage.getItem('forside_checkin_data');
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed)) {
+                            existingData = parsed;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Kunne ikke læse forside_checkin_data:', error);
+                }
+
+                // Check if there's a recent check-in (within last 30 minutes)
+                if (existingData.length > 0) {
+                    // Sort by date (newest first)
+                    const sortedData = existingData
+                        .filter(entry => entry && entry.date)
+                        .sort((a, b) => {
+                            const dateA = new Date(a.date).getTime();
+                            const dateB = new Date(b.date).getTime();
+                            return dateB - dateA;
+                        });
+
+                    if (sortedData.length > 0) {
+                        const lastEntry = sortedData[0];
+                        const lastDate = new Date(lastEntry.date);
+                        const timeDiff = now.getTime() - lastDate.getTime();
+                        const thirtyMinutes = 30 * 60 * 1000; // milliseconds in 30 minutes
+
+                        if (timeDiff < thirtyMinutes) {
+                            const minutesRemaining = Math.ceil((thirtyMinutes - timeDiff) / (60 * 1000));
+                            alert(`Du kan maksimalt lave et check-in i halv time. Vent venligst ${minutesRemaining} ${minutesRemaining === 1 ? 'minut' : 'minutter'} før du kan lave et nyt check-in.`);
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            };
+
+            // Open modal
+            openBtn.addEventListener('click', () => {
+                if (!checkIfCanMakeCheckin()) {
+                    return; // Don't open modal if too soon
+                }
+                modal.classList.add('show');
+                slider.value = 50;
+                sliderValue.textContent = 50;
+            });
+
+            // Close modal
+            const closeModal = () => {
+                modal.classList.remove('show');
+            };
+
+            closeBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // Update slider value display
+            slider.addEventListener('input', (e) => {
+                sliderValue.textContent = e.target.value;
+            });
+
+            // Save check-in
+            saveBtn.addEventListener('click', () => {
+                const status = parseInt(slider.value, 10);
+                const now = new Date();
+                const date = now.toISOString();
+
+                // Load existing data
+                let existingData = [];
+                try {
+                    const raw = localStorage.getItem('forside_checkin_data');
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed)) {
+                            existingData = parsed;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Kunne ikke læse forside_checkin_data:', error);
+                }
+
+                // Add new entry
+                const newEntry = {
+                    date: date,
+                    status: status,
+                    taknem: ""
+                };
+
+                existingData.push(newEntry);
+
+                // Save back to localStorage
+                try {
+                    localStorage.setItem('forside_checkin_data', JSON.stringify(existingData));
+                    closeModal();
+                    renderCheckinChart();
+                } catch (error) {
+                    console.error('Kunne ikke gemme check-in data:', error);
+                }
+            });
         }
 
         function hydrateHeaderDates() {
@@ -2742,7 +3241,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             hydrateHeaderDates();
             renderActivitiesForDate(activeLogDate);
-            initCollapsible();
+            initCheckinDaysButtons();
+            initCheckinViewToggle();
+            initCheckinModal();
             renderCheckinChart();
             ensureSeedLogbookData();
             activeLogDate = getTodayDateKey();
@@ -2791,6 +3292,7 @@
             window.addEventListener('storage', handleLogbookStorageEvent);
             window.addEventListener('storage', handleBodymapStorageEvent);
             window.addEventListener('storage', handleOpstillingStorageEvent);
+            window.addEventListener('storage', handleCompareStorageEvent);
 
             const historySidebar = document.getElementById('logHistorySidebar');
             if (historySidebar) {
@@ -2807,10 +3309,7 @@
             }
 
             window.addEventListener('resize', () => {
-                const checkinsOpen = document.getElementById('checkinsBody').classList.contains('expanded');
-                if (checkinsOpen) {
-                    renderCheckinChart();
-                }
+                renderCheckinChart();
             });
         });
 

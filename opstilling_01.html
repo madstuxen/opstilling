@@ -130,6 +130,15 @@
             box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3) !important;
         }
         
+        button[onclick="openSamlingManager()"] {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            color: white !important;
+        }
+        
+        button[onclick="openSamlingManager()"]:hover {
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3) !important;
+        }
+        
         button[onclick="createNewSetup()"] {
             background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
             color: white !important;
@@ -140,12 +149,12 @@
         }
         
         button[onclick="addPart()"] {
-            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%) !important;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
             color: white !important;
         }
         
         button[onclick="addPart()"]:hover {
-            box-shadow: 0 5px 15px rgba(30, 64, 175, 0.3) !important;
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3) !important;
         }
         
         .save-btn {
@@ -2002,7 +2011,7 @@
                 <option value="drama_trekant">Drama Trekant</option>
 				<option value="mandala">Mandala Cirkel</option>
             </select>
-            <button onclick="openSamlingManager()">Ny Samling</button>
+            <button onclick="openSamlingManager()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; color: white !important;">Ny Samling</button>
             <button onclick="createNewSetup()">Ny Opstilling</button>
             <input type="text" id="partName" placeholder="Navn på del (f.eks. Beskytteren, Den Kritiske, Det Sårede Barn...)" maxlength="30">
             <button onclick="addPart()">Ny Deltager</button>

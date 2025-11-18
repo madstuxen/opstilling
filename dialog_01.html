@@ -270,7 +270,7 @@
             transition: all 0.3s ease;
         }
         
-        .new-dialog-btn { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; }
+        .new-dialog-btn { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white; }
         
         .start-btn { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
         .continue-btn { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; }
@@ -821,8 +821,9 @@
         
         .dialog-history-sidebar {
             position: absolute;
-            top: 0px;
-            right: 0px;
+            top: 0;
+            right: 0;
+            bottom: 0;
             width: 240px;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -849,13 +850,39 @@
             font-weight: 600;
             color: #374151;
             position: relative;
+            flex-shrink: 0;
+        }
+        
+        .dialog-history-filter {
+            flex: 1;
+            min-width: 180px;
+            padding: 6px 14px 6px 16px;
+            border-radius: 8px;
+            border: 1px solid #cbd5f5;
+            background: #ffffff;
+            color: #1f2937;
+            font-size: 16px;
+            font-weight: 600;
+            outline: none;
+            appearance: none;
+            margin: 0 8px 0 0;
+            position: relative;
+            background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%);
+            background-position: calc(100% - 16px) 50%, calc(100% - 9px) 50%;
+            background-size: 7px 7px, 7px 7px;
+            background-repeat: no-repeat;
+        }
+        
+        .dialog-history-filter:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
         
         .dialog-history-sidebar.collapsed .dialog-history-header {
             justify-content: center;
         }
         
-        .dialog-history-sidebar.collapsed .dialog-history-header span {
+        .dialog-history-sidebar.collapsed .dialog-history-filter {
             display: none;
         }
         
@@ -865,6 +892,7 @@
             flex-direction: column;
             min-height: 0;
             overflow: hidden;
+            height: 100%;
         }
         
         .dialog-history-navigation {
@@ -874,6 +902,7 @@
             padding: 0px 12px 0px 12px;
             background: #e2e8f0;
             border-bottom: 1px solid #d1d5db;
+            flex-shrink: 0;
         }
         
         .dialog-nav-btn-group {
@@ -955,16 +984,25 @@
         }
         
         .dialog-history-item.active {
-            border-color: #6366f1;
-            box-shadow: 0 10px 24px rgba(79, 70, 229, 0.22);
-            background: linear-gradient(135deg, rgba(224, 231, 255, 0.95), rgba(199, 210, 254, 0.95));
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
+        }
+        
+        .dialog-history-item-collection {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 6px;
         }
         
         .dialog-history-item-title {
             font-weight: 600;
             color: #1f2937;
             margin-bottom: 4px;
-            font-size: 14px;
+            font-size: 16px;
         }
 
         .dialog-history-item-title-input {
@@ -998,10 +1036,22 @@
         
         .dialog-history-item-meta {
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            font-size: 12px;
-            color: #6b7280;
+            flex-direction: column;
+            font-size: 16px;
+            opacity: 0.85;
+            gap: 4px;
+        }
+        
+        .dialog-history-item-meta-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        
+        .dialog-history-item-time,
+        .dialog-history-item-messages,
+        .dialog-history-item-participants {
+            white-space: nowrap;
         }
         
         .dialog-history-empty {
@@ -1039,6 +1089,302 @@
         .dialog-history-item-delete:hover {
             background: #dc2626;
             transform: scale(1.05);
+        }
+        
+        /* Samling Manager Overlay (from opstilling_01.html) */
+        .samling-manager-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+        }
+        
+        .samling-manager-overlay.show {
+            display: flex;
+        }
+        
+        .samling-manager-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(4px);
+        }
+        
+        .samling-manager-panel {
+            position: relative;
+            width: min(520px, 90vw);
+            max-height: 80vh;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25);
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            z-index: 1;
+        }
+        
+        .samling-manager-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        
+        .samling-manager-header h2 {
+            font-size: 1.25rem;
+            color: #111827;
+        }
+        
+        .samling-manager-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 10px;
+            background: #e2e8f0;
+            color: #1f2937;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        
+        .samling-manager-close:hover {
+            background: #cbd5f5;
+            transform: scale(1.05);
+        }
+        
+        .samling-manager-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+        
+        .samling-manager-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        
+        .samling-name-btn {
+            flex: 1;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            color: #1f2937;
+        }
+        
+        .samling-name-input {
+            flex: 1;
+            border-radius: 10px;
+            border: 1px solid #cbd5f5;
+            padding: 10px 14px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: box-shadow 0.2s ease;
+            color: #1f2937;
+            background: #f8fafc;
+        }
+        
+        .samling-name-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+        }
+        
+        .samling-name-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+        }
+        
+        .samling-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .samling-action-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .samling-action-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+        }
+        
+        .samling-action-btn.delete {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+        }
+        
+        .samling-action-btn.color {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        }
+        
+        .samling-manager-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 4px 0;
+        }
+        
+        .samling-manager-new {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        
+        .samling-manager-new input {
+            flex: 1;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            background: #f8fafc;
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.18);
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        
+        .samling-manager-new input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+            transform: translateY(-1px);
+        }
+        
+        .samling-manager-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .samling-color-select {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            color: #ffffff;
+        }
+        
+        .samling-color-select:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.25);
+        }
+        
+        .samling-color-select span[aria-hidden="true"] {
+            color: inherit;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        
+        .samling-manager-new .samling-create-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .samling-manager-new .samling-create-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+        }
+        
+        .samling-color-picker-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.35);
+            z-index: 5001;
+        }
+        
+        .samling-color-picker-modal.show {
+            display: flex;
+        }
+        
+        .samling-color-picker {
+            width: calc(32px * 6 + 8px * 5 + 16px * 2);
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .samling-color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 32px);
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .samling-color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .samling-color-swatch:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
         
         .transcript-header {
@@ -1429,6 +1775,7 @@
             
             <div class="controls-divider"></div>
             
+            <button class="btn" id="newCollectionBtn" onclick="openDialogSamlingManager()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;">Ny Samling</button>
             <button class="btn new-dialog-btn" id="newDialogBtn">Ny Dialog</button>
             <button class="btn start-btn" id="startBtn" disabled>Start Dialog</button>
             <button class="btn" id="loadBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs</button>
@@ -1607,7 +1954,7 @@
             <aside class="dialog-history-sidebar" id="dialogHistorySidebar">
                 <div class="dialog-history-header">
                     <button class="dialog-collapse-toggle" onclick="toggleDialogHistorySidebar()" title="Fold historik">></button>
-                    <span>Gemte dialoger</span>
+                    <select id="dialogHistoryFilter" class="dialog-history-filter" onchange="setDialogHistoryFilter(this.value)"></select>
                 </div>
                 <div class="dialog-history-content">
                     <div class="dialog-history-navigation">
@@ -1643,6 +1990,38 @@
 		</div>
 	</div>
 	
+	<!-- Dialog Samling Manager Overlay -->
+	<div class="samling-manager-overlay" id="dialogSamlingManagerOverlay">
+		<div class="samling-manager-backdrop" onclick="closeDialogSamlingManager()"></div>
+		<div class="samling-manager-panel">
+			<div class="samling-manager-header">
+				<h2>Samlinger</h2>
+				<button class="samling-manager-close" onclick="closeDialogSamlingManager()" title="Luk">×</button>
+			</div>
+			<div class="samling-manager-list" id="dialogSamlingManagerList"></div>
+			<div class="samling-manager-divider"></div>
+			<div class="samling-manager-new" id="dialogSamlingManagerNewRow">
+				<input type="text" id="newDialogSamlingName" placeholder="Ny samling-navn" autocomplete="off">
+				<div class="samling-manager-actions">
+					<button class="samling-color-select" id="newDialogSamlingColorBtn" onclick="openDialogSamlingColorPicker({ type: 'new' })" title="Vælg farve">
+						<span class="sr-only">Vælg farve</span>
+						<span aria-hidden="true">C</span>
+					</button>
+					<button class="samling-create-btn" onclick="confirmCreateDialogSamling()" title="Opret samling">✓</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Dialog Samling Color Picker Modal -->
+	<div class="samling-color-picker-modal" id="dialogSamlingColorPickerModal" onclick="backdropCloseDialogSamlingHandler(event)">
+		<div class="samling-color-picker" onclick="event.stopPropagation()">
+			<div class="samling-color-picker-header">
+				<h3>Vælg farve</h3>
+			</div>
+			<div class="samling-color-grid" id="dialogSamlingColorGrid"></div>
+		</div>
+	</div>
 	
 	
 
@@ -1664,9 +2043,17 @@
 const DIALOG_STORAGE_KEY = 'dialogData';
 const DIALOG_COACHING_KEY = 'dialogCoachingData';
 const DIALOG_HISTORY_COLLAPSED_KEY = 'dialog_historySidebarCollapsed';
-const DIALOG_RECENT_LIST_LENGTH = 20;
 let dialogHistoryCollapsed = false;
-        let activeDialogId = null;
+        let activeDialogId = null; // Used in legacy functions and writeDialogData
+        
+        // New dialogData structure (similar to opstillingData)
+        let DialogData = null; // { version, updated, activeCollectionId, activeDialogId, collections: [...] }
+        
+        // Color presets for collections (from opstilling)
+        const DIALOG_COLLECTION_COLOR_PRESETS = [
+            '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
+            '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
+        ];
         
         let currentColorTarget = null;
         let currentColorSide = null;
@@ -1747,211 +2134,454 @@ let dialogHistoryCollapsed = false;
     }
 };
 		
-        function loadDialogStorage() {
+        function loadDialogDataFromLocalStorage() {
             try {
-                let raw = localStorage.getItem(DIALOG_STORAGE_KEY);
-                if (!raw) {
-                    const legacyRaw = localStorage.getItem(DIALOG_COACHING_KEY);
-                    if (legacyRaw) {
-                        try {
-                            const maybeLegacy = JSON.parse(legacyRaw);
-                            if (maybeLegacy && typeof maybeLegacy === 'object' && Array.isArray(maybeLegacy.sessions)) {
-                                raw = legacyRaw;
-                                try {
-                                    localStorage.setItem(DIALOG_STORAGE_KEY, legacyRaw);
-                                } catch (copyErr) {
-                                    console.warn('Kunne ikke kopiere legacy dialogCoachingData til dialogData:', copyErr);
-                                }
-                            }
-                        } catch (_) {}
-                    }
-                }
-                if (!raw) {
-                    return { version: '2.0', sessions: [], lastCoachingUpdate: null };
-                }
+                const raw = localStorage.getItem(DIALOG_STORAGE_KEY);
+                if (!raw) return null;
                 const parsed = JSON.parse(raw);
-                if (!parsed || typeof parsed !== 'object') {
-                    return { version: '2.0', sessions: [], lastCoachingUpdate: null };
-                }
-                const sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+                if (!parsed || typeof parsed !== 'object') return null;
                 
-                if (parsed.coachingPayload && typeof parsed.coachingPayload === 'object') {
-                    try {
-                        localStorage.setItem(DIALOG_COACHING_KEY, JSON.stringify(parsed.coachingPayload));
-                    } catch (_) {}
-                    delete parsed.coachingPayload;
+                // Check if it's the new structure (has collections)
+                if (parsed.collections && Array.isArray(parsed.collections)) {
+                    return parsed;
                 }
-                const cleaned = {
-                    version: parsed.version || '2.0',
-                    sessions,
-                    lastCoachingUpdate: parsed.lastCoachingUpdate || null,
-                    activeDialogId: parsed.activeDialogId || null
-                };
-                return cleaned;
-            } catch (error) {
-                console.warn('Kunne ikke indlæse dialog data:', error);
-                return { version: '2.0', sessions: [], lastCoachingUpdate: null };
+                
+                // Legacy structure - migrate it
+                return migrateLegacyDialogData(parsed);
+            } catch (_) {
+                return null;
             }
+        }
+        
+        function migrateLegacyDialogData(legacyData) {
+            // Migrate old sessions structure to new collections/dialogs structure
+            const sessions = Array.isArray(legacyData.sessions) ? legacyData.sessions : [];
+            const collections = [];
+            
+            if (sessions.length > 0) {
+                // Create a default collection and migrate all sessions to dialogs
+                const defaultCollection = {
+                    id: 1,
+                    name: 'Samling 1',
+                    color: DIALOG_COLLECTION_COLOR_PRESETS[0],
+                    dialogs: []
+                };
+                
+                sessions.forEach((session, idx) => {
+                    const dialog = {
+                        id: idx + 1,
+                        name: session.name || `Dialog ${idx + 1}`,
+                        timestamp: session.createdAt || session.updatedAt || new Date().toISOString(),
+                        updated: session.updatedAt || session.createdAt || new Date().toISOString(),
+                        participants: session.participants || {
+                            left: { name: 'Venstre del', color: '#3b82f6', pose: '', flipped: false, keywords: ['', '', '', '', '', ''] },
+                            right: { name: 'Højre del', color: '#ef4444', pose: '', flipped: false, keywords: ['', '', '', '', '', ''] }
+                        },
+                        messages: Array.isArray(session.messages) ? session.messages : []
+                    };
+                    defaultCollection.dialogs.push(dialog);
+                });
+                
+                collections.push(defaultCollection);
+            }
+            
+            return {
+                version: '1.0',
+                updated: new Date().toISOString(),
+                activeCollectionId: collections.length > 0 ? 1 : null,
+                activeDialogId: collections.length > 0 && collections[0].dialogs.length > 0 ? 1 : null,
+                collections: collections
+            };
+        }
+        
+        function saveDialogDataToLocalStorage() {
+            try {
+                if (!DialogData) return false;
+                DialogData.updated = new Date().toISOString();
+                localStorage.setItem(DIALOG_STORAGE_KEY, JSON.stringify(DialogData));
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+        
+        function ensureDefaultDialogData() {
+            if (!DialogData || !Array.isArray(DialogData.collections)) {
+                DialogData = {
+                    version: '1.0',
+                    updated: new Date().toISOString(),
+                    activeCollectionId: 1,
+                    activeDialogId: 1,
+                    collections: []
+                };
+            }
+            if (!Array.isArray(DialogData.collections) || DialogData.collections.length === 0) {
+                DialogData.collections = [{
+                    id: 1,
+                    name: 'Samling 1',
+                    color: DIALOG_COLLECTION_COLOR_PRESETS[0],
+                    dialogs: []
+                }];
+                DialogData.activeCollectionId = 1;
+            }
+            // Ensure all collections have colors
+            DialogData.collections.forEach((collection, idx) => {
+                if (!collection.color) {
+                    collection.color = DIALOG_COLLECTION_COLOR_PRESETS[idx % DIALOG_COLLECTION_COLOR_PRESETS.length];
+                }
+            });
+            const collection = DialogData.collections.find(c => c.id === DialogData.activeCollectionId) || DialogData.collections[0];
+            if (!collection.dialogs || collection.dialogs.length === 0) {
+                const now = new Date().toISOString();
+                const initialDialog = {
+                    id: 1,
+                    name: 'Dialog 1',
+                    timestamp: now,
+                    updated: now,
+                    participants: {
+                        left: { name: 'Venstre', color: '#3b82f6', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] },
+                        right: { name: 'Højre', color: '#ef4444', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] }
+                    },
+                    messages: []
+                };
+                collection.dialogs = [initialDialog];
+                DialogData.activeDialogId = 1;
+            }
+            // Ensure all dialogs have timestamps
+            DialogData.collections.forEach(collection => {
+                if (Array.isArray(collection.dialogs)) {
+                    collection.dialogs.forEach(dialog => {
+                        if (!dialog.timestamp) {
+                            dialog.timestamp = dialog.updated || new Date().toISOString();
+                        }
+                        if (!dialog.updated) {
+                            dialog.updated = dialog.timestamp || new Date().toISOString();
+                        }
+                    });
+                }
+            });
+            saveDialogDataToLocalStorage();
+        }
+        
+        function getActiveCollection() {
+            if (!DialogData || !Array.isArray(DialogData.collections)) return null;
+            return DialogData.collections.find(c => c.id === DialogData.activeCollectionId) || DialogData.collections[0] || null;
+        }
+        
+        function getActiveDialog() {
+            const col = getActiveCollection();
+            if (!col || !Array.isArray(col.dialogs)) return null;
+            return col.dialogs.find(d => d.id === DialogData.activeDialogId) || col.dialogs[0] || null;
+        }
+        
+        // Legacy functions for backwards compatibility (will be removed later)
+        function loadDialogStorage() {
+            ensureDefaultDialogData();
+            const activeDialog = getActiveDialog();
+            return {
+                version: '2.0',
+                sessions: activeDialog ? [{
+                    id: `${DialogData.activeCollectionId}-${DialogData.activeDialogId}`,
+                    name: activeDialog.name,
+                    createdAt: activeDialog.timestamp,
+                    updatedAt: activeDialog.updated,
+                    participants: activeDialog.participants,
+                    messages: activeDialog.messages
+                }] : [],
+                lastCoachingUpdate: null,
+                activeDialogId: activeDialog ? `${DialogData.activeCollectionId}-${DialogData.activeDialogId}` : null
+            };
         }
         
         function saveDialogStorage(data) {
-            try {
-                const payload = {
-                    version: data.version || '2.0',
-                    sessions: Array.isArray(data.sessions) ? data.sessions : [],
-                    lastCoachingUpdate: data.lastCoachingUpdate || null,
-                    activeDialogId: data.activeDialogId || null
-                };
-                const serialized = JSON.stringify(payload);
-                localStorage.setItem(DIALOG_STORAGE_KEY, serialized);
-            } catch (error) {
-                console.error('Kunne ikke gemme dialog data:', error);
-            }
+            // This function is kept for backwards compatibility but will be replaced
+            // by direct DialogData manipulation
+            ensureDefaultDialogData();
+            saveDialogDataToLocalStorage();
         }
         
-        function formatDialogTimestamp(isoString) {
-            if (!isoString) return '';
-            try {
-                const date = new Date(isoString);
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                const hours = String(date.getHours()).padStart(2, '0');
-                const minutes = String(date.getMinutes()).padStart(2, '0');
-                // DD-MM-YYYY HH:MM for display; sorting uses timestamps elsewhere
-                return `${day}-${month}-${year} ${hours}:${minutes}`;
-            } catch (_) {
-                return isoString;
+        // Helper functions for colors (from opstilling)
+        function hexToRgba(hex, alpha) {
+            if (!hex) {
+                return `rgba(232, 220, 198, ${alpha})`;
             }
+            const normalized = hex.replace('#', '');
+            if (normalized.length === 3) {
+                const r = parseInt(normalized[0] + normalized[0], 16);
+                const g = parseInt(normalized[1] + normalized[1], 16);
+                const b = parseInt(normalized[2] + normalized[2], 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            if (normalized.length === 6) {
+                const r = parseInt(normalized.substring(0, 2), 16);
+                const g = parseInt(normalized.substring(2, 4), 16);
+                const b = parseInt(normalized.substring(4, 6), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            return hex;
         }
         
-        function renderDialogHistory(activeIdOverride) {
+        function lightenHex(hex, amount = 0.5) {
+            if (!hex) return '#f2e7d2';
+            const normalized = hex.replace('#', '');
+            const expand = normalized.length === 3
+                ? normalized.split('').map(ch => ch + ch).join('')
+                : normalized.padEnd(6, '0');
+            const r = parseInt(expand.substring(0, 2), 16);
+            const g = parseInt(expand.substring(2, 4), 16);
+            const b = parseInt(expand.substring(4, 6), 16);
+            const clampAmount = Math.max(0, Math.min(1, amount));
+            const newR = Math.round(r + (255 - r) * clampAmount);
+            const newG = Math.round(g + (255 - g) * clampAmount);
+            const newB = Math.round(b + (255 - b) * clampAmount);
+            return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+        }
+        
+        function formatDkDate(dateStr) {
+            // Convert ISO date to DD-MM-YYYY for display
+            if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+                const datePart = dateStr.split('T')[0];
+                const [y, m, d] = datePart.split('-');
+                return `${d}-${m}-${y}`;
+            }
+            return dateStr || '';
+        }
+        
+        // History sidebar state
+        let dialogHistoryFilterCollectionId = 'all';
+        
+        // ===== HISTORY SIDEBAR FUNCTIONS (from opstilling_01.html) =====
+        
+        function getAllDialogsSorted() {
+            if (!DialogData || !Array.isArray(DialogData.collections)) return [];
+            const allDialogs = [];
+            DialogData.collections.forEach(collection => {
+                if (Array.isArray(collection.dialogs)) {
+                    collection.dialogs.forEach(dialog => {
+                        // Ensure dialog has timestamp
+                        if (!dialog.timestamp && dialog.updated) {
+                            dialog.timestamp = dialog.updated;
+                        } else if (!dialog.timestamp) {
+                            dialog.timestamp = new Date().toISOString();
+                        }
+                        allDialogs.push({
+                            dialog,
+                            collection,
+                            timestamp: new Date(dialog.timestamp)
+                        });
+                    });
+                }
+            });
+            // Sort by timestamp descending (newest first)
+            allDialogs.sort((a, b) => b.timestamp - a.timestamp);
+            return allDialogs;
+        }
+        
+        function getFilteredSortedDialogs() {
+            const all = getAllDialogsSorted();
+            if (dialogHistoryFilterCollectionId === 'all') {
+                return all;
+            }
+            const filterId = parseFloat(dialogHistoryFilterCollectionId);
+            return all.filter(entry => entry.collection && entry.collection.id === filterId);
+        }
+        
+        function renderDialogHistoryFilterOptions() {
+            const filterEl = document.getElementById('dialogHistoryFilter');
+            if (!filterEl) return;
+            
+            const desiredValue = dialogHistoryFilterCollectionId === 'all' ? 'all' : String(dialogHistoryFilterCollectionId);
+            const options = ['<option value="all">Vis alle</option>'];
+            
+            if (DialogData && Array.isArray(DialogData.collections)) {
+                const sortedCollections = [...DialogData.collections].sort((a, b) => 
+                    (a.name || '').localeCompare(b.name || '', 'da', { sensitivity: 'base' })
+                );
+                sortedCollections.forEach(collection => {
+                    options.push(`<option value="${collection.id}">${collection.name || 'Samling'}</option>`);
+                });
+            }
+            
+            filterEl.innerHTML = options.join('');
+            const allowedValues = ['all', ...(DialogData?.collections || []).map(c => String(c.id))];
+            const nextValue = allowedValues.includes(desiredValue) ? desiredValue : 'all';
+            filterEl.value = nextValue;
+            dialogHistoryFilterCollectionId = nextValue === 'all' ? 'all' : parseFloat(nextValue);
+        }
+        
+        function setDialogHistoryFilter(value) {
+            dialogHistoryFilterCollectionId = value === 'all' ? 'all' : parseFloat(value);
+            renderDialogHistory();
+        }
+        
+        function renderDialogHistory() {
             const listEl = document.getElementById('dialogHistoryList');
             if (!listEl) return;
+            listEl.innerHTML = '';
             
-            const store = loadDialogStorage();
-            const sessions = Array.isArray(store.sessions) ? store.sessions : [];
-            
-            if (!sessions.length) {
-                listEl.innerHTML = '<div class="dialog-history-empty">Ingen gemte dialoger endnu.</div>';
-                activeDialogId = null;
-            } else {
-                listEl.innerHTML = '';
-                const effectiveActiveId = typeof activeIdOverride === 'string' ? activeIdOverride : activeDialogId;
-                const resolvedActiveId = sessions.some(session => session.id === effectiveActiveId)
-                    ? effectiveActiveId
-                    : (sessions.length ? sessions[0].id : null);
-                let newlyCreatedInput = null;
-                sessions.forEach(session => {
-                    const item = document.createElement('div');
-                    const isActive = session.id === resolvedActiveId;
-                    item.className = 'dialog-history-item';
-                    item.classList.toggle('active', isActive);
-                    item.dataset.dialogId = session.id;
-                    
-                    const participants = session.participants || {};
-                    const leftParticipant = participants.left || {};
-                    const rightParticipant = participants.right || {};
-                    const sessionName = session.name || 'Dialog';
-                    
-                    const titleWrapper = document.createElement('div');
-                    titleWrapper.className = 'dialog-history-item-title';
-                    const titleInput = document.createElement('input');
-                    titleInput.type = 'text';
-                    titleInput.className = 'dialog-history-item-title-input';
-                    titleInput.value = sessionName;
-                    titleInput.dataset.dialogId = session.id;
-                    titleWrapper.appendChild(titleInput);
-                    
-                    const meta = document.createElement('div');
-                    meta.className = 'dialog-history-item-meta';
-                    const created = formatDialogTimestamp(session.createdAt);
-                    meta.innerHTML = `
-                        <span>${created || ''}</span>
-                        <span>${session.messages ? session.messages.length : 0} beskeder</span>
-                        <span>${leftParticipant.name || 'Venstre'} vs. ${rightParticipant.name || 'Højre'}</span>
-                    `;
-
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.type = 'button';
-                    deleteBtn.className = 'dialog-history-item-delete';
-                    deleteBtn.dataset.dialogId = session.id;
-                    deleteBtn.textContent = '×';
-                    
-                    item.appendChild(titleWrapper);
-                    item.appendChild(meta);
-                    item.appendChild(deleteBtn);
-                    listEl.appendChild(item);
-
-                    // Make input read-only unless this history item is active
-                    if (!isActive) {
-                        titleInput.readOnly = true;
-                        titleInput.tabIndex = -1;
-                    } else {
-                        titleInput.readOnly = false;
-                        titleInput.tabIndex = 0;
-                    }
-                    titleInput.addEventListener('click', e => {
-                        if (!isActive) {
-                            // Activate this session instead of editing when non-active
-                            e.stopPropagation();
-                            loadSavedDialog(session.id);
-                        } else {
-                            e.stopPropagation();
-                        }
-                    });
-                    titleInput.addEventListener('keydown', e => {
-                        if (e.key === 'Enter') {
-                            e.preventDefault();
-                            titleInput.blur();
-                        }
-                    });
-                    titleInput.addEventListener('blur', () => {
-                        renameDialogSession(session.id, titleInput.value);
-                    });
-
-                    deleteBtn.addEventListener('click', e => {
-                        e.stopPropagation();
-                        deleteDialogSession(session.id);
-                    });
-
-                    if (activeIdOverride && session.id === activeIdOverride) {
-                        newlyCreatedInput = titleInput;
-                    }
-                });
-                activeDialogId = resolvedActiveId;
-                const activeItem = resolvedActiveId ? listEl.querySelector(`.dialog-history-item[data-dialog-id="${resolvedActiveId}"]`) : null;
-                if (activeIdOverride && activeItem) {
-                    activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                }
-                if (activeIdOverride && newlyCreatedInput) {
-                    if (typeof newlyCreatedInput.focus === 'function') {
-                        newlyCreatedInput.focus();
-                    }
-                    if (newlyCreatedTitleInput && typeof newlyCreatedTitleInput.select === 'function') {
-                        newlyCreatedTitleInput.select();
-                    }
-                }
+            if (!DialogData || !Array.isArray(DialogData.collections)) {
+                ensureDefaultDialogData();
             }
             
-            updateDialogHistoryNavState(sessions);
-            updateDialogHistoryToggleUI();
+            renderDialogHistoryFilterOptions();
+            
+            const sortedEntries = getFilteredSortedDialogs();
+            const activeDialog = getActiveDialog();
+            const activeCollection = getActiveCollection();
+            
+            if (sortedEntries.length === 0) {
+                listEl.innerHTML = '<div class="dialog-history-empty">Ingen gemte dialoger endnu.</div>';
+                DialogData.activeDialogId = null;
+                updateDialogHistoryNavState([]);
+                return;
+            }
+            
+            sortedEntries.forEach(({ dialog, collection }) => {
+                    const item = document.createElement('div');
+                const isActive = dialog.id === DialogData.activeDialogId && 
+                                collection.id === DialogData.activeCollectionId;
+                item.className = `dialog-history-item ${isActive ? 'active' : ''}`;
+                
+                const collectionColor = collection.color || DIALOG_COLLECTION_COLOR_PRESETS[0];
+                const collectionName = collection.name || 'Samling';
+                
+                const baseBackground = lightenHex(collectionColor, isActive ? 0.25 : 0.7);
+                item.style.backgroundColor = baseBackground;
+                item.style.color = '#1f2937';
+                item.style.borderColor = isActive ? collectionColor : 'transparent';
+                
+                const collectionBadge = document.createElement('div');
+                collectionBadge.className = 'dialog-history-item-collection';
+                collectionBadge.textContent = collectionName;
+                collectionBadge.style.backgroundColor = collectionColor;
+                collectionBadge.style.color = '#ffffff';
+                item.appendChild(collectionBadge);
+                
+                const titleDisplay = dialog.name || 'Dialog';
+                    const titleWrapper = document.createElement('div');
+                    titleWrapper.className = 'dialog-history-item-title';
+                titleWrapper.innerHTML = `<input type="text" class="dialog-history-item-title-input" value="${titleDisplay}" data-collection-id="${collection.id}" data-dialog-id="${dialog.id}" title="Rediger titel">`;
+                item.appendChild(titleWrapper);
+                
+                const metaWrapper = document.createElement('div');
+                metaWrapper.className = 'dialog-history-item-meta';
+                const timestamp = dialog.timestamp || dialog.updated || new Date().toISOString();
+                const dateObj = new Date(timestamp);
+                const dateDk = formatDkDate(dateObj.toISOString().split('T')[0]);
+                const timeStr = dateObj.toTimeString().split(' ')[0].substring(0, 5);
+                const messagesCount = Array.isArray(dialog.messages) ? dialog.messages.length : 0;
+                let leftName = dialog.participants?.left?.name || 'Venstre';
+                let rightName = dialog.participants?.right?.name || 'Højre';
+                
+                // Truncate each name to 10 characters with ".."
+                const truncateName = (name) => {
+                    if (name.length > 10) {
+                        return name.substring(0, 10) + '..';
+                    }
+                    return name;
+                };
+                leftName = truncateName(leftName);
+                rightName = truncateName(rightName);
+                
+                const firstLine = document.createElement('div');
+                firstLine.className = 'dialog-history-item-meta-line';
+                firstLine.innerHTML = `
+                    <span class="dialog-history-item-time">${dateDk} ${timeStr}</span>
+                    <span class="dialog-history-item-messages">besk: ${messagesCount}</span>
+                `;
+                
+                const secondLine = document.createElement('div');
+                secondLine.className = 'dialog-history-item-meta-line';
+                secondLine.innerHTML = `
+                    <span class="dialog-history-item-participants">${leftName} & ${rightName}</span>
+                `;
+                
+                metaWrapper.appendChild(firstLine);
+                metaWrapper.appendChild(secondLine);
+                item.appendChild(metaWrapper);
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'dialog-history-item-delete';
+                deleteBtn.dataset.collectionId = collection.id;
+                deleteBtn.dataset.dialogId = dialog.id;
+                    deleteBtn.textContent = '×';
+                    item.appendChild(deleteBtn);
+                
+                item.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('dialog-history-item-title-input') && isActive) return;
+                    if (e.target.classList.contains('dialog-history-item-delete')) return;
+                    if (!isActive) {
+                        DialogData.activeCollectionId = collection.id;
+                        DialogData.activeDialogId = dialog.id;
+                        saveDialogDataToLocalStorage();
+                        loadSavedDialogFromNewStructure(dialog);
+                        renderDialogHistory();
+                    }
+                });
+                
+                const titleInput = item.querySelector('.dialog-history-item-title-input');
+                if (!isActive) {
+                    titleInput.readOnly = true;
+                    titleInput.tabIndex = -1;
+                } else {
+                    titleInput.readOnly = false;
+                    titleInput.tabIndex = 0;
+                }
+                titleInput.addEventListener('focus', (e) => {
+                    if (!isActive) {
+                            e.preventDefault();
+                        item.click();
+                        return;
+                    }
+                });
+                titleInput.addEventListener('change', (e) => {
+                    const collectionId = parseFloat(e.target.dataset.collectionId);
+                    const dialogId = parseFloat(e.target.dataset.dialogId);
+                    const collection = DialogData.collections.find(c => c.id === collectionId);
+                    if (collection) {
+                        const dialog = collection.dialogs.find(d => d.id === dialogId);
+                        if (dialog) {
+                            dialog.name = e.target.value;
+                            saveDialogDataToLocalStorage();
+                            renderDialogHistory();
+                        }
+                    }
+                });
+                
+                deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                    const collectionId = parseFloat(e.target.dataset.collectionId);
+                    const dialogId = parseFloat(e.target.dataset.dialogId);
+                    deleteDialogFromNewStructure(collectionId, dialogId);
+                });
+                
+                listEl.appendChild(item);
+            });
+            
+            const navUp = document.getElementById('dialogHistoryNewer');
+            const navDown = document.getElementById('dialogHistoryOlder');
+            const canNavigate = sortedEntries.length > 1;
+            if (navUp) navUp.disabled = !canNavigate;
+            if (navDown) navDown.disabled = !canNavigate;
         }
         
-        function updateDialogHistoryNavState(sessions) {
+        function updateDialogHistoryNavState(sortedEntries) {
             const newerBtn = document.getElementById('dialogHistoryNewer');
             const olderBtn = document.getElementById('dialogHistoryOlder');
             if (!newerBtn || !olderBtn) return;
             
-            if (!sessions || !sessions.length) {
+            if (!sortedEntries || !sortedEntries.length) {
                 newerBtn.disabled = true;
                 olderBtn.disabled = true;
                 return;
             }
             
-            const idx = sessions.findIndex(session => session.id === activeDialogId);
-            const atNewest = idx <= 0;
-            const atOldest = idx === sessions.length - 1 || idx === -1;
+            const currentPos = sortedEntries.findIndex(entry => 
+                entry.dialog.id === DialogData.activeDialogId && 
+                entry.collection.id === DialogData.activeCollectionId
+            );
+            const atNewest = currentPos <= 0;
+            const atOldest = currentPos === sortedEntries.length - 1 || currentPos === -1;
             
             newerBtn.disabled = atNewest;
             olderBtn.disabled = atOldest;
@@ -1984,17 +2614,524 @@ let dialogHistoryCollapsed = false;
         }
         
         function navigateDialogHistory(direction) {
-            const store = loadDialogStorage();
-            const sessions = Array.isArray(store.sessions) ? store.sessions : [];
-            if (!sessions.length) return;
+            const sortedEntries = getFilteredSortedDialogs();
+            if (!sortedEntries.length) return;
             
-            const idx = activeDialogId ? sessions.findIndex(session => session.id === activeDialogId) : -1;
-            const nextIndex = idx === -1
-                ? (direction > 0 ? 0 : sessions.length - 1)
-                : (direction < 0 ? Math.max(0, idx - 1) : Math.min(sessions.length - 1, idx + 1));
-            if (nextIndex !== idx && sessions[nextIndex]) {
-                loadSavedDialog(sessions[nextIndex].id);
+            const currentPos = sortedEntries.findIndex(entry => 
+                entry.dialog.id === DialogData.activeDialogId && 
+                entry.collection.id === DialogData.activeCollectionId
+            );
+            const nextIndex = currentPos === -1
+                ? (direction > 0 ? 0 : sortedEntries.length - 1)
+                : (direction < 0 ? Math.max(0, currentPos - 1) : Math.min(sortedEntries.length - 1, currentPos + 1));
+            if (nextIndex !== currentPos && sortedEntries[nextIndex]) {
+                const targetEntry = sortedEntries[nextIndex];
+                DialogData.activeCollectionId = targetEntry.collection.id;
+                DialogData.activeDialogId = targetEntry.dialog.id;
+                saveDialogDataToLocalStorage();
+                loadSavedDialogFromNewStructure(targetEntry.dialog);
+                renderDialogHistory();
             }
+        }
+        
+        function loadSavedDialogFromNewStructure(dialog) {
+            if (!dialog) return;
+            isLoadingDialog = true;
+            try {
+                // Clear UI without deleting the dialog
+                if (autoTimeout) clearTimeout(autoTimeout);
+                dialogActive = false;
+                isAutoPlaying = false;
+                transcript = [];
+                lastSpeaker = null;
+                hideAllSpeechBubbles();
+                const transcriptContent = document.getElementById('transcriptContent');
+                if (transcriptContent) {
+                    transcriptContent.innerHTML = '<div class="empty">Alle beskeder slettet</div>';
+                }
+                const leftTextarea = document.getElementById('leftTextarea');
+                const rightTextarea = document.getElementById('rightTextarea');
+                if (leftTextarea) leftTextarea.value = '';
+                if (rightTextarea) rightTextarea.value = '';
+                updateAllButtons();
+                
+                const participants = dialog.participants || {};
+                const leftParticipant = participants.left || { name: 'Venstre', color: '#3b82f6', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] };
+                const rightParticipant = participants.right || { name: 'Højre', color: '#ef4444', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] };
+                
+                applyLoadedDialog(leftParticipant, rightParticipant, dialog.messages || []);
+                
+                setStatus(`Dialog "${dialog.name}" indlæst.`);
+            } finally {
+                isLoadingDialog = false;
+            }
+            persistActiveDialogToNewStructure(false);
+        }
+        
+        function promptCleanupEmptyDialogsOnLoad() {
+            try {
+                if (!DialogData || !Array.isArray(DialogData.collections)) return;
+                
+                // Collect all empty dialogs (no messages or empty messages array)
+                const emptyDialogs = [];
+                DialogData.collections.forEach(collection => {
+                    if (Array.isArray(collection.dialogs)) {
+                        collection.dialogs.forEach(dialog => {
+                            const messages = Array.isArray(dialog.messages) ? dialog.messages : [];
+                            if (messages.length === 0) {
+                                emptyDialogs.push({ collection, dialog });
+                            }
+                        });
+                    }
+                });
+                
+                if (!emptyDialogs.length) return;
+                
+                // Count total dialogs
+                let totalDialogs = 0;
+                DialogData.collections.forEach(collection => {
+                    if (Array.isArray(collection.dialogs)) {
+                        totalDialogs += collection.dialogs.length;
+                    }
+                });
+                
+                // Do not apply cleanup if there is only one dialog total
+                if (totalDialogs <= 1) return;
+                
+                // Sort empty dialogs by timestamp (newest first), keep the newest empty, delete the rest
+                const sortedEmpty = emptyDialogs
+                    .slice()
+                    .sort((a, b) => {
+                        const timestampA = a.dialog.timestamp || a.dialog.updated || new Date(0).toISOString();
+                        const timestampB = b.dialog.timestamp || b.dialog.updated || new Date(0).toISOString();
+                        return new Date(timestampB).getTime() - new Date(timestampA).getTime();
+                    });
+                
+                const toKeep = sortedEmpty[0] ? { 
+                    collectionId: sortedEmpty[0].collection.id, 
+                    dialogId: sortedEmpty[0].dialog.id 
+                } : null;
+                
+                const toDelete = sortedEmpty.filter(item => 
+                    !(toKeep && item.collection.id === toKeep.collectionId && item.dialog.id === toKeep.dialogId)
+                );
+                
+                if (!toDelete.length) return;
+                
+                // Ensure we will not remove to below one total dialog
+                if ((totalDialogs - toDelete.length) < 1) return;
+                
+                const shouldDelete = confirm('Der findes dialoger uden beskeder. Vil du slette dem?');
+                if (!shouldDelete) return;
+                
+                // Remove empty dialogs
+                toDelete.forEach(({ collection, dialog }) => {
+                    if (Array.isArray(collection.dialogs)) {
+                        collection.dialogs = collection.dialogs.filter(d => d.id !== dialog.id);
+                    }
+                });
+                
+                // If we deleted the active dialog, switch to another one
+                const activeDialog = getActiveDialog();
+                if (!activeDialog) {
+                    // Find any remaining dialog
+                    const anyCollection = DialogData.collections.find(c => 
+                        Array.isArray(c.dialogs) && c.dialogs.length > 0
+                    );
+                    if (anyCollection && anyCollection.dialogs.length > 0) {
+                        DialogData.activeCollectionId = anyCollection.id;
+                        DialogData.activeDialogId = anyCollection.dialogs[0].id;
+                    }
+                }
+                
+                saveDialogDataToLocalStorage();
+            } catch (error) {
+                console.error('Fejl i promptCleanupEmptyDialogsOnLoad:', error);
+            }
+        }
+        
+        function deleteDialogFromNewStructure(collectionId, dialogId) {
+            const collection = DialogData.collections.find(c => c.id === collectionId);
+            if (!collection || !Array.isArray(collection.dialogs)) return;
+            
+            if (collection.dialogs.length <= 1) {
+                alert('Du kan ikke slette den sidste dialog i en samling. Slet samlingen i stedet.');
+                return;
+            }
+            
+            if (!confirm('Er du sikker på du vil slette denne dialog?')) {
+                return;
+            }
+            
+            collection.dialogs = collection.dialogs.filter(d => d.id !== dialogId);
+            
+            if (DialogData.activeDialogId === dialogId && DialogData.activeCollectionId === collectionId) {
+                if (collection.dialogs.length > 0) {
+                    DialogData.activeDialogId = collection.dialogs[collection.dialogs.length - 1].id;
+                } else {
+                    // Find another collection with dialogs
+                    const otherCollection = DialogData.collections.find(c => 
+                        c.id !== collectionId && Array.isArray(c.dialogs) && c.dialogs.length > 0
+                    );
+                    if (otherCollection) {
+                        DialogData.activeCollectionId = otherCollection.id;
+                        DialogData.activeDialogId = otherCollection.dialogs[otherCollection.dialogs.length - 1].id;
+                    }
+                }
+            }
+            
+            saveDialogDataToLocalStorage();
+            const activeDialog = getActiveDialog();
+            if (activeDialog) {
+                loadSavedDialogFromNewStructure(activeDialog);
+            }
+            renderDialogHistory();
+        }
+        
+        // ===== DIALOG SAMLING MANAGER FUNCTIONS (from opstilling_01.html) =====
+        
+        // Dialog samling manager state
+        let dialogSamlingManagerOverlayEl = null;
+        let dialogSamlingManagerListEl = null;
+        let newDialogSamlingNameInputEl = null;
+        let newDialogSamlingColorBtnEl = null;
+        let dialogSamlingColorPickerModalEl = null;
+        let dialogSamlingColorGridEl = null;
+        let dialogSamlingColorPickerTarget = null;
+        let newDialogSamlingDraftColor = DIALOG_COLLECTION_COLOR_PRESETS[0];
+        let newDialogSamlingDraftName = '';
+        let newDialogSamlingColorDirty = false;
+        
+        function openDialogSamlingManager() {
+            if (!dialogSamlingManagerOverlayEl) {
+                dialogSamlingManagerOverlayEl = document.getElementById('dialogSamlingManagerOverlay');
+                dialogSamlingManagerListEl = document.getElementById('dialogSamlingManagerList');
+                newDialogSamlingNameInputEl = document.getElementById('newDialogSamlingName');
+                newDialogSamlingColorBtnEl = document.getElementById('newDialogSamlingColorBtn');
+            }
+            if (!dialogSamlingColorPickerModalEl) {
+                dialogSamlingColorPickerModalEl = document.getElementById('dialogSamlingColorPickerModal');
+            }
+            if (!dialogSamlingColorGridEl) {
+                dialogSamlingColorGridEl = document.getElementById('dialogSamlingColorGrid');
+            }
+            if (newDialogSamlingNameInputEl) {
+                newDialogSamlingDraftName = newDialogSamlingNameInputEl.value;
+            }
+            if (dialogSamlingColorGridEl && dialogSamlingColorGridEl.childElementCount === 0) {
+                buildDialogSamlingColorGrid();
+            }
+            if (!dialogSamlingManagerOverlayEl) return;
+            resetNewDialogSamlingDraft();
+            renderDialogSamlingManagerList();
+            dialogSamlingManagerOverlayEl.classList.add('show');
+            setTimeout(() => {
+                if (newDialogSamlingNameInputEl) {
+                    newDialogSamlingNameInputEl.focus();
+                }
+            }, 80);
+        }
+        
+        function closeDialogSamlingManager() {
+            if (dialogSamlingManagerOverlayEl) {
+                dialogSamlingManagerOverlayEl.classList.remove('show');
+            }
+            closeDialogSamlingColorPicker();
+        }
+        
+        function resetNewDialogSamlingDraft() {
+            newDialogSamlingDraftColor = DIALOG_COLLECTION_COLOR_PRESETS[0];
+            newDialogSamlingDraftName = '';
+            newDialogSamlingColorDirty = false;
+            if (newDialogSamlingNameInputEl) {
+                newDialogSamlingNameInputEl.value = '';
+            }
+            updateNewDialogSamlingColorButton();
+        }
+        
+        function updateNewDialogSamlingColorButton() {
+            if (!newDialogSamlingColorBtnEl) return;
+            if (newDialogSamlingColorDirty) {
+                const baseColor = newDialogSamlingDraftColor || DIALOG_COLLECTION_COLOR_PRESETS[0];
+                newDialogSamlingColorBtnEl.style.background = baseColor;
+                newDialogSamlingColorBtnEl.style.color = '#ffffff';
+                if (newDialogSamlingNameInputEl) {
+                    newDialogSamlingNameInputEl.style.background = lightenHex(baseColor, 0.85);
+                    newDialogSamlingNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
+                }
+            } else {
+                const baseColor = DIALOG_COLLECTION_COLOR_PRESETS[0] || '#ef4444';
+                newDialogSamlingColorBtnEl.style.background = baseColor;
+                newDialogSamlingColorBtnEl.style.color = '#ffffff';
+                if (newDialogSamlingNameInputEl) {
+                    newDialogSamlingNameInputEl.style.background = lightenHex(baseColor, 0.85);
+                    newDialogSamlingNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
+                }
+            }
+        }
+        
+        function renderDialogSamlingManagerList() {
+            if (!dialogSamlingManagerListEl) return;
+            dialogSamlingManagerListEl.innerHTML = '';
+            
+            if (!DialogData || !Array.isArray(DialogData.collections)) {
+                ensureDefaultDialogData();
+            }
+            
+            DialogData.collections.forEach(collection => {
+                const item = document.createElement('div');
+                item.className = 'samling-manager-item';
+                
+                const nameBtn = document.createElement('button');
+                nameBtn.className = 'samling-name-btn';
+                nameBtn.textContent = collection.name || 'Samling';
+                const baseColor = collection.color || DIALOG_COLLECTION_COLOR_PRESETS[0];
+                nameBtn.style.background = lightenHex(baseColor, 0.7);
+                nameBtn.style.border = `1px solid ${baseColor}`;
+                nameBtn.addEventListener('click', () => beginDialogSamlingNameInlineEdit(collection, nameBtn));
+                
+                const actions = document.createElement('div');
+                actions.className = 'samling-item-actions';
+                
+                const colorBtn = document.createElement('button');
+                colorBtn.className = 'samling-action-btn color';
+                colorBtn.textContent = 'C';
+                colorBtn.style.background = collection.color || DIALOG_COLLECTION_COLOR_PRESETS[0];
+                colorBtn.onclick = () => openDialogSamlingColorPicker({ type: 'samling', collectionId: collection.id });
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'samling-action-btn delete';
+                deleteBtn.textContent = '✕';
+                deleteBtn.onclick = () => deleteDialogSamling(collection.id);
+                
+                actions.appendChild(colorBtn);
+                actions.appendChild(deleteBtn);
+                
+                item.appendChild(nameBtn);
+                item.appendChild(actions);
+                dialogSamlingManagerListEl.appendChild(item);
+            });
+            
+            newDialogSamlingNameInputEl = document.getElementById('newDialogSamlingName');
+            newDialogSamlingColorBtnEl = document.getElementById('newDialogSamlingColorBtn');
+            if (newDialogSamlingNameInputEl) {
+                newDialogSamlingNameInputEl.value = newDialogSamlingDraftName;
+                newDialogSamlingNameInputEl.addEventListener('input', (e) => {
+                    newDialogSamlingDraftName = e.target.value;
+                });
+            }
+            updateNewDialogSamlingColorButton();
+        }
+        
+        function beginDialogSamlingNameInlineEdit(collection, buttonEl) {
+            if (!collection || !buttonEl) return;
+            const baseColor = collection.color || DIALOG_COLLECTION_COLOR_PRESETS[0];
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'samling-name-input';
+            input.value = collection.name || 'Samling';
+            input.style.background = lightenHex(baseColor, 0.7);
+            input.style.borderColor = baseColor;
+            
+            let finished = false;
+            const commit = (shouldSave) => {
+                if (finished) return;
+                finished = true;
+                const newName = input.value.trim();
+                if (shouldSave && newName && newName !== collection.name) {
+                    collection.name = newName;
+                    renderDialogHistoryFilterOptions();
+                    renderDialogHistory();
+                    saveDialogDataToLocalStorage();
+                }
+                renderDialogSamlingManagerList();
+            };
+            
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    commit(true);
+                } else if (event.key === 'Escape') {
+                    commit(false);
+                }
+            });
+            
+            input.addEventListener('blur', () => commit(true));
+            
+            buttonEl.replaceWith(input);
+            input.focus();
+            input.select();
+        }
+        
+        function openDialogSamlingColorPicker(target) {
+            if (!dialogSamlingColorPickerModalEl) {
+                dialogSamlingColorPickerModalEl = document.getElementById('dialogSamlingColorPickerModal');
+                dialogSamlingColorGridEl = document.getElementById('dialogSamlingColorGrid');
+            }
+            if (!dialogSamlingColorPickerModalEl || !dialogSamlingColorGridEl) return;
+            dialogSamlingColorPickerTarget = target;
+            dialogSamlingColorPickerModalEl.classList.add('show');
+        }
+        
+        function closeDialogSamlingColorPicker() {
+            dialogSamlingColorPickerTarget = null;
+            if (dialogSamlingColorPickerModalEl) {
+                dialogSamlingColorPickerModalEl.classList.remove('show');
+            }
+        }
+        
+        function backdropCloseDialogSamlingHandler(event) {
+            if (event.target === dialogSamlingColorPickerModalEl) {
+                closeDialogSamlingColorPicker();
+            }
+        }
+        
+        function handleDialogSamlingColorSelected(color) {
+            if (!dialogSamlingColorPickerTarget) return;
+            if (dialogSamlingColorPickerTarget.type === 'samling') {
+                applyDialogSamlingColor(dialogSamlingColorPickerTarget.collectionId, color);
+                renderDialogHistory();
+                saveDialogDataToLocalStorage();
+            } else if (dialogSamlingColorPickerTarget.type === 'new') {
+                newDialogSamlingDraftColor = color;
+                newDialogSamlingColorDirty = true;
+                updateNewDialogSamlingColorButton();
+            }
+            closeDialogSamlingColorPicker();
+        }
+        
+        function applyDialogSamlingColor(collectionId, color) {
+            const collection = DialogData.collections.find(c => c.id === collectionId);
+            if (!collection) return;
+            collection.color = color;
+            renderDialogHistory();
+            renderDialogSamlingManagerList();
+            renderDialogHistoryFilterOptions();
+            saveDialogDataToLocalStorage();
+        }
+        
+        function confirmCreateDialogSamling() {
+            if (!newDialogSamlingNameInputEl) return;
+            const name = newDialogSamlingNameInputEl.value.trim();
+            if (!name) {
+                newDialogSamlingNameInputEl.focus();
+                return;
+            }
+            const color = newDialogSamlingDraftColor || DIALOG_COLLECTION_COLOR_PRESETS[0];
+            
+            // Save current dialog before switching
+            persistActiveDialogToNewStructure();
+            
+            // Find highest collection ID
+            let maxId = 0;
+            if (Array.isArray(DialogData.collections)) {
+                DialogData.collections.forEach(c => {
+                    if (c.id > maxId) maxId = c.id;
+                });
+            }
+            const newId = maxId + 1;
+            
+            const now = new Date().toISOString();
+            const newCollection = {
+                id: newId,
+                name,
+                color,
+                dialogs: [{
+                    id: 1,
+                    name: 'Dialog 1',
+                    timestamp: now,
+                    updated: now,
+                    participants: {
+                        left: { name: 'Venstre', color: '#3b82f6', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] },
+                        right: { name: 'Højre', color: '#ef4444', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] }
+                    },
+                    messages: []
+                }]
+            };
+            
+            if (!Array.isArray(DialogData.collections)) {
+                DialogData.collections = [];
+            }
+            DialogData.collections.push(newCollection);
+            DialogData.activeCollectionId = newId;
+            DialogData.activeDialogId = 1;
+            
+            saveDialogDataToLocalStorage();
+            
+            // Load the new dialog
+            loadSavedDialogFromNewStructure(newCollection.dialogs[0]);
+            
+            // Ensure workspace is ready and history is updated
+            renderDialogHistory();
+            renderDialogSamlingManagerList();
+            
+            // Use requestAnimationFrame to ensure DOM is fully updated
+            requestAnimationFrame(() => {
+                // Verify active dialog is set correctly
+                const activeDialog = getActiveDialog();
+                if (activeDialog && activeDialog.id === 1 && DialogData.activeCollectionId === newId) {
+                    // Everything is ready - workspace should be functional now
+                    // Force a re-render of history to ensure active state is correct
+                    renderDialogHistory();
+                }
+            });
+            
+            if (newDialogSamlingNameInputEl) {
+                newDialogSamlingNameInputEl.value = '';
+            }
+            resetNewDialogSamlingDraft();
+            closeDialogSamlingManager();
+        }
+        
+        function deleteDialogSamling(collectionId) {
+            if (!DialogData || !Array.isArray(DialogData.collections)) return;
+            
+            // Prevent deleting the last remaining collection
+            if (DialogData.collections.length <= 1) {
+                alert('Du kan ikke slette den sidste samling.');
+                return;
+            }
+            
+            const collection = DialogData.collections.find(c => c.id === collectionId);
+            if (!collection) return;
+            
+            if (!confirm(`Vil du slette alle dialoger i "${collection.name}"?`)) {
+                return;
+            }
+            
+            closeDialogSamlingColorPicker();
+            DialogData.collections = DialogData.collections.filter(c => c.id !== collectionId);
+            
+            if (DialogData.activeCollectionId === collectionId) {
+                const otherCollection = DialogData.collections.find(c => 
+                    Array.isArray(c.dialogs) && c.dialogs.length > 0
+                );
+                if (otherCollection) {
+                    DialogData.activeCollectionId = otherCollection.id;
+                    DialogData.activeDialogId = otherCollection.dialogs[otherCollection.dialogs.length - 1].id;
+                } else {
+                    ensureDefaultDialogData();
+                }
+            }
+            
+            saveDialogDataToLocalStorage();
+            const activeDialog = getActiveDialog();
+            if (activeDialog) {
+                loadSavedDialogFromNewStructure(activeDialog);
+            }
+            renderDialogHistory();
+            renderDialogSamlingManagerList();
+        }
+        
+        function buildDialogSamlingColorGrid() {
+            if (!dialogSamlingColorGridEl) return;
+            dialogSamlingColorGridEl.innerHTML = '';
+            DIALOG_COLLECTION_COLOR_PRESETS.forEach(color => {
+                const swatch = document.createElement('button');
+                swatch.className = 'samling-color-swatch';
+                swatch.style.background = color;
+                swatch.onclick = () => handleDialogSamlingColorSelected(color);
+                dialogSamlingColorGridEl.appendChild(swatch);
+            });
         }
         
         function getParticipantSnapshot(side) {
@@ -2107,53 +3244,108 @@ let dialogHistoryCollapsed = false;
         }
         
         function createNewDialogEntry() {
-            const store = loadDialogStorage();
-            const defaultLeft = getDefaultParticipant('left');
-            const defaultRight = getDefaultParticipant('right');
-            defaultLeft.name = 'Venstre deltager';
-            defaultRight.name = 'Højre deltager';
-            defaultLeft.keywords = ['', '', '', '', '', ''];
-            defaultRight.keywords = ['', '', '', '', '', ''];
-            defaultLeft.pose = 'standard';
-            defaultRight.pose = 'standard';
-            defaultLeft.spejl = false;
-            defaultRight.spejl = false;
-            const newSessionId = `dialog-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-            const timestamp = new Date().toISOString();
-            const sessionName = `Dialog ${store.sessions.length + 1}`;
-            const session = {
-                id: newSessionId,
-                name: sessionName,
-                createdAt: timestamp,
-                updatedAt: timestamp,
+            ensureDefaultDialogData();
+            
+            let collection = getActiveCollection();
+            if (!collection) {
+                ensureDefaultDialogData();
+                collection = getActiveCollection();
+                if (!collection) {
+                    // If still no collection, create a default one
+                    ensureDefaultDialogData();
+                    collection = getActiveCollection();
+                }
+            }
+            
+            // Find highest dialog ID in current collection
+            let maxId = 0;
+            if (Array.isArray(collection.dialogs)) {
+                collection.dialogs.forEach(d => {
+                    if (d.id > maxId) maxId = d.id;
+                });
+            }
+            
+            const newId = maxId + 1;
+            const dialogName = `Dialog ${newId}`;
+            
+            // Save current dialog before switching
+            persistActiveDialogToNewStructure();
+            
+            // Create new dialog with default participants (venstre and højre)
+            const now = new Date().toISOString();
+            const defaultLeft = {
+                name: 'Venstre',
+                color: '#3b82f6',
+                pose: 'standard',
+                flipped: false,
+                keywords: ['', '', '', '', '', '']
+            };
+            const defaultRight = {
+                name: 'Højre',
+                color: '#ef4444',
+                pose: 'standard',
+                flipped: false,
+                keywords: ['', '', '', '', '', '']
+            };
+            
+            const newDialog = {
+                id: newId,
+                name: dialogName,
+                timestamp: now,
+                updated: now,
                 participants: {
                     left: defaultLeft,
                     right: defaultRight
                 },
                 messages: []
             };
-            store.sessions.unshift(session);
-            if (store.sessions.length > DIALOG_RECENT_LIST_LENGTH) {
-                store.sessions = store.sessions.slice(0, DIALOG_RECENT_LIST_LENGTH);
+            
+            if (!Array.isArray(collection.dialogs)) {
+                collection.dialogs = [];
             }
-            store.activeDialogId = newSessionId;
-            saveDialogStorage(store);
-            activeDialogId = newSessionId;
-            clearAll();
+            collection.dialogs.push(newDialog);
+            DialogData.activeDialogId = newId;
+            
+            saveDialogDataToLocalStorage();
+            
+            // Clear UI without deleting anything
+            if (autoTimeout) clearTimeout(autoTimeout);
+            dialogActive = false;
+            isAutoPlaying = false;
+            transcript = [];
+            lastSpeaker = null;
+            hideAllSpeechBubbles();
+            const transcriptContent = document.getElementById('transcriptContent');
+            if (transcriptContent) {
+                transcriptContent.innerHTML = '<div class="empty">Alle beskeder slettet</div>';
+            }
+            const leftTextarea = document.getElementById('leftTextarea');
+            const rightTextarea = document.getElementById('rightTextarea');
+            if (leftTextarea) {
+                leftTextarea.value = '';
+                leftTextarea.blur();
+            }
+            if (rightTextarea) rightTextarea.value = '';
+            
+            // Load the new dialog
             applyLoadedDialog(defaultLeft, defaultRight, []);
-            const newHistoryInput = document.querySelector(`.dialog-history-item[data-dialog-id="${newSessionId}"] .dialog-history-item-title-input`);
-            if (newHistoryInput) {
-                newlyCreatedTitleInput = newHistoryInput;
-                requestAnimationFrame(() => {
-                    newlyCreatedTitleInput?.focus();
-                    newlyCreatedTitleInput?.select();
-                });
-            }
+            
             resetPose('left');
             resetPose('right');
             dialogActive = false; // Dialog is not started yet, user needs to click "Start Dialog"
             currentSpeaker = 'left';
-            renderDialogHistory(newSessionId);
+            renderDialogHistory();
+            
+            // Make the new history item's name editable and focus it
+            requestAnimationFrame(() => {
+                const newHistoryInput = document.querySelector(`.dialog-history-item.active input[data-dialog-id="${newId}"]`);
+                if (newHistoryInput) {
+                    newHistoryInput.readOnly = false;
+                    newHistoryInput.focus();
+                    newHistoryInput.select();
+                }
+            });
+            
             const leftBubble = document.getElementById('leftBubble');
             const rightBubble = document.getElementById('rightBubble');
             if (leftBubble) {
@@ -2164,13 +3356,6 @@ let dialogHistoryCollapsed = false;
                 rightBubble.style.display = 'none';
                 rightBubble.classList.remove('visible');
             }
-            const leftTextarea = document.getElementById('leftTextarea');
-            if (leftTextarea) {
-                leftTextarea.value = '';
-                leftTextarea.blur();
-            }
-            const rightTextarea = document.getElementById('rightTextarea');
-            if (rightTextarea) rightTextarea.value = '';
             // Update buttons after a short delay to ensure DOM is updated
             setTimeout(() => {
                 updateAllButtons();
@@ -2178,92 +3363,96 @@ let dialogHistoryCollapsed = false;
             setStatus('Ny dialog klar.');
         }
         
-        function persistActiveDialog(updateTimestamp = true) {
+        function persistActiveDialogToNewStructure(updateTimestamp = true) {
             if (isLoadingDialog) return;
-            if (!activeDialogId) return;
-            const store = loadDialogStorage();
-            const sessionIndex = store.sessions.findIndex(s => s.id === activeDialogId);
-            if (sessionIndex === -1) return;
+            if (!DialogData || !DialogData.activeDialogId || !DialogData.activeCollectionId) return;
             
-            let session = store.sessions[sessionIndex];
-            session.participants = {
-                left: getParticipantSnapshot('left') || getDefaultParticipant('left'),
-                right: getParticipantSnapshot('right') || getDefaultParticipant('right')
+            const collection = getActiveCollection();
+            if (!collection) return;
+            
+            const dialog = getActiveDialog();
+            if (!dialog) return;
+            
+            // Update participants
+            const leftSnapshot = getParticipantSnapshot('left');
+            const rightSnapshot = getParticipantSnapshot('right');
+            
+            dialog.participants = {
+                left: leftSnapshot ? {
+                    name: leftSnapshot.name,
+                    color: leftSnapshot.color,
+                    pose: leftSnapshot.pose || 'standard',
+                    flipped: leftSnapshot.spejl || false,
+                    keywords: Array.isArray(leftSnapshot.keywords) ? leftSnapshot.keywords.slice(0, 6) : ['', '', '', '', '', '']
+                } : {
+                    name: 'Venstre',
+                    color: '#3b82f6',
+                    pose: 'standard',
+                    flipped: false,
+                    keywords: ['', '', '', '', '', '']
+                },
+                right: rightSnapshot ? {
+                    name: rightSnapshot.name,
+                    color: rightSnapshot.color,
+                    pose: rightSnapshot.pose || 'standard',
+                    flipped: rightSnapshot.spejl || false,
+                    keywords: Array.isArray(rightSnapshot.keywords) ? rightSnapshot.keywords.slice(0, 6) : ['', '', '', '', '', '']
+                } : {
+                    name: 'Højre',
+                    color: '#ef4444',
+                    pose: 'standard',
+                    flipped: false,
+                    keywords: ['', '', '', '', '', '']
+                }
             };
-            session.messages = transcript.map(entry => ({
+            
+            // Update messages
+            dialog.messages = transcript.map(entry => ({
                 speaker: entry.speaker,
                 message: entry.message,
                 side: entry.side,
                 timestamp: entry.timestamp || ''
             }));
+            
             if (updateTimestamp) {
-                session.updatedAt = new Date().toISOString();
+                dialog.updated = new Date().toISOString();
             }
-            store.sessions[sessionIndex] = session;
-            store.activeDialogId = activeDialogId;
-            if (store.sessions.length > DIALOG_RECENT_LIST_LENGTH) {
-                store.sessions = store.sessions.slice(0, DIALOG_RECENT_LIST_LENGTH);
-            }
-            saveDialogStorage(store);
+            
+            saveDialogDataToLocalStorage();
             renderDialogHistory();
         }
 
-        function renameDialogSession(sessionId, newName) {
-            const trimmed = (newName || '').trim();
-            const finalName = trimmed.length ? trimmed : 'Dialog';
-            const store = loadDialogStorage();
-            const session = store.sessions.find(s => s.id === sessionId);
-            if (!session) {
-                return;
-            }
-            if (session.name === finalName) {
-                return;
-            }
-            session.name = finalName;
-            store.activeDialogId = activeDialogId;
-            saveDialogStorage(store);
-            renderDialogHistory(sessionId);
-            if (sessionId === activeDialogId) {
-                setStatus(`Dialognavn opdateret til "${finalName}".`);
-            }
+        // Legacy function for backwards compatibility
+        function persistActiveDialog(updateTimestamp = true) {
+            persistActiveDialogToNewStructure(updateTimestamp);
         }
 
-        function deleteDialogSession(sessionId) {
-            const store = loadDialogStorage();
-            const sessionIndex = store.sessions.findIndex(s => s.id === sessionId);
-            if (sessionIndex === -1) {
-                return;
-            }
-            const session = store.sessions[sessionIndex];
-            if (!confirm(`Slet dialogen "${session.name || 'Dialog'}"?`)) {
-                return;
-            }
-            const deletingActive = activeDialogId === sessionId;
-            store.sessions.splice(sessionIndex, 1);
-            let nextActiveId = activeDialogId;
-            if (deletingActive) {
-                if (store.sessions.length) {
-                    const fallbackSession = store.sessions[Math.min(sessionIndex, store.sessions.length - 1)];
-                    nextActiveId = fallbackSession.id;
-                } else {
-                    nextActiveId = null;
-                }
-            } else if (nextActiveId && !store.sessions.some(s => s.id === nextActiveId)) {
-                nextActiveId = store.sessions.length ? store.sessions[0].id : null;
-            }
-            activeDialogId = nextActiveId;
-            store.activeDialogId = nextActiveId;
-            saveDialogStorage(store);
-            renderDialogHistory(nextActiveId);
-            if (nextActiveId) {
-                loadSavedDialog(nextActiveId);
-            } else {
-                clearAll();
-                setStatus('Dialog slettet. Opret en ny dialog for at begynde.');
-            }
-        }
-        
+        // Legacy function for backwards compatibility
         function loadSavedDialog(sessionId) {
+            // Try to parse sessionId as "collectionId-dialogId" format
+            if (sessionId && typeof sessionId === 'string' && sessionId.includes('-')) {
+                const parts = sessionId.split('-');
+                if (parts.length >= 2) {
+                    const collectionId = parseFloat(parts[0]);
+                    const dialogId = parseFloat(parts[1]);
+                    if (!isNaN(collectionId) && !isNaN(dialogId)) {
+                        const collection = DialogData.collections.find(c => c.id === collectionId);
+                        if (collection) {
+                            const dialog = collection.dialogs.find(d => d.id === dialogId);
+                            if (dialog) {
+                                DialogData.activeCollectionId = collectionId;
+                                DialogData.activeDialogId = dialogId;
+                                saveDialogDataToLocalStorage();
+                                loadSavedDialogFromNewStructure(dialog);
+                                renderDialogHistory();
+                return;
+            }
+                        }
+                    }
+                }
+            }
+            
+            // Fallback to legacy structure if not found in new structure
             if (!sessionId) return;
             if (isLoadingDialog && sessionId === activeDialogId) return;
             const store = loadDialogStorage();
@@ -2284,33 +3473,6 @@ let dialogHistoryCollapsed = false;
                     rightParticipant,
                     session.messages || []
                 );
-                
-                // Update session.participants with the loaded values (names, colors, poses)
-                // This ensures the history item shows the correct participant names
-                session.participants = {
-                    left: {
-                        name: leftParticipant.name || 'Venstre del',
-                        color: leftParticipant.color || '#3b82f6',
-                        pose: leftParticipant.pose || '',
-                        spejl: leftParticipant.spejl || false,
-                        keywords: leftParticipant.keywords || ['', '', '', '', '', '']
-                    },
-                    right: {
-                        name: rightParticipant.name || 'Højre del',
-                        color: rightParticipant.color || '#ef4444',
-                        pose: rightParticipant.pose || '',
-                        spejl: rightParticipant.spejl || false,
-                        keywords: rightParticipant.keywords || ['', '', '', '', '', '']
-                    }
-                };
-                
-                // Save updated session to storage
-                const store = loadDialogStorage();
-                const sessionIndex = store.sessions.findIndex(s => s.id === sessionId);
-                if (sessionIndex !== -1) {
-                    store.sessions[sessionIndex] = session;
-                    saveDialogStorage(store);
-                }
                 
                 activeDialogId = sessionId;
                 renderDialogHistory();
@@ -2531,6 +3693,9 @@ function selectPose(poseIndex) {
     // Use the existing applyPose function from dialog system
     applyPose(side, poseIndex, mirror);
     
+    // Save to dialogData when pose changes
+    persistActiveDialogToNewStructure(false);
+    
     // Update active button
     populatePoseGrid();
 }
@@ -2546,9 +3711,19 @@ function togglePosePickerMirror() {
     
     const mirror = posePickerMirrorCheckbox.checked;
     
+    // Update partsData immediately
+    const key = side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
+    if (partsData[key]) {
+        partsData[key].mirror = mirror;
+    }
+    
     const currentPoseAttr = currentPosePart.getAttribute('data-pose');
     const poseIndex = currentPoseAttr != null ? currentPoseAttr : '';
     applyPose(side, poseIndex, mirror);
+    
+    // Save to dialogData when mirror changes
+    persistActiveDialogToNewStructure(false);
+    
     populatePoseGrid();
 }
 
@@ -2888,7 +4063,18 @@ function toggleMirror(side) {
     const currentPoseAttr = participantNode.getAttribute('data-pose');
     const poseIndex = currentPoseAttr != null ? currentPoseAttr : '';
     const currentMirror = participantNode.getAttribute('data-mirror') === 'true';
-    applyPose(side, poseIndex, !currentMirror);
+    const newMirror = !currentMirror;
+    
+    // Update partsData immediately
+    const key = side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
+    if (partsData[key]) {
+        partsData[key].mirror = newMirror;
+    }
+    
+    applyPose(side, poseIndex, newMirror);
+    
+    // Save to dialogData when mirror changes
+    persistActiveDialogToNewStructure(false);
 }
 
 function resetPose(side) {
@@ -3764,34 +4950,32 @@ function resetPose(side) {
         }
 
         function clearAll() {
-            // Stop auto-play if running
-            if (autoTimeout) clearTimeout(autoTimeout);
+            // Delete the active dialog from the history
+            const activeDialog = getActiveDialog();
+            const activeCollection = getActiveCollection();
             
-            // Clear dialog state
+            if (activeDialog && activeCollection) {
+                // deleteDialogFromNewStructure handles confirmation, deletion, and loading next dialog
+                deleteDialogFromNewStructure(activeCollection.id, activeDialog.id);
+            } else {
+                // Fallback: if no active dialog, just clear the UI
+                if (autoTimeout) clearTimeout(autoTimeout);
             dialogActive = false;
             isAutoPlaying = false;
             transcript = [];
             lastSpeaker = null;
-            
-            // Hide speech bubbles
             hideAllSpeechBubbles();
-            
-            // Clear transcript content (show empty message)
             const transcriptContent = document.getElementById('transcriptContent');
             if (transcriptContent) {
                 transcriptContent.innerHTML = '<div class="empty">Alle beskeder slettet</div>';
             }
-            
-            // Clear textareas
             const leftTextarea = document.getElementById('leftTextarea');
             const rightTextarea = document.getElementById('rightTextarea');
             if (leftTextarea) leftTextarea.value = '';
             if (rightTextarea) rightTextarea.value = '';
-            
-            // Update buttons and status
             updateAllButtons();
-            persistActiveDialog();
             setStatus('Alle beskeder slettet');
+            }
         }
 		
 		
@@ -4328,19 +5512,25 @@ function resetPose(side) {
             rightName.removeAttribute('data-edited');
             enableParticipantNameEditing('left');
             enableParticipantNameEditing('right');
+            
+            // Handle both 'spejl' (legacy) and 'flipped' (new structure)
+            const leftFlipped = leftPart.flipped !== undefined ? leftPart.flipped : (leftPart.spejl || false);
+            const rightFlipped = rightPart.flipped !== undefined ? rightPart.flipped : (rightPart.spejl || false);
+            
+            // Initialize partsData with all participant data
             partsData.lav_ny_left = {
                 name: leftPart.name || 'Venstre del',
                 keywords: Array.isArray(leftPart.keywords) ? leftPart.keywords.slice(0, 6) : ['', '', '', '', '', ''],
                 color: leftPart.color || '#3b82f6',
                 pose: leftPart.pose || '',
-                mirror: !!leftPart.spejl
+                mirror: leftFlipped
             };
             partsData.lav_ny_right = {
                 name: rightPart.name || 'Højre del',
                 keywords: Array.isArray(rightPart.keywords) ? rightPart.keywords.slice(0, 6) : ['', '', '', '', '', ''],
                 color: rightPart.color || '#ef4444',
                 pose: rightPart.pose || '',
-                mirror: !!rightPart.spejl
+                mirror: rightFlipped
             };
             
             const leftHead = leftCircle.querySelector('.head');
@@ -4357,9 +5547,6 @@ function resetPose(side) {
 						
             document.getElementById('leftColorBtn').style.display = 'flex';
             document.getElementById('rightColorBtn').style.display = 'flex';
-            
-            partsData.lav_ny_left.keywords = Array.isArray(leftPart.keywords) ? leftPart.keywords.slice(0, 6) : ['', '', '', '', '', ''];
-            partsData.lav_ny_right.keywords = Array.isArray(rightPart.keywords) ? rightPart.keywords.slice(0, 6) : ['', '', '', '', '', ''];
 			
 			// Genopret pose-indstillinger ved navn
 const leftPoseDropdown = document.getElementById('leftPose');
@@ -4368,8 +5555,18 @@ const leftMirror = document.getElementById('leftMirror');
 const rightMirror = document.getElementById('rightMirror');
 
 // Sæt spejl-checkboxes først
-if (leftMirror) leftMirror.checked = leftPart.spejl || false;
-if (rightMirror) rightMirror.checked = rightPart.spejl || false;
+if (leftMirror) leftMirror.checked = leftFlipped;
+if (rightMirror) rightMirror.checked = rightFlipped;
+
+// Set data-mirror attributes
+const leftParticipant = leftCircle ? leftCircle.parentElement : null;
+const rightParticipant = rightCircle ? rightCircle.parentElement : null;
+if (leftParticipant) {
+    leftParticipant.setAttribute('data-mirror', String(leftFlipped));
+}
+if (rightParticipant) {
+    rightParticipant.setAttribute('data-mirror', String(rightFlipped));
+}
 
 // Derefter anvend poses (som nu vil tage højde for spejl-indstillingen)
 // Use applyParticipantPose to ensure mirror is handled correctly
@@ -4378,7 +5575,7 @@ if (leftPart.pose) {
     if (poseIndex !== -1 && leftPoseDropdown) {
         leftPoseDropdown.value = poseIndex;
     }
-    applyParticipantPose('left', leftPart.pose, leftPart.spejl || false);
+    applyParticipantPose('left', leftPart.pose, leftFlipped);
 } else {
     // Reset pose if no pose is specified
     if (leftPoseDropdown) leftPoseDropdown.value = '';
@@ -4389,7 +5586,7 @@ if (rightPart.pose) {
     if (poseIndex !== -1 && rightPoseDropdown) {
         rightPoseDropdown.value = poseIndex;
     }
-    applyParticipantPose('right', rightPart.pose, rightPart.spejl || false);
+    applyParticipantPose('right', rightPart.pose, rightFlipped);
 } else {
     // Reset pose if no pose is specified
     if (rightPoseDropdown) rightPoseDropdown.value = '';
@@ -4596,38 +5793,58 @@ if (rightPart.pose) {
 				openPosePicker(this);
 			});
 
+			// Save when mirror changes
+			const leftMirror = document.getElementById('leftMirror');
+			const rightMirror = document.getElementById('rightMirror');
+			if (leftMirror) {
+				leftMirror.addEventListener('change', function() {
+					toggleMirror('left');
+				});
+			}
+			if (rightMirror) {
+				rightMirror.addEventListener('change', function() {
+					toggleMirror('right');
+				});
+			}
+
+            // Initialize new dialogData structure
+            DialogData = loadDialogDataFromLocalStorage();
+            ensureDefaultDialogData();
+            
+            // Cleanup: ask to remove empty dialogs (no messages)
+            promptCleanupEmptyDialogsOnLoad();
+            
+            // Load active dialog from new structure
+            const activeDialog = getActiveDialog();
+            if (activeDialog) {
+                loadSavedDialogFromNewStructure(activeDialog);
+            }
+            
+            // Initialize history sidebar
             dialogHistoryCollapsed = localStorage.getItem(DIALOG_HISTORY_COLLAPSED_KEY) === 'true';
+            updateDialogHistoryToggleUI();
+            
             const newDialogBtn = document.getElementById('newDialogBtn');
             if (newDialogBtn) {
                 newDialogBtn.addEventListener('click', createNewDialogEntry);
             }
 
-            const historyListEl = document.getElementById('dialogHistoryList');
-            if (historyListEl) {
-                historyListEl.addEventListener('click', function(event) {
-                    const item = event.target.closest('.dialog-history-item');
-                    if (item && item.dataset.dialogId) {
-                        const targetId = item.dataset.dialogId;
-                        if (targetId === activeDialogId) {
-                            return;
-                        }
-                        persistActiveDialog(false);
-                        loadSavedDialog(targetId);
+            // Render history
+            renderDialogHistory();
+            
+            // Initialize samling manager color grid
+            buildDialogSamlingColorGrid();
+            
+            // Setup Escape key and backdrop click handlers for overlays
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (dialogSamlingColorPickerModalEl && dialogSamlingColorPickerModalEl.classList.contains('show')) {
+                        closeDialogSamlingColorPicker();
+                    } else if (dialogSamlingManagerOverlayEl && dialogSamlingManagerOverlayEl.classList.contains('show')) {
+                        closeDialogSamlingManager();
                     }
-                });
-            }
-
-            const initialStore = loadDialogStorage();
-            if (initialStore.activeDialogId) {
-                activeDialogId = initialStore.activeDialogId;
-            }
-            renderDialogHistory(initialStore.activeDialogId || null);
-
-            const initialSessions = initialStore.sessions || [];
-            const targetId = initialStore.activeDialogId || (initialSessions.length ? initialSessions[0].id : null);
-            if (targetId) {
-                loadSavedDialog(targetId);
-            }
+                }
+            });
 
             // Wire mini C buttons to write dialogData
             const leftMini = document.getElementById('leftMiniC');

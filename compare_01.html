@@ -1431,7 +1431,572 @@
 		
 		
 		
-		
+		/* History Sidebar (from opstilling_01.html) */
+        .history-sidebar {
+            width: 250px;
+            background: #f8fafc;
+            border-left: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            transform: translateX(0);
+            transition: transform 0.3s ease;
+            z-index: 4000;
+        }
+        
+        .history-sidebar.collapsed {
+            transform: translateX(212px);
+        }
+        
+        .history-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .history-sidebar.collapsed .history-content {
+            display: none;
+        }
+        
+        .history-sidebar.collapsed .history-header {
+            justify-content: center;
+            font-size: 0;
+            padding-left: 16px;
+        }
+        
+        .history-header {
+            background: #e2e8f0;
+            padding: 10px 12px 10px 40px;
+            text-align: center;
+            font-weight: bold;
+            color: #374151;
+            border-bottom: 2px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            height: 50px;
+            min-height: 50px;
+            max-height: 50px;
+            box-sizing: border-box;
+            position: relative;
+        }
+        
+        .history-filter {
+            flex: 1;
+            min-width: 180px;
+            padding: 6px 14px 6px 16px;
+            border-radius: 8px;
+            border: 1px solid #cbd5f5;
+            background: #ffffff;
+            color: #1f2937;
+            font-size: 16px;
+            font-weight: 600;
+            outline: none;
+            appearance: none;
+            margin: 0 8px 0 0;
+            position: relative;
+            background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%);
+            background-position: calc(100% - 16px) 50%, calc(100% - 9px) 50%;
+            background-size: 7px 7px, 7px 7px;
+            background-repeat: no-repeat;
+        }
+        
+        .history-filter:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        
+        .collapse-toggle {
+            position: absolute;
+            left: 2px;
+            top: 12px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            z-index: 100;
+            padding: 0;
+        }
+        
+        .collapse-toggle:hover {
+            background: #4338ca;
+            transform: scale(1.1);
+        }
+        
+        .collapse-toggle-bottom {
+            top: auto;
+            bottom: 8px;
+        }
+        
+        .history-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: #e2e8f0;
+            border-bottom: 1px solid #d1d5db;
+            flex-shrink: 0;
+        }
+        
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: white !important;
+            cursor: pointer;
+            font-size: 0;
+            color: black;
+            transition: all 0.2s;
+            position: relative;
+            padding: 0;
+        }
+        
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .nav-btn#navUp::before {
+            border-bottom: 12px solid black;
+            border-top: none;
+        }
+        
+        .nav-btn#navDown::before {
+            border-top: 12px solid black;
+            border-bottom: none;
+        }
+        
+        .nav-btn:hover {
+            background: #f3f4f6;
+        }
+        
+        .nav-btn:hover::before {
+            opacity: 0.7;
+        }
+        
+        .nav-btn:disabled {
+            background: #d1d5db;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .nav-btn:disabled::before {
+            opacity: 0.4;
+        }
+        
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 10px;
+            min-height: 0;
+        }
+        
+        .history-item {
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        
+        .history-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
+        }
+        
+        .history-item.active {
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
+        }
+        
+        .history-item-collection {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        
+        .history-item-title {
+            margin-bottom: 6px;
+        }
+        
+        .history-item-date {
+            font-weight: bold;
+            font-size: 16px;
+            border: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+            color: inherit;
+        }
+        
+        .history-item.active .history-item-date {
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 6px;
+            padding: 2px 6px;
+            cursor: text;
+            transition: background 0.15s ease, box-shadow 0.15s ease;
+        }
+        
+        .history-item.active .history-item-date:hover,
+        .history-item.active .history-item-date:focus {
+            background: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
+        }
+        
+        .history-item .history-item-date[readonly] {
+            cursor: default;
+            opacity: 0.95;
+        }
+        
+        .history-item-meta {
+            display: flex;
+            flex-direction: column;
+            font-size: 16px;
+            opacity: 0.85;
+            gap: 4px;
+        }
+        
+        .history-item-meta-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        
+        .history-item-time,
+        .history-item-participants {
+            white-space: nowrap;
+        }
+        
+        .history-item-delete {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            background: #ef4444;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .history-item:hover .history-item-delete {
+            opacity: 1;
+        }
+        
+        .history-item-delete:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+        
+        .nav-btn-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Samling Manager Overlay */
+        .samling-manager-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+        }
+        
+        .samling-manager-overlay.show {
+            display: flex;
+        }
+        
+        .samling-manager-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(4px);
+        }
+        
+        .samling-manager-panel {
+            position: relative;
+            width: min(520px, 90vw);
+            max-height: 80vh;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.25);
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            z-index: 1;
+        }
+        
+        .samling-manager-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        
+        .samling-manager-header h2 {
+            font-size: 1.25rem;
+            color: #111827;
+        }
+        
+        .samling-manager-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 10px;
+            background: #e2e8f0;
+            color: #1f2937;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        
+        .samling-manager-close:hover {
+            background: #cbd5f5;
+            transform: scale(1.05);
+        }
+        
+        .samling-manager-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+        
+        .samling-manager-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: none;
+            background: #f8fafc;
+        }
+        
+        .samling-name-btn {
+            flex: 1;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            color: #1f2937;
+        }
+        
+        .samling-name-input {
+            flex: 1;
+            border: 2px solid #6366f1;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 16px;
+            font-weight: 600;
+            outline: none;
+            color: #1f2937;
+        }
+        
+        .samling-color-select {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            color: white;
+            font-size: 16px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .samling-color-select:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .samling-delete-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            background: #ef4444;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        
+        .samling-delete-btn:hover {
+            background: #dc2626;
+            transform: scale(1.05);
+        }
+        
+        .samling-manager-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 8px 0;
+        }
+        
+        .samling-manager-new {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: none;
+            background: #f8fafc;
+        }
+        
+        .samling-manager-new input {
+            flex: 1;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 16px;
+            outline: none;
+            background: white;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .samling-manager-new input:focus {
+            outline: none;
+            border-color: #e2e8f0;
+            box-shadow: none;
+        }
+        
+        .samling-manager-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .samling-create-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: #10b981;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        
+        .samling-create-btn:hover {
+            background: #059669;
+            transform: scale(1.05);
+        }
+        
+        .samling-color-picker-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5001;
+        }
+        
+        .samling-color-picker-modal.show {
+            display: flex;
+        }
+        
+        .samling-color-picker {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.3);
+            max-width: 400px;
+            width: 90vw;
+        }
+        
+        .samling-color-picker-header {
+            margin-bottom: 16px;
+        }
+        
+        .samling-color-picker-header h3 {
+            font-size: 1.1rem;
+            color: #111827;
+            margin: 0;
+        }
+        
+        .samling-color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+        
+        .samling-color-swatch {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 10px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .samling-color-swatch:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .samling-color-swatch.selected {
+            border-color: #1f2937;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+        
+        /* Comparison section needs to be relative for history sidebar positioning */
+        .comparison-section {
+            position: relative;
+        }
     
     /* Touch devices adjustments */
     @media (hover: none) and (pointer: coarse) {
@@ -1477,9 +2042,8 @@
             
             <div class="controls-divider"></div>
             
-            <button class="btn" id="newComparisonBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">Ny sammenligning</button>
-            <button class="btn save-btn" id="saveBtn" disabled>Gem</button>
-            <button class="btn" id="loadComparisonBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs</button>
+            <button class="btn" onclick="openSamlingManager()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;">Ny Samling</button>
+            <button class="btn" onclick="createNewComparison()" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white;">Ny Sammenligning</button>
             <button class="btn random-btn" id="randomBtn" disabled>Random</button>
             <button class="btn clear-btn">Ryd Alt</button>
         </div>
@@ -1490,13 +2054,13 @@
             <div class="participants-container" id="compareParticipants">
                
 			   <div class="participant">
-					<div class="participant-circle" id="leftCircle" style="display: none;">
+					<div class="participant-circle" id="leftCircle" style="display: flex;">
 						<button class="color-circle-btn" id="leftPoseBtn" title="Skift pose">P</button>
 						<button class="color-circle-btn" id="leftColorBtn" title="Skift farve">C</button>
 						
 						<div class="participant-body">
 							<div class="head">
-								<span id="leftName"></span>
+								<span id="leftName" contenteditable="true" style="outline: none; cursor: text;"></span>
 							</div>
 							
 							<div class="participant-torso"></div>
@@ -1549,13 +2113,13 @@
 				</div>
                 
                 <div class="participant">
-					<div class="participant-circle" id="rightCircle" style="display: none;">
+					<div class="participant-circle" id="rightCircle" style="display: flex;">
 						<button class="color-circle-btn" id="rightColorBtn" title="Skift farve">C</button>
 						<button class="color-circle-btn" id="rightPoseBtn" title="Skift pose">P</button>
 						
 						<div class="participant-body">
 							<div class="head">
-								<span id="rightName"></span>
+								<span id="rightName" contenteditable="true" style="outline: none; cursor: text;"></span>
 							</div>
 							
 							<div class="participant-torso"></div>
@@ -1614,14 +2178,6 @@
 				
             </div>
         </div>
-		
-		<div class="distance-controls-wrapper">
-            <div class="distance-controls">
-                <button class="distance-btn" id="increaseDistance" title="Øg afstand">< ></button>
-				 <span class="distance-label">Juster afstand</span>
-                <button class="distance-btn" id="decreaseDistance" title="Mindsk afstand">> <</button>
-            </div>
-        </div>
         
         <div class="comparison-section">
             <div class="comparison-header">
@@ -1636,6 +2192,24 @@
                     <p style="margin-bottom: 12px; text-align: left;"><strong>4. Fokuser på ligheder:</strong> Se hvor delene minder om hinanden i stedet for kun at fokusere på forskelle.</p>
                     <p style="margin-top: 15px; font-style: italic; color: #6b7280;">Dette værktøj hjælper med at reducere indre konflikt ved at se nuancer og ligheder mellem dele af dig selv.</p>
                 </div>
+            </div>
+            
+            <!-- History Sidebar -->
+            <div class="history-sidebar" id="historySidebar">
+                <div class="history-header">
+                    <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
+                    <select id="historyFilter" class="history-filter" onchange="setHistoryFilter(this.value)"></select>
+                </div>
+                <div class="history-content">
+                    <div class="history-navigation">
+                        <div class="nav-btn-group">
+                            <button class="nav-btn" id="navUp" onclick="navigateHistory(-1)" title="Gå ned"></button>
+                            <button class="nav-btn" id="navDown" onclick="navigateHistory(1)" title="Gå op"></button>
+                        </div>
+                    </div>
+                    <div class="history-list" id="historyList"></div>
+                </div>
+                <button class="collapse-toggle collapse-toggle-bottom" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
             </div>
         </div>
     </div>
@@ -1699,7 +2273,1078 @@
         let leftScores = {};
         let rightScores = {};
 		let currentPosePart = null;
-		let currentDistance = 675; // Start distance
+		let comparisonNotes = ''; // Text field content
+		
+		// CompareData structure
+		const COMPARE_STORAGE_KEY = 'compareData';
+		let CompareData = null;
+		let collectionCounter = 1;
+		let comparisonCounter = 1;
+		let historyFilterCollectionId = null;
+		
+		// Color presets for collections
+		const COMPARE_COLLECTION_COLOR_PRESETS = [
+			'#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
+			'#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
+		];
+		
+		// Samling manager state
+		let samlingManagerOverlayEl = null;
+		let samlingManagerListEl = null;
+		let newSamlingNameInputEl = null;
+		let newSamlingColorBtnEl = null;
+		let samlingColorPickerModalEl = null;
+		let samlingColorGridEl = null;
+		let samlingColorPickerTarget = null;
+		let newSamlingDraftColor = COMPARE_COLLECTION_COLOR_PRESETS[0];
+		let newSamlingDraftName = '';
+		let newSamlingColorDirty = false;
+		
+		// History sidebar state
+		let historySidebarCollapsed = false;
+		
+		// Helper functions for colors
+		function hexToRgba(hex, alpha) {
+			if (!hex) {
+				return `rgba(232, 220, 198, ${alpha})`;
+			}
+			const normalized = hex.replace('#', '');
+			if (normalized.length === 3) {
+				const r = parseInt(normalized[0] + normalized[0], 16);
+				const g = parseInt(normalized[1] + normalized[1], 16);
+				const b = parseInt(normalized[2] + normalized[2], 16);
+				return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+			}
+			if (normalized.length === 6) {
+				const r = parseInt(normalized.substring(0, 2), 16);
+				const g = parseInt(normalized.substring(2, 4), 16);
+				const b = parseInt(normalized.substring(4, 6), 16);
+				return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+			}
+			return hex;
+		}
+		
+		function lightenHex(hex, amount = 0.5) {
+			if (!hex) return '#f2e7d2';
+			const normalized = hex.replace('#', '');
+			const expand = normalized.length === 3
+				? normalized.split('').map(ch => ch + ch).join('')
+				: normalized.padEnd(6, '0');
+			const r = parseInt(expand.substring(0, 2), 16);
+			const g = parseInt(expand.substring(2, 4), 16);
+			const b = parseInt(expand.substring(4, 6), 16);
+			const clampAmount = Math.max(0, Math.min(1, amount));
+			const newR = Math.round(r + (255 - r) * clampAmount);
+			const newG = Math.round(g + (255 - g) * clampAmount);
+			const newB = Math.round(b + (255 - b) * clampAmount);
+			return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+		}
+		
+		function formatDkDate(dateStr) {
+			// Convert ISO date to DD-MM-YYYY for display
+			if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+				const datePart = dateStr.split('T')[0];
+				const [y, m, d] = datePart.split('-');
+				return `${d}-${m}-${y}`;
+			}
+			return dateStr || '';
+		}
+		
+		function truncateName(name) {
+			if (!name || typeof name !== 'string') return '';
+			if (name.length > 10) {
+				return name.substring(0, 10) + '..';
+			}
+			return name;
+		}
+		
+		// CompareData functions
+		function loadCompareDataFromLocalStorage() {
+			try {
+				const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
+				if (!raw) return null;
+				const parsed = JSON.parse(raw);
+				if (!parsed || typeof parsed !== 'object') return null;
+				return parsed;
+			} catch (_) {
+				return null;
+			}
+		}
+		
+		function saveCompareDataToLocalStorage() {
+			try {
+				if (!CompareData) return false;
+				CompareData.updated = new Date().toISOString();
+				localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(CompareData));
+				return true;
+			} catch (_) {
+				return false;
+			}
+		}
+		
+		function ensureDefaultCompareData() {
+			if (!CompareData || !Array.isArray(CompareData.collections)) {
+				CompareData = {
+					version: '1.0',
+					updated: new Date().toISOString(),
+					activeCollectionId: 1,
+					activeComparisonId: 1,
+					collections: []
+				};
+			}
+			if (!Array.isArray(CompareData.collections) || CompareData.collections.length === 0) {
+				CompareData.collections = [{
+					id: 1,
+					name: 'Samling 1',
+					color: COMPARE_COLLECTION_COLOR_PRESETS[0],
+					comparisons: []
+				}];
+				CompareData.activeCollectionId = 1;
+			}
+			// Ensure all collections have colors
+			CompareData.collections.forEach((collection, idx) => {
+				if (!collection.color) {
+					collection.color = COMPARE_COLLECTION_COLOR_PRESETS[idx % COMPARE_COLLECTION_COLOR_PRESETS.length];
+				}
+			});
+			const collection = CompareData.collections.find(c => c.id === CompareData.activeCollectionId) || CompareData.collections[0];
+			if (!collection.comparisons || collection.comparisons.length === 0) {
+				const now = new Date().toISOString();
+				const initialComparison = {
+					id: 1,
+					name: 'Sammenligning 1',
+					timestamp: now,
+					updated: now,
+					leftParticipant: {
+						name: 'Venstre',
+						color: '#3b82f6',
+						pose: '',
+						flipped: false
+					},
+					rightParticipant: {
+						name: 'Højre',
+						color: '#ef4444',
+						pose: '',
+						flipped: false
+					},
+					traitNames: [],
+					leftScores: {},
+					rightScores: {},
+					notes: ''
+				};
+				collection.comparisons = [initialComparison];
+				CompareData.activeComparisonId = 1;
+			}
+			// Ensure all comparisons have timestamps
+			CompareData.collections.forEach(collection => {
+				if (Array.isArray(collection.comparisons)) {
+					collection.comparisons.forEach(comparison => {
+						if (!comparison.timestamp) {
+							comparison.timestamp = comparison.updated || new Date().toISOString();
+						}
+						if (!comparison.updated) {
+							comparison.updated = comparison.timestamp || new Date().toISOString();
+						}
+					});
+				}
+			});
+			saveCompareDataToLocalStorage();
+		}
+		
+		function getActiveCollection() {
+			if (!CompareData || !Array.isArray(CompareData.collections)) return null;
+			return CompareData.collections.find(c => c.id === CompareData.activeCollectionId) || CompareData.collections[0] || null;
+		}
+		
+		function getActiveComparison() {
+			const col = getActiveCollection();
+			if (!col || !Array.isArray(col.comparisons)) return null;
+			return col.comparisons.find(c => c.id === CompareData.activeComparisonId) || col.comparisons[0] || null;
+		}
+		
+		function updateComparisonNotes(value) {
+			comparisonNotes = value || '';
+			syncCurrentWorkspaceToActiveComparison();
+		}
+		
+		function syncCurrentWorkspaceToActiveComparison() {
+			if (!CompareData) return;
+			const comparison = getActiveComparison();
+			if (!comparison) return;
+			
+			// Get active trait names (not indices)
+			const activeTraits = getActiveTraits();
+			comparison.traitNames = activeTraits.map(({ trait }) => trait);
+			
+			// Get participant data
+			const leftNameEl = document.getElementById('leftName');
+			const rightNameEl = document.getElementById('rightName');
+			const leftDropdown = document.getElementById('leftDropdown');
+			const rightDropdown = document.getElementById('rightDropdown');
+			const leftPoseDropdown = document.getElementById('leftPose');
+			const rightPoseDropdown = document.getElementById('rightPose');
+			const leftMirror = document.getElementById('leftMirror');
+			const rightMirror = document.getElementById('rightMirror');
+			
+			// Get pose from data-pose attribute (most reliable) or fallback to dropdown
+			const leftParticipant = document.querySelector('#leftCircle')?.closest('.participant');
+			const rightParticipant = document.querySelector('#rightCircle')?.closest('.participant');
+			
+			// Get pose index from data-pose or dropdown, then convert to pose name
+			let leftPoseIndex = leftParticipant?.getAttribute('data-pose') || (leftPoseDropdown ? leftPoseDropdown.value : '');
+			let rightPoseIndex = rightParticipant?.getAttribute('data-pose') || (rightPoseDropdown ? rightPoseDropdown.value : '');
+			
+			// Convert pose index to pose name (like dialog does)
+			let leftPoseName = '';
+			if (leftPoseIndex !== '' && leftPoseIndex !== null) {
+				const poseIdx = parseInt(leftPoseIndex, 10);
+				if (!Number.isNaN(poseIdx) && poseLibrary[poseIdx]) {
+					leftPoseName = poseLibrary[poseIdx].name;
+				}
+			}
+			
+			let rightPoseName = '';
+			if (rightPoseIndex !== '' && rightPoseIndex !== null) {
+				const poseIdx = parseInt(rightPoseIndex, 10);
+				if (!Number.isNaN(poseIdx) && poseLibrary[poseIdx]) {
+					rightPoseName = poseLibrary[poseIdx].name;
+				}
+			}
+			
+			// Get flipped state from checkbox or data-mirror attribute (checkbox is most reliable)
+			const leftFlipped = leftMirror ? leftMirror.checked : (leftParticipant?.getAttribute('data-mirror') === 'true');
+			const rightFlipped = rightMirror ? rightMirror.checked : (rightParticipant?.getAttribute('data-mirror') === 'true');
+			
+			comparison.leftParticipant = {
+				name: leftNameEl ? leftNameEl.textContent.trim() : 'Venstre',
+				color: leftColor || '#3b82f6',
+				pose: leftPoseName || '',
+				flipped: leftFlipped
+			};
+			
+			comparison.rightParticipant = {
+				name: rightNameEl ? rightNameEl.textContent.trim() : 'Højre',
+				color: rightColor || '#ef4444',
+				pose: rightPoseName || '',
+				flipped: rightFlipped
+			};
+			
+			// Get scores
+			comparison.leftScores = { ...leftScores };
+			comparison.rightScores = { ...rightScores };
+			
+			// Get notes
+			comparison.notes = comparisonNotes || '';
+			
+			const now = new Date().toISOString();
+			comparison.updated = now;
+			if (!comparison.timestamp) {
+				comparison.timestamp = now;
+			}
+			saveCompareDataToLocalStorage();
+		}
+		
+		function loadComparisonFromCompareData(comparison) {
+			if (!comparison) return;
+			
+			// Load participants
+			const leftCircle = document.getElementById('leftCircle');
+			const rightCircle = document.getElementById('rightCircle');
+			
+			if (comparison.leftParticipant) {
+				const leftNameEl = document.getElementById('leftName');
+				if (leftNameEl) leftNameEl.textContent = comparison.leftParticipant.name || 'Venstre';
+				leftColor = comparison.leftParticipant.color || '#3b82f6';
+				leftLightColor = lightenColor(leftColor, 0.6);
+				if (leftCircle) {
+					leftCircle.style.display = 'flex';
+					const head = leftCircle.querySelector('.head');
+					if (head) {
+						head.style.background = `linear-gradient(135deg, ${leftColor}, ${leftColor})`;
+					}
+					updateBodyColors('left', leftColor);
+				}
+				const leftMirror = document.getElementById('leftMirror');
+				if (leftMirror) {
+					leftMirror.checked = comparison.leftParticipant.flipped || false;
+				}
+				const leftParticipant = document.querySelector('#leftCircle').closest('.participant');
+				if (leftParticipant) {
+					leftParticipant.setAttribute('data-mirror', String(comparison.leftParticipant.flipped || false));
+				}
+				// Apply pose using pose name (like dialog does)
+				if (comparison.leftParticipant.pose) {
+					applyParticipantPose('left', comparison.leftParticipant.pose, comparison.leftParticipant.flipped || false);
+				} else {
+					// Reset to default pose if no pose is set
+					if (leftParticipant) {
+						leftParticipant.removeAttribute('data-pose');
+					}
+					resetPose('left');
+				}
+			} else {
+				// Default left participant
+				const leftNameEl = document.getElementById('leftName');
+				if (leftNameEl) leftNameEl.textContent = 'Venstre';
+				leftColor = '#3b82f6';
+				leftLightColor = lightenColor(leftColor, 0.6);
+				if (leftCircle) {
+					leftCircle.style.display = 'flex';
+					const head = leftCircle.querySelector('.head');
+					if (head) {
+						head.style.background = `linear-gradient(135deg, ${leftColor}, ${leftColor})`;
+					}
+					updateBodyColors('left', leftColor);
+				}
+			}
+			
+			if (comparison.rightParticipant) {
+				const rightNameEl = document.getElementById('rightName');
+				if (rightNameEl) rightNameEl.textContent = comparison.rightParticipant.name || 'Højre';
+				rightColor = comparison.rightParticipant.color || '#ef4444';
+				rightLightColor = lightenColor(rightColor, 0.6);
+				if (rightCircle) {
+					rightCircle.style.display = 'flex';
+					const head = rightCircle.querySelector('.head');
+					if (head) {
+						head.style.background = `linear-gradient(135deg, ${rightColor}, ${rightColor})`;
+					}
+					updateBodyColors('right', rightColor);
+				}
+				const rightMirror = document.getElementById('rightMirror');
+				if (rightMirror) {
+					rightMirror.checked = comparison.rightParticipant.flipped || false;
+				}
+				const rightParticipant = document.querySelector('#rightCircle').closest('.participant');
+				if (rightParticipant) {
+					rightParticipant.setAttribute('data-mirror', String(comparison.rightParticipant.flipped || false));
+				}
+				// Apply pose using pose name (like dialog does)
+				if (comparison.rightParticipant.pose) {
+					applyParticipantPose('right', comparison.rightParticipant.pose, comparison.rightParticipant.flipped || false);
+				} else {
+					// Reset to default pose if no pose is set
+					if (rightParticipant) {
+						rightParticipant.removeAttribute('data-pose');
+					}
+					resetPose('right');
+				}
+			} else {
+				// Default right participant
+				const rightNameEl = document.getElementById('rightName');
+				if (rightNameEl) rightNameEl.textContent = 'Højre';
+				rightColor = '#ef4444';
+				rightLightColor = lightenColor(rightColor, 0.6);
+				if (rightCircle) {
+					rightCircle.style.display = 'flex';
+					const head = rightCircle.querySelector('.head');
+					if (head) {
+						head.style.background = `linear-gradient(135deg, ${rightColor}, ${rightColor})`;
+					}
+					updateBodyColors('right', rightColor);
+				}
+			}
+			
+			// Load trait names and set active traits
+			if (Array.isArray(comparison.traitNames) && comparison.traitNames.length > 0) {
+				// Find indices for trait names
+				const traitIndices = comparison.traitNames.map(traitName => {
+					return defaultTraits.findIndex(t => 
+						(t.left === traitName.left && t.right === traitName.right) ||
+						JSON.stringify(t) === JSON.stringify(traitName)
+					);
+				}).filter(idx => idx >= 0);
+				
+				if (traitIndices.length > 0) {
+					activeTraitIndices = traitIndices.slice(0, ACTIVE_TRAIT_COUNT);
+				}
+			}
+			
+			// Load scores
+			leftScores = comparison.leftScores ? { ...comparison.leftScores } : {};
+			rightScores = comparison.rightScores ? { ...comparison.rightScores } : {};
+			
+			// Load notes
+			comparisonNotes = comparison.notes || '';
+			const notesTextarea = document.getElementById('comparisonNotes');
+			if (notesTextarea) {
+				notesTextarea.value = comparisonNotes;
+			}
+			
+			// Update slider colors
+			updateSliderColors();
+			
+			// Update UI
+			updateComparisonView();
+		}
+		
+		// ===== SAMLING MANAGER FUNCTIONS =====
+		
+		function openSamlingManager() {
+			if (!samlingManagerOverlayEl) {
+				samlingManagerOverlayEl = document.getElementById('samlingManagerOverlay');
+				samlingManagerListEl = document.getElementById('samlingManagerList');
+				newSamlingNameInputEl = document.getElementById('newSamlingName');
+				newSamlingColorBtnEl = document.getElementById('newSamlingColorBtn');
+			}
+			if (!samlingColorPickerModalEl) {
+				samlingColorPickerModalEl = document.getElementById('samlingColorPickerModal');
+			}
+			if (!samlingColorGridEl) {
+				samlingColorGridEl = document.getElementById('samlingColorGrid');
+			}
+			if (newSamlingNameInputEl) {
+				newSamlingDraftName = newSamlingNameInputEl.value;
+			}
+			if (samlingColorGridEl && samlingColorGridEl.childElementCount === 0) {
+				buildSamlingColorGrid();
+			}
+			if (!samlingManagerOverlayEl) return;
+			resetNewSamlingDraft();
+			renderSamlingManagerList();
+			samlingManagerOverlayEl.classList.add('show');
+			setTimeout(() => {
+				if (newSamlingNameInputEl) {
+					newSamlingNameInputEl.focus();
+				}
+			}, 80);
+		}
+		
+		function closeSamlingManager() {
+			if (samlingManagerOverlayEl) {
+				samlingManagerOverlayEl.classList.remove('show');
+			}
+			closeSamlingColorPicker();
+		}
+		
+		function resetNewSamlingDraft() {
+			newSamlingDraftColor = COMPARE_COLLECTION_COLOR_PRESETS[0];
+			newSamlingDraftName = '';
+			newSamlingColorDirty = false;
+			if (newSamlingNameInputEl) {
+				newSamlingNameInputEl.value = '';
+			}
+			updateNewSamlingColorButton();
+		}
+		
+		function updateNewSamlingColorButton() {
+			if (!newSamlingColorBtnEl) return;
+			if (newSamlingColorDirty) {
+				const baseColor = newSamlingDraftColor || COMPARE_COLLECTION_COLOR_PRESETS[0];
+				newSamlingColorBtnEl.style.background = baseColor;
+				newSamlingColorBtnEl.style.color = '#ffffff';
+				if (newSamlingNameInputEl) {
+					newSamlingNameInputEl.style.background = lightenHex(baseColor, 0.85);
+					newSamlingNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
+				}
+			} else {
+				const baseColor = COMPARE_COLLECTION_COLOR_PRESETS[0] || '#ef4444';
+				newSamlingColorBtnEl.style.background = baseColor;
+				newSamlingColorBtnEl.style.color = '#ffffff';
+				if (newSamlingNameInputEl) {
+					newSamlingNameInputEl.style.background = lightenHex(baseColor, 0.85);
+					newSamlingNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
+				}
+			}
+		}
+		
+		function renderSamlingManagerList() {
+			if (!samlingManagerListEl) return;
+			samlingManagerListEl.innerHTML = '';
+			
+			if (!CompareData || !Array.isArray(CompareData.collections)) {
+				ensureDefaultCompareData();
+			}
+			
+			CompareData.collections.forEach(collection => {
+				const item = document.createElement('div');
+				item.className = 'samling-manager-item';
+				
+				const nameBtn = document.createElement('button');
+				nameBtn.className = 'samling-name-btn';
+				nameBtn.textContent = collection.name || 'Samling';
+				const baseColor = collection.color || COMPARE_COLLECTION_COLOR_PRESETS[0];
+				nameBtn.style.background = lightenHex(baseColor, 0.7);
+				nameBtn.style.border = `1px solid ${baseColor}`;
+				nameBtn.addEventListener('click', () => beginSamlingNameInlineEdit(collection, nameBtn));
+				
+				const actions = document.createElement('div');
+				actions.className = 'samling-manager-actions';
+				
+				const colorBtn = document.createElement('button');
+				colorBtn.className = 'samling-color-select';
+				colorBtn.textContent = 'C';
+				colorBtn.style.background = collection.color || COMPARE_COLLECTION_COLOR_PRESETS[0];
+				colorBtn.onclick = () => openSamlingColorPicker({ type: 'samling', collectionId: collection.id });
+				
+				const deleteBtn = document.createElement('button');
+				deleteBtn.className = 'samling-delete-btn';
+				deleteBtn.textContent = '✕';
+				deleteBtn.onclick = () => deleteSamling(collection.id);
+				
+				actions.appendChild(colorBtn);
+				actions.appendChild(deleteBtn);
+				
+				item.appendChild(nameBtn);
+				item.appendChild(actions);
+				samlingManagerListEl.appendChild(item);
+			});
+			
+			newSamlingNameInputEl = document.getElementById('newSamlingName');
+			newSamlingColorBtnEl = document.getElementById('newSamlingColorBtn');
+			if (newSamlingNameInputEl) {
+				newSamlingNameInputEl.value = newSamlingDraftName;
+				newSamlingNameInputEl.addEventListener('input', (e) => {
+					newSamlingDraftName = e.target.value;
+				});
+			}
+			updateNewSamlingColorButton();
+		}
+		
+		function beginSamlingNameInlineEdit(collection, buttonEl) {
+			if (!collection || !buttonEl) return;
+			const baseColor = collection.color || COMPARE_COLLECTION_COLOR_PRESETS[0];
+			const input = document.createElement('input');
+			input.type = 'text';
+			input.className = 'samling-name-input';
+			input.value = collection.name || 'Samling';
+			input.style.background = lightenHex(baseColor, 0.7);
+			input.style.borderColor = baseColor;
+			
+			let finished = false;
+			const commit = (shouldSave) => {
+				if (finished) return;
+				finished = true;
+				const newName = input.value.trim();
+				if (shouldSave && newName && newName !== collection.name) {
+					collection.name = newName;
+					renderHistoryFilterOptions();
+					renderHistory();
+					saveCompareDataToLocalStorage();
+				}
+				renderSamlingManagerList();
+			};
+			
+			input.addEventListener('keydown', (event) => {
+				if (event.key === 'Enter') {
+					commit(true);
+				} else if (event.key === 'Escape') {
+					commit(false);
+				}
+			});
+			
+			input.addEventListener('blur', () => commit(true));
+			
+			buttonEl.replaceWith(input);
+			input.focus();
+			input.select();
+		}
+		
+		function openSamlingColorPicker(target) {
+			if (!samlingColorPickerModalEl) {
+				samlingColorPickerModalEl = document.getElementById('samlingColorPickerModal');
+				samlingColorGridEl = document.getElementById('samlingColorGrid');
+			}
+			if (!samlingColorPickerModalEl || !samlingColorGridEl) return;
+			samlingColorPickerTarget = target;
+			samlingColorPickerModalEl.classList.add('show');
+		}
+		
+		function closeSamlingColorPicker() {
+			samlingColorPickerTarget = null;
+			if (samlingColorPickerModalEl) {
+				samlingColorPickerModalEl.classList.remove('show');
+			}
+		}
+		
+		function backdropCloseSamlingHandler(event) {
+			if (event.target === samlingColorPickerModalEl) {
+				closeSamlingColorPicker();
+			}
+		}
+		
+		function handleSamlingColorSelected(color) {
+			if (!samlingColorPickerTarget) return;
+			if (samlingColorPickerTarget.type === 'samling') {
+				applySamlingColor(samlingColorPickerTarget.collectionId, color);
+				renderHistory();
+				saveCompareDataToLocalStorage();
+			} else if (samlingColorPickerTarget.type === 'new') {
+				newSamlingDraftColor = color;
+				newSamlingColorDirty = true;
+				updateNewSamlingColorButton();
+			}
+			closeSamlingColorPicker();
+		}
+		
+		function applySamlingColor(collectionId, color) {
+			const collection = CompareData.collections.find(c => c.id === collectionId);
+			if (!collection) return;
+			collection.color = color;
+			renderHistory();
+			renderSamlingManagerList();
+			renderHistoryFilterOptions();
+			saveCompareDataToLocalStorage();
+		}
+		
+		function confirmCreateSamling() {
+			if (!newSamlingNameInputEl) return;
+			const name = newSamlingNameInputEl.value.trim();
+			if (!name) {
+				newSamlingNameInputEl.focus();
+				return;
+			}
+			const color = newSamlingDraftColor || COMPARE_COLLECTION_COLOR_PRESETS[0];
+			
+			// Save current workspace before switching
+			syncCurrentWorkspaceToActiveComparison();
+			
+			// Find highest collection ID
+			let maxId = 0;
+			if (Array.isArray(CompareData.collections)) {
+				CompareData.collections.forEach(c => {
+					if (c.id > maxId) maxId = c.id;
+				});
+			}
+			const newId = maxId + 1;
+			
+			const now = new Date().toISOString();
+			const newCollection = {
+				id: newId,
+				name,
+				color,
+				comparisons: [{
+					id: 1,
+					name: 'Sammenligning 1',
+					timestamp: now,
+					updated: now,
+					leftParticipant: {
+						name: 'Venstre',
+						color: '#3b82f6',
+						pose: '',
+						flipped: false
+					},
+					rightParticipant: {
+						name: 'Højre',
+						color: '#ef4444',
+						pose: '',
+						flipped: false
+					},
+					traitNames: [],
+					leftScores: {},
+					rightScores: {},
+					notes: ''
+				}]
+			};
+			
+			if (!Array.isArray(CompareData.collections)) {
+				CompareData.collections = [];
+			}
+			CompareData.collections.push(newCollection);
+			CompareData.activeCollectionId = newId;
+			CompareData.activeComparisonId = 1;
+			
+			saveCompareDataToLocalStorage();
+			
+			// Load the new empty comparison
+			loadComparisonFromCompareData(newCollection.comparisons[0]);
+			renderHistory();
+			closeSamlingManager();
+			
+			// Make the new history item's name editable
+			requestAnimationFrame(() => {
+				const newHistoryItem = document.querySelector(`.history-item.active input[data-comparison-id="1"]`);
+				if (newHistoryItem) {
+					newHistoryItem.readOnly = false;
+					newHistoryItem.focus();
+					newHistoryItem.select();
+				}
+			});
+		}
+		
+		function deleteSamling(collectionId) {
+			if (!CompareData || !Array.isArray(CompareData.collections)) return;
+			
+			if (CompareData.collections.length <= 1) {
+				alert('Du kan ikke slette den sidste samling.');
+				return;
+			}
+			
+			if (!confirm('Er du sikker på du vil slette denne samling og alle dens sammenligninger?')) {
+				return;
+			}
+			
+			CompareData.collections = CompareData.collections.filter(c => c.id !== collectionId);
+			
+			if (CompareData.activeCollectionId === collectionId) {
+				const otherCollection = CompareData.collections.find(c => 
+					c.id !== collectionId && Array.isArray(c.comparisons) && c.comparisons.length > 0
+				);
+				if (otherCollection) {
+					CompareData.activeCollectionId = otherCollection.id;
+					CompareData.activeComparisonId = otherCollection.comparisons[0].id;
+				} else if (CompareData.collections.length > 0) {
+					CompareData.activeCollectionId = CompareData.collections[0].id;
+					if (CompareData.collections[0].comparisons && CompareData.collections[0].comparisons.length > 0) {
+						CompareData.activeComparisonId = CompareData.collections[0].comparisons[0].id;
+					}
+				}
+			}
+			
+			saveCompareDataToLocalStorage();
+			const activeComparison = getActiveComparison();
+			if (activeComparison) {
+				loadComparisonFromCompareData(activeComparison);
+			}
+			renderHistory();
+			renderHistoryFilterOptions();
+			renderSamlingManagerList();
+		}
+		
+		function buildSamlingColorGrid() {
+			if (!samlingColorGridEl) return;
+			samlingColorGridEl.innerHTML = '';
+			COMPARE_COLLECTION_COLOR_PRESETS.forEach(color => {
+				const swatch = document.createElement('div');
+				swatch.className = 'samling-color-swatch';
+				swatch.style.background = color;
+				swatch.onclick = () => handleSamlingColorSelected(color);
+				samlingColorGridEl.appendChild(swatch);
+			});
+		}
+		
+		// ===== HISTORY SIDEBAR FUNCTIONS =====
+		
+		function getAllComparisonsSorted() {
+			if (!CompareData || !Array.isArray(CompareData.collections)) return [];
+			const allComparisons = [];
+			CompareData.collections.forEach(collection => {
+				if (Array.isArray(collection.comparisons)) {
+					collection.comparisons.forEach(comparison => {
+						if (!comparison.timestamp && comparison.updated) {
+							comparison.timestamp = comparison.updated;
+						} else if (!comparison.timestamp) {
+							comparison.timestamp = new Date().toISOString();
+						}
+						allComparisons.push({
+							comparison,
+							collection
+						});
+					});
+				}
+			});
+			return allComparisons.sort((a, b) => {
+				const tsA = a.comparison.timestamp || '';
+				const tsB = b.comparison.timestamp || '';
+				return tsB.localeCompare(tsA);
+			});
+		}
+		
+		function getFilteredSortedComparisons() {
+			const all = getAllComparisonsSorted();
+			if (!historyFilterCollectionId || historyFilterCollectionId === 'all') {
+				return all;
+			}
+			const filterId = parseInt(historyFilterCollectionId, 10);
+			return all.filter(item => item.collection.id === filterId);
+		}
+		
+		function renderHistoryFilterOptions() {
+			const filterEl = document.getElementById('historyFilter');
+			if (!filterEl) return;
+			filterEl.innerHTML = '';
+			
+			const allOption = document.createElement('option');
+			allOption.value = 'all';
+			allOption.textContent = 'Alle samlinger';
+			filterEl.appendChild(allOption);
+			
+			if (CompareData && Array.isArray(CompareData.collections)) {
+				CompareData.collections.forEach(collection => {
+					const option = document.createElement('option');
+					option.value = collection.id;
+					option.textContent = collection.name || 'Samling';
+					if (collection.id === historyFilterCollectionId) {
+						option.selected = true;
+					}
+					filterEl.appendChild(option);
+				});
+			}
+		}
+		
+		function setHistoryFilter(value) {
+			historyFilterCollectionId = value === 'all' ? null : value;
+			renderHistory();
+			updateHistoryNavState();
+		}
+		
+		function renderHistory() {
+			const listEl = document.getElementById('historyList');
+			if (!listEl) return;
+			listEl.innerHTML = '';
+			
+			const filtered = getFilteredSortedComparisons();
+			filtered.forEach(({ comparison, collection }) => {
+				const item = document.createElement('div');
+				const isActive = comparison.id === CompareData.activeComparisonId && 
+				               collection.id === CompareData.activeCollectionId;
+				item.className = `history-item ${isActive ? 'active' : ''}`;
+				
+				const collectionColor = collection.color || COMPARE_COLLECTION_COLOR_PRESETS[0];
+				item.style.background = isActive 
+					? `linear-gradient(135deg, ${lightenHex(collectionColor, 0.25)} 0%, ${collectionColor} 100%)`
+					: `linear-gradient(135deg, ${lightenHex(collectionColor, 0.7)} 0%, ${lightenHex(collectionColor, 0.5)} 100%)`;
+				item.style.borderColor = collectionColor;
+				
+				const collectionBadge = document.createElement('div');
+				collectionBadge.className = 'history-item-collection';
+				collectionBadge.textContent = collection.name || 'Samling';
+				collectionBadge.style.background = collectionColor;
+				
+				const titleDiv = document.createElement('div');
+				titleDiv.className = 'history-item-title';
+				
+				const dateInput = document.createElement('input');
+				dateInput.type = 'text';
+				dateInput.className = 'history-item-date';
+				dateInput.value = comparison.name || 'Sammenligning';
+				dateInput.readOnly = !isActive;
+				dateInput.setAttribute('data-comparison-id', comparison.id);
+				if (isActive) {
+					dateInput.addEventListener('blur', () => {
+						const newName = dateInput.value.trim();
+						if (newName && newName !== comparison.name) {
+							comparison.name = newName;
+							saveCompareDataToLocalStorage();
+						}
+					});
+					dateInput.addEventListener('keydown', (e) => {
+						if (e.key === 'Enter') {
+							dateInput.blur();
+						}
+					});
+				}
+				
+				titleDiv.appendChild(dateInput);
+				
+				const metaDiv = document.createElement('div');
+				metaDiv.className = 'history-item-meta';
+				
+				const firstLine = document.createElement('div');
+				firstLine.className = 'history-item-meta-line';
+				
+				const dateTime = document.createElement('span');
+				dateTime.className = 'history-item-time';
+				const timestamp = comparison.timestamp || comparison.updated || '';
+				if (timestamp) {
+					const date = new Date(timestamp);
+					const dateStr = formatDkDate(timestamp);
+					const timeStr = date.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
+					dateTime.textContent = `${dateStr} ${timeStr}`;
+				}
+				firstLine.appendChild(dateTime);
+				
+				const secondLine = document.createElement('div');
+				secondLine.className = 'history-item-meta-line';
+				
+				const participants = document.createElement('span');
+				participants.className = 'history-item-participants';
+				const leftName = truncateName(comparison.leftParticipant?.name || 'Venstre');
+				const rightName = truncateName(comparison.rightParticipant?.name || 'Højre');
+				participants.textContent = `${leftName} & ${rightName}`;
+				
+				secondLine.appendChild(participants);
+				
+				metaDiv.appendChild(firstLine);
+				metaDiv.appendChild(secondLine);
+				
+				const deleteBtn = document.createElement('button');
+				deleteBtn.className = 'history-item-delete';
+				deleteBtn.textContent = '×';
+				deleteBtn.onclick = (e) => {
+					e.stopPropagation();
+					deleteComparison(collection.id, comparison.id);
+				};
+				
+				item.appendChild(collectionBadge);
+				item.appendChild(titleDiv);
+				item.appendChild(metaDiv);
+				item.appendChild(deleteBtn);
+				
+				item.onclick = () => {
+					syncCurrentWorkspaceToActiveComparison();
+					CompareData.activeCollectionId = collection.id;
+					CompareData.activeComparisonId = comparison.id;
+					saveCompareDataToLocalStorage();
+					loadComparisonFromCompareData(comparison);
+					renderHistory();
+					updateHistoryNavState();
+				};
+				
+				listEl.appendChild(item);
+			});
+			
+			updateHistoryNavState();
+		}
+		
+		function updateHistoryNavState() {
+			const filtered = getFilteredSortedComparisons();
+			const currentIndex = filtered.findIndex(item => 
+				item.comparison.id === CompareData.activeComparisonId && 
+				item.collection.id === CompareData.activeCollectionId
+			);
+			
+			const navUp = document.getElementById('navUp');
+			const navDown = document.getElementById('navDown');
+			
+			if (navUp) navUp.disabled = currentIndex <= 0;
+			if (navDown) navDown.disabled = currentIndex >= filtered.length - 1;
+		}
+		
+		function navigateHistory(direction) {
+			const filtered = getFilteredSortedComparisons();
+			const currentIndex = filtered.findIndex(item => 
+				item.comparison.id === CompareData.activeComparisonId && 
+				item.collection.id === CompareData.activeCollectionId
+			);
+			
+			if (currentIndex === -1) return;
+			
+			const newIndex = currentIndex + direction;
+			if (newIndex < 0 || newIndex >= filtered.length) return;
+			
+			const { comparison, collection } = filtered[newIndex];
+			syncCurrentWorkspaceToActiveComparison();
+			CompareData.activeCollectionId = collection.id;
+			CompareData.activeComparisonId = comparison.id;
+			saveCompareDataToLocalStorage();
+			loadComparisonFromCompareData(comparison);
+			renderHistory();
+			updateHistoryNavState();
+		}
+		
+		function toggleHistorySidebar() {
+			const sidebar = document.getElementById('historySidebar');
+			const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
+			if (!sidebar || !toggleBtns.length) return;
+			
+			sidebar.classList.toggle('collapsed');
+			const isCollapsed = sidebar.classList.contains('collapsed');
+			localStorage.setItem('compare_historySidebarCollapsed', isCollapsed);
+			toggleBtns.forEach(btn => {
+				btn.textContent = isCollapsed ? '<' : '>';
+			});
+		}
+		
+		function deleteComparison(collectionId, comparisonId) {
+			const collection = CompareData.collections.find(c => c.id === collectionId);
+			if (!collection || !Array.isArray(collection.comparisons)) return;
+			
+			if (collection.comparisons.length <= 1) {
+				alert('Du kan ikke slette den sidste sammenligning i en samling. Slet samlingen i stedet.');
+				return;
+			}
+			
+			if (!confirm('Er du sikker på du vil slette denne sammenligning?')) {
+				return;
+			}
+			
+			collection.comparisons = collection.comparisons.filter(c => c.id !== comparisonId);
+			
+			if (CompareData.activeComparisonId === comparisonId && CompareData.activeCollectionId === collectionId) {
+				if (collection.comparisons.length > 0) {
+					CompareData.activeComparisonId = collection.comparisons[collection.comparisons.length - 1].id;
+				} else {
+					const otherCollection = CompareData.collections.find(c => 
+						c.id !== collectionId && Array.isArray(c.comparisons) && c.comparisons.length > 0
+					);
+					if (otherCollection) {
+						CompareData.activeCollectionId = otherCollection.id;
+						CompareData.activeComparisonId = otherCollection.comparisons[otherCollection.comparisons.length - 1].id;
+					}
+				}
+			}
+			
+			saveCompareDataToLocalStorage();
+			const activeComparison = getActiveComparison();
+			if (activeComparison) {
+				loadComparisonFromCompareData(activeComparison);
+			}
+			renderHistory();
+		}
+		
+		function createNewComparison() {
+			if (!CompareData) {
+				ensureDefaultCompareData();
+			}
+			
+			let collection = getActiveCollection();
+			if (!collection) {
+				ensureDefaultCompareData();
+				collection = getActiveCollection();
+			}
+			
+			// Find highest comparison ID in current collection
+			let maxId = 0;
+			if (Array.isArray(collection.comparisons)) {
+				collection.comparisons.forEach(c => {
+					if (c.id > maxId) maxId = c.id;
+				});
+			}
+			
+			const newId = maxId + 1;
+			const comparisonName = `Sammenligning ${newId}`;
+			
+			// Save current workspace before switching
+			syncCurrentWorkspaceToActiveComparison();
+			
+			// Create new comparison
+			const now = new Date().toISOString();
+			const newComparison = {
+				id: newId,
+				name: comparisonName,
+				timestamp: now,
+				updated: now,
+				leftParticipant: {
+					name: 'Venstre',
+					color: '#3b82f6',
+					pose: '',
+					flipped: false
+				},
+				rightParticipant: {
+					name: 'Højre',
+					color: '#ef4444',
+					pose: '',
+					flipped: false
+				},
+				traitNames: [],
+				leftScores: {},
+				rightScores: {},
+				notes: ''
+			};
+			
+			if (!Array.isArray(collection.comparisons)) {
+				collection.comparisons = [];
+			}
+			collection.comparisons.push(newComparison);
+			CompareData.activeComparisonId = newId;
+			
+			saveCompareDataToLocalStorage();
+			
+			// Load the new empty comparison
+			loadComparisonFromCompareData(newComparison);
+			renderHistory();
+			
+			// Make the new history item's name editable and focus it
+			requestAnimationFrame(() => {
+				const newHistoryItem = document.querySelector(`.history-item.active input[data-comparison-id="${newId}"]`);
+				if (newHistoryItem) {
+					newHistoryItem.readOnly = false;
+					newHistoryItem.focus();
+					newHistoryItem.select();
+				}
+			});
+		}
 
         
 const partsData = {
@@ -1801,24 +3446,11 @@ const partsData = {
         let activeTraitIndices = [];
         let currentTraitSelectionKey = null;
         function ensureActiveTraits(forceReselect = false) {
-            const leftDropdown = document.getElementById('leftDropdown');
-            const rightDropdown = document.getElementById('rightDropdown');
-            const leftSelected = leftDropdown ? leftDropdown.value : '';
-            const rightSelected = rightDropdown ? rightDropdown.value : '';
-
-            if (!leftSelected || !rightSelected) {
-                if (activeTraitIndices.length > 0 || currentTraitSelectionKey !== null) {
-                    activeTraitIndices = [];
-                    currentTraitSelectionKey = null;
-                    leftScores = {};
-                    rightScores = {};
-                }
-                return;
-            }
-
-            const key = `${leftSelected}|${rightSelected}`;
-            if (forceReselect || key !== currentTraitSelectionKey || activeTraitIndices.length === 0) {
-                currentTraitSelectionKey = key;
+            // Always ensure we have active traits - participants are always present (Venstre/Højre)
+            // We no longer check for selected participants since Venstre and Højre are always available
+            if (forceReselect || activeTraitIndices.length === 0) {
+                // Use a fixed key since we always have the same participants
+                currentTraitSelectionKey = 'venstre|højre';
 
                 const indices = Array.from({ length: defaultTraits.length }, (_, idx) => idx);
                 for (let i = indices.length - 1; i > 0; i--) {
@@ -1828,8 +3460,11 @@ const partsData = {
                 activeTraitIndices = indices
                     .slice(0, Math.min(ACTIVE_TRAIT_COUNT, defaultTraits.length))
                     .sort((a, b) => a - b);
+                // Only clear scores if we're forcing a reselect
+                if (forceReselect) {
                 leftScores = {};
                 rightScores = {};
+                }
             }
         }
 
@@ -2183,8 +3818,11 @@ function selectPose(poseIndex) {
     if (poseDropdown) poseDropdown.value = poseIndex;
     if (mirrorCheckbox) mirrorCheckbox.checked = mirror;
     
-    // Use the existing applyPose function
-    applyPose(side, poseIndex);
+    // Use the existing applyPose function with mirror parameter
+    applyPose(side, poseIndex, mirror);
+    
+    // Save to compareData when pose changes
+    syncCurrentWorkspaceToActiveComparison();
     
     // Update active button
     populatePoseGrid();
@@ -2205,8 +3843,14 @@ function togglePosePickerMirror() {
         regularMirrorCheckbox.checked = posePickerMirrorCheckbox.checked;
     }
     
-    // Use the existing toggleMirror function
-    toggleMirror(side);
+    // Re-apply current pose with new mirror state
+    const currentPoseAttr = currentPosePart.getAttribute('data-pose');
+    const poseIndex = currentPoseAttr != null ? currentPoseAttr : '';
+    const mirror = posePickerMirrorCheckbox ? posePickerMirrorCheckbox.checked : false;
+    applyPose(side, poseIndex, mirror);
+    
+    // Save to compareData when mirror changes
+    syncCurrentWorkspaceToActiveComparison();
 }
 
 function closePosePicker() {
@@ -2399,17 +4043,31 @@ function closePosePicker() {
 				}, 200);
 							
             } else {
-                circle.style.display = 'none';
+                // If no dropdown selection, ensure default Venstre/Højre are shown
+                // Venstre and Højre are always available, so we should never hide the circles
+                const defaultName = side === 'left' ? 'Venstre' : 'Højre';
+                const defaultColor = side === 'left' ? '#3b82f6' : '#ef4444';
                 
-                if (side === 'left') {
-                    leftColor = null;
-                    leftLightColor = null;
-                } else {
-                    rightColor = null;
-                    rightLightColor = null;
+                if (!name.hasAttribute('data-edited')) {
+                    name.textContent = defaultName;
                 }
                 
-                colorBtn.style.display = 'none';
+                if (side === 'left') {
+                    leftColor = defaultColor;
+                    leftLightColor = lightenColor(defaultColor, 0.6);
+                } else {
+                    rightColor = defaultColor;
+                    rightLightColor = lightenColor(defaultColor, 0.6);
+                }
+                
+                // Ensure circle is visible
+                circle.style.display = 'flex';
+                const head = circle.querySelector('.head');
+                if (head) {
+                    head.style.background = `linear-gradient(135deg, ${defaultColor}, ${defaultColor})`;
+                }
+                updateBodyColors(side, defaultColor);
+                updateSliderColors();
             }
             updateButtonStates();
             updateComparisonView();
@@ -2517,35 +4175,56 @@ function closePosePicker() {
             const rightStillValid = currentRightSelected && partsData[currentRightSelected];
             
             // Restore selections if they're still valid, otherwise clear them
+            // Note: Venstre and Højre are always available, so circles should never be hidden
             if (leftStillValid) {
                 leftDropdown.value = currentLeftSelected;
             } else {
                 leftDropdown.value = '';
-                // Hide left participant if it was selected but no longer exists
-                if (currentLeftSelected) {
-                    document.getElementById('leftCircle').style.display = 'none';
-                    document.getElementById('leftColorBtn').style.display = 'none';
+                // If selection was cleared, ensure default Venstre is shown
+                const leftCircle = document.getElementById('leftCircle');
+                const leftNameEl = document.getElementById('leftName');
+                if (leftCircle) {
+                    leftCircle.style.display = 'flex';
+                    if (leftNameEl && !leftNameEl.hasAttribute('data-edited')) {
+                        leftNameEl.textContent = 'Venstre';
+                    }
+                    const head = leftCircle.querySelector('.head');
+                    if (head) {
+                        head.style.background = `linear-gradient(135deg, #3b82f6, #3b82f6)`;
+                    }
+                    updateBodyColors('left', '#3b82f6');
                 }
+                leftColor = '#3b82f6';
+                leftLightColor = lightenColor(leftColor, 0.6);
+                updateSliderColors();
             }
             
             if (rightStillValid) {
                 rightDropdown.value = currentRightSelected;
             } else {
                 rightDropdown.value = '';
-                // Hide right participant if it was selected but no longer exists
-                if (currentRightSelected) {
-                    document.getElementById('rightCircle').style.display = 'none';
-                    document.getElementById('rightColorBtn').style.display = 'none';
+                // If selection was cleared, ensure default Højre is shown
+                const rightCircle = document.getElementById('rightCircle');
+                const rightNameEl = document.getElementById('rightName');
+                if (rightCircle) {
+                    rightCircle.style.display = 'flex';
+                    if (rightNameEl && !rightNameEl.hasAttribute('data-edited')) {
+                        rightNameEl.textContent = 'Højre';
+                    }
+                    const head = rightCircle.querySelector('.head');
+                    if (head) {
+                        head.style.background = `linear-gradient(135deg, #ef4444, #ef4444)`;
+                    }
+                    updateBodyColors('right', '#ef4444');
                 }
+                rightColor = '#ef4444';
+                rightLightColor = lightenColor(rightColor, 0.6);
+                updateSliderColors();
             }
             
-            // Update participant displays if they're still valid
-            if (leftStillValid) {
-                updateParticipant('left');
-            }
-            if (rightStillValid) {
-                updateParticipant('right');
-            }
+            // Update participant displays - always update to ensure Venstre/Højre are shown
+            updateParticipant('left');
+            updateParticipant('right');
             
             // Update button states and comparison view
             updateButtonStates();
@@ -2604,9 +4283,10 @@ function closePosePicker() {
     });
 }
 
-function applyPose(side, poseIndex) {
+function applyPose(side, poseIndex, mirrorOverride) {
     const circle = document.getElementById(side + 'Circle');
     const mirrorCheckbox = document.getElementById(side + 'Mirror');
+    const participantNode = circle ? circle.parentElement : null;
     
     if (!circle) {
         return;
@@ -2620,6 +4300,23 @@ function applyPose(side, poseIndex) {
             resetPose(side);
             return;
         }
+    }
+    
+    // Determine mirror state: use override if provided, otherwise check checkbox or data attribute
+    let mirrorActive;
+    if (typeof mirrorOverride === 'boolean') {
+        mirrorActive = mirrorOverride;
+    } else if (mirrorCheckbox) {
+        mirrorActive = !!mirrorCheckbox.checked;
+    } else if (participantNode && participantNode.hasAttribute('data-mirror')) {
+        mirrorActive = participantNode.getAttribute('data-mirror') === 'true';
+    } else {
+        mirrorActive = false;
+    }
+    
+    // Update checkbox to match mirror state
+    if (mirrorCheckbox) {
+        mirrorCheckbox.checked = mirrorActive;
     }
     
     // Add smooth transitions to all animated elements
@@ -2639,8 +4336,8 @@ function applyPose(side, poseIndex) {
     
     let poseData = pose.pose;
     
-    // If mirror is checked, create mirrored version
-    if (mirrorCheckbox && mirrorCheckbox.checked) {
+    // If mirror is active, create mirrored version
+    if (mirrorActive) {
         poseData = {
             translate_x_left: -(pose.pose.translate_x || 0),
             translate_x: -(pose.pose.translate_x_left || 0),
@@ -2734,10 +4431,39 @@ function applyPose(side, poseIndex) {
     const participant = circle.parentElement;
     if (participant) {
         participant.setAttribute('data-pose', poseIndex);
-        participant.setAttribute('data-mirror', mirrorCheckbox ? mirrorCheckbox.checked : false);
+        participant.setAttribute('data-mirror', String(mirrorActive));
     }
 	
 	
+}
+
+function applyParticipantPose(side, poseName, mirror) {
+    if (!poseLibrary || !poseLibrary.length) {
+        return;
+    }
+    const circle = document.getElementById(side + 'Circle');
+    const participantNode = circle ? circle.parentElement : null;
+    const poseDropdown = document.getElementById(side + 'Pose');
+    const defaultIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+    let poseIndex = -1;
+    if (poseName) {
+        poseIndex = poseLibrary.findIndex(p => p && p.name === poseName);
+    }
+    if (poseIndex === -1) {
+        if (defaultIndex !== -1) {
+            if (poseDropdown) poseDropdown.value = defaultIndex;
+            applyPose(side, defaultIndex, typeof mirror === 'boolean' ? mirror : false);
+        } else {
+            if (poseDropdown) poseDropdown.value = '';
+            resetPose(side);
+        }
+        return;
+    }
+    const mirrorValue = typeof mirror === 'boolean'
+        ? mirror
+        : !!(participantNode && participantNode.getAttribute('data-mirror') === 'true');
+    if (poseDropdown) poseDropdown.value = poseIndex;
+    applyPose(side, poseIndex, mirrorValue);
 }
 
 function toggleMirror(side) {
@@ -2749,13 +4475,23 @@ function toggleMirror(side) {
     if (participant) {
         const currentMirror = mirrorCheckbox ? mirrorCheckbox.checked : (participant.getAttribute('data-mirror') === 'true');
         const newMirror = !currentMirror;
+        
+        // Update checkbox to match new mirror state
+        if (mirrorCheckbox) {
+            mirrorCheckbox.checked = newMirror;
+        }
+        
+        // Update data-mirror attribute
         participant.setAttribute('data-mirror', String(newMirror));
         
         // Re-apply current pose with new mirror state
         const currentPose = participant.getAttribute('data-pose');
         if (currentPose !== null && currentPose !== '') {
-            applyPose(side, currentPose);
+            applyPose(side, currentPose, newMirror);
         }
+        
+        // Save to compareData when mirror changes
+        syncCurrentWorkspaceToActiveComparison();
     }
 }
 
@@ -2877,17 +4613,8 @@ function resetPose(side) {
 		
 
         function updateButtonStates() {
-            const leftSelected = document.getElementById('leftDropdown').value;
-            const rightSelected = document.getElementById('rightDropdown').value;
-            const bothSelected = leftSelected && rightSelected;
-            
-            document.getElementById('saveBtn').disabled = !bothSelected;
-            
-            // Load comparison button is always enabled (can load into empty state)
-            document.getElementById('loadComparisonBtn').disabled = false;
-            
-            // Random button is enabled only on steps 1 and 2 when both participants are selected
-            document.getElementById('randomBtn').disabled = !bothSelected || (currentStep !== 1 && currentStep !== 2);
+            // Random button is enabled on steps 1 and 2 - participants are always present (Venstre/Højre)
+            document.getElementById('randomBtn').disabled = (currentStep !== 1 && currentStep !== 2);
         }
 
         function setStatus(text) {
@@ -2953,29 +4680,14 @@ function resetPose(side) {
         }
 
         function updateComparisonView() {
-            const leftSelected = document.getElementById('leftDropdown').value;
-            const rightSelected = document.getElementById('rightDropdown').value;
             const content = document.getElementById('comparisonContent');
             
+            // Always ensure we have active traits - participants are always present (Venstre/Højre)
             ensureActiveTraits();
             
-            if (!leftSelected || !rightSelected) {
-                content.innerHTML = `
-                    <div class="empty-state">
-                        <h4 style="margin-bottom: 15px; color: #374151;">Sådan bruger du Sammenlignings-værktøjet:</h4>
-                        <p style="margin-bottom: 12px; text-align: left;"><strong>1. Vælg dele:</strong> Brug dropdown-menuerne til at vælge to indre dele du vil sammenligne.</p>
-                        <p style="margin-bottom: 12px; text-align: left;"><strong>2. Udfyld fakta:</strong> Indtast grundlæggende information om hver del.</p>
-                        <p style="margin-bottom: 12px; text-align: left;"><strong>3. Score egenskaber:</strong> Vurder hvor hver del placerer sig på forskellige skalaer.</p>
-                        <p style="margin-bottom: 12px; text-align: left;"><strong>4. Fokuser på ligheder:</strong> Se hvor delene minder om hinanden i stedet for kun at fokusere på forskelle.</p>
-                        <p style="margin-top: 15px; font-style: italic; color: #6b7280;">Dette værktøj hjælper med at reducere indre konflikt ved at se nuancer og ligheder mellem dele af dig selv.</p>
-                    </div>
-                `;
-                setStatus('Vælg to dele for at begynde sammenligning');
-                return;
-            }
-
-            const leftName = document.getElementById('leftName').textContent || 'Venstre del';
-            const rightName = document.getElementById('rightName').textContent || 'Højre del';
+            // Always show sliders - Venstre and Højre are always available
+            const leftName = document.getElementById('leftName').textContent || 'Venstre';
+            const rightName = document.getElementById('rightName').textContent || 'Højre';
             const activeTraits = getActiveTraits();
             
             content.innerHTML = `
@@ -3039,10 +4751,15 @@ function resetPose(side) {
                                 <div style="font-size: 12px; color: #6b7280;">Hvor forskellige er de?</div>
                             </div>
                         </div>
+                        <div style="margin-top: 30px;">
+                            <label for="comparisonNotes" style="display: block; margin-bottom: 10px; font-weight: 600; color: #374151; font-size: 16px;">Noter</label>
+                            <textarea id="comparisonNotes" placeholder="Tilføj noter til sammenligningen..." style="width: 100%; min-height: 150px; padding: 12px; border-radius: 10px; border: 2px solid #e2e8f0; font-size: 16px; font-family: inherit; resize: vertical; outline: none;" oninput="updateComparisonNotes(this.value)"></textarea>
+                        </div>
                     </div>
                 </div>
             `;
 
+            // Update slider colors from participant colors
             updateSliderColors();
             if (currentStep === 3) {
                 calculateAndDisplayScores();
@@ -3457,592 +5174,104 @@ function resetPose(side) {
             setStatus(`Tilfældige værdier sat for ${sideName} del`);
         }
 
-        function saveComparison() {
-            (window.__APP_DEBUG__ && console.log('saveComparison kaldt'));
-            
-            const leftSelected = document.getElementById('leftDropdown').value;
-            const rightSelected = document.getElementById('rightDropdown').value;
-            
-            if (!leftSelected || !rightSelected) {
-                alert('Vælg to dele før du gemmer sammenligning!');
-                return;
-            }
-
-            const leftName = document.getElementById('leftName').textContent || 'Venstre del';
-            const rightName = document.getElementById('rightName').textContent || 'Højre del';
-            
-            (window.__APP_DEBUG__ && console.log('Gemmer sammenligning for:', leftName, rightName));
-            
-            // Collect stikord data
-            const leftStikord = [];
-            const rightStikord = [];
-            for (let i = 1; i <= 6; i++) {
-                const leftField = document.getElementById('leftStikord' + i);
-                const rightField = document.getElementById('rightStikord' + i);
-                leftStikord.push(leftField ? leftField.value.trim() : "");
-                rightStikord.push(rightField ? rightField.value.trim() : "");
-            }
-            
-            // Get colors
-            const leftExportColor = leftColor || "#10b981";
-            const rightExportColor = rightColor || "#3b82f6";
-            
-            // Get pose data
-            const leftPoseDropdown = document.getElementById('leftPose');
-            const rightPoseDropdown = document.getElementById('rightPose');
-            const leftMirror = document.getElementById('leftMirror');
-            const rightMirror = document.getElementById('rightMirror');
-
-            const leftPose = leftPoseDropdown && leftPoseDropdown.value ? (poseLibrary[leftPoseDropdown.value]?.name || '') : '';
-            const rightPose = rightPoseDropdown && rightPoseDropdown.value ? (poseLibrary[rightPoseDropdown.value]?.name || '') : '';
-            const leftSpejl = leftMirror ? leftMirror.checked : false;
-            const rightSpejl = rightMirror ? rightMirror.checked : false;
-            
-            const now = new Date();
-            const timestamp = now.toISOString();
-            const defaultFileName = 'Sammenligning_' + now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0');
-            
-            (window.__APP_DEBUG__ && console.log('Forbereder CSV data...'));
-            
-            const csvData = [];
-            const activeTraits = getActiveTraits();
-            const activeIndices = activeTraits.map(({ index }) => index);
-            csvData.push(['#metadata']);
-            csvData.push(['timestamp', timestamp]);
-            csvData.push(['distance', String(currentDistance)]);
-            csvData.push(['']);
-            
-            csvData.push(['#active_traits']);
-            csvData.push(['trait_index']);
-            if (activeIndices.length > 0) {
-                activeIndices.forEach(idx => csvData.push([idx]));
-            } else {
-                defaultTraits.forEach((_, idx) => csvData.push([idx]));
-            }
-            csvData.push(['']);
-            
-            csvData.push(['#cirkler']);
-            csvData.push(['navn', 'farve', 'pose', 'spejl', 'stikord1', 'stikord2', 'stikord3', 'stikord4', 'stikord5', 'stikord6']);
-            csvData.push([leftName, leftExportColor, leftPose, leftSpejl, ...leftStikord]);
-            csvData.push([rightName, rightExportColor, rightPose, rightSpejl, ...rightStikord]);
-            csvData.push(['']);
-            
-            csvData.push(['#del1_scores']);
-            csvData.push(['trait_index', 'trait_left', 'trait_right', 'score']);
-            
-            activeTraits.forEach(({ trait, index }) => {
-                const score = leftScores[index] || 0;
-                csvData.push([index, trait.left, trait.right, score]);
-            });
-            csvData.push(['']);
-            
-            csvData.push(['#del2_scores']);
-            csvData.push(['trait_index', 'trait_left', 'trait_right', 'score']);
-            
-            activeTraits.forEach(({ trait, index }) => {
-                const score = rightScores[index] || 0;
-                csvData.push([index, trait.left, trait.right, score]);
-            });
-            
-            const csvContent = csvData.map(function(row) {
-                return row.map(function(field) {
-                    const fieldStr = (field == null) ? '' : String(field);
-                    if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n') || fieldStr.includes('\r')) {
-                        return '"' + fieldStr.replace(/"/g, '""') + '"';
-                    }
-                    return fieldStr;
-                }).join(',');
-            }).join('\r\n');
-            
-            (window.__APP_DEBUG__ && console.log('CSV content genereret, starter download...'));
-            
-            try {
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const fileName = prompt('Gem som:', defaultFileName) || defaultFileName;
-                
-                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-                    // IE/Edge
-                    (window.__APP_DEBUG__ && console.log('Bruger IE/Edge download'));
-                    window.navigator.msSaveOrOpenBlob(blob, fileName + '.csv');
-                    setStatus('Sammenligning gemt som ' + fileName + '.csv');
-                } else {
-                    // Moderne browsere
-                    (window.__APP_DEBUG__ && console.log('Bruger moderne browser download'));
-                    
-                    const link = document.createElement('a');
-                    if (link.download !== undefined) {
-                        const url = URL.createObjectURL(blob);
-                        link.setAttribute('href', url);
-                        link.setAttribute('download', fileName + '.csv');
-                        link.style.visibility = 'hidden';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        
-                        setTimeout(() => {
-                            URL.revokeObjectURL(url);
-                            (window.__APP_DEBUG__ && console.log('Cleanup udført'));
-                        }, 100);
-                        
-                        setStatus('Sammenligning gemt som ' + fileName + '.csv');
-                    }
-                }
-                
-            } catch (error) {
-                console.error('Fejl ved download:', error);
-                alert('Fejl ved download: ' + error.message + '\n\nPrøv en anden browser eller kontakt support.');
-            }
-        }
-
-        function loadComparison() {
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = '.csv';
-            fileInput.style.display = 'none';
-            
-            fileInput.onchange = function(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(e) {
-                        try {
-                            let content = e.target.result;
-                            if (content.charCodeAt(0) === 0xFEFF) {
-                                content = content.slice(1);
-                            }
-                            content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-                            
-                            parseComparisonCSV(content);
-                        } catch (error) {
-                            alert('Fejl ved indlæsning: ' + error.message);
-                        }
-                    };
-                    
-                    reader.readAsText(file, 'UTF-8');
-                }
-            };
-            
-            document.body.appendChild(fileInput);
-            fileInput.click();
-            setTimeout(() => {
-                if (fileInput.parentNode) {
-                    document.body.removeChild(fileInput);
-                }
-            }, 1000);
-        }
-
-        function parseComparisonCSV(csvContent) {
-            const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line !== '');
-            
-            let currentSection = null;
-            let cirkelData = [];
-            let del1Scores = [];
-            let del2Scores = [];
-            let metaDistance = null;
-            let activeTraitList = [];
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                
-                if (line === '#metadata') {
-                    currentSection = 'metadata';
-                    continue;
-                } else if (line === '#cirkler') {
-                    currentSection = 'cirkler';
-                    continue;
-                } else if (line === '#active_traits') {
-                    currentSection = 'active_traits';
-                    continue;
-                } else if (line === '#del1_scores') {
-                    currentSection = 'del1_scores';
-                    continue;
-                } else if (line === '#del2_scores') {
-                    currentSection = 'del2_scores';
-                    continue;
-                }
-                
-                if (currentSection === 'metadata') {
-                    const parts = parseComparisonCSVLine(line);
-                    if (parts.length >= 2) {
-                        const key = (parts[0] || '').toLowerCase();
-                        const value = parts[1];
-                        if (key === 'distance') {
-                            const num = parseInt(value, 10);
-                            if (!isNaN(num)) metaDistance = num;
-                        }
-                    }
-                } else if (currentSection === 'active_traits') {
-                    const parts = parseComparisonCSVLine(line);
-                    if (parts[0] === 'trait_index') continue;
-                    if (parts.length >= 1 && parts[0] !== '') {
-                        const traitIndex = parseInt(parts[0], 10);
-                        if (!Number.isNaN(traitIndex)) {
-                            activeTraitList.push(traitIndex);
-                        }
-                    }
-                } else if (currentSection === 'cirkler') {
-                    const parts = parseComparisonCSVLine(line);
-                    if (parts[0] === 'navn') continue;
-                    
-                    if (parts.length >= 2) {
-                        const cirkel = {
-                            name: parts[0] || '',
-                            color: parts[1] || '#10b981',
-                            pose: parts[2] || '',
-                            mirror: parts[3] === 'true',
-                            keywords: []
-                        };
-                        for (let j = 4; j < Math.min(parts.length, 10); j++) {
-                            cirkel.keywords.push(parts[j] || '');
-                        }
-                        while (cirkel.keywords.length < 6) {
-                            cirkel.keywords.push('');
-                        }
-                        
-                        cirkelData.push(cirkel);
-                    }
-                } else if (currentSection === 'del1_scores') {
-                    const parts = parseComparisonCSVLine(line);
-                    if (parts[0] === 'trait_index') continue;
-                    
-                    if (parts.length >= 4) {
-                        const traitIndex = parseInt(parts[0]);
-                        const score = parseInt(parts[3]);
-                        if (!isNaN(traitIndex) && !isNaN(score)) {
-                            del1Scores[traitIndex] = score;
-                        }
-                    }
-                } else if (currentSection === 'del2_scores') {
-                    const parts = parseComparisonCSVLine(line);
-                    if (parts[0] === 'trait_index') continue;
-                    
-                    if (parts.length >= 4) {
-                        const traitIndex = parseInt(parts[0]);
-                        const score = parseInt(parts[3]);
-                        if (!isNaN(traitIndex) && !isNaN(score)) {
-                            del2Scores[traitIndex] = score;
-                        }
-                    }
-                }
-            }
-            
-            if (cirkelData.length < 2) {
-                throw new Error('Ikke nok deltager-data fundet');
-            }
-            
-            applyLoadedComparison(cirkelData[0], cirkelData[1], del1Scores, del2Scores, activeTraitList);
-
-            if (metaDistance !== null) {
-                currentDistance = metaDistance;
-                const container = document.querySelector('.participants-container');
-                if (container) container.style.maxWidth = currentDistance + 'px';
-            }
-        }
-
-        function parseComparisonCSVLine(line) {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
-            
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                
-                if (char === '"') {
-                    if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
-                        current += '"';
-                        i++;
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (char === ',' && !inQuotes) {
-                    result.push(current.trim());
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            
-            result.push(current.trim());
-            return result;
-        }
-
-        function applyLoadedComparison(leftPart, rightPart, leftScoresData, rightScoresData, traitIndices = []) {
-            // Clear current state first
-            clearAll();
-            
-            // Set colors
-            leftColor = leftPart.color;
-            rightColor = rightPart.color;
-            leftLightColor = lightenColor(leftPart.color, 0.6);
-            rightLightColor = lightenColor(rightPart.color, 0.6);
-            
-            // Clear dropdowns since we're loading custom data
-            document.getElementById('leftDropdown').value = '';
-            document.getElementById('rightDropdown').value = '';
-            currentTraitSelectionKey = null;
-            if (Array.isArray(traitIndices) && traitIndices.length > 0) {
-                activeTraitIndices = traitIndices
-                    .map(idx => parseInt(idx, 10))
-                    .filter(idx => !Number.isNaN(idx) && idx >= 0 && idx < defaultTraits.length);
-                activeTraitIndices.sort((a, b) => a - b);
-            } else {
-                const collectedIndices = new Set([
-                    ...Object.keys(leftScoresData || {}).map(k => parseInt(k, 10)),
-                    ...Object.keys(rightScoresData || {}).map(k => parseInt(k, 10))
-                ].filter(idx => !Number.isNaN(idx) && idx >= 0 && idx < defaultTraits.length));
-
-                if (collectedIndices.size > 0) {
-                    activeTraitIndices = Array.from(collectedIndices).sort((a, b) => a - b);
-                } else {
-                    activeTraitIndices = Array.from({ length: Math.min(ACTIVE_TRAIT_COUNT, defaultTraits.length) }, (_, idx) => idx);
-                }
-            }
-            
-            // Show circles and set names
-            const leftCircle = document.getElementById('leftCircle');
-            const rightCircle = document.getElementById('rightCircle');
-            const leftName = document.getElementById('leftName');
-            const rightName = document.getElementById('rightName');
-            
-            leftCircle.style.display = 'flex';
-            rightCircle.style.display = 'flex';
-            
-            leftName.textContent = leftPart.name;
-            rightName.textContent = rightPart.name;
-            leftName.setAttribute('data-edited', 'true');
-            rightName.setAttribute('data-edited', 'true');
-            
-            // Set colors
-            const leftHead = leftCircle.querySelector('.head');
-            const rightHead = rightCircle.querySelector('.head');
-            
-            if (leftHead) {
-                leftHead.style.background = `linear-gradient(135deg, ${leftPart.color}, ${leftPart.color}dd)`;
-            }
-            if (rightHead) {
-                rightHead.style.background = `linear-gradient(135deg, ${rightPart.color}, ${rightPart.color}dd)`;
-            }
-            
-            document.getElementById('leftColorBtn').style.display = 'flex';
-            document.getElementById('rightColorBtn').style.display = 'flex';
-            
-            updateBodyColors('left', leftPart.color);
-            updateBodyColors('right', rightPart.color);
-            updateSliderColors();
-            
-            // Set stikord
-            for (let i = 1; i <= 6; i++) {
-                const leftField = document.getElementById('leftStikord' + i);
-                const rightField = document.getElementById('rightStikord' + i);
-                if (leftField) leftField.value = leftPart.keywords[i-1] || '';
-                if (rightField) rightField.value = rightPart.keywords[i-1] || '';
-            }
-            
-            // Set poses
-            const leftPoseDropdown = document.getElementById('leftPose');
-            const rightPoseDropdown = document.getElementById('rightPose');
-            const leftMirror = document.getElementById('leftMirror');
-            const rightMirror = document.getElementById('rightMirror');
-            
-            if (leftMirror) leftMirror.checked = leftPart.mirror || false;
-            if (rightMirror) rightMirror.checked = rightPart.mirror || false;
-            
-            if (leftPoseDropdown && leftPart.pose) {
-                const poseIndex = poseLibrary.findIndex(pose => pose.name === leftPart.pose);
-                if (poseIndex !== -1) {
-                    leftPoseDropdown.value = poseIndex;
-                    applyPose('left', poseIndex);
-                }
-            }
-            if (rightPoseDropdown && rightPart.pose) {
-                const poseIndex = poseLibrary.findIndex(pose => pose.name === rightPart.pose);
-                if (poseIndex !== -1) {
-                    rightPoseDropdown.value = poseIndex;
-                    applyPose('right', poseIndex);
-                }
-            }
-            
-            // Set scores
-            leftScores = leftScoresData || {};
-            rightScores = rightScoresData || {};
-            
-            // Switch to step 3 to show comparison
-            currentStep = 3;
-            
-            updateComparisonView();
-            updateButtonStates();
-            setStatus('Sammenligning indlæst med ' + Object.keys(leftScores).length + ' venstre scores og ' + Object.keys(rightScores).length + ' højre scores');
-        }
+        // CSV import/export functions removed - no longer needed
 
         function clearAll() {
-		currentDistance = 675;
-		const container = document.querySelector('.participants-container');
-		if (container) container.style.maxWidth = '675px';
+			// Reset all sliders to 0
+			leftScores = {};
+			rightScores = {};
+			
+			// Select 6 new random traits
+			const indices = Array.from({ length: defaultTraits.length }, (_, idx) => idx);
+			for (let i = indices.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[indices[i], indices[j]] = [indices[j], indices[i]];
+			}
+			activeTraitIndices = indices.slice(0, ACTIVE_TRAIT_COUNT).sort((a, b) => a - b);
+			currentTraitSelectionKey = null;
 		
-		
-		
-		
-		
-    leftColor = null;
-    rightColor = null;
-    leftLightColor = null;
-    rightLightColor = null;
-    leftScores = {};
-    rightScores = {};
-    currentStep = 1;
-    activeTraitIndices = [];
-    currentTraitSelectionKey = null;
-    
-    document.getElementById('leftCircle').style.display = 'none';
-    document.getElementById('rightCircle').style.display = 'none';
-    document.getElementById('leftDropdown').value = '';
-    document.getElementById('rightDropdown').value = '';
-    
-    // Clear stikord fields
-	for (let i = 1; i <= 6; i++) {
-		['left', 'right'].forEach(side => {
-			const field = document.getElementById(side + 'Stikord' + i);
-			if (field) field.value = '';
-		});
-	}
-    
-    // Reset pose dropdowns and mirror checkboxes
+			// Set participants to "Venstre" and "Højre"
+			const leftNameEl = document.getElementById('leftName');
+			const rightNameEl = document.getElementById('rightName');
+			if (leftNameEl) leftNameEl.textContent = 'Venstre';
+			if (rightNameEl) rightNameEl.textContent = 'Højre';
+			
+			// Reset colors
+			leftColor = '#3b82f6';
+			rightColor = '#ef4444';
+			leftLightColor = lightenColor(leftColor, 0.6);
+			rightLightColor = lightenColor(rightColor, 0.6);
+			
+			// Reset step
+			currentStep = 1;
+			
+			// Clear notes
+			comparisonNotes = '';
+			const notesTextarea = document.getElementById('comparisonNotes');
+			if (notesTextarea) notesTextarea.value = '';
+			
+			// Clear dropdowns
+            document.getElementById('leftDropdown').value = '';
+            document.getElementById('rightDropdown').value = '';
+			
+			// Show circles with default participants
+            const leftCircle = document.getElementById('leftCircle');
+            const rightCircle = document.getElementById('rightCircle');
+			if (leftCircle) {
+            leftCircle.style.display = 'flex';
+				const head = leftCircle.querySelector('.head');
+				if (head) {
+					head.style.background = `linear-gradient(135deg, ${leftColor}, ${leftColor})`;
+				}
+				updateBodyColors('left', leftColor);
+			}
+			if (rightCircle) {
+            rightCircle.style.display = 'flex';
+				const head = rightCircle.querySelector('.head');
+				if (head) {
+					head.style.background = `linear-gradient(135deg, ${rightColor}, ${rightColor})`;
+				}
+				updateBodyColors('right', rightColor);
+			}
+			
+			// Update slider colors
+            updateSliderColors();
+            
+			// Reset pose and mirror to standard
     const leftPose = document.getElementById('leftPose');
     const rightPose = document.getElementById('rightPose');
     const leftMirror = document.getElementById('leftMirror');
     const rightMirror = document.getElementById('rightMirror');
     
-    if (leftPose) leftPose.value = '';
-    if (rightPose) rightPose.value = '';
+			// Reset to standard pose
+			resetPose('left');
+			resetPose('right');
+			
+			// Clear mirror checkboxes
     if (leftMirror) leftMirror.checked = false;
     if (rightMirror) rightMirror.checked = false;
     
-    ['leftName', 'rightName'].forEach(id => {
-        const element = document.getElementById(id);
-        element.textContent = '';
-        element.removeAttribute('data-edited');
-    });
+			// Update data-mirror attributes
+			const leftParticipant = leftCircle ? leftCircle.closest('.participant') : null;
+			const rightParticipant = rightCircle ? rightCircle.closest('.participant') : null;
+			if (leftParticipant) {
+				leftParticipant.setAttribute('data-mirror', 'false');
+			}
+			if (rightParticipant) {
+				rightParticipant.setAttribute('data-mirror', 'false');
+			}
     
+			// Update UI
     updateComparisonView();
     updateButtonStates();
+			
+			// Sync to active comparison (this will save the cleared state to the active history item)
+			syncCurrentWorkspaceToActiveComparison();
 }
 
-        // --- comparisonData persistence (no calls wired yet) ---
-        function buildComparisonData() {
-            var leftNameEl = document.getElementById('leftName');
-            var rightNameEl = document.getElementById('rightName');
-            var leftDropdown = document.getElementById('leftDropdown');
-            var rightDropdown = document.getElementById('rightDropdown');
-            var leftPoseDropdown = document.getElementById('leftPose');
-            var rightPoseDropdown = document.getElementById('rightPose');
-            var leftMirror = document.getElementById('leftMirror');
-            var rightMirror = document.getElementById('rightMirror');
+        // CSV data persistence functions removed - no longer needed
 
-            var leftKeywords = [];
-            var rightKeywords = [];
-            for (var i = 1; i <= 6; i++) {
-                var lk = document.getElementById('leftStikord' + i);
-                var rk = document.getElementById('rightStikord' + i);
-                leftKeywords.push(lk ? lk.value : '');
-                rightKeywords.push(rk ? rk.value : '');
-            }
-
-            return {
-                version: 1,
-                currentStep: currentStep,
-                distance: currentDistance,
-                left: {
-                    selectedKey: leftDropdown ? leftDropdown.value : '',
-                    name: leftNameEl ? leftNameEl.textContent : '',
-                    color: leftColor,
-                    poseIndex: (leftPoseDropdown && leftPoseDropdown.value !== '') ? Number(leftPoseDropdown.value) : null,
-                    mirror: !!(leftMirror && leftMirror.checked),
-                    keywords: leftKeywords
-                },
-                right: {
-                    selectedKey: rightDropdown ? rightDropdown.value : '',
-                    name: rightNameEl ? rightNameEl.textContent : '',
-                    color: rightColor,
-                    poseIndex: (rightPoseDropdown && rightPoseDropdown.value !== '') ? Number(rightPoseDropdown.value) : null,
-                    mirror: !!(rightMirror && rightMirror.checked),
-                    keywords: rightKeywords
-                },
-                scores: {
-                    left: leftScores,
-                    right: rightScores
-                }
-            };
-        }
-
-        function saveComparisonData() {
-            try {
-                var data = buildComparisonData();
-                localStorage.setItem('comparisonData', JSON.stringify(data));
-            } catch (e) {
-                // ignore
-            }
-        }
-
-        function loadComparisonData() {
-            try {
-                var raw = localStorage.getItem('comparisonData');
-                if (!raw) return;
-                var data = JSON.parse(raw);
-                if (!data || typeof data !== 'object') return;
-
-                var leftPoseName = '';
-                if (data.left && typeof data.left.poseIndex === 'number' && poseLibrary[data.left.poseIndex]) {
-                    leftPoseName = poseLibrary[data.left.poseIndex].name || '';
-                }
-                var rightPoseName = '';
-                if (data.right && typeof data.right.poseIndex === 'number' && poseLibrary[data.right.poseIndex]) {
-                    rightPoseName = poseLibrary[data.right.poseIndex].name || '';
-                }
-
-                var leftPart = {
-                    name: (data.left && data.left.name) ? data.left.name : '',
-                    color: (data.left && data.left.color) ? data.left.color : '#10b981',
-                    pose: leftPoseName,
-                    mirror: !!(data.left && data.left.mirror),
-                    keywords: (data.left && Array.isArray(data.left.keywords)) ? data.left.keywords.slice(0,6) : ["","","","","",""]
-                };
-                var rightPart = {
-                    name: (data.right && data.right.name) ? data.right.name : '',
-                    color: (data.right && data.right.color) ? data.right.color : '#3b82f6',
-                    pose: rightPoseName,
-                    mirror: !!(data.right && data.right.mirror),
-                    keywords: (data.right && Array.isArray(data.right.keywords)) ? data.right.keywords.slice(0,6) : ["","","","","",""]
-                };
-
-                applyLoadedComparison(leftPart, rightPart, (data.scores && data.scores.left) ? data.scores.left : {}, (data.scores && data.scores.right) ? data.scores.right : {});
-
-                if (typeof data.currentStep === 'number') {
-                    switchToStep(Math.max(1, Math.min(3, data.currentStep)));
-                }
-                if (typeof data.distance === 'number') {
-                    currentDistance = data.distance;
-                    var container = document.querySelector('.participants-container');
-                    if (container) container.style.maxWidth = currentDistance + 'px';
-                }
-            } catch (e) {
-                // ignore
-            }
-        }
-
-function adjustDistance(direction) {
-    const container = document.querySelector('.participants-container');
-    if (!container) return;
-    
-    if (direction === 'increase' && currentDistance < 700) {
-        currentDistance += 100;
-    } else if (direction === 'decrease' && currentDistance > 175) {
-        currentDistance -= 100;
-    }
-    
-    container.style.maxWidth = currentDistance + 'px';
-    container.style.transition = 'max-width 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)';
-}
+// adjustDistance function removed - distance functionality no longer needed
 
 
 
@@ -4114,6 +5343,34 @@ function adjustDistance(direction) {
             document.getElementById('leftDropdown').addEventListener('change', () => updateParticipant('left'));
             document.getElementById('rightDropdown').addEventListener('change', () => updateParticipant('right'));
             
+            // Save when participant names are edited
+            const leftNameEl = document.getElementById('leftName');
+            const rightNameEl = document.getElementById('rightName');
+            if (leftNameEl) {
+                leftNameEl.addEventListener('blur', () => {
+                    syncCurrentWorkspaceToActiveComparison();
+                    renderHistory(); // Update history item display
+                });
+                leftNameEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        leftNameEl.blur();
+                    }
+                });
+            }
+            if (rightNameEl) {
+                rightNameEl.addEventListener('blur', () => {
+                    syncCurrentWorkspaceToActiveComparison();
+                    renderHistory(); // Update history item display
+                });
+                rightNameEl.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        rightNameEl.blur();
+                    }
+                });
+            }
+            
             document.getElementById('leftColorBtn').addEventListener('click', function(e) {
                 e.stopPropagation();
                 openColorPicker(this, 'left');
@@ -4140,14 +5397,139 @@ function adjustDistance(direction) {
 				openPosePicker(this);
 			});
             
-            document.getElementById('newComparisonBtn').addEventListener('click', clearAll);
+			// Save when pose changes via dropdown
+			const leftPoseDropdown = document.getElementById('leftPose');
+			const rightPoseDropdown = document.getElementById('rightPose');
+			if (leftPoseDropdown) {
+				leftPoseDropdown.addEventListener('change', function() {
+					const poseIndex = this.value;
+					if (poseIndex) {
+						applyPose('left', poseIndex);
+					} else {
+						resetPose('left');
+					}
+					syncCurrentWorkspaceToActiveComparison();
+				});
+			}
+			if (rightPoseDropdown) {
+				rightPoseDropdown.addEventListener('change', function() {
+					const poseIndex = this.value;
+					if (poseIndex) {
+						applyPose('right', poseIndex);
+					} else {
+						resetPose('right');
+					}
+					syncCurrentWorkspaceToActiveComparison();
+				});
+			}
+			
+			// Save when mirror changes
+			const leftMirror = document.getElementById('leftMirror');
+			const rightMirror = document.getElementById('rightMirror');
+			if (leftMirror) {
+				leftMirror.addEventListener('change', function() {
+					toggleMirror('left');
+				});
+			}
+			if (rightMirror) {
+				rightMirror.addEventListener('change', function() {
+					toggleMirror('right');
+				});
+			}
+            
             document.querySelector('.clear-btn').addEventListener('click', clearAll);
             document.getElementById('randomBtn').addEventListener('click', randomizeCurrentStep);
-            document.getElementById('saveBtn').addEventListener('click', saveComparison);
-            document.getElementById('loadComparisonBtn').addEventListener('click', loadComparison);
-			
-			document.getElementById('increaseDistance').addEventListener('click', () => adjustDistance('increase'));
-			document.getElementById('decreaseDistance').addEventListener('click', () => adjustDistance('decrease'));
+            
+            // Initialize CompareData
+            CompareData = loadCompareDataFromLocalStorage();
+            ensureDefaultCompareData();
+            
+            // Initialize history sidebar
+            const savedCollapsed = localStorage.getItem('compare_historySidebarCollapsed');
+            if (savedCollapsed === 'true') {
+                historySidebarCollapsed = true;
+                const sidebar = document.getElementById('historySidebar');
+                if (sidebar) {
+                    sidebar.classList.add('collapsed');
+                    const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
+                    toggleBtns.forEach(btn => btn.textContent = '<');
+                }
+            }
+            
+            // Initialize samling manager elements
+            samlingManagerOverlayEl = document.getElementById('samlingManagerOverlay');
+            samlingManagerListEl = document.getElementById('samlingManagerList');
+            newSamlingNameInputEl = document.getElementById('newSamlingName');
+            newSamlingColorBtnEl = document.getElementById('newSamlingColorBtn');
+            samlingColorPickerModalEl = document.getElementById('samlingColorPickerModal');
+            samlingColorGridEl = document.getElementById('samlingColorGrid');
+            
+            // Build color grid
+            if (samlingColorGridEl) {
+                buildSamlingColorGrid();
+            }
+            
+            // Load active comparison
+            const activeComparison = getActiveComparison();
+            if (activeComparison) {
+                loadComparisonFromCompareData(activeComparison);
+            } else {
+                // If no active comparison, ensure default participants (Venstre/Højre) are visible
+                const leftCircle = document.getElementById('leftCircle');
+                const rightCircle = document.getElementById('rightCircle');
+                const leftNameEl = document.getElementById('leftName');
+                const rightNameEl = document.getElementById('rightName');
+                
+                // Set default colors
+                if (!leftColor) leftColor = '#3b82f6';
+                if (!rightColor) rightColor = '#ef4444';
+                leftLightColor = lightenColor(leftColor, 0.6);
+                rightLightColor = lightenColor(rightColor, 0.6);
+                
+                // Ensure circles are visible with default names
+                if (leftCircle) {
+                    leftCircle.style.display = 'flex';
+                    const head = leftCircle.querySelector('.head');
+                    if (head) {
+                        head.style.background = `linear-gradient(135deg, ${leftColor}, ${leftColor})`;
+                    }
+                    updateBodyColors('left', leftColor);
+                }
+                if (rightCircle) {
+                    rightCircle.style.display = 'flex';
+                    const head = rightCircle.querySelector('.head');
+                    if (head) {
+                        head.style.background = `linear-gradient(135deg, ${rightColor}, ${rightColor})`;
+                    }
+                    updateBodyColors('right', rightColor);
+                }
+                
+                // Set default names
+                if (leftNameEl) leftNameEl.textContent = 'Venstre';
+                if (rightNameEl) rightNameEl.textContent = 'Højre';
+                
+                // Ensure we have active traits
+                ensureActiveTraits();
+                
+                updateSliderColors();
+                updateComparisonView();
+            }
+            
+            // Render history
+            renderHistory();
+            renderHistoryFilterOptions();
+            
+            // Setup event listeners
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (samlingManagerOverlayEl && samlingManagerOverlayEl.classList.contains('show')) {
+                        closeSamlingManager();
+                    }
+                    if (samlingColorPickerModalEl && samlingColorPickerModalEl.classList.contains('show')) {
+                        closeSamlingColorPicker();
+                    }
+                }
+            });
             
             updateButtonStates();
             
@@ -4208,6 +5590,37 @@ function adjustDistance(direction) {
             }
         }
     </script>
+    
+    <!-- Samling Manager Overlay -->
+    <div class="samling-manager-overlay" id="samlingManagerOverlay">
+        <div class="samling-manager-backdrop" onclick="closeSamlingManager()"></div>
+        <div class="samling-manager-panel">
+            <div class="samling-manager-header">
+                <h2>Samlinger</h2>
+                <button class="samling-manager-close" onclick="closeSamlingManager()" title="Luk">×</button>
+            </div>
+            <div class="samling-manager-list" id="samlingManagerList"></div>
+            <div class="samling-manager-divider"></div>
+            <div class="samling-manager-new" id="samlingManagerNewRow">
+                <input type="text" id="newSamlingName" placeholder="Ny samling-navn" autocomplete="off">
+                <div class="samling-manager-actions">
+                    <button class="samling-color-select" id="newSamlingColorBtn" onclick="openSamlingColorPicker({ type: 'new' })" title="Vælg farve">C</button>
+                    <button class="samling-create-btn" onclick="confirmCreateSamling()" title="Opret samling">✓</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Samling Color Picker Modal -->
+    <div class="samling-color-picker-modal" id="samlingColorPickerModal" onclick="backdropCloseSamlingHandler(event)">
+        <div class="samling-color-picker" onclick="event.stopPropagation()">
+            <div class="samling-color-picker-header">
+                <h3>Vælg farve</h3>
+            </div>
+            <div class="samling-color-grid" id="samlingColorGrid"></div>
+        </div>
+    </div>
+    
     <!-- Navigation overlay -->
     <div class="nav-overlay" id="navOverlay"></div>
 </body>
