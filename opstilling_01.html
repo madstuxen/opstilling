@@ -22,7 +22,7 @@
         }
         
         .container {
-            max-width: 1600px;
+            max-width: 1200px;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 0px;
@@ -380,9 +380,9 @@
         /* Create a fixed-size scrollable content area */
         .workspace-content {
             position: relative;
-            width: 1600px;
+            width: 1200px;
             height: 600px;
-            min-width: 1600px;
+            min-width: 1200px;
             min-height: 600px;
         }
         
@@ -413,7 +413,7 @@
         }
         
         .history-sidebar.collapsed {
-            transform: translateX(212px);
+            transform: translateX(220px);
         }
         
         .history-content {
@@ -1534,11 +1534,39 @@
         
         .picker {
             width: 224px;
-            background: #ffffff;
-            padding: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 0;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            border: 1px solid #e2e8f0;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            position: relative;
+        }
+        
+        .picker-drag-bar {
+            width: 100%;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px 12px 0 0;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+        }
+        
+        .picker-drag-bar::before {
+            content: '';
+            width: 40px;
+            height: 4px;
+            background: rgba(148, 163, 184, 0.5);
+            border-radius: 2px;
+        }
+        
+        .picker-content {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
         }
         
         .swatch {
@@ -1590,29 +1618,46 @@
 
 		.pose-picker {
 			width: 280px;
-			background: #ffffff;
+			background: transparent;
 			padding: 15px;
 			border-radius: 12px;
-			box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-			border: 1px solid #e2e8f0;
+			box-shadow: none;
+			border: none;
 		}
 
 		.pose-mirror-section {
 			text-align: center;
 			margin-bottom: 15px;
 			padding-bottom: 10px;
-			border-bottom: 1px solid #e2e8f0;
+			border-bottom: 1px solid rgba(226, 232, 240, 0.5);
 		}
 
 		.pose-mirror-label {
-			display: flex;
+			display: inline-flex;
 			align-items: center;
 			justify-content: center;
 			gap: 8px;
 			font-size: 14px;
 			font-weight: 500;
 			color: #374151;
+			cursor: move;
+			background: white;
+			padding: 8px 16px;
+			border-radius: 8px;
+			position: relative;
+			user-select: none;
+			-webkit-user-select: none;
+			pointer-events: auto;
+		}
+		
+		.pose-mirror-label input[type="checkbox"] {
 			cursor: pointer;
+			pointer-events: auto;
+		}
+		
+		.pose-mirror-label span {
+			cursor: move;
+			pointer-events: none;
 		}
 
 		.pose-mirror-label input[type="checkbox"] {
@@ -1629,9 +1674,9 @@
 
 		.pose-button {
 			padding: 8px 12px;
-			border: 2px solid #e2e8f0;
+			border: 2px solid rgba(226, 232, 240, 0.5);
 			border-radius: 8px;
-			background: white;
+			background: rgba(255, 255, 255, 0.6);
 			color: #374151;
 			font-size: 12px;
 			font-weight: 500;
@@ -1965,11 +2010,6 @@
 		.groups-section, .keywords-section, .notes-container {
 			flex: 0 0 auto; /* prevent shrinking so horizontal scroll works */
 		}
-		/* Scale pose picker on mobile to half size */
-		.pose-picker {
-			transform: scale(0.5);
-			transform-origin: top left;
-		}
     	}
     </style>
 </head>
@@ -2069,7 +2109,10 @@
     <!-- Color Picker Modal -->
     <div class="color-picker-modal" id="colorPickerModal">
         <div class="picker">
-            <div class="color-grid" id="colorGrid"></div>
+            <div class="picker-drag-bar"></div>
+            <div class="picker-content">
+                <div class="color-grid" id="colorGrid"></div>
+            </div>
         </div>
     </div>
 	
@@ -3617,49 +3660,92 @@ async function loadPoseLibrary() {
     const currentMirror = currentPosePart.getAttribute('data-mirror') === 'true';
     document.getElementById('posePickerMirror').checked = currentMirror;
     
-    // Show modal first so we can get accurate dimensions
+    // Remove any previous positioning
+    picker.style.position = '';
+    picker.style.left = '';
+    picker.style.top = '';
+    
+    // Initialize drag functionality for mirror label
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialX = 0;
+    let initialY = 0;
+    
+    // Remove previous listeners if any and set up drag
+    const newMirrorLabel = picker.querySelector('.pose-mirror-label');
+    if (newMirrorLabel) {
+        // Clone and replace to remove old listeners
+        const newLabel = newMirrorLabel.cloneNode(true);
+        newMirrorLabel.parentNode.replaceChild(newLabel, newMirrorLabel);
+        
+        // Update mirrorLabel reference to point to new element
+        const actualMirrorLabel = newLabel;
+        
+        // Update startDrag to move entire picker when dragging from label
+        function actualStartDrag(e) {
+            // Don't start drag if clicking on checkbox
+            if (e.target.type === 'checkbox') {
+                return;
+            }
+            
+            // Prevent label from toggling checkbox
+            e.preventDefault();
+            e.stopPropagation();
+            
+            isDragging = true;
+            const pickerRect = picker.getBoundingClientRect();
+            startX = e.clientX;
+            startY = e.clientY;
+            initialX = pickerRect.left;
+            initialY = pickerRect.top;
+            
+            picker.style.position = 'fixed';
+            picker.style.zIndex = '10000';
+            
+            document.addEventListener('mousemove', actualDrag);
+            document.addEventListener('mouseup', stopDrag);
+        }
+        
+        function actualDrag(e) {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            picker.style.left = (initialX + deltaX) + 'px';
+            picker.style.top = (initialY + deltaY) + 'px';
+        }
+        
+        function stopDrag() {
+            if (isDragging) {
+                isDragging = false;
+                document.removeEventListener('mousemove', actualDrag);
+                document.removeEventListener('mouseup', stopDrag);
+            }
+        }
+        
+        // Re-attach checkbox change handler
+        const checkbox = newLabel.querySelector('#posePickerMirror');
+        if (checkbox) {
+            checkbox.addEventListener('change', togglePosePickerMirror);
+            
+            // Prevent label from toggling checkbox when clicking on label (not checkbox)
+            newLabel.addEventListener('click', function(e) {
+                // Only prevent if clicking on label itself, not checkbox
+                if (e.target.type !== 'checkbox' && e.target !== checkbox && e.target.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, true); // Use capture phase to catch before default label behavior
+        }
+        
+        // Add drag listener
+        newLabel.addEventListener('mousedown', actualStartDrag);
+    }
+    
+    // Show modal - CSS flexbox will center it
     modal.classList.add('show');
-    
-    // Position picker
-    picker.style.position = 'absolute';
-    
-    // Get button dimensions
-    const btnRect = btn.getBoundingClientRect();
-    
-    // Use requestAnimationFrame to ensure element is rendered before getting dimensions
-    requestAnimationFrame(() => {
-        // Get picker dimensions (use offsetHeight/offsetWidth for accurate size)
-        const pickerHeight = picker.offsetHeight;
-        const pickerWidth = picker.offsetWidth;
-        
-        // Calculate button center
-        const btnCenterY = btnRect.top + btnRect.height / 2;
-        
-        // Position picker to the right of button, centered vertically
-        // Use larger offset (50px) so user can see the figure being posed
-        let pickerLeft = btnRect.right + 50;
-        let pickerTop = btnCenterY - pickerHeight / 2;
-        
-        // Adjust if goes off screen to the right
-        if (pickerLeft + pickerWidth > window.innerWidth) {
-            // If on left side, move further left (50px) so user can see the figure
-            pickerLeft = btnRect.left - pickerWidth - 50;
-        }
-        
-        // Adjust if goes off screen at top
-        if (pickerTop < 0) {
-            pickerTop = 10;
-        }
-        
-        // Adjust if goes off screen at bottom
-        if (pickerTop + pickerHeight > window.innerHeight) {
-            pickerTop = window.innerHeight - pickerHeight - 10;
-        }
-        
-        // Apply final position
-        picker.style.left = pickerLeft + 'px';
-        picker.style.top = pickerTop + 'px';
-    });
 }
 
 function populatePoseGrid() {
@@ -3843,50 +3929,67 @@ function closeKeywordsPopup() {
             
             const modal = document.getElementById('colorPickerModal');
             const picker = modal.querySelector('.picker');
+            const dragBar = picker.querySelector('.picker-drag-bar');
 
-            // Get button dimensions
-            const btnRect = btn.getBoundingClientRect();
+            // Remove any previous positioning
+            picker.style.position = '';
+            picker.style.left = '';
+            picker.style.top = '';
 
-            // Show modal first so we can get accurate dimensions
+            // Initialize drag functionality
+            let isDragging = false;
+            let startX = 0;
+            let startY = 0;
+            let initialX = 0;
+            let initialY = 0;
+
+            function startDrag(e) {
+                isDragging = true;
+                const pickerRect = picker.getBoundingClientRect();
+                startX = e.clientX;
+                startY = e.clientY;
+                initialX = pickerRect.left;
+                initialY = pickerRect.top;
+
+                picker.style.position = 'fixed';
+                picker.style.zIndex = '10000';
+
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', stopDrag);
+
+                e.preventDefault();
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+
+                picker.style.left = (initialX + deltaX) + 'px';
+                picker.style.top = (initialY + deltaY) + 'px';
+            }
+
+            function stopDrag() {
+                if (isDragging) {
+                    isDragging = false;
+                    document.removeEventListener('mousemove', drag);
+                    document.removeEventListener('mouseup', stopDrag);
+                }
+            }
+
+            // Remove previous listeners if any and add drag listener to drag bar
+            if (dragBar) {
+                // Clone and replace to remove old listeners
+                const newDragBar = dragBar.cloneNode(true);
+                dragBar.parentNode.replaceChild(newDragBar, dragBar);
+                
+                // Add drag listener to new drag bar
+                newDragBar.addEventListener('mousedown', startDrag);
+            }
+
+            // Show modal - CSS flexbox will center it
             modal.classList.add('show');
-
-            // Position picker
-            picker.style.position = 'absolute';
-
-            // Use requestAnimationFrame to ensure element is rendered before getting dimensions
-            requestAnimationFrame(() => {
-                // Get picker dimensions (use offsetHeight/offsetWidth for accurate size)
-                const pickerHeight = picker.offsetHeight;
-                const pickerWidth = picker.offsetWidth;
-
-                // Calculate button center
-                const btnCenterY = btnRect.top + btnRect.height / 2;
-
-                // Position picker to the right of button, centered vertically
-                // Use larger offset (50px) so user can see the figure being colored
-                let pickerLeft = btnRect.right + 50;
-                let pickerTop = btnCenterY - pickerHeight / 2;
-
-                // Adjust if goes off screen to the right
-                if (pickerLeft + pickerWidth > window.innerWidth) {
-                    // If on left side, move further left (50px) so user can see the figure
-                    pickerLeft = btnRect.left - pickerWidth - 50;
-                }
-
-                // Adjust if goes off screen at top
-                if (pickerTop < 0) {
-                    pickerTop = 10;
-                }
-
-                // Adjust if goes off screen at bottom
-                if (pickerTop + pickerHeight > window.innerHeight) {
-                    pickerTop = window.innerHeight - pickerHeight - 10;
-                }
-
-                // Apply final position
-                picker.style.left = pickerLeft + 'px';
-                picker.style.top = pickerTop + 'px';
-            });
         }
         
         function closeColorPicker() {
@@ -4155,8 +4258,42 @@ function closeKeywordsPopup() {
                 }
                 partCounter++;
                 
-                const posX = x !== null ? x : Math.random() * (workspaceContent.offsetWidth - 120);
-                const posY = y !== null ? y : Math.random() * (workspaceContent.offsetHeight - 120);
+                let posX, posY;
+                if (x !== null && y !== null) {
+                    // Use provided coordinates
+                    posX = x;
+                    posY = y;
+                } else {
+                    // Calculate position within visible viewport
+                    const visibleWidth = workspace.clientWidth;
+                    const visibleHeight = workspace.clientHeight;
+                    const scrollLeft = workspace.scrollLeft;
+                    const scrollTop = workspace.scrollTop;
+                    
+                    // Calculate visible area bounds in workspace-content coordinates
+                    const visibleStartX = scrollLeft;
+                    const visibleEndX = Math.min(scrollLeft + visibleWidth, workspaceContent.offsetWidth);
+                    const visibleStartY = scrollTop;
+                    const visibleEndY = Math.min(scrollTop + visibleHeight, workspaceContent.offsetHeight);
+                    
+                    // Add randomness within visible area, but keep part fully visible
+                    // Part size is approximately 120px, so leave margin
+                    const margin = 60; // Half of part size
+                    const minX = Math.max(visibleStartX + margin, 0);
+                    const maxX = Math.min(visibleEndX - margin - 120, workspaceContent.offsetWidth - 120);
+                    const minY = Math.max(visibleStartY + margin, 0);
+                    const maxY = Math.min(visibleEndY - margin - 120, workspaceContent.offsetHeight - 120);
+                    
+                    // Ensure valid range
+                    if (maxX > minX && maxY > minY) {
+                        posX = minX + Math.random() * (maxX - minX);
+                        posY = minY + Math.random() * (maxY - minY);
+                    } else {
+                        // Fallback to center of visible area if calculation fails
+                        posX = visibleStartX + (visibleWidth / 2) - 60;
+                        posY = visibleStartY + (visibleHeight / 2) - 60;
+                    }
+                }
                 
                 part.style.left = posX + 'px';
                 part.style.top = posY + 'px';

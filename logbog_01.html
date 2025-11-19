@@ -425,6 +425,116 @@
             opacity: 0.7;
         }
 
+        .log-history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .log-history-color-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: #e5e7eb;
+            color: #374151;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .log-history-item:hover .log-history-color-btn {
+            display: flex;
+        }
+
+        .log-history-color-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.2);
+        }
+
+        .log-history-color-picker-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.35);
+            z-index: 5001;
+        }
+
+        .log-history-color-picker-modal.show {
+            display: flex;
+        }
+
+        .log-history-color-picker {
+            width: calc(32px * 6 + 8px * 5 + 16px * 2);
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .log-history-color-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-history-color-picker-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .log-history-color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 32px);
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .log-history-color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .log-history-color-swatch:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+        }
+
+        .log-history-remove-color-btn {
+            padding: 8px 16px;
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .log-history-remove-color-btn:hover {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
         .activities-card {
             background: #f5f5f8;
             grid-column: 1 / -1;
@@ -1215,6 +1325,17 @@
     </div>
     <div class="nav-overlay" id="navOverlay"></div>
 
+    <!-- Log History Color Picker Modal -->
+    <div class="log-history-color-picker-modal" id="logHistoryColorPickerModal">
+        <div class="log-history-color-picker" onclick="event.stopPropagation()">
+            <div class="log-history-color-picker-header">
+                <h3>Vælg farve</h3>
+            </div>
+            <div class="log-history-color-grid" id="logHistoryColorGrid"></div>
+            <button class="log-history-remove-color-btn" id="logHistoryRemoveColorBtn">Fjern farve</button>
+        </div>
+    </div>
+
     <div class="checkin-modal" id="checkinModal">
         <div class="checkin-modal-content">
             <div class="checkin-modal-header">
@@ -1297,6 +1418,14 @@
         const DIALOG_STORAGE_KEY = 'dialogData';
         const OPSTILLING_STORAGE_KEY = 'opstillingData';
         const COMPARE_STORAGE_KEY = 'compareData';
+
+        // Color presets for log history items (same as dialog collections)
+        const LOG_HISTORY_COLOR_PRESETS = [
+            '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
+            '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
+        ];
+
+        let logHistoryColorPickerTarget = null;
 
         function getTodayDateKey() {
             return new Date().toISOString().split('T')[0];
@@ -1519,6 +1648,38 @@
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
+        }
+
+        function lightenHex(hex, amount = 0.5) {
+            if (!hex) return '#f2e7d2';
+            const normalized = hex.replace('#', '');
+            const expand = normalized.length === 3
+                ? normalized.split('').map(ch => ch + ch).join('')
+                : normalized.padEnd(6, '0');
+            const r = parseInt(expand.substring(0, 2), 16);
+            const g = parseInt(expand.substring(2, 4), 16);
+            const b = parseInt(expand.substring(4, 6), 16);
+            const clampAmount = Math.max(0, Math.min(1, amount));
+            const newR = Math.round(r + (255 - r) * clampAmount);
+            const newG = Math.round(g + (255 - g) * clampAmount);
+            const newB = Math.round(b + (255 - b) * clampAmount);
+            return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+        }
+
+        function darkenHex(hex, amount = 0.1) {
+            if (!hex) return '#d4c4a8';
+            const normalized = hex.replace('#', '');
+            const expand = normalized.length === 3
+                ? normalized.split('').map(ch => ch + ch).join('')
+                : normalized.padEnd(6, '0');
+            const r = parseInt(expand.substring(0, 2), 16);
+            const g = parseInt(expand.substring(2, 4), 16);
+            const b = parseInt(expand.substring(4, 6), 16);
+            const clampAmount = Math.max(0, Math.min(1, amount));
+            const newR = Math.round(r * (1 - clampAmount));
+            const newG = Math.round(g * (1 - clampAmount));
+            const newB = Math.round(b * (1 - clampAmount));
+            return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
         }
 
         function summarizeMapNames(mapNames, mapCount) {
@@ -1842,14 +2003,43 @@
             entries.forEach(entry => {
                 const item = document.createElement('div');
                 item.className = 'log-history-item';
-                if (entry.date === activeLogDate) {
+                const isActive = entry.date === activeLogDate;
+                if (isActive) {
                     item.classList.add('active');
                     activeItemEl = item;
                 }
 
+                // Apply color if exists
+                if (entry.color) {
+                    if (isActive) {
+                        item.style.background = `linear-gradient(135deg, ${entry.color} 0%, ${darkenHex(entry.color, 0.1)} 100%)`;
+                    } else {
+                        item.style.background = lightenHex(entry.color, 0.7);
+                    }
+                    item.style.borderColor = entry.color;
+                }
+
+                const headerEl = document.createElement('div');
+                headerEl.className = 'log-history-item-header';
+
                 const dateLabelEl = document.createElement('div');
                 dateLabelEl.className = 'log-history-item-date';
                 dateLabelEl.textContent = formatLogHistoryDate(entry.date, { day: '2-digit', month: 'long', year: 'numeric' });
+                headerEl.appendChild(dateLabelEl);
+
+                const colorBtn = document.createElement('button');
+                colorBtn.className = 'log-history-color-btn';
+                colorBtn.textContent = 'C';
+                colorBtn.title = 'Vælg farve';
+                if (entry.color) {
+                    colorBtn.style.background = entry.color;
+                    colorBtn.style.color = '#ffffff';
+                }
+                colorBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openLogHistoryColorPicker(entry.date);
+                });
+                headerEl.appendChild(colorBtn);
 
                 const weekDayEl = document.createElement('div');
                 weekDayEl.className = 'log-history-item-weekday';
@@ -1888,7 +2078,7 @@
                 charCount.textContent = `${totalChars} tegn`;
                 metaEl.append(dateMeta, charCount);
 
-                item.append(dateLabelEl, weekDayEl, snippetEl, metaEl);
+                item.append(headerEl, weekDayEl, snippetEl, metaEl);
 
                 item.addEventListener('click', () => {
                     setActiveLogDate(entry.date);
@@ -2125,6 +2315,59 @@
             } catch (error) {
                 console.warn('Kunne ikke gemme historiktilstand:', error);
             }
+        }
+
+        function buildLogHistoryColorGrid() {
+            const gridEl = document.getElementById('logHistoryColorGrid');
+            if (!gridEl) return;
+            gridEl.innerHTML = '';
+            LOG_HISTORY_COLOR_PRESETS.forEach(color => {
+                const swatch = document.createElement('button');
+                swatch.className = 'log-history-color-swatch';
+                swatch.style.background = color;
+                swatch.onclick = () => handleLogHistoryColorSelected(color);
+                gridEl.appendChild(swatch);
+            });
+        }
+
+        function openLogHistoryColorPicker(dateKey) {
+            const modal = document.getElementById('logHistoryColorPickerModal');
+            if (!modal) return;
+            logHistoryColorPickerTarget = dateKey;
+            buildLogHistoryColorGrid();
+            modal.classList.add('show');
+        }
+
+        function closeLogHistoryColorPicker() {
+            logHistoryColorPickerTarget = null;
+            const modal = document.getElementById('logHistoryColorPickerModal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        }
+
+        function handleLogHistoryColorSelected(color) {
+            if (!logHistoryColorPickerTarget) return;
+            const entries = getLogbookData();
+            const entry = entries.find(e => e.date === logHistoryColorPickerTarget);
+            if (entry) {
+                entry.color = color;
+                saveLogbookData(entries);
+                renderLogHistory();
+            }
+            closeLogHistoryColorPicker();
+        }
+
+        function removeLogHistoryColor() {
+            if (!logHistoryColorPickerTarget) return;
+            const entries = getLogbookData();
+            const entry = entries.find(e => e.date === logHistoryColorPickerTarget);
+            if (entry) {
+                delete entry.color;
+                saveLogbookData(entries);
+                renderLogHistory();
+            }
+            closeLogHistoryColorPicker();
         }
 
         // Store handlers to prevent listener accumulation
@@ -3383,6 +3626,33 @@
 
             window.addEventListener('resize', () => {
                 renderCheckinChart();
+            });
+
+            // Initialize log history color picker
+            buildLogHistoryColorGrid();
+            const logHistoryColorPickerModal = document.getElementById('logHistoryColorPickerModal');
+            const logHistoryRemoveColorBtn = document.getElementById('logHistoryRemoveColorBtn');
+            
+            if (logHistoryColorPickerModal) {
+                logHistoryColorPickerModal.addEventListener('click', (e) => {
+                    if (e.target === logHistoryColorPickerModal) {
+                        closeLogHistoryColorPicker();
+                    }
+                });
+            }
+
+            if (logHistoryRemoveColorBtn) {
+                logHistoryRemoveColorBtn.addEventListener('click', removeLogHistoryColor);
+            }
+
+            // Close color picker on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const modal = document.getElementById('logHistoryColorPickerModal');
+                    if (modal && modal.classList.contains('show')) {
+                        closeLogHistoryColorPicker();
+                    }
+                }
             });
         });
 
