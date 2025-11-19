@@ -1111,15 +1111,14 @@
 
 		.part-name {
 			pointer-events: auto;
-			cursor: text;
 			font-size: 12px;
 			display: inline-block;
 			min-width: 20px;
 			min-height: 16px;
 			padding: 2px 4px;
-		}
-		.part-name:hover {
-			text-decoration: underline;
+			word-break: break-word;
+			overflow-wrap: break-word;
+			hyphens: auto;
 		}
 				
         /* Krop (underkomponent af part) */
@@ -1471,6 +1470,12 @@
 			background: #06b6d4;
 			box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
 		}
+		
+		.note-btn {
+			transform: translate(-52px, -17px);
+			background: #f97316;
+			box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+		}
 
 
         
@@ -1513,6 +1518,55 @@
 			transform: translate(18px, -17px) scale(1.1);
 			background: #0891b2;
 		}
+		
+		.note-btn:hover {
+			transform: translate(-52px, -17px) scale(1.1);
+			background: #ea580c;
+		}
+		
+		/* Name Editor Overlay Styles */
+		.note-overlay {
+			position: fixed;
+			background: rgba(255, 255, 255, 0.95);
+			border-radius: 8px;
+			padding: 8px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+			border: 3px solid rgba(226, 232, 240, 0.5);
+			z-index: 10000;
+			width: 105px;
+			display: none;
+		}
+		
+		.note-overlay.show {
+			display: block;
+		}
+		
+		.note-overlay textarea {
+			width: 100%;
+			height: auto;
+			min-height: auto;
+			max-height: 110px;
+			padding: 6px 10px;
+			border: 3px solid rgba(226, 232, 240, 0.8);
+			border-radius: 6px;
+			font-size: 16px;
+			font-family: 'Arial', sans-serif;
+			resize: none;
+			box-sizing: border-box;
+			background: rgba(255, 255, 255, 0.9);
+			color: #374151;
+			line-height: 1.4;
+			overflow-y: auto;
+			word-break: break-word;
+			overflow-wrap: break-word;
+			hyphens: auto;
+		}
+		
+		.note-overlay textarea:focus {
+			outline: none;
+			border-color: #f97316;
+			box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+		}
 				
         /* Color Picker Styles */
         .color-picker-modal {
@@ -1553,6 +1607,7 @@
             justify-content: center;
             user-select: none;
             -webkit-user-select: none;
+            touch-action: none;
             border-bottom: 1px solid rgba(226, 232, 240, 0.5);
         }
         
@@ -1647,6 +1702,7 @@
 			position: relative;
 			user-select: none;
 			-webkit-user-select: none;
+			touch-action: none;
 			pointer-events: auto;
 		}
 		
@@ -2128,6 +2184,12 @@
 			<div class="pose-grid" id="poseGrid"></div>
 		</div>
 	</div>
+	
+	<!-- Note Overlay -->
+	<div class="note-overlay" id="noteOverlay">
+		<textarea id="noteTextarea" placeholder="Navn..." maxlength="24"></textarea>
+	</div>
+	
 	<!-- Keywords Popup Modal -->
 	<div class="keywords-popup-modal" id="keywordsPopupModal">
 		<div class="keywords-popup">
@@ -3703,12 +3765,13 @@ async function loadPoseLibrary() {
             picker.style.position = 'fixed';
             picker.style.zIndex = '10000';
             
-            document.addEventListener('mousemove', actualDrag);
-            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('pointermove', actualDrag, { passive: false });
+            document.addEventListener('pointerup', stopDrag, { passive: false });
         }
         
         function actualDrag(e) {
             if (!isDragging) return;
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
             
             const deltaX = e.clientX - startX;
             const deltaY = e.clientY - startY;
@@ -3720,8 +3783,8 @@ async function loadPoseLibrary() {
         function stopDrag() {
             if (isDragging) {
                 isDragging = false;
-                document.removeEventListener('mousemove', actualDrag);
-                document.removeEventListener('mouseup', stopDrag);
+                document.removeEventListener('pointermove', actualDrag);
+                document.removeEventListener('pointerup', stopDrag);
             }
         }
         
@@ -3741,7 +3804,7 @@ async function loadPoseLibrary() {
         }
         
         // Add drag listener
-        newLabel.addEventListener('mousedown', actualStartDrag);
+        newLabel.addEventListener('pointerdown', actualStartDrag, { passive: false });
     }
     
     // Show modal - CSS flexbox will center it
@@ -3954,14 +4017,15 @@ function closeKeywordsPopup() {
                 picker.style.position = 'fixed';
                 picker.style.zIndex = '10000';
 
-                document.addEventListener('mousemove', drag);
-                document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('pointermove', drag, { passive: false });
+                document.addEventListener('pointerup', stopDrag, { passive: false });
 
                 e.preventDefault();
             }
 
             function drag(e) {
                 if (!isDragging) return;
+                if (e && typeof e.preventDefault === 'function') e.preventDefault();
 
                 const deltaX = e.clientX - startX;
                 const deltaY = e.clientY - startY;
@@ -3973,8 +4037,8 @@ function closeKeywordsPopup() {
             function stopDrag() {
                 if (isDragging) {
                     isDragging = false;
-                    document.removeEventListener('mousemove', drag);
-                    document.removeEventListener('mouseup', stopDrag);
+                    document.removeEventListener('pointermove', drag);
+                    document.removeEventListener('pointerup', stopDrag);
                 }
             }
 
@@ -3985,8 +4049,13 @@ function closeKeywordsPopup() {
                 dragBar.parentNode.replaceChild(newDragBar, dragBar);
                 
                 // Add drag listener to new drag bar
-                newDragBar.addEventListener('mousedown', startDrag);
+                newDragBar.addEventListener('pointerdown', startDrag, { passive: false });
             }
+
+            // Prevent clicks inside picker from closing modal
+            picker.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
 
             // Show modal - CSS flexbox will center it
             modal.classList.add('show');
@@ -3995,6 +4064,104 @@ function closeKeywordsPopup() {
         function closeColorPicker() {
             document.getElementById('colorPickerModal').classList.remove('show');
             currentPart = null;
+        }
+        
+        let currentNotePart = null;
+        
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            // Calculate height based on content, but ensure minimum size for one line
+            const scrollHeight = textarea.scrollHeight;
+            const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 22.4;
+            const minHeight = lineHeight + 12; // padding
+            textarea.style.height = Math.max(scrollHeight, minHeight) + 'px';
+        }
+        
+        function openNoteOverlay(btn) {
+            currentNotePart = btn.closest('.part');
+            const overlay = document.getElementById('noteOverlay');
+            const textarea = document.getElementById('noteTextarea');
+            
+            // Load existing name from part
+            const nameElement = currentNotePart.querySelector('.part-name');
+            const existingName = nameElement ? nameElement.textContent.trim() : '';
+            textarea.value = existingName;
+            
+            // Auto-resize textarea to fit content
+            autoResizeTextarea(textarea);
+            
+            // Position overlay near the button or over the part
+            const btnRect = btn.getBoundingClientRect();
+            const partRect = currentNotePart.getBoundingClientRect();
+            
+            // Position overlay to the right of button, or over part if button is on left
+            let overlayLeft = btnRect.right + 10;
+            let overlayTop = btnRect.top;
+            
+            // Get actual overlay dimensions
+            overlay.classList.add('show');
+            const overlayRect = overlay.getBoundingClientRect();
+            
+            // If overlay would go off screen, position it over the part
+            if (overlayLeft + overlayRect.width > window.innerWidth) {
+                overlayLeft = partRect.left + (partRect.width / 2) - (overlayRect.width / 2);
+                overlayTop = partRect.top + (partRect.height / 2) - (overlayRect.height / 2);
+            }
+            
+            // Adjust if goes off screen
+            if (overlayLeft < 10) overlayLeft = 10;
+            if (overlayLeft + overlayRect.width > window.innerWidth) overlayLeft = window.innerWidth - overlayRect.width - 10;
+            if (overlayTop < 10) overlayTop = 10;
+            if (overlayTop + overlayRect.height > window.innerHeight) overlayTop = window.innerHeight - overlayRect.height - 10;
+            
+            overlay.style.left = overlayLeft + 'px';
+            overlay.style.top = overlayTop + 'px';
+            
+            // Remove previous input listener and add new one
+            const newTextarea = textarea.cloneNode(true);
+            newTextarea.value = textarea.value;
+            textarea.parentNode.replaceChild(newTextarea, textarea);
+            newTextarea.addEventListener('input', function() {
+                autoResizeTextarea(newTextarea);
+            });
+            
+            // Close overlay on Enter key
+            newTextarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    closeNoteOverlay();
+                }
+            });
+            
+            // Focus textarea and select all text
+            setTimeout(() => {
+                newTextarea.focus();
+                newTextarea.select();
+            }, 50);
+        }
+        
+        function closeNoteOverlay() {
+            const overlay = document.getElementById('noteOverlay');
+            const textarea = document.getElementById('noteTextarea');
+            
+            if (currentNotePart) {
+                // Save name to part
+                const nameText = textarea.value.trim();
+                const nameElement = currentNotePart.querySelector('.part-name');
+                if (nameElement) {
+                    nameElement.textContent = nameText;
+                }
+                
+                // Save to shared storage
+                try {
+                    saveCharactersToShared();
+                } catch (e) {
+                    console.warn('Kunne ikke gemme navn:', e);
+                }
+            }
+            
+            overlay.classList.remove('show');
+            currentNotePart = null;
         }
         
         function selectColor(hex) {
@@ -4054,11 +4221,6 @@ function closeKeywordsPopup() {
 				saveCharactersToShared();
 			}
 		}
-		
-		
-		setTimeout(() => {
-			closeColorPicker();
-		}, 100);
 	}
 
         function changeColor(btn) {
@@ -4393,15 +4555,10 @@ function closeKeywordsPopup() {
                     <button class="control-btn size-minus" title="Gør mindre">−</button>
                     <button class="control-btn color-btn" title="Skift farve">C</button>
 					<button class="control-btn pose-btn" title="Skift pose">P</button>
+					<button class="control-btn note-btn" title="Rediger navn">N</button>
                 `;
 				
-				// Gør navn direkte redigerbart
-				const nameSpan = part.querySelector('.part-name');
-				nameSpan.style.cursor = 'pointer';
-				nameSpan.addEventListener('click', function(e) {
-					e.stopPropagation();
-					editName(this);
-				});
+				// Name is only editable via the "N" button
 				
 				// Set colors on body parts
 				const head = part.querySelector('.head');
@@ -4444,6 +4601,7 @@ function closeKeywordsPopup() {
                 const sizeMinusBtn = part.querySelector('.size-minus');
                 const colorBtn = part.querySelector('.color-btn');
 				const poseBtn = part.querySelector('.pose-btn');
+				const noteBtn = part.querySelector('.note-btn');
                 
                 deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); deletePart(deleteBtn); });
                 
@@ -4453,19 +4611,12 @@ function closeKeywordsPopup() {
                 sizeMinusBtn.addEventListener('click', (e) => { e.stopPropagation(); decreaseSize(sizeMinusBtn); });
                 colorBtn.addEventListener('click', (e) => { e.stopPropagation(); changeColor(colorBtn); });
                 poseBtn.addEventListener('click', (e) => { e.stopPropagation(); openPosePicker(poseBtn); });
+				noteBtn.addEventListener('click', (e) => { e.stopPropagation(); openNoteOverlay(noteBtn); });
 				
                 workspaceContent.appendChild(part);
 				resetPose(part);
 				
-				// Automatically make name editable for new parts
-				if (!skipPopup) {
-					setTimeout(() => {
-						const nameSpan = part.querySelector('.part-name');
-						if (nameSpan) {
-							editName(nameSpan);
-						}
-					}, 100);
-				}
+				// Name editing is only available via the "N" button
 				
 				// Update shared data
 				saveCharactersToShared();
@@ -5373,12 +5524,16 @@ function closeKeywordsPopup() {
                     }
                 }
                 
-                // Color picker modal event listener
-                document.getElementById('colorPickerModal').addEventListener('click', function(e) {
-                    if (e.target === this) {
-                        closeColorPicker();
-                    }
-                });
+                // Color picker modal event listener - close when clicking on backdrop
+                const colorPickerModal = document.getElementById('colorPickerModal');
+                if (colorPickerModal) {
+                    colorPickerModal.addEventListener('click', function(e) {
+                        // Only close if clicking directly on the modal (backdrop), not on picker
+                        if (e.target === this) {
+                            closeColorPicker();
+                        }
+                    });
+                }
                 
                 // Initialize group colors (only if not already set)
                 for (let i = 1; i <= 6; i++) {
@@ -5396,6 +5551,25 @@ function closeKeywordsPopup() {
 						closePosePicker();
 					}
 				});
+				
+				// Note overlay - close when clicking outside
+				document.addEventListener('click', function(e) {
+					const noteOverlay = document.getElementById('noteOverlay');
+					if (noteOverlay && noteOverlay.classList.contains('show')) {
+						// Close if clicking outside the overlay
+						if (!noteOverlay.contains(e.target)) {
+							closeNoteOverlay();
+						}
+					}
+				});
+				
+				// Prevent clicks inside note overlay from closing it
+				const noteOverlay = document.getElementById('noteOverlay');
+				if (noteOverlay) {
+					noteOverlay.addEventListener('click', function(e) {
+						e.stopPropagation();
+					});
+				}
 				
 				// Keywords popup modal event listener
 				document.getElementById('keywordsPopupModal').addEventListener('click', function(e) {

@@ -385,8 +385,7 @@
 }
 
 .head span {
-    cursor: text;
-    font-size: 10px;
+    font-size: 12px;
 }
 
 /* Torso */
@@ -623,13 +622,24 @@
             border-radius: 4px;
             padding: 2px;
             transition: all 0.2s ease;
-            cursor: text;
+            cursor: default;
 			display: inline-block;  
-			max-width: 100%;  
+			max-width: 100%;
+			word-break: break-word;
+			overflow-wrap: break-word;
+			hyphens: auto;
         }
         
-        .participant-circle span[contenteditable]:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+        #leftName, #rightName {
+            pointer-events: auto;
+            font-size: 12px;
+            display: inline-block;
+            min-width: 20px;
+            min-height: 16px;
+            padding: 2px 4px;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
         }
         
         .participant-circle span[contenteditable]:focus {
@@ -667,6 +677,81 @@
         .participant-circle:hover .color-circle-btn {
             display: flex;
             opacity: 1;
+        }
+        
+        .note-circle-btn {
+            position: absolute;
+            bottom: 0px;
+            left: 0px;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: #f97316;
+            border: 2px solid white;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 150;
+            opacity: 0;
+        }
+        
+        .note-circle-btn:hover {
+            transform: scale(1.1);
+            background: #ea580c;
+        }
+        
+        .participant-circle:hover .note-circle-btn {
+            display: flex;
+            opacity: 1;
+        }
+        
+        /* Name Editor Overlay Styles */
+        .note-overlay {
+            position: fixed;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid rgba(226, 232, 240, 0.5);
+            z-index: 10000;
+            width: 105px;
+            display: none;
+        }
+        
+        .note-overlay.show {
+            display: block;
+        }
+        
+        .note-overlay textarea {
+            width: 100%;
+            height: auto;
+            min-height: auto;
+            max-height: 110px;
+            padding: 6px 10px;
+            border: 3px solid rgba(226, 232, 240, 0.8);
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: 'Arial', sans-serif;
+            resize: none;
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.9);
+            color: #374151;
+            line-height: 1.4;
+            overflow-y: auto;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+        
+        .note-overlay textarea:focus {
+            outline: none;
+            border-color: #f97316;
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
         }
         
 .speech-bubble {
@@ -1797,6 +1882,7 @@
                     <div class="participant-circle" id="leftCircle" style="display: none;">
 					<button class="color-circle-btn" id="leftPoseBtn" title="Skift pose">P</button>
 					<button class="color-circle-btn" id="leftColorBtn" title="Skift farve">C</button>
+					<button class="note-circle-btn" id="leftNoteBtn" title="Rediger navn">N</button>
 					
 					<div class="participant-body">
 						<div class="head">
@@ -1862,6 +1948,7 @@
                     <div class="participant-circle" id="rightCircle" style="display: none;">
 						<button class="color-circle-btn" id="rightPoseBtn" title="Skift pose">P</button>
 						<button class="color-circle-btn" id="rightColorBtn" title="Skift farve">C</button>
+						<button class="note-circle-btn" id="rightNoteBtn" title="Rediger navn">N</button>
 						
 						<div class="participant-body">
 							<div class="head">
@@ -1988,6 +2075,11 @@
 			</div>
 			<div class="pose-grid" id="poseGrid"></div>
 		</div>
+	</div>
+	
+	<!-- Note Overlay -->
+	<div class="note-overlay" id="noteOverlay">
+		<textarea id="noteTextarea" placeholder="Navn..." maxlength="24"></textarea>
 	</div>
 	
 	<!-- Dialog Samling Manager Overlay -->
@@ -3219,28 +3311,9 @@ let dialogHistoryCollapsed = false;
         function enableParticipantNameEditing(side) {
             const nameEl = document.getElementById(side + 'Name');
             if (!nameEl) return;
-            nameEl.contentEditable = 'true';
-            nameEl.style.cursor = 'text';
-            nameEl.onclick = function () {
-                nameEl.focus();
-            };
-            nameEl.onkeydown = function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    nameEl.blur();
-                    nameEl.setAttribute('data-edited', 'true');
-                    persistActiveDialog(false);
-                }
-            };
-            nameEl.onblur = function () {
-                const trimmed = nameEl.textContent.trim();
-                const key = side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
-                if (partsData[key]) {
-                    partsData[key].name = trimmed || (side === 'left' ? 'Venstre del' : 'Højre del');
-                }
-                nameEl.setAttribute('data-edited', 'true');
-                persistActiveDialog(false);
-            };
+            // Name is only editable via the "N" button
+            nameEl.contentEditable = 'false';
+            nameEl.style.cursor = 'default';
         }
         
         function createNewDialogEntry() {
@@ -4307,6 +4380,102 @@ function resetPose(side) {
 			setTimeout(() => closeColorPicker(), 100);
             persistActiveDialog(false);
 		}
+
+        let currentNotePart = null;
+        
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            const scrollHeight = textarea.scrollHeight;
+            const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 22.4;
+            const minHeight = lineHeight + 12;
+            textarea.style.height = Math.max(scrollHeight, minHeight) + 'px';
+        }
+        
+        function openNoteOverlay(btn) {
+            const participantCircle = btn.closest('.participant-circle');
+            const side = participantCircle.id === 'leftCircle' ? 'left' : 'right';
+            currentNotePart = { side, circle: participantCircle };
+            
+            const overlay = document.getElementById('noteOverlay');
+            const textarea = document.getElementById('noteTextarea');
+            const nameElement = document.getElementById(side + 'Name');
+            
+            // Load existing name
+            const existingName = nameElement ? nameElement.textContent.trim() : '';
+            textarea.value = existingName;
+            
+            // Auto-resize textarea to fit content
+            autoResizeTextarea(textarea);
+            
+            // Position overlay near the button or over the participant circle
+            const btnRect = btn.getBoundingClientRect();
+            const circleRect = participantCircle.getBoundingClientRect();
+            
+            let overlayLeft = btnRect.right + 10;
+            let overlayTop = btnRect.top;
+            
+            overlay.classList.add('show');
+            const overlayRect = overlay.getBoundingClientRect();
+            
+            if (overlayLeft + overlayRect.width > window.innerWidth) {
+                overlayLeft = circleRect.left + (circleRect.width / 2) - (overlayRect.width / 2);
+                overlayTop = circleRect.top + (circleRect.height / 2) - (overlayRect.height / 2);
+            }
+            
+            if (overlayLeft < 10) overlayLeft = 10;
+            if (overlayLeft + overlayRect.width > window.innerWidth) overlayLeft = window.innerWidth - overlayRect.width - 10;
+            if (overlayTop < 10) overlayTop = 10;
+            if (overlayTop + overlayRect.height > window.innerHeight) overlayTop = window.innerHeight - overlayRect.height - 10;
+            
+            overlay.style.left = overlayLeft + 'px';
+            overlay.style.top = overlayTop + 'px';
+            
+            // Remove previous input listener and add new one
+            const newTextarea = textarea.cloneNode(true);
+            newTextarea.value = textarea.value;
+            textarea.parentNode.replaceChild(newTextarea, textarea);
+            newTextarea.addEventListener('input', function() {
+                autoResizeTextarea(newTextarea);
+            });
+            
+            // Close overlay on Enter key
+            newTextarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    closeNoteOverlay();
+                }
+            });
+            
+            setTimeout(() => {
+                newTextarea.focus();
+                newTextarea.select();
+            }, 50);
+        }
+        
+        function closeNoteOverlay() {
+            const overlay = document.getElementById('noteOverlay');
+            const textarea = document.getElementById('noteTextarea');
+            
+            if (currentNotePart && currentNotePart.side) {
+                const nameText = textarea.value.trim();
+                const nameElement = document.getElementById(currentNotePart.side + 'Name');
+                if (nameElement) {
+                    nameElement.textContent = nameText;
+                    
+                    // Update partsData
+                    const key = currentNotePart.side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
+                    if (partsData[key]) {
+                        partsData[key].name = nameText;
+                    }
+                    
+                    // Save
+                    persistActiveDialog(false);
+                }
+            }
+            
+            overlay.classList.remove('show');
+            currentNotePart = null;
+        }
 
         function initializeDropdowns() {
             // If shared characters exist, map them into partsData first
@@ -5792,6 +5961,33 @@ if (rightPart.pose) {
 				e.stopPropagation();
 				openPosePicker(this);
 			});
+			
+			document.getElementById('leftNoteBtn').addEventListener('click', function(e) {
+				e.stopPropagation();
+				openNoteOverlay(this);
+			});
+			document.getElementById('rightNoteBtn').addEventListener('click', function(e) {
+				e.stopPropagation();
+				openNoteOverlay(this);
+			});
+			
+			// Note overlay - close when clicking outside
+			document.addEventListener('click', function(e) {
+				const noteOverlay = document.getElementById('noteOverlay');
+				if (noteOverlay && noteOverlay.classList.contains('show')) {
+					if (!noteOverlay.contains(e.target)) {
+						closeNoteOverlay();
+					}
+				}
+			});
+			
+			// Prevent clicks inside note overlay from closing it
+			const noteOverlay = document.getElementById('noteOverlay');
+			if (noteOverlay) {
+				noteOverlay.addEventListener('click', function(e) {
+					e.stopPropagation();
+				});
+			}
 
 			// Save when mirror changes
 			const leftMirror = document.getElementById('leftMirror');

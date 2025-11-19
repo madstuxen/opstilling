@@ -852,6 +852,53 @@
             min-height: 200px;
         }
 
+        .tanker-card {
+            background: #f5f5f8;
+            grid-column: 1 / -1;
+        }
+
+        .tanker-entry {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 0;
+            background: #f5f5f8;
+        }
+
+        .tanker-entry label {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .tanker-entry textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: vertical;
+            background: #d1fae5;
+            color: #1f2937;
+        }
+
+        .tanker-entry textarea:focus {
+            outline: none;
+            box-shadow: none;
+            background: #d1fae5;
+        }
+
+        .tanker-entry textarea::placeholder {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
         .dreams-entry textarea {
             min-height: 160px;
             padding: 18px;
@@ -1254,6 +1301,15 @@
                         <div class="activities-grid" id="activitiesGrid"></div>
                     </section>
 
+                    <section class="card tanker-card">
+                        <div class="card-title">
+                            <strong>TANKER</strong>
+                        </div>
+                        <div class="tanker-entry">
+                            <textarea id="tankerEntry" readonly placeholder="Ingen tanker for denne dag"></textarea>
+                        </div>
+                    </section>
+
                     <section class="card journal-card">
                         <div class="journal-grid">
                             <div class="journal-entry">
@@ -1384,10 +1440,10 @@
         const mockActivities = [
             {
                 id: 1,
-                type: 'bodymap',
-                label: 'BodyMap',
-                text: 'Min krop',
-                time: '09:30',
+                type: 'opstilling',
+                label: 'Opstilling',
+                text: 'Familie',
+                time: '14:15',
             },
             {
                 id: 2,
@@ -1398,17 +1454,17 @@
             },
             {
                 id: 3,
-                type: 'opstilling',
-                label: 'Opstilling',
-                text: 'Familie',
-                time: '14:15',
-            },
-            {
-                id: 4,
                 type: 'relationer',
                 label: 'Ligheder',
                 text: 'Forskel far',
                 time: '18:45',
+            },
+            {
+                id: 4,
+                type: 'bodymap',
+                label: 'BodyMap',
+                text: 'Min krop',
+                time: '09:30',
             }
         ];
 
@@ -1426,6 +1482,55 @@
         ];
 
         let logHistoryColorPickerTarget = null;
+
+        // Affirmations
+        let affirmations = [];
+        
+        async function loadAffirmations() {
+            try {
+                const response = await fetch('affirmations.json');
+                if (response.ok) {
+                    affirmations = await response.json();
+                    return affirmations;
+                } else {
+                    console.error('Kunne ikke indlæse affirmations.json');
+                    return [];
+                }
+            } catch (error) {
+                console.error('Fejl ved indlæsning af affirmations:', error);
+                return [];
+            }
+        }
+        
+        function getAffirmationTextForDate(dateKey) {
+            if (affirmations.length === 0) {
+                return null;
+            }
+            
+            // Parse the dateKey (YYYY-MM-DD) to a Date object
+            const targetDate = new Date(dateKey);
+            if (Number.isNaN(targetDate.getTime())) {
+                return null;
+            }
+            
+            // Reference date (1. januar 2024) - same as index.html
+            const referenceDate = new Date('2024-01-01');
+            
+            // Set both dates to midnight for accurate day calculation
+            referenceDate.setHours(0, 0, 0, 0);
+            targetDate.setHours(0, 0, 0, 0);
+            
+            // Calculate days difference
+            const daysDiff = Math.floor((targetDate - referenceDate) / (1000 * 60 * 60 * 24));
+            
+            // Modulo based on number of affirmations and add 1 to get 1-based index
+            const dayNumber = (daysDiff % affirmations.length) + 1;
+            
+            // Get the affirmation text (convert to 0-based index)
+            const affirmationText = affirmations[dayNumber - 1];
+            
+            return affirmationText;
+        }
 
         function getTodayDateKey() {
             return new Date().toISOString().split('T')[0];
@@ -2100,6 +2205,51 @@
             }
         }
 
+        function getTaknemForDate(dateKey) {
+            try {
+                const raw = localStorage.getItem('forside_checkin_data');
+                if (!raw) return '';
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return '';
+                
+                // Calculate date in same format as index.html - convert dateKey to YYYY-MM-DD
+                // dateKey should already be in YYYY-MM-DD format, but ensure it is
+                const dateStr = dateKey || getTodayDateKey();
+                
+                // Find all entries for this date and filter for non-empty taknem
+                const entriesForDate = parsed.filter(item => {
+                    if (!item.date) return false;
+                    
+                    // Extract date part from ISO string (same way as index.html)
+                    let itemDateStr = '';
+                    if (item.date instanceof Date) {
+                        itemDateStr = item.date.toISOString().split('T')[0];
+                    } else if (typeof item.date === 'string') {
+                        // Handle ISO date strings like "2025-11-19T08:30:00.000Z"
+                        // Extract just the date part (YYYY-MM-DD)
+                        if (item.date.includes('T')) {
+                            itemDateStr = item.date.split('T')[0];
+                        } else {
+                            // Already in YYYY-MM-DD format
+                            itemDateStr = item.date;
+                        }
+                    }
+                    
+                    return itemDateStr === dateStr;
+                });
+                
+                // Find first entry with non-empty taknem
+                const entryWithTaknem = entriesForDate.find(item => {
+                    return item.taknem && item.taknem !== '' && item.taknem !== null && item.taknem !== undefined;
+                });
+                
+                return entryWithTaknem && entryWithTaknem.taknem ? entryWithTaknem.taknem : '';
+            } catch (error) {
+                console.warn('Kunne ikke læse taknem-værdi:', error);
+                return '';
+            }
+        }
+
         function setActiveLogDate(dateKey) {
             const normalizedKey = normalizeDateKey(dateKey) || getTodayDateKey();
             activeLogDate = normalizedKey;
@@ -2113,6 +2263,8 @@
 
             const logbookEntryEl = document.getElementById('logbookEntry');
             const dreamEntryEl = document.getElementById('dreamEntry');
+            const tankerEntryEl = document.getElementById('tankerEntry');
+            
             if (logbookEntryEl) {
                 logbookEntryEl.value = entry.dagbog || '';
                 autoResizeTextarea(logbookEntryEl);
@@ -2120,6 +2272,27 @@
             if (dreamEntryEl) {
                 dreamEntryEl.value = entry.dreams || '';
                 autoResizeTextarea(dreamEntryEl);
+            }
+            if (tankerEntryEl) {
+                // Get affirmation text for the selected date
+                const affirmationText = getAffirmationTextForDate(activeLogDate);
+                // Get taknem value for the selected date
+                const taknem = getTaknemForDate(activeLogDate);
+                
+                // Combine affirmation text and taknem value
+                let combinedText = '';
+                if (affirmationText) {
+                    combinedText = `Bekræftelse: "${affirmationText}"`;
+                }
+                if (taknem && taknem.trim()) {
+                    if (combinedText) {
+                        combinedText += '\n';
+                    }
+                    combinedText += `Taknemmelighed : "${taknem.trim()}"`;
+                }
+                
+                tankerEntryEl.value = combinedText;
+                autoResizeTextarea(tankerEntryEl);
             }
 
             renderActivitiesForDate(activeLogDate);
@@ -3431,6 +3604,29 @@
                     localStorage.setItem('forside_checkin_data', JSON.stringify(existingData));
                     closeModal();
                     renderCheckinChart();
+                    // Update tanker field if viewing today's date
+                    const tankerEntryEl = document.getElementById('tankerEntry');
+                    if (tankerEntryEl) {
+                        // Get affirmation text for the selected date
+                        const affirmationText = getAffirmationTextForDate(activeLogDate);
+                        // Get taknem value for the selected date
+                        const taknem = getTaknemForDate(activeLogDate);
+                        
+                        // Combine affirmation text and taknem value
+                        let combinedText = '';
+                        if (affirmationText) {
+                            combinedText = `Bekræftelse: "${affirmationText}"`;
+                        }
+                        if (taknem && taknem.trim()) {
+                            if (combinedText) {
+                                combinedText += '\n';
+                            }
+                            combinedText += `Taknemmelighed : "${taknem.trim()}"`;
+                        }
+                        
+                        tankerEntryEl.value = combinedText;
+                        autoResizeTextarea(tankerEntryEl);
+                    }
                 } catch (error) {
                     console.error('Kunne ikke gemme check-in data:', error);
                 }
@@ -3554,7 +3750,10 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load affirmations first
+            await loadAffirmations();
+            
             hydrateHeaderDates();
             renderActivitiesForDate(activeLogDate);
             initCheckinDaysButtons();
