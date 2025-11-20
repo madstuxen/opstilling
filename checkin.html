@@ -888,7 +888,9 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Wait for auth state to be determined before loading data
+            await authStatePromise;
             hydrateNightOverlay();
             setupOverlayActivityListeners();
 
@@ -1421,10 +1423,23 @@
             console.error('Firebase initialization error:', error);
         }
         
-        // Check auth state
+        // Check auth state - create a promise that resolves when auth state is determined
+        let authStatePromise = Promise.resolve();
+        let authStateResolved = false;
         if (auth) {
-            auth.onAuthStateChanged(user => {
-                currentUser = user;
+            authStatePromise = new Promise((resolve) => {
+                auth.onAuthStateChanged(user => {
+                    currentUser = user;
+                    if (!authStateResolved) {
+                        authStateResolved = true;
+                        resolve();
+                    } else {
+                        // Reload night overlay data when auth state changes after initial load
+                        if (document.readyState === 'complete') {
+                            hydrateNightOverlay();
+                        }
+                    }
+                });
             });
         }
         
