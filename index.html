@@ -138,11 +138,11 @@
         .success-message.show {
             display: block;
         }
-        
+
         .logged-in-section {
             margin-top: 20px;
         }
-        
+
         .logged-in-section .user-info {
             margin-bottom: 20px;
             padding: 16px;
@@ -152,13 +152,13 @@
             color: #0c4a6e;
             text-align: center;
         }
-        
+
         .logged-in-section .user-info strong {
             display: block;
             margin-bottom: 8px;
             font-size: 18px;
         }
-        
+
         .logout-button {
             width: 100%;
             padding: 12px;
@@ -171,12 +171,12 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .logout-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
         }
-        
+
         .start-button {
             width: 100%;
             padding: 14px;
@@ -189,7 +189,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .start-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
@@ -256,41 +256,41 @@
             <div class="form-group">
                 <label for="displayName">Dit kalde navn</label>
                 <input type="text" id="displayName" name="displayName" placeholder="Dit kalde navn" required autocomplete="name">
-            </div>
-            
+                    </div>
+                    
             <div class="form-group">
                 <label for="newEmail">Email</label>
                 <input type="email" id="newEmail" name="newEmail" placeholder="Email" required autocomplete="email">
-            </div>
+                                </div>
             
             <div class="form-group">
                 <label for="newPassword">Adgangskode</label>
                 <input type="password" id="newPassword" name="newPassword" placeholder="Vælg en adgangskode" required autocomplete="new-password">
-            </div>
+                            </div>
             
             <div class="form-group">
                 <label for="confirmPassword">Bekræft adgangskode</label>
                 <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Bekræft adgangskode" required autocomplete="new-password">
-            </div>
-            
+                    </div>
+                    
             <!-- Toggle buttons for login/new user -->
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <button type="button" class="toggle-button" id="showLoginBtnFromNewUser">Log ind</button>
                 <button type="submit" class="toggle-button active">Opret bruger</button>
-            </div>
+                                </div>
         </form>
-        
+
         <!-- Logged in section -->
         <div class="logged-in-section" id="loggedInSection" style="display: none;">
             <div class="user-info">
                 <strong>Du er logget ind</strong>
                 <p id="userEmail" style="margin-top: 8px; color: #6b7280; font-size: 14px;"></p>
-            </div>
-            
-            <button type="button" class="start-button" id="goToCheckinBtn" style="margin-top: 20px;">Lad os starte!</button>
-            <button type="button" class="logout-button" id="logoutButton" style="margin-top: 10px;">Log ud</button>
         </div>
         
+            <button type="button" class="start-button" id="goToCheckinBtn" style="margin-top: 20px;">Lad os starte!</button>
+            <button type="button" class="logout-button" id="logoutButton" style="margin-top: 10px;">Log ud</button>
+    </div>
+
 </div>
     
     <script>
@@ -344,7 +344,7 @@ const firebaseConfig = {
         
         if (!newUserForm) {
             console.error('ERROR: new-user-form element not found!');
-        }
+                        }
 
         // Check if user is already logged in
         auth.onAuthStateChanged(user => {
@@ -474,8 +474,8 @@ const firebaseConfig = {
             const newUserSubmitBtn = newUserForm.querySelector('button[type="submit"]');
             if (newUserSubmitBtn) {
                 newUserSubmitBtn.classList.add('active');
-            }
-        }
+                    }
+                }
         
         // Toggle between login and new user forms
         // showLoginBtn is now a submit button, so we only handle the "Ny bruger" button click

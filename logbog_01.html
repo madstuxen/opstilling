@@ -996,7 +996,7 @@
             position: relative;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start;
             gap: 16px;
             padding-bottom: 9px;
         }
@@ -1419,15 +1419,15 @@
 
                     <section class="card checkins-card">
                         <div class="checkins-header">
-                            <div class="card-title">
+                            <div class="card-title" style="margin-right: auto;">
                                 <strong>CHECKINS</strong>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 18px;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-left: 18px;">
+                            <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="Skift visning" title="Skift visning">
+                                <button class="checkin-add-btn" id="openCheckinModal" title="Tilføj check-in">+</button>
                                 <button class="checkin-days-btn" data-days="1" title="Vis 1 dag">1</button>
                                 <button class="checkin-days-btn" data-days="5" title="Vis 5 dage">5</button>
                                 <button class="checkin-days-btn" data-days="10" title="Vis 10 dage">10</button>
-                                <button class="checkin-add-btn" id="openCheckinModal" title="Tilføj check-in">+</button>
-                                <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="Skift visning" title="Skift visning">
                             </div>
                         </div>
                         <div class="checkins-body" id="checkinsBody">
@@ -1789,7 +1789,16 @@
             }
         }
 
-        function getBodymapData() {
+        async function getBodymapData() {
+            // Check if we should use Firestore
+            if (useFirestore && currentUser && db) {
+                const firestoreData = await loadBodymapDataFromFirestore();
+                if (firestoreData !== null) {
+                    return firestoreData;
+                }
+            }
+            
+            // Use localStorage
             try {
                 const raw = localStorage.getItem(BODYMAP_STORAGE_KEY);
                 if (!raw) return null;
@@ -1802,6 +1811,7 @@
         }
 
         function getDialogData() {
+            // Dialog not yet integrated with Firestore - always use localStorage
             try {
                 const raw = localStorage.getItem(DIALOG_STORAGE_KEY);
                 if (!raw) return null;
@@ -1822,7 +1832,16 @@
             }
         }
 
-        function getOpstillingData() {
+        async function getOpstillingData() {
+            // Check if we should use Firestore
+            if (useFirestore && currentUser && db) {
+                const firestoreData = await loadOpstillingDataFromFirestore();
+                if (firestoreData !== null) {
+                    return firestoreData;
+                }
+            }
+            
+            // Use localStorage
             try {
                 const raw = localStorage.getItem(OPSTILLING_STORAGE_KEY);
                 if (!raw) return null;
@@ -1835,6 +1854,7 @@
         }
 
         function getCompareData() {
+            // Compare not yet integrated with Firestore - always use localStorage
             try {
                 const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
                 if (!raw) return null;
@@ -1990,25 +2010,36 @@
             return '';
         }
 
-        function getBodymapActivityInfo(dateKey) {
+        async function getBodymapActivityInfo(dateKey) {
             if (!dateKey) {
+                console.log('getBodymapActivityInfo: No dateKey provided');
                 return { hasEntries: false };
             }
 
-            const bodymapData = getBodymapData();
+            console.log('getBodymapActivityInfo: Looking for dateKey:', dateKey, 'useFirestore:', useFirestore);
+            const bodymapData = await getBodymapData();
+            console.log('getBodymapActivityInfo: bodymapData:', bodymapData ? 'found' : 'null', 'dataIndexes:', bodymapData?.dataIndexes?.length || 0);
+            
             if (!bodymapData || !Array.isArray(bodymapData.dataIndexes)) {
+                console.log('getBodymapActivityInfo: No bodymapData or dataIndexes');
                 return { hasEntries: false };
             }
 
             const entriesForDate = [];
-            bodymapData.dataIndexes.forEach(index => {
+            bodymapData.dataIndexes.forEach((index, idx) => {
                 const entryDate = getBodymapEntryDate(index);
-                if (!entryDate) return;
+                if (!entryDate) {
+                    console.log(`getBodymapActivityInfo: Entry ${idx} has no valid date`);
+                    return;
+                }
                 const normalizedDateKey = formatDateKey(entryDate);
+                console.log(`getBodymapActivityInfo: Entry ${idx} date:`, normalizedDateKey, 'matches:', normalizedDateKey === dateKey);
                 if (normalizedDateKey === dateKey) {
                     entriesForDate.push({ entry: index, timestamp: entryDate });
                 }
             });
+            
+            console.log('getBodymapActivityInfo: Found', entriesForDate.length, 'entries for date', dateKey);
 
             if (!entriesForDate.length) {
                 return { hasEntries: false };
@@ -2149,29 +2180,46 @@
             };
         }
 
-        function getOpstillingActivityInfo(dateKey) {
+        async function getOpstillingActivityInfo(dateKey) {
             if (!dateKey) {
+                console.log('getOpstillingActivityInfo: No dateKey provided');
                 return { hasEntries: false };
             }
 
-            const opstillingData = getOpstillingData();
+            console.log('getOpstillingActivityInfo: Looking for dateKey:', dateKey, 'useFirestore:', useFirestore);
+            const opstillingData = await getOpstillingData();
+            console.log('getOpstillingActivityInfo: opstillingData:', opstillingData ? 'found' : 'null', 'collections:', opstillingData?.collections?.length || 0);
+            
             if (!opstillingData || !Array.isArray(opstillingData.collections)) {
+                console.log('getOpstillingActivityInfo: No opstillingData or collections');
                 return { hasEntries: false };
             }
 
             const matches = [];
-            opstillingData.collections.forEach(collection => {
-                if (!Array.isArray(collection.setups)) return;
-                collection.setups.forEach(setup => {
+            opstillingData.collections.forEach((collection, colIdx) => {
+                if (!Array.isArray(collection.setups)) {
+                    console.log(`getOpstillingActivityInfo: Collection ${colIdx} has no setups array`);
+                    return;
+                }
+                collection.setups.forEach((setup, setupIdx) => {
                     const source = setup.timestamp || setup.updated;
-                    if (!source) return;
+                    if (!source) {
+                        console.log(`getOpstillingActivityInfo: Setup ${colIdx}-${setupIdx} has no timestamp/updated`);
+                        return;
+                    }
                     const timestamp = new Date(source);
-                    if (Number.isNaN(timestamp.getTime())) return;
+                    if (Number.isNaN(timestamp.getTime())) {
+                        console.log(`getOpstillingActivityInfo: Setup ${colIdx}-${setupIdx} has invalid timestamp:`, source);
+                        return;
+                    }
                     const normalized = formatDateKey(timestamp);
+                    console.log(`getOpstillingActivityInfo: Setup ${colIdx}-${setupIdx} date:`, normalized, 'matches:', normalized === dateKey);
                     if (normalized !== dateKey) return;
                     matches.push({ setup, collection, timestamp });
                 });
             });
+            
+            console.log('getOpstillingActivityInfo: Found', matches.length, 'matches for date', dateKey);
 
             if (!matches.length) {
                 return { hasEntries: false };
@@ -2509,7 +2557,7 @@
                 autoResizeTextarea(tankerEntryEl);
             }
 
-            renderActivitiesForDate(activeLogDate);
+            await renderActivitiesForDate(activeLogDate);
             await renderLogHistory();
             // Scroll chart to show the selected date
             scrollChartToDate(activeLogDate);
@@ -2640,19 +2688,19 @@
             await renderLogHistory();
         }
 
-        function handleBodymapStorageEvent(event) {
+        async function handleBodymapStorageEvent(event) {
             if (event.key && event.key !== BODYMAP_STORAGE_KEY) return;
-            renderActivitiesForDate(activeLogDate);
+            await renderActivitiesForDate(activeLogDate);
         }
 
-        function handleOpstillingStorageEvent(event) {
+        async function handleOpstillingStorageEvent(event) {
             if (event.key && event.key !== OPSTILLING_STORAGE_KEY) return;
-            renderActivitiesForDate(activeLogDate);
+            await renderActivitiesForDate(activeLogDate);
         }
 
-        function handleCompareStorageEvent(event) {
+        async function handleCompareStorageEvent(event) {
             if (event.key && event.key !== COMPARE_STORAGE_KEY) return;
-            renderActivitiesForDate(activeLogDate);
+            await renderActivitiesForDate(activeLogDate);
         }
 
         async function updateLogHistoryNavState() {
@@ -2870,21 +2918,21 @@
 
         const CLOCK_ICON_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>';
 
-        function renderActivitiesForDate(dateKey) {
+        async function renderActivitiesForDate(dateKey) {
             const normalizedKey = normalizeDateKey(dateKey) || getTodayDateKey();
             const grid = document.getElementById('activitiesGrid');
             if (!grid) return;
             grid.innerHTML = '';
 
-            if (!mockActivities || mockActivities.length === 0) {
-                const emptyState = document.createElement('div');
-                emptyState.className = 'empty-state';
-                emptyState.textContent = 'Ingen aktiviteter registreret for denne dag.';
-                grid.appendChild(emptyState);
+            // Always render exactly 4 activities (opstilling, dialog, relationer, bodymap)
+            // The content changes based on whether there's data for the selected date
+            if (!mockActivities || mockActivities.length < 4) {
+                console.error('mockActivities must contain exactly 4 activities');
                 return;
             }
 
-            mockActivities.forEach(activity => {
+            // Process activities sequentially to handle async data loading
+            for (const activity of mockActivities) {
                 const styleConfig = activityStyles[activity.type] || activityStyles.default;
                 const accentColor = styleConfig.accent || '#475569';
 
@@ -2916,7 +2964,9 @@
             let badgeText = '';
 
                 if (activity.type === 'bodymap') {
-                    const info = getBodymapActivityInfo(normalizedKey);
+                    console.log('renderActivitiesForDate: Checking bodymap for dateKey:', normalizedKey);
+                    const info = await getBodymapActivityInfo(normalizedKey);
+                    console.log('renderActivitiesForDate: bodymap info:', info);
                     if (info.hasEntries) {
                         displayTime = info.latestTime || displayTime;
                         displayText = info.displayText || displayText;
@@ -2941,7 +2991,9 @@
                     emptyTextLabel = 'Lav en dialog';
                     }
                 } else if (activity.type === 'opstilling') {
-                    const info = getOpstillingActivityInfo(normalizedKey);
+                    console.log('renderActivitiesForDate: Checking opstilling for dateKey:', normalizedKey);
+                    const info = await getOpstillingActivityInfo(normalizedKey);
+                    console.log('renderActivitiesForDate: opstilling info:', info);
                     if (info.hasEntries) {
                         displayTime = info.latestTime || displayTime;
                         const partsSuffix = typeof info.partsCount === 'number' && info.partsCount > 0
@@ -3000,7 +3052,7 @@
                         if (activity.type === 'relationer') {
                             badgeEl.innerHTML = badgeText;
                         } else {
-                            badgeEl.textContent = badgeText;
+                        badgeEl.textContent = badgeText;
                         }
                         tile.appendChild(badgeEl);
                     }
@@ -3008,7 +3060,7 @@
 
                 link.appendChild(tile);
                 grid.appendChild(link);
-            });
+            }
         }
 
         let checkinDetailedView = false; // Default to simple view
@@ -3284,6 +3336,38 @@
             }
         }
         
+        // Load bodymap data from Firestore
+        async function loadBodymapDataFromFirestore() {
+            if (!currentUser || !db) return null;
+            
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists && userDoc.data().bodymapData) {
+                    return userDoc.data().bodymapData;
+                }
+                return null;
+            } catch (error) {
+                console.error('Error loading bodymapData from Firestore:', error);
+                return null;
+            }
+        }
+        
+        // Load opstilling data from Firestore
+        async function loadOpstillingDataFromFirestore() {
+            if (!currentUser || !db) return null;
+            
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists && userDoc.data().opstillingData) {
+                    return userDoc.data().opstillingData;
+                }
+                return null;
+            } catch (error) {
+                console.error('Error loading opstillingData from Firestore:', error);
+                return null;
+            }
+        }
+
         async function loadCheckinData() {
             try {
                 // If debug data is loaded, use it instead of localStorage/Firestore
@@ -3318,23 +3402,23 @@
         
         // Helper function to process check-in data for display
         function processCheckinDataForDisplay(parsed) {
-            if (!Array.isArray(parsed)) {
-                return [];
-            }
-            return parsed
-                .filter(entry => typeof entry.status === 'number')
-                .map(entry => {
-                    const dateObj = entry.date ? new Date(entry.date) : new Date();
-                    return {
-                        date: dateObj,
-                        status: Math.max(0, Math.min(100, Number(entry.status))),
-                        dateKey: dateObj.toISOString().split('T')[0],
-                        time: dateObj.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', hour12: false })
-                    };
-                })
-                .sort((a, b) => a.date - b.date);
+                if (!Array.isArray(parsed)) {
+                    return [];
+                }
+                return parsed
+                    .filter(entry => typeof entry.status === 'number')
+                    .map(entry => {
+                        const dateObj = entry.date ? new Date(entry.date) : new Date();
+                        return {
+                            date: dateObj,
+                            status: Math.max(0, Math.min(100, Number(entry.status))),
+                            dateKey: dateObj.toISOString().split('T')[0],
+                            time: dateObj.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', hour12: false })
+                        };
+                    })
+                    .sort((a, b) => a.date - b.date);
         }
-        
+
         function processCheckinData(data) {
             if (!data || !Array.isArray(data) || data.length === 0) {
                 return { data: [], labels: [], totalDays: 0 };
@@ -3878,7 +3962,7 @@
                 };
 
                 localStorage.setItem(BODYMAP_STORAGE_KEY, JSON.stringify(bodymapData));
-                renderActivitiesForDate(activeLogDate);
+                await renderActivitiesForDate(activeLogDate);
                 console.info(`Loaded ${dataIndexes.length} indexes across ${maps.length} maps into bodymapData from debug_body.json`);
             } catch (error) {
                 console.error('Failed to load debug body data:', error);
@@ -4309,7 +4393,7 @@
             await loadAffirmations();
             
             hydrateHeaderDates();
-            renderActivitiesForDate(activeLogDate);
+            await renderActivitiesForDate(activeLogDate);
             initCheckinDaysButtons();
             initCheckinViewToggle();
             initCheckinModal();
@@ -4383,7 +4467,7 @@
             }
 
             window.addEventListener('resize', () => {
-                renderCheckinChart();
+                    renderCheckinChart();
             });
 
             // Initialize log history color picker
