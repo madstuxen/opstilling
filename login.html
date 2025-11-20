@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <title>Login</title>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <!-- Firebase Authentication -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+    <!-- Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            font-size: 2em;
+            color: #374151;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #6b7280;
+            font-size: 0.95em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: white;
+            color: #1f2937;
+        }
+        
+        .form-group input::placeholder {
+            color: #9ca3af;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .login-button:active {
+            transform: translateY(0);
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .user-data {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #374151;
+            white-space: pre-wrap;
+            word-break: break-word;
+            display: none;
+        }
+        
+        .user-data.show {
+            display: block;
+        }
+        
+        .user-section {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .user-section.show {
+            display: block;
+        }
+        
+        .user-info {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #e0f2fe;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #0c4a6e;
+        }
+        
+        .user-info strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+        
+        .save-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .save-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+        }
+        
+        .logout-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .logout-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+        }
+        
+        .saved-data {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f0fdf4;
+            border-radius: 10px;
+            border: 2px solid #10b981;
+        }
+        
+        .saved-data h3 {
+            color: #065f46;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+        
+        .saved-data-item {
+            margin-bottom: 8px;
+            color: #166534;
+            font-size: 14px;
+        }
+        
+        .saved-data-item strong {
+            color: #065f46;
+        }
+        
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Login</h1>
+            <p>Log ind for at fortsætte</p>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="Email" required autocomplete="email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Adgangskode</label>
+                <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password">
+            </div>
+            
+            <button type="submit" class="login-button">Log ind</button>
+        </form>
+        
+        <div class="user-data" id="user-data"></div>
+        
+        <!-- User section (shown after login) -->
+        <div class="user-section" id="userSection">
+            <div class="user-info" id="userInfo"></div>
+            
+            <div class="success-message" id="successMessage"></div>
+            
+            <form id="save-data-form">
+                <div class="form-group">
+                    <label for="favoriteDog">Yndlings hund</label>
+                    <input type="text" id="favoriteDog" name="favoriteDog" placeholder="Indtast yndlings hund">
+                </div>
+                
+                <div class="form-group">
+                    <label for="favoriteCat">Yndlings kat</label>
+                    <input type="text" id="favoriteCat" name="favoriteCat" placeholder="Indtast yndlings kat">
+                </div>
+                
+                <button type="submit" class="save-button">Gem data</button>
+            </form>
+            
+            <div class="saved-data" id="savedData" style="display: none;">
+                <h3>Gemt data:</h3>
+                <div class="saved-data-item">
+                    <strong>Yndlings hund:</strong> <span id="displayDog">-</span>
+                </div>
+                <div class="saved-data-item">
+                    <strong>Yndlings kat:</strong> <span id="displayCat">-</span>
+                </div>
+            </div>
+            
+            <button type="button" class="logout-button" id="logoutButton">Log ud</button>
+        </div>
+    </div>
+    
+    <script>
+        // Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCl6ZYtkfYx3kFF9329eGpeazsmJAPMKzA",
+  authDomain: "relationer-fe5fe.firebaseapp.com",
+  projectId: "relationer-fe5fe",
+  storageBucket: "relationer-fe5fe.firebasestorage.app",
+  messagingSenderId: "156720560629",
+  appId: "1:156720560629:web:1a138e4e89f02a131f88bc",
+  measurementId: "G-K5W7J8JHZG"
+};
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Get DOM elements
+        const loginForm = document.getElementById('login-form');
+        const errorMessage = document.getElementById('errorMessage');
+        const userData = document.getElementById('user-data');
+        const userSection = document.getElementById('userSection');
+        const userInfo = document.getElementById('userInfo');
+        const saveDataForm = document.getElementById('save-data-form');
+        const successMessage = document.getElementById('successMessage');
+        const savedData = document.getElementById('savedData');
+        const logoutButton = document.getElementById('logoutButton');
+        let currentUser = null;
+
+        // Check if user is already logged in
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                showUserSection(user);
+                loadUserData(user.uid);
+            } else {
+                showLoginForm();
+            }
+        });
+
+        // Login form submit handler
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Hide previous messages
+            errorMessage.classList.remove('show');
+            userData.classList.remove('show');
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    // Successful login
+                    currentUser = userCredential.user;
+                    showUserSection(currentUser);
+                    loadUserData(currentUser.uid);
+                })
+                .catch(error => {
+                    errorMessage.textContent = error.message;
+                    errorMessage.classList.add('show');
+                });
+        });
+
+        // Save data form submit handler
+        saveDataForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!currentUser) {
+                errorMessage.textContent = 'Du er ikke logget ind';
+                errorMessage.classList.add('show');
+                return;
+            }
+            
+            const favoriteDog = document.getElementById('favoriteDog').value;
+            const favoriteCat = document.getElementById('favoriteCat').value;
+            
+            // Save data to Firestore
+            const userData = {
+                favoriteDog: favoriteDog || '',
+                favoriteCat: favoriteCat || '',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            db.collection('users').doc(currentUser.uid).set(userData, { merge: true })
+                .then(() => {
+                    // Show success message
+                    successMessage.textContent = 'Data er gemt!';
+                    successMessage.classList.add('show');
+                    
+                    // Clear input fields
+                    document.getElementById('favoriteDog').value = '';
+                    document.getElementById('favoriteCat').value = '';
+                    
+                    // Reload and display saved data
+                    loadUserData(currentUser.uid);
+                    
+                    // Hide success message after 3 seconds
+                    setTimeout(() => {
+                        successMessage.classList.remove('show');
+                    }, 3000);
+                })
+                .catch(error => {
+                    errorMessage.textContent = 'Fejl ved gemning: ' + error.message;
+                    errorMessage.classList.add('show');
+                });
+        });
+
+        // Load user data from Firestore
+        function loadUserData(userId) {
+            db.collection('users').doc(userId).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        
+                        // Display saved data
+                        document.getElementById('displayDog').textContent = data.favoriteDog || '-';
+                        document.getElementById('displayCat').textContent = data.favoriteCat || '-';
+                        
+                        // Pre-fill form with existing data
+                        document.getElementById('favoriteDog').value = data.favoriteDog || '';
+                        document.getElementById('favoriteCat').value = data.favoriteCat || '';
+                        
+                        // Show saved data section if there's any data
+                        if (data.favoriteDog || data.favoriteCat) {
+                            savedData.style.display = 'block';
+                        }
+                    } else {
+                        // No data yet
+                        savedData.style.display = 'none';
+                        document.getElementById('displayDog').textContent = '-';
+                        document.getElementById('displayCat').textContent = '-';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading user data:', error);
+                });
+        }
+
+        // Show user section after login
+        function showUserSection(user) {
+            loginForm.style.display = 'none';
+            userData.classList.remove('show');
+            userSection.classList.add('show');
+            userInfo.innerHTML = `
+                <strong>Logget ind som:</strong> ${user.email}
+            `;
+        }
+
+        // Show login form
+        function showLoginForm() {
+            loginForm.style.display = 'block';
+            userSection.classList.remove('show');
+            errorMessage.classList.remove('show');
+            successMessage.classList.remove('show');
+        }
+
+        // Logout button handler
+        logoutButton.addEventListener('click', function() {
+            auth.signOut()
+                .then(() => {
+                    currentUser = null;
+                    showLoginForm();
+                    document.getElementById('email').value = '';
+                    document.getElementById('password').value = '';
+                    document.getElementById('favoriteDog').value = '';
+                    document.getElementById('favoriteCat').value = '';
+                    savedData.style.display = 'none';
+                })
+                .catch(error => {
+                    errorMessage.textContent = 'Fejl ved logout: ' + error.message;
+                    errorMessage.classList.add('show');
+                });
+        });
+        
+        // Auto-focus on email field
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only focus if login form is visible
+            if (loginForm.style.display !== 'none') {
+                document.getElementById('email').focus();
+            }
+        });
+    </script>
+</body>
+</html>
+
