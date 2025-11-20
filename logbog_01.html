@@ -6,6 +6,12 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
     <title>Logbog</title>
+    <!-- Firebase App (the core Firebase SDK) - Using v8 for compatibility -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <!-- Firebase Authentication -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <!-- Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         * {
             margin: 0;
@@ -42,6 +48,72 @@
             justify-content: center;
             text-align: center;
             position: relative;
+            transition: background 0.3s ease;
+        }
+        
+        /* Header colors based on data source */
+        .header.data-source-firestore {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        
+        .header.data-source-localstorage {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+        
+        /* Debug panel in top-right corner */
+        .debug-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 200px;
+        }
+        
+        .debug-panel label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #374151;
+            cursor: pointer;
+        }
+        
+        .debug-panel input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .debug-panel-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        
+        .login-status {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .login-status.logged-in {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .login-status.logged-out {
+            background: #fee2e2;
+            color: #991b1b;
         }
 
         .header h1 {
@@ -1270,8 +1342,18 @@
     </style>
 </head>
 <body>
+    <!-- Debug panel in top-right corner -->
+    <div class="debug-panel">
+        <div class="debug-panel-title">Debug</div>
+        <label>
+            <input type="checkbox" id="dataSourceToggle" />
+            <span>Læs fra Firestore</span>
+        </label>
+        <div id="loginStatus" class="login-status logged-out">Ikke logget ind</div>
+    </div>
+    
     <div class="container">
-        <div class="header">
+        <div class="header" id="pageHeader">
             <div class="nav-controls">
                 <button class="nav-toggle-btn" onclick="toggleNavBox(event)" title="Navigation">
                     <span></span>
@@ -1284,7 +1366,7 @@
                     <a href="compare_01.html" class="nav-button">Ligheder</a>
                     <a href="bodymap_01.html" class="nav-button">BodyMap</a>
                     <a href="logbog_01.html" class="nav-button active">Logbog</a>
-                    <a href="index.html" class="nav-button nav-checkin">Check in</a>
+                    <a href="checkin.html" class="nav-button nav-checkin">Check in</a>
                 </div>
             </div>
             <h1>Logbog</h1>
@@ -1513,7 +1595,7 @@
                 return null;
             }
             
-            // Reference date (1. januar 2024) - same as index.html
+            // Reference date (1. januar 2024) - same as checkin.html
             const referenceDate = new Date('2024-01-01');
             
             // Set both dates to midnight for accurate day calculation
@@ -1543,7 +1625,109 @@
             return parsed.toISOString().split('T')[0];
         }
 
-        function getLogbookData() {
+        // Load logbook data from Firestore
+        async function loadLogbookDataFromFirestore() {
+            if (!currentUser || !db) {
+                console.log('loadLogbookDataFromFirestore: No currentUser or db', { currentUser: !!currentUser, db: !!db });
+                return null;
+            }
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const userDoc = await userDocRef.get();
+                
+                console.log('loadLogbookDataFromFirestore: userDoc.exists =', userDoc.exists);
+                
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    console.log('loadLogbookDataFromFirestore: userData keys =', Object.keys(userData || {}));
+                    
+                    if (userData && userData.logbogData) {
+                        const data = userData.logbogData;
+                        console.log('loadLogbookDataFromFirestore: Found logbogData, length =', Array.isArray(data) ? data.length : 'not an array');
+                        return Array.isArray(data) ? data : [];
+                    } else {
+                        console.log('loadLogbookDataFromFirestore: No logbogData field in user document');
+                        return [];
+                    }
+                } else {
+                    console.log('loadLogbookDataFromFirestore: User document does not exist');
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error loading logbook data from Firestore:', error);
+                return null;
+            }
+        }
+        
+        // Save logbook data to Firestore
+        async function saveLogbookDataToFirestore(entries) {
+            if (!currentUser || !db) return;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                await userDocRef.set({
+                    logbogData: entries
+                }, { merge: true });
+                console.log('Logbook data saved to Firestore');
+            } catch (error) {
+                console.error('Error saving logbook data to Firestore:', error);
+            }
+        }
+        
+        async function getLogbookData() {
+            // Check if we should use Firestore
+            console.log('getLogbookData: useFirestore =', useFirestore, 'currentUser =', !!currentUser);
+            
+            if (useFirestore && currentUser) {
+                console.log('getLogbookData: Attempting to load from Firestore...');
+                const firestoreData = await loadLogbookDataFromFirestore();
+                console.log('getLogbookData: firestoreData =', firestoreData !== null ? (Array.isArray(firestoreData) ? `Array(${firestoreData.length})` : firestoreData) : 'null');
+                
+                if (firestoreData !== null) {
+                    console.log('getLogbookData: Using Firestore data');
+                    // Normalize data
+                    let mutated = false;
+                    const normalizedEntries = firestoreData.map(entry => {
+                        if (!entry || typeof entry !== 'object') return entry;
+                        // Normalize date to ISO YYYY-MM-DD
+                        const normalizedKey = normalizeDateKey(entry.date);
+                        let nextEntry = entry;
+                        if (normalizedKey && normalizedKey !== entry.date) {
+                            mutated = true;
+                            nextEntry = { ...nextEntry, date: normalizedKey };
+                        }
+                        // Ensure timestamp (ISO 8601). For legacy entries without timestamp, derive from date at local midnight
+                        if (!nextEntry.timestamp) {
+                            const derived = new Date(`${normalizedKey || entry.date}T00:00:00`);
+                            if (!Number.isNaN(derived.getTime())) {
+                                nextEntry = { ...nextEntry, timestamp: derived.toISOString() };
+                                mutated = true;
+                            } else {
+                                // Fallback to "now"
+                                nextEntry = { ...nextEntry, timestamp: new Date().toISOString() };
+                                mutated = true;
+                            }
+                        }
+                        return nextEntry;
+                    });
+                    
+                    // If data was normalized, save it back
+                    if (mutated) {
+                        await saveLogbookDataToFirestore(normalizedEntries);
+                    }
+                    
+                    return normalizedEntries;
+                } else {
+                    console.log('getLogbookData: Firestore returned null, falling back to localStorage');
+                }
+                // Fallback to localStorage if Firestore fails
+            } else {
+                console.log('getLogbookData: Not using Firestore (useFirestore =', useFirestore, ', currentUser =', !!currentUser, ')');
+            }
+            
+            // Use localStorage
+            console.log('getLogbookData: Loading from localStorage');
             try {
                 const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
                 if (!raw) return [];
@@ -1586,11 +1770,18 @@
             }
         }
 
-        function ensureSeedLogbookData() {
-            return getLogbookData();
+        async function ensureSeedLogbookData() {
+            return await getLogbookData();
         }
 
-        function saveLogbookData(entries) {
+        async function saveLogbookData(entries) {
+            // Check if we should use Firestore
+            if (useFirestore && currentUser) {
+                await saveLogbookDataToFirestore(entries);
+                return; // Don't save to localStorage when using Firestore
+            }
+            
+            // Use localStorage
             try {
                 localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
             } catch (error) {
@@ -2067,8 +2258,8 @@
 
         let activeLogDate = getTodayDateKey();
 
-        function upsertLogbookEntry(dateKey, partial) {
-            const entries = getLogbookData();
+        async function upsertLogbookEntry(dateKey, partial) {
+            const entries = await getLogbookData();
             let entry = entries.find(item => item.date === dateKey);
             if (!entry) {
                 entry = { date: dateKey, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
@@ -2076,12 +2267,13 @@
             }
 
             Object.assign(entry, partial);
-            saveLogbookData(entries);
+            await saveLogbookData(entries);
             return entry;
         }
 
-        function getSortedLogEntries() {
-            return getLogbookData()
+        async function getSortedLogEntries() {
+            const entries = await getLogbookData();
+            return entries
                 .slice()
                 .sort((a, b) => {
                     const tb = new Date(b.timestamp || `${b.date}T00:00:00`).getTime();
@@ -2096,11 +2288,11 @@
             return parsed.toLocaleDateString('da-DK', options);
         }
 
-        function renderLogHistory() {
+        async function renderLogHistory() {
             const listEl = document.getElementById('logHistoryList');
             if (!listEl) return;
 
-            const entries = getSortedLogEntries();
+            const entries = await getSortedLogEntries();
             listEl.innerHTML = '';
 
             let activeItemEl = null;
@@ -2185,14 +2377,14 @@
 
                 item.append(headerEl, weekDayEl, snippetEl, metaEl);
 
-                item.addEventListener('click', () => {
-                    setActiveLogDate(entry.date);
+                item.addEventListener('click', async () => {
+                    await setActiveLogDate(entry.date);
                 });
 
                 listEl.appendChild(item);
             });
 
-            updateLogHistoryNavState();
+            await updateLogHistoryNavState();
 
             if (activeItemEl) {
                 requestAnimationFrame(() => {
@@ -2205,14 +2397,36 @@
             }
         }
 
-        function getTaknemForDate(dateKey) {
+        async function getTaknemForDate(dateKey) {
             try {
-                const raw = localStorage.getItem('forside_checkin_data');
-                if (!raw) return '';
-                const parsed = JSON.parse(raw);
-                if (!Array.isArray(parsed)) return '';
+                let parsed = [];
                 
-                // Calculate date in same format as index.html - convert dateKey to YYYY-MM-DD
+                // Load from Firestore if toggle is on and user is logged in
+                if (useFirestore && currentUser) {
+                    const firestoreData = await loadCheckinDataFromFirestore();
+                    if (firestoreData !== null) {
+                        parsed = firestoreData;
+                    } else {
+                        // If Firestore fails, fall back to localStorage
+                        console.warn('Failed to load taknem from Firestore, falling back to localStorage');
+                        const raw = localStorage.getItem('forside_checkin_data');
+                        if (raw) {
+                            const localParsed = JSON.parse(raw);
+                            if (Array.isArray(localParsed)) {
+                                parsed = localParsed;
+                            }
+                        }
+                    }
+                } else {
+                    // Load from localStorage
+                    const raw = localStorage.getItem('forside_checkin_data');
+                    if (!raw) return '';
+                    const localParsed = JSON.parse(raw);
+                    if (!Array.isArray(localParsed)) return '';
+                    parsed = localParsed;
+                }
+                
+                // Calculate date in same format as checkin.html - convert dateKey to YYYY-MM-DD
                 // dateKey should already be in YYYY-MM-DD format, but ensure it is
                 const dateStr = dateKey || getTodayDateKey();
                 
@@ -2220,7 +2434,7 @@
                 const entriesForDate = parsed.filter(item => {
                     if (!item.date) return false;
                     
-                    // Extract date part from ISO string (same way as index.html)
+                    // Extract date part from ISO string (same way as checkin.html)
                     let itemDateStr = '';
                     if (item.date instanceof Date) {
                         itemDateStr = item.date.toISOString().split('T')[0];
@@ -2250,15 +2464,15 @@
             }
         }
 
-        function setActiveLogDate(dateKey) {
+        async function setActiveLogDate(dateKey) {
             const normalizedKey = normalizeDateKey(dateKey) || getTodayDateKey();
             activeLogDate = normalizedKey;
-            const entries = getLogbookData();
+            const entries = await getLogbookData();
             let entry = entries.find(item => item.date === activeLogDate);
             if (!entry) {
                 entry = { date: activeLogDate, dagbog: '', dreams: '' };
                 entries.push(entry);
-                saveLogbookData(entries);
+                await saveLogbookData(entries);
             }
 
             const logbookEntryEl = document.getElementById('logbookEntry');
@@ -2276,8 +2490,8 @@
             if (tankerEntryEl) {
                 // Get affirmation text for the selected date
                 const affirmationText = getAffirmationTextForDate(activeLogDate);
-                // Get taknem value for the selected date
-                const taknem = getTaknemForDate(activeLogDate);
+                // Get taknem value for the selected date (now async)
+                const taknem = await getTaknemForDate(activeLogDate);
                 
                 // Combine affirmation text and taknem value
                 let combinedText = '';
@@ -2296,7 +2510,7 @@
             }
 
             renderActivitiesForDate(activeLogDate);
-            renderLogHistory();
+            await renderLogHistory();
             // Scroll chart to show the selected date
             scrollChartToDate(activeLogDate);
         }
@@ -2376,24 +2590,24 @@
             });
         }
 
-        function updateActiveLogEntry(field, value) {
-            const entries = getLogbookData();
+        async function updateActiveLogEntry(field, value) {
+            const entries = await getLogbookData();
             let entry = entries.find(item => item.date === activeLogDate);
             if (!entry) {
                 entry = { date: activeLogDate, dagbog: '', dreams: '' };
                 entries.push(entry);
             }
             entry[field] = value;
-            saveLogbookData(entries);
-            renderLogHistory();
+            await saveLogbookData(entries);
+            await renderLogHistory();
         }
 
-        function refreshActiveLogEntry(externalEntries) {
+        async function refreshActiveLogEntry(externalEntries) {
             const logbookEntryEl = document.getElementById('logbookEntry');
             const dreamEntryEl = document.getElementById('dreamEntry');
             if (!logbookEntryEl || !dreamEntryEl) return;
 
-            const entries = Array.isArray(externalEntries) ? externalEntries : getLogbookData();
+            const entries = Array.isArray(externalEntries) ? externalEntries : await getLogbookData();
             const entry = entries.find(item => item.date === activeLogDate);
             if (!entry) return;
 
@@ -2407,7 +2621,7 @@
             }
         }
 
-        function handleLogbookStorageEvent(event) {
+        async function handleLogbookStorageEvent(event) {
             if (event.key !== LOGBOOK_STORAGE_KEY) return;
 
             let latestEntries = [];
@@ -2422,8 +2636,8 @@
                 }
             }
 
-            refreshActiveLogEntry(latestEntries);
-            renderLogHistory();
+            await refreshActiveLogEntry(latestEntries);
+            await renderLogHistory();
         }
 
         function handleBodymapStorageEvent(event) {
@@ -2441,8 +2655,8 @@
             renderActivitiesForDate(activeLogDate);
         }
 
-        function updateLogHistoryNavState() {
-            const entries = getSortedLogEntries();
+        async function updateLogHistoryNavState() {
+            const entries = await getSortedLogEntries();
             const prevBtn = document.getElementById('logHistoryPrev');
             const nextBtn = document.getElementById('logHistoryNext');
             if (!prevBtn || !nextBtn) return;
@@ -2458,8 +2672,8 @@
             nextBtn.disabled = activeIndex <= 0;
         }
 
-        function navigateLogHistory(direction) {
-            const entries = getSortedLogEntries();
+        async function navigateLogHistory(direction) {
+            const entries = await getSortedLogEntries();
             if (!entries.length) return;
 
             let index = entries.findIndex(entry => entry.date === activeLogDate);
@@ -2468,9 +2682,9 @@
             }
 
             if (direction < 0 && index < entries.length - 1) {
-                setActiveLogDate(entries[index + 1].date);
+                await setActiveLogDate(entries[index + 1].date);
             } else if (direction > 0 && index > 0) {
-                setActiveLogDate(entries[index - 1].date);
+                await setActiveLogDate(entries[index - 1].date);
             }
         }
 
@@ -2519,26 +2733,26 @@
             }
         }
 
-        function handleLogHistoryColorSelected(color) {
+        async function handleLogHistoryColorSelected(color) {
             if (!logHistoryColorPickerTarget) return;
-            const entries = getLogbookData();
+            const entries = await getLogbookData();
             const entry = entries.find(e => e.date === logHistoryColorPickerTarget);
             if (entry) {
                 entry.color = color;
-                saveLogbookData(entries);
-                renderLogHistory();
+                await saveLogbookData(entries);
+                await renderLogHistory();
             }
             closeLogHistoryColorPicker();
         }
 
-        function removeLogHistoryColor() {
+        async function removeLogHistoryColor() {
             if (!logHistoryColorPickerTarget) return;
-            const entries = getLogbookData();
+            const entries = await getLogbookData();
             const entry = entries.find(e => e.date === logHistoryColorPickerTarget);
             if (entry) {
                 delete entry.color;
-                saveLogbookData(entries);
-                renderLogHistory();
+                await saveLogbookData(entries);
+                await renderLogHistory();
             }
             closeLogHistoryColorPicker();
         }
@@ -2561,7 +2775,7 @@
             }
         }
 
-        function hydrateLogbookFields() {
+        async function hydrateLogbookFields() {
             const logbookEntryEl = document.getElementById('logbookEntry');
             const dreamEntryEl = document.getElementById('dreamEntry');
             if (!logbookEntryEl || !dreamEntryEl) return;
@@ -2575,12 +2789,12 @@
             }
 
             // Create new handlers
-            logbookInputHandler = () => {
-                updateActiveLogEntry('dagbog', logbookEntryEl.value);
+            logbookInputHandler = async () => {
+                await updateActiveLogEntry('dagbog', logbookEntryEl.value);
                 autoResizeTextarea(logbookEntryEl);
             };
-            dreamInputHandler = () => {
-                updateActiveLogEntry('dreams', dreamEntryEl.value);
+            dreamInputHandler = async () => {
+                await updateActiveLogEntry('dreams', dreamEntryEl.value);
                 autoResizeTextarea(dreamEntryEl);
             };
 
@@ -2592,7 +2806,7 @@
             autoResizeTextarea(logbookEntryEl);
             autoResizeTextarea(dreamEntryEl);
 
-            setActiveLogDate(activeLogDate);
+            await setActiveLogDate(activeLogDate);
         }
 
         const navBox = document.getElementById('navBox');
@@ -2803,11 +3017,290 @@
         // Temporary debug data storage (doesn't overwrite localStorage)
         let debugCheckinData = null;
 
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCl6ZYtkfYx3kFF9329eGpeazsmJAPMKzA",
+            authDomain: "relationer-fe5fe.firebaseapp.com",
+            projectId: "relationer-fe5fe",
+            storageBucket: "relationer-fe5fe.firebasestorage.app",
+            messagingSenderId: "156720560629",
+            appId: "1:156720560629:web:1a138e4e89f02a131f88bc",
+            measurementId: "G-K5W7J8JHZG"
+        };
+        
+        // Initialize Firebase
+        let auth = null;
+        let db = null;
+        let currentUser = null;
+        
+        // Global Firestore toggle key - shared across all pages
+        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
+        
+        // Load global toggle state from localStorage
+        function loadGlobalFirestoreToggle() {
+            try {
+                const saved = localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY);
+                return saved === 'true';
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        // Save global toggle state to localStorage
+        function saveGlobalFirestoreToggle(value) {
+            try {
+                localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
+                // Trigger storage event for other tabs/windows
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: GLOBAL_FIRESTORE_TOGGLE_KEY,
+                    newValue: String(value),
+                    oldValue: localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY)
+                }));
+            } catch (error) {
+                console.error('Error saving global Firestore toggle:', error);
+            }
+        }
+        
+        let useFirestore = loadGlobalFirestoreToggle(); // Load from global state
+        
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log('Firebase initialized in logbog_01.html');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
+        
+        // Check auth state
+        if (auth) {
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                updateLoginStatus();
+                console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
+                
+                // If user logs out and we're using Firestore, switch back to localStorage
+                if (!user && useFirestore) {
+                    useFirestore = false;
+                    saveGlobalFirestoreToggle(false); // Save globally
+                    const toggle = document.getElementById('dataSourceToggle');
+                    if (toggle) toggle.checked = false;
+                    updateDataSource();
+                } else if (user) {
+                    // When user logs in, restore global toggle state if they're logged in
+                    const globalState = loadGlobalFirestoreToggle();
+                    if (globalState) {
+                        useFirestore = true;
+                        const toggle = document.getElementById('dataSourceToggle');
+                        if (toggle) {
+                            toggle.checked = true;
+                            updateDataSource();
+                            // Reload data if needed
+                            if (typeof renderCheckinChart === 'function') {
+                                loadCheckinData().then(() => {
+                                    renderCheckinChart();
+                                });
+                            }
+                            // Reload logbook data from Firestore when user logs in
+                            setActiveLogDate(activeLogDate).then(() => {
+                                renderLogHistory();
+                            });
+                            // Update tanker field
+                            const tankerEntryEl = document.getElementById('tankerEntry');
+                            if (tankerEntryEl) {
+                                const affirmationText = getAffirmationTextForDate(activeLogDate);
+                                getTaknemForDate(activeLogDate).then(taknem => {
+                                    let combinedText = '';
+                                    if (affirmationText) {
+                                        combinedText = `Bekræftelse: "${affirmationText}"`;
+                                    }
+                                    if (taknem && taknem.trim()) {
+                                        if (combinedText) combinedText += '\n';
+                                        combinedText += `Taknemmelighed : "${taknem.trim()}"`;
+                                    }
+                                    tankerEntryEl.value = combinedText;
+                                    autoResizeTextarea(tankerEntryEl);
+                                });
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update login status display
+        function updateLoginStatus() {
+            const loginStatus = document.getElementById('loginStatus');
+            if (loginStatus) {
+                if (currentUser) {
+                    loginStatus.textContent = 'Logget ind: ' + currentUser.email;
+                    loginStatus.className = 'login-status logged-in';
+                } else {
+                    loginStatus.textContent = 'Ikke logget ind';
+                    loginStatus.className = 'login-status logged-out';
+                }
+            }
+        }
+        
+        // Update header color based on data source
+        function updateDataSource() {
+            const headerEl = document.getElementById('pageHeader');
+            if (headerEl) {
+                if (useFirestore && currentUser) {
+                    headerEl.classList.remove('data-source-localstorage');
+                    headerEl.classList.add('data-source-firestore');
+                    console.log('Data source: Firestore');
+                } else {
+                    headerEl.classList.remove('data-source-firestore');
+                    headerEl.classList.add('data-source-localstorage');
+                    useFirestore = false; // Force localStorage if not logged in
+                    console.log('Data source: localStorage');
+                }
+            }
+        }
+        
+        // Data source toggle handler - setup after DOM is ready
+        function setupDataSourceToggle() {
+            const dataSourceToggle = document.getElementById('dataSourceToggle');
+            if (dataSourceToggle) {
+                // Set initial state from global storage
+                dataSourceToggle.checked = useFirestore;
+                
+                dataSourceToggle.addEventListener('change', async function() {
+                    if (this.checked && !currentUser) {
+                        alert('Du skal være logget ind for at bruge Firestore. Log ind på index.html først.');
+                        this.checked = false;
+                        return;
+                    }
+                    useFirestore = this.checked;
+                    saveGlobalFirestoreToggle(useFirestore); // Save globally
+                    updateDataSource();
+                    // Reload check-in data when switching source
+                    if (typeof renderCheckinChart === 'function') {
+                        await loadCheckinData();
+                        renderCheckinChart();
+                    }
+                    // Reload logbook data when switching source
+                    await setActiveLogDate(activeLogDate); // This will reload from the correct source
+                    await renderLogHistory();
+                    // Update tanker field (taknem value) when switching source
+                    const tankerEntryEl = document.getElementById('tankerEntry');
+                    if (tankerEntryEl) {
+                        // Get affirmation text for the selected date
+                        const affirmationText = getAffirmationTextForDate(activeLogDate);
+                        // Get taknem value for the selected date (now async, reads from correct source)
+                        const taknem = await getTaknemForDate(activeLogDate);
+                        
+                        // Combine affirmation text and taknem value
+                        let combinedText = '';
+                        if (affirmationText) {
+                            combinedText = `Bekræftelse: "${affirmationText}"`;
+                        }
+                        if (taknem && taknem.trim()) {
+                            if (combinedText) {
+                                combinedText += '\n';
+                            }
+                            combinedText += `Taknemmelighed : "${taknem.trim()}"`;
+                        }
+                        
+                        tankerEntryEl.value = combinedText;
+                        autoResizeTextarea(tankerEntryEl);
+                    }
+                });
+                
+                // Listen for changes from other tabs/pages
+                window.addEventListener('storage', async function(e) {
+                    if (e.key === GLOBAL_FIRESTORE_TOGGLE_KEY) {
+                        const newValue = e.newValue === 'true';
+                        if (newValue !== useFirestore) {
+                            // Check if user is logged in before applying
+                            if (newValue && !currentUser) {
+                                dataSourceToggle.checked = false;
+                                return;
+                            }
+                            useFirestore = newValue;
+                            dataSourceToggle.checked = useFirestore;
+                            updateDataSource();
+                            // Reload data when toggle changes from another page
+                            if (typeof renderCheckinChart === 'function') {
+                                await loadCheckinData();
+                                renderCheckinChart();
+                            }
+                            // Reload logbook data when switching source
+                            await setActiveLogDate(activeLogDate); // This will reload from the correct source
+                            await renderLogHistory();
+                            // Update tanker field
+                            const tankerEntryEl = document.getElementById('tankerEntry');
+                            if (tankerEntryEl) {
+                                const affirmationText = getAffirmationTextForDate(activeLogDate);
+                                const taknem = await getTaknemForDate(activeLogDate);
+                                let combinedText = '';
+                                if (affirmationText) {
+                                    combinedText = `Bekræftelse: "${affirmationText}"`;
+                                }
+                                if (taknem && taknem.trim()) {
+                                    if (combinedText) combinedText += '\n';
+                                    combinedText += `Taknemmelighed : "${taknem.trim()}"`;
+                                }
+                                tankerEntryEl.value = combinedText;
+                                autoResizeTextarea(tankerEntryEl);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Save check-in data to Firestore
+        async function saveCheckinDataToFirestore(checkinData) {
+            if (!currentUser || !db) return;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                await userDocRef.set({
+                    forside_checkin_data: checkinData
+                }, { merge: true });
+                console.log('Check-in data saved to Firestore from logbog_01.html');
+            } catch (error) {
+                console.error('Error saving check-in data to Firestore:', error);
+            }
+        }
+        
+        // Load check-in data from Firestore
+        async function loadCheckinDataFromFirestore() {
+            if (!currentUser || !db) return null;
+            
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists && userDoc.data().forside_checkin_data) {
+                    const data = userDoc.data().forside_checkin_data;
+                    console.log('Check-in data loaded from Firestore');
+                    return Array.isArray(data) ? data : [];
+                }
+                return [];
+            } catch (error) {
+                console.error('Error loading check-in data from Firestore:', error);
+                return null;
+            }
+        }
+        
         async function loadCheckinData() {
             try {
-                // If debug data is loaded, use it instead of localStorage
+                // If debug data is loaded, use it instead of localStorage/Firestore
                 if (debugCheckinData !== null) {
-                    return debugCheckinData;
+                    return processCheckinDataForDisplay(debugCheckinData);
+                }
+
+                let rawData = null;
+                
+                // Load from Firestore if toggle is on and user is logged in
+                if (useFirestore && currentUser) {
+                    rawData = await loadCheckinDataFromFirestore();
+                    if (rawData !== null) {
+                        return processCheckinDataForDisplay(rawData);
+                    }
+                    // If Firestore fails, fall back to localStorage
+                    console.warn('Failed to load from Firestore, falling back to localStorage');
                 }
 
                 // Load from localStorage
@@ -2815,28 +3308,33 @@
                 if (!raw) {
                     return [];
                 }
-                const parsed = JSON.parse(raw);
-                if (!Array.isArray(parsed)) {
-                    return [];
-                }
-                return parsed
-                    .filter(entry => typeof entry.status === 'number')
-                    .map(entry => {
-                        const dateObj = entry.date ? new Date(entry.date) : new Date();
-                        return {
-                            date: dateObj,
-                            status: Math.max(0, Math.min(100, Number(entry.status))),
-                            dateKey: dateObj.toISOString().split('T')[0],
-                            time: dateObj.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', hour12: false })
-                        };
-                    })
-                    .sort((a, b) => a.date - b.date);
+                rawData = JSON.parse(raw);
+                return processCheckinDataForDisplay(rawData);
             } catch (error) {
                 console.error('Fejl ved indlæsning af check-in data:', error);
                 return [];
             }
         }
-
+        
+        // Helper function to process check-in data for display
+        function processCheckinDataForDisplay(parsed) {
+            if (!Array.isArray(parsed)) {
+                return [];
+            }
+            return parsed
+                .filter(entry => typeof entry.status === 'number')
+                .map(entry => {
+                    const dateObj = entry.date ? new Date(entry.date) : new Date();
+                    return {
+                        date: dateObj,
+                        status: Math.max(0, Math.min(100, Number(entry.status))),
+                        dateKey: dateObj.toISOString().split('T')[0],
+                        time: dateObj.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', hour12: false })
+                    };
+                })
+                .sort((a, b) => a.date - b.date);
+        }
+        
         function processCheckinData(data) {
             if (!data || !Array.isArray(data) || data.length === 0) {
                 return { data: [], labels: [], totalDays: 0 };
@@ -3262,7 +3760,7 @@
 
                 const sorted = normalizedEntries.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
                 const latestDate = sorted.length ? sorted[0].date : getTodayDateKey();
-                setActiveLogDate(latestDate);
+                await setActiveLogDate(latestDate);
                 console.info(`Loaded ${normalizedEntries.length} entries into logbogData from debug_logbog.json`);
             } catch (error) {
                 console.error('Failed to load debug log data:', error);
@@ -3501,19 +3999,35 @@
             if (!modal || !openBtn || !closeBtn || !slider || !sliderValue || !saveBtn) return;
 
             // Check if user can make a new check-in
-            const checkIfCanMakeCheckin = () => {
+            const checkIfCanMakeCheckin = async () => {
                 const now = new Date();
                 let existingData = [];
-                try {
-                    const raw = localStorage.getItem('forside_checkin_data');
-                    if (raw) {
-                        const parsed = JSON.parse(raw);
-                        if (Array.isArray(parsed)) {
-                            existingData = parsed;
+                
+                // Check if we should use Firestore
+                if (useFirestore && currentUser) {
+                    try {
+                        const firestoreData = await loadCheckinDataFromFirestore();
+                        if (firestoreData !== null) {
+                            existingData = firestoreData;
                         }
+                    } catch (error) {
+                        console.warn('Kunne ikke læse check-in data fra Firestore:', error);
                     }
-                } catch (error) {
-                    console.warn('Kunne ikke læse forside_checkin_data:', error);
+                }
+                
+                // If no Firestore data or not using Firestore, try localStorage
+                if (existingData.length === 0) {
+                    try {
+                        const raw = localStorage.getItem('forside_checkin_data');
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (Array.isArray(parsed)) {
+                                existingData = parsed;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Kunne ikke læse forside_checkin_data:', error);
+                    }
                 }
 
                 // Check if there's a recent check-in (within last 30 minutes)
@@ -3544,8 +4058,8 @@
             };
 
             // Open modal
-            openBtn.addEventListener('click', () => {
-                if (!checkIfCanMakeCheckin()) {
+            openBtn.addEventListener('click', async () => {
+                if (!(await checkIfCanMakeCheckin())) {
                     return; // Don't open modal if too soon
                 }
                 modal.classList.add('show');
@@ -3571,23 +4085,39 @@
             });
 
             // Save check-in
-            saveBtn.addEventListener('click', () => {
+            saveBtn.addEventListener('click', async () => {
                 const status = parseInt(slider.value, 10);
                 const now = new Date();
                 const date = now.toISOString();
 
                 // Load existing data
                 let existingData = [];
-                try {
-                    const raw = localStorage.getItem('forside_checkin_data');
-                    if (raw) {
-                        const parsed = JSON.parse(raw);
-                        if (Array.isArray(parsed)) {
-                            existingData = parsed;
+                
+                // Check if we should use Firestore
+                if (useFirestore && currentUser) {
+                    try {
+                        const firestoreData = await loadCheckinDataFromFirestore();
+                        if (firestoreData !== null) {
+                            existingData = firestoreData;
                         }
+                    } catch (error) {
+                        console.warn('Kunne ikke læse check-in data fra Firestore:', error);
                     }
-                } catch (error) {
-                    console.warn('Kunne ikke læse forside_checkin_data:', error);
+                }
+                
+                // If no Firestore data or not using Firestore, try localStorage
+                if (existingData.length === 0 || !useFirestore || !currentUser) {
+                    try {
+                        const raw = localStorage.getItem('forside_checkin_data');
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (Array.isArray(parsed)) {
+                                existingData = parsed;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Kunne ikke læse forside_checkin_data:', error);
+                    }
                 }
 
                 // Add new entry
@@ -3599,9 +4129,14 @@
 
                 existingData.push(newEntry);
 
-                // Save back to localStorage
+                // Save back to Firestore or localStorage
                 try {
-                    localStorage.setItem('forside_checkin_data', JSON.stringify(existingData));
+                    if (useFirestore && currentUser) {
+                        await saveCheckinDataToFirestore(existingData);
+                    } else {
+                        localStorage.setItem('forside_checkin_data', JSON.stringify(existingData));
+                    }
+                    
                     closeModal();
                     renderCheckinChart();
                     // Update tanker field if viewing today's date
@@ -3609,8 +4144,8 @@
                     if (tankerEntryEl) {
                         // Get affirmation text for the selected date
                         const affirmationText = getAffirmationTextForDate(activeLogDate);
-                        // Get taknem value for the selected date
-                        const taknem = getTaknemForDate(activeLogDate);
+                        // Get taknem value for the selected date (now async)
+                        const taknem = await getTaknemForDate(activeLogDate);
                         
                         // Combine affirmation text and taknem value
                         let combinedText = '';
@@ -3751,6 +4286,25 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // Setup Firebase toggle and header color
+            setupDataSourceToggle();
+            
+            // Wait a bit for auth state to be determined
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            // Sync toggle state with global storage on page load
+            const globalState = loadGlobalFirestoreToggle();
+            if (globalState && currentUser) {
+                useFirestore = true;
+                const toggle = document.getElementById('dataSourceToggle');
+                if (toggle) toggle.checked = true;
+                console.log('DOMContentLoaded: Set useFirestore = true based on global state and currentUser');
+            } else {
+                console.log('DOMContentLoaded: useFirestore =', useFirestore, 'globalState =', globalState, 'currentUser =', !!currentUser);
+            }
+            
+            updateDataSource();
+            
             // Load affirmations first
             await loadAffirmations();
             
@@ -3760,9 +4314,14 @@
             initCheckinViewToggle();
             initCheckinModal();
             renderCheckinChart();
-            ensureSeedLogbookData();
+            
+            // Wait a bit for auth state to be determined before loading data
+            // This ensures currentUser is set if user is logged in
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            await ensureSeedLogbookData();
             activeLogDate = getTodayDateKey();
-            hydrateLogbookFields();
+            await hydrateLogbookFields();
 
             // Add copy button functionality
             const journalCopyBtn = document.getElementById('journalCopyBtn');

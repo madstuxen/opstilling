@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
-    <title>Forside</title>
-    <script src="coaching_engine.js" defer></script>
-    <script src="coaching_overlay_complete.js" defer></script>
+    <title>Login - Index</title>
+    <!-- Firebase App (the core Firebase SDK) - Using v8 for compatibility -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <!-- Firebase Authentication -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <!-- Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         * {
             margin: 0;
@@ -17,1345 +20,589 @@
         
         body {
             font-family: 'Arial', sans-serif;
-            background: #ffffff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            margin: 0;
-            padding: 0px;
             display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            position: relative;
+            justify-content: center;
+            padding: 20px;
         }
         
-        .background-image {
-            position: fixed;
-            left: 56%;
-            top: 31%;
-            transform: translate(-50%, -50%);
-            z-index: 0;
-            width: 395px;
-            height: auto;
-            opacity: 0.8;
-        }
-        
-        .background-image img {
-            width: 100%;
-            height: auto;
-        }
-        
-        /* Main content container - holds logo, figure and nav together */
-        .main-content-container {
-            position: fixed;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1;
-            width: 50%;
-            height: 17%;
-            pointer-events: none;
-        }
-        
-        .logo-container {
-            width: 443px;
-            position: absolute;
-            left: 50%;
-            top: 0;
-            transform: translateX(-50%);
-            z-index: 1;
-            cursor: pointer;
-            transition: transform 0.2s ease, opacity 0.2s ease;
-            pointer-events: auto;
-        }
-        
-        .logo-container:hover {
-            transform: translateX(-50%) scale(1.05);
-            opacity: 0.9;
-        }
-        
-        .logo-container svg {
-            width: 100%;
-            height: auto;
-        }
-        
-        /* Styling af SVG elementer - du kan ændre disse farver */
-        .logo-blue {
-            fill: #3368AE; /* Blå farve - første path */
-        }
-        
-        .logo-yellow {
-            fill: #E6B94F; /* Gul farve - anden path */
-        }
-        
-        .logo-black {
-            fill: #2C2C2C; /* Sort/mørkegrå - tredje path */
-        }
-        
-        /* Hover effekt eksempel */
-        .logo-container:hover .logo-blue {
-            fill: #ff6b6b; /* Rød ved hover */
-        }
-        
-        .logo-container:hover .logo-yellow {
-            fill: #4ecdc4; /* Cyan ved hover */
-        }
-        
-        .logo-container:hover .logo-black {
-            fill: #95e1d3; /* Lys grøn ved hover */
-        }
-        
-        /* Navigation box */
-        .nav-box {
-            position: absolute;
-            left: 50%;
-            top: 350px;
-            transform: translate(0px, -100%);
-            background: transparent;
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            padding: 20px 25px;
-            z-index: 3;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            font-size: 2em;
+            color: #374151;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #6b7280;
+            font-size: 0.95em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: white;
+            color: #1f2937;
+        }
+        
+        .form-group input::placeholder {
+            color: #9ca3af;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .login-button:active {
+            transform: translateY(0);
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
             display: none;
-            flex-direction: column;
-            gap: 10px;
-            min-width: 200px;
-            pointer-events: auto;
         }
         
-        .nav-box.show {
-            display: flex;
+        .error-message.show {
+            display: block;
         }
         
-        .nav-button {
-            padding: 8px 16px;
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+        
+        .logged-in-section {
+            margin-top: 20px;
+        }
+        
+        .logged-in-section .user-info {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #e0f2fe;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #0c4a6e;
+            text-align: center;
+        }
+        
+        .logged-in-section .user-info strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+        
+        .logout-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+        }
+        
+        .start-button {
+            width: 100%;
+            padding: 14px;
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
-            text-decoration: none;
-            text-align: center;
-            display: block;
-            min-width: 120px;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
         }
         
-        .nav-button:hover {
+        .start-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
         }
         
-        .nav-button:nth-child(1) {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        .start-button:active {
+            transform: translateY(0);
         }
         
-        .nav-button:nth-child(1):hover {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
-        }
-        
-        .nav-button:nth-child(2) {
-            background: linear-gradient(135deg, #E6B94F 0%, #d97706 100%);
-        }
-        
-        .nav-button:nth-child(2):hover {
-            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-            box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3);
-        }
-        
-        .nav-button:nth-child(3) {
-            background: linear-gradient(135deg, #3368AE 0%, #1e40af 100%);
-        }
-        
-        .nav-button:nth-child(3):hover {
-            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
-        }
-        
-        .nav-button:nth-child(4) {
-            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
-        }
-        
-        .nav-button:nth-child(4):hover {
-            background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
-            box-shadow: 0 5px 15px rgba(236, 72, 153, 0.3);
-        }
-        
-        .nav-button:nth-child(5) {
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-        }
-        
-        .nav-button:nth-child(5):hover {
-            background: linear-gradient(135deg, #475569 0%, #334155 100%);
-            box-shadow: 0 5px 15px rgba(71, 85, 105, 0.3);
-        }
-
-        .night-overlay {
-            position: fixed;
-            inset: 0;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9990;
-        }
-
-        .night-overlay.show {
-            display: flex;
-        }
-
-        .night-overlay-backdrop {
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.9);
-        }
-
-        .night-overlay-panel {
-            position: relative;
-            z-index: 1;
-            width: min(90vw, 480px);
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(124, 58, 237, 0.16) 100%);
-            border: 1px solid rgba(124, 58, 237, 0.35);
-            border-radius: 22px;
-            padding: 28px 30px;
-            box-shadow: 0 24px 50px rgba(15, 23, 42, 0.45);
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            min-height: 560px;
-        }
-
-        .night-overlay-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-        }
-
-        .night-overlay-header h2 {
-            font-size: 1.25rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: #f472b6;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .night-overlay-header h2 img {
-            width: 28px;
-            height: auto;
-        }
-
-        .night-overlay-close {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            border: none;
-            background: rgba(244, 114, 182, 0.85);
-            color: #1f1026;
+        .toggle-button {
+            flex: 1;
+            padding: 12px;
+            background: #e5e7eb;
+            color: #374151;
+            border: 2px solid #d1d5db;
+            border-radius: 10px;
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 500;
             cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s ease, background 0.2s ease;
+            transition: all 0.3s ease;
         }
 
-        .night-overlay-close:hover {
-            transform: scale(1.08);
-            background: rgba(244, 114, 182, 1);
-        }
-
-        .night-overlay textarea {
-            width: 100%;
-            min-height: 450px;
-            border-radius: 14px;
-            border: 1px solid rgba(124, 58, 237, 0.35);
-            background: rgba(23, 23, 35, 0.82);
-            color: rgba(231, 214, 226, 0.72);
-            padding: 18px;
-            font-size: 1rem;
-            line-height: 1.6;
-            resize: vertical;
-            font-family: 'Arial', sans-serif;
-            box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.12);
-        }
-
-        .night-overlay textarea::placeholder {
-            color: rgba(226, 232, 240, 0.6);
-        }
-
-        .night-overlay textarea:focus {
-            outline: none;
-            border-color: rgba(167, 139, 250, 0.75);
-            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
-            background: rgba(23, 23, 35, 0.9);
+        .toggle-button:hover {
+            background: #d1d5db;
         }
         
-        /* Figure container */
-        .figure-container {
-            position: absolute;
-            left: 50%;
-            top: 97px;
-            transform: translate(-270px, 0);
-            z-index: 2;
-            width: 300px;
-            height: 300px;
-            pointer-events: none;
-        }
-        
-        .part {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-        
-        .head {
-            position: absolute;
-            top: -74px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 72px;
-            height: 72px;
-            border-radius: 50%;
-            background: #d97706;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .toggle-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            font-weight: bold;
-            font-size: 12px;
-            text-align: center;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            padding: 10px;
-            line-height: 1.2;
-            z-index: 5;
-            pointer-events: auto;
-        }
-        
-        .body {
-            position: absolute;
-            top: 77px;
-            left: 50%;
-            transform: translateX(-50%);
-            transform-origin: 40px -77px;
-            transition: none !important;
-            z-index: -1;
-            pointer-events: none;
-            will-change: transform;
-            backface-visibility: hidden;
-        }
-        
-        .torso {
-            width: 60px;
-            height: 80px;
-            background: #d97706;
-            margin: 0 auto;
-            border-radius: 30px 30px 20px 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            position: relative;
-            z-index: 5;
-        }
-        
-        .torso::after {
-            content: '';
-            position: absolute;
-            top: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 4px;
-            height: 4px;
-            background: #d97706;
-            border-radius: 50%;
-        }
-        
-        .skulder_translate_right {
-            position: absolute;
-            top: 2px;
-            left: 41px;
-            width: 15px;
-            height: 15px;
-            background: rgba(59, 130, 246, 0.0);
-            z-index: 3;
-        }
-        
-        .skulder_translate_right.front-arm {
-            z-index: 15;
-        }
-        
-        .skulder_rotate_right {
-            width: 100%;
-            height: 100%;
-            background: rgba(239, 68, 68, 0.0);
-            transform-origin: center center;
-        }
-        
-        .arm_geo_right {
-            width: 50px;
-            height: 18px;
-            background: #d97706;
-            border-radius: 9px;
-            position: relative;
-            top: -1px;
-            left: -1px;
-        }
-        
-        .albue_rotate_right {
-            position: relative;
-            top: 1px;
-            left: 34px;
-            width: 15px;
-            height: 15px;
-            background: rgba(16, 185, 129, 0.0);
-            transform-origin: center center;
-        }
-        
-        .albue_geo_right {
-            position: relative;
-            top: -1px;
-            left: 1px;
-            width: 50px;
-            height: 18px;
-            background: #d97706;
-            border-radius: 9px;
-            z-index: 4;
-        }
-        
-        .skulder_translate_left {
-            position: absolute;
-            top: 2px;
-            left: 4px;
-            width: 15px;
-            height: 15px;
-            background: rgba(59, 130, 246, 0.0);
-            z-index: 3;
-        }
-        
-        .skulder_translate_left.front-arm {
-            z-index: 15;
-        }
-        
-        .skulder_rotate_left {
-            width: 100%;
-            height: 100%;
-            background: rgba(239, 68, 68, 0.0);
-            transform-origin: center center;
-        }
-        
-        .arm_geo_left {
-            width: 50px;
-            height: 18px;
-            background: #d97706;
-            border-radius: 9px;
-            position: relative;
-            top: -1px;
-            left: -34px;
-        }
-        
-        .albue_rotate_left {
-            position: relative;
-            top: 1px;
-            left: 0px;
-            width: 15px;
-            height: 15px;
-            background: rgba(16, 185, 129, 0.0);
-            transform-origin: center center;
-        }
-        
-        .albue_geo_left {
-            position: relative;
-            top: -1px;
-            left: -33px;
-            width: 50px;
-            height: 18px;
-            background: #d97706;
-            border-radius: 9px;
-            z-index: 4;
-        }
-        
-        .hofte_translate_right {
-            position: absolute;
-            top: 68px;
-            left: 40px;
-            width: 15px;
-            height: 15px;
-            background: rgba(59, 130, 246, 0.0);
-        }
-        
-        .hofte_rotate_right {
-            width: 100%;
-            height: 100%;
-            background: rgba(239, 68, 68, 0.0);
-            transform-origin: center center;
-        }
-        
-        .laar_geo_right {
-            width: 18px;
-            height: 55px;
-            background: #d97706;
-            border-radius: 9px;
-            position: relative;
-            top: -1px;
-            left: -1px;
-        }
-        
-        .knae_rotate_right {
-            position: relative;
-            top: 38px;
-            left: 1px;
-            width: 15px;
-            height: 15px;
-            background: rgba(16, 185, 129, 0.0);
-            transform-origin: center center;
-        }
-        
-        .skinneben_geo_right {
-            position: relative;
-            top: -1px;
-            left: -1px;
-            width: 18px;
-            height: 50px;
-            background: #d97706;
-            border-radius: 9px;
-        }
-        
-        .hofte_translate_left {
-            position: absolute;
-            top: 68px;
-            left: 4px;
-            width: 15px;
-            height: 15px;
-            background: rgba(59, 130, 246, 0.0);
-        }
-        
-        .hofte_rotate_left {
-            width: 100%;
-            height: 100%;
-            background: rgba(239, 68, 68, 0.0);
-            transform-origin: center center;
-        }
-        
-        .laar_geo_left {
-            width: 18px;
-            height: 55px;
-            background: #d97706;
-            border-radius: 9px;
-            position: relative;
-            top: -1px;
-            left: -1px;
-        }
-        
-        .knae_rotate_left {
-            position: relative;
-            top: 38px;
-            left: 1px;
-            width: 15px;
-            height: 15px;
-            background: rgba(16, 185, 129, 0.0);
-            transform-origin: center center;
-        }
-        
-        .skinneben_geo_left {
-            position: relative;
-            top: -1px;
-            left: -1px;
-            width: 18px;
-            height: 50px;
-            background: #d97706;
-            border-radius: 9px;
+            border-color: transparent;
         }
     </style>
 </head>
 <body>
-    <div class="background-image">
-        <img src="imagefiles/bag_trans.png" alt="Baggrund">
-    </div>
-    <div class="main-content-container">
-        <div class="logo-container" id="logoContainer">
-        <svg width="887" height="276" viewBox="0 0 887 276" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path class="logo-blue" d="M762.601 78.5867C762.601 78.5867 768.652 58.723 787.689 57.0008C806.726 55.2785 811.178 74.1922 811.178 74.1922C811.178 74.1922 825.362 46.9523 855.304 50.8836C885.246 54.8149 887 213.815 887 213.815L849.582 217.2C849.579 216.984 848.016 93.9925 836.477 88.6033C824.928 83.2098 817.927 98.3308 817.927 98.3308L828.283 214.298L793.491 217.445C793.493 217.207 794.041 118.186 783.537 108.082C773.021 97.9665 765.133 120.21 765.133 120.21L771.172 219.465L735.724 222.672L724.997 46.3738L760.445 43.1668L762.601 78.5867ZM612.436 19.7859C659.171 -8.40773 720.389 43.0623 713.807 110.484L605.854 131.353C627.551 225.018 699.819 142.778 699.983 142.591C705.917 152.924 720.341 183.422 720.39 183.525C692.085 213.223 676.945 225.098 641.399 222.052C612.625 219.585 593.052 196.368 581.288 164.305C569.524 132.243 565.7 47.9801 612.436 19.7859ZM445 3.69607C445.053 3.68578 523.113 -11.5066 544.903 19.7859C566.701 51.0892 565.309 179.512 544.903 204.394C524.525 229.243 448.422 219.67 448.216 219.644L445 3.69607ZM519.4 74.1717C507.758 56.7189 466.072 65.1742 465.988 65.1912L467.707 185.713C467.741 185.717 508.495 191.082 519.4 177.202C530.31 163.315 531.054 91.6422 519.4 74.1717ZM636.791 49.4832C603.268 50.5317 608.472 105.514 608.486 105.669L676.944 92.0232C676.913 91.8149 670.281 48.4361 636.791 49.4832Z"/>
-            <path class="logo-yellow" d="M291.82 29.8864C319.501 -9.90187 361.99 -1.12561 407.034 6.67644V81.28C406.952 81.2568 392.296 77.1354 365.837 77.1354C365.837 50.6099 373.518 47.2935 361.647 42.32C304.39 42.32 305.088 102.831 309.976 124.383C314.863 145.935 323.242 167.488 349.776 172.462C376.296 177.432 380.495 148.454 380.5 148.423H361.647V111.121H421V165.83C407.035 208.105 378.206 227.782 344.889 224.683C309.975 217.223 298.105 212.15 280.648 165.83C263.192 119.51 264.14 69.6748 291.82 29.8864ZM87.2451 83.2243L131.425 9.99968H183.03L186 218H131.425V116.123L87.2451 160.163L49.377 120.898V215.347L0.742188 218L0 9.99968H49.377L87.2451 83.2243ZM265 217H210.581L205 9.99968H258.023L265 217Z"/>
-            <path class="logo-black" d="M390.955 149.703C398.29 149.027 403.745 150.174 407.32 153.146C410.997 155.993 413.023 159.449 413.397 163.511C413.772 167.574 413.546 171.294 412.719 174.671C411.881 177.935 410.879 180.645 409.712 182.801C408.658 184.947 406.738 187.571 403.951 190.673C401.266 193.652 399.186 195.779 397.71 197.053C396.347 198.317 393.877 200.536 390.3 203.711C397.957 213.932 409.13 225.251 423.818 237.668C426.389 233.448 428.59 229.546 430.422 225.962C433.799 226.789 436.381 228.258 438.169 230.37L438.94 231.323C436.104 236.365 433.534 240.585 431.23 243.984C436.653 248.492 441.989 252.667 447.237 256.508L447.44 258.708L437.401 268.341C431.876 263.956 426.878 259.75 422.41 255.723C417.553 261.065 412.648 264.647 407.694 266.47C402.741 268.292 395.975 269.599 387.398 270.389C378.934 271.17 371.678 269.619 365.63 265.738C359.694 261.846 356.336 255.669 355.556 247.204C354.775 238.74 356.192 231.269 359.806 224.79C363.409 218.198 368.67 211.681 375.588 205.238C369.604 195.888 366.269 187.489 365.583 180.04C364.886 172.479 367.109 165.73 372.252 159.793C377.385 153.743 383.619 150.38 390.955 149.703ZM369.323 240.984C369.749 245.611 371.247 249.514 373.816 252.691C376.488 255.746 380.005 257.47 384.366 257.865L403.495 256.101C403.721 256.081 404.218 255.921 404.987 255.622C405.756 255.324 406.31 255.159 406.649 255.128C406.977 254.984 407.469 254.768 408.125 254.479C408.895 254.181 409.495 253.898 409.925 253.631C410.469 253.353 411.063 253.014 411.709 252.613C412.468 252.201 413.677 251.122 415.337 249.376C400.566 236.056 389.079 223.798 380.876 212.604C372.259 221.593 368.407 231.053 369.323 240.984ZM377.305 175.716C377.909 182.262 380.601 189.241 385.381 196.653C391.162 191.454 395.399 186.795 398.092 182.677C400.898 178.549 402.057 173.833 401.568 168.529C401.068 163.112 399.115 159.82 395.707 158.655L384.873 159.654C382.247 160.806 380.229 162.984 378.817 166.187C377.507 169.267 377.003 172.443 377.305 175.716Z"/>
-        </svg>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Login</h1>
+            <p>Log ind for at fortsætte</p>
         </div>
         
-        <div class="figure-container">
-            <div class="part" id="guideFigure">
-                <div class="body">
-                    <div class="head">Mig</div>
-                    <div class="torso"></div>
+        <div class="error-message" id="errorMessage"></div>
                     
-                    <!-- Venstre arm hierarki -->
-                    <div class="skulder_translate_left">
-                        <div class="skulder_rotate_left">
-                            <div class="arm_geo_left">
-                                <div class="albue_rotate_left">
-                                    <div class="albue_geo_left"></div>
+        <!-- Login form -->
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="Email" required autocomplete="email">
                                 </div>
+            
+            <div class="form-group">
+                <label for="password">Adgangskode</label>
+                <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password">
                             </div>
+            
+            <!-- Toggle buttons for login/new user -->
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button type="submit" class="toggle-button active" id="showLoginBtn">Log ind</button>
+                <button type="button" class="toggle-button" id="showNewUserBtn">Ny bruger</button>
                         </div>
-                    </div>
-                    
-                    <!-- Højre arm hierarki -->
-                    <div class="skulder_translate_right">
-                        <div class="skulder_rotate_right">
-                            <div class="arm_geo_right">
-                                <div class="albue_rotate_right">
-                                    <div class="albue_geo_right"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Venstre ben hierarki -->
-                    <div class="hofte_translate_left">
-                        <div class="hofte_rotate_left">
-                            <div class="laar_geo_left">
-                                <div class="knae_rotate_left">
-                                    <div class="skinneben_geo_left"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Højre ben hierarki -->
-                    <div class="hofte_translate_right">
-                        <div class="hofte_rotate_right">
-                            <div class="laar_geo_right">
-                                <div class="knae_rotate_right">
-                                    <div class="skinneben_geo_right"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        </form>
+        
+        <!-- New user form -->
+        <form id="new-user-form" style="display: none;">
+            <div class="form-group">
+                <label for="displayName">Dit kalde navn</label>
+                <input type="text" id="displayName" name="displayName" placeholder="Dit kalde navn" required autocomplete="name">
             </div>
+            
+            <div class="form-group">
+                <label for="newEmail">Email</label>
+                <input type="email" id="newEmail" name="newEmail" placeholder="Email" required autocomplete="email">
+            </div>
+            
+            <div class="form-group">
+                <label for="newPassword">Adgangskode</label>
+                <input type="password" id="newPassword" name="newPassword" placeholder="Vælg en adgangskode" required autocomplete="new-password">
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Bekræft adgangskode</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Bekræft adgangskode" required autocomplete="new-password">
+            </div>
+            
+            <!-- Toggle buttons for login/new user -->
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button type="button" class="toggle-button" id="showLoginBtnFromNewUser">Log ind</button>
+                <button type="submit" class="toggle-button active">Opret bruger</button>
+            </div>
+        </form>
+        
+        <!-- Logged in section -->
+        <div class="logged-in-section" id="loggedInSection" style="display: none;">
+            <div class="user-info">
+                <strong>Du er logget ind</strong>
+                <p id="userEmail" style="margin-top: 8px; color: #6b7280; font-size: 14px;"></p>
+            </div>
+            
+            <button type="button" class="start-button" id="goToCheckinBtn" style="margin-top: 20px;">Lad os starte!</button>
+            <button type="button" class="logout-button" id="logoutButton" style="margin-top: 10px;">Log ud</button>
         </div>
         
-        <div class="nav-box" id="navBox">
-            <a href="opstilling_01.html" class="nav-button">Opstilling</a>
-            <a href="dialog_01.html" class="nav-button">Dialog</a>
-            <a href="compare_01.html" class="nav-button">Ligheder</a>
-            <a href="bodymap_01.html" class="nav-button">BodyMap</a>
-            <a href="logbog_01.html" class="nav-button">Logbog</a>
-        </div>
-    </div>
-
-<div class="night-overlay" id="nightOverlay">
-    <div class="night-overlay-backdrop"></div>
-    <div class="night-overlay-panel">
-        <div class="night-overlay-header">
-            <h2>
-                Drømme
-                <img src="imagefiles/moon.svg" alt="Måne ikon">
-            </h2>
-            <button class="night-overlay-close" id="nightOverlayClose" title="Luk">×</button>
-        </div>
-        <textarea id="nightDreamEntry" placeholder="Nedskriv dine drømme, fantasier og indskydelser ..."></textarea>
-    </div>
 </div>
     
     <script>
-        // Helper to ensure today's log entry exists
-        const LOGBOOK_STORAGE_KEY = 'logbogData';
+        // Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCl6ZYtkfYx3kFF9329eGpeazsmJAPMKzA",
+  authDomain: "relationer-fe5fe.firebaseapp.com",
+  projectId: "relationer-fe5fe",
+  storageBucket: "relationer-fe5fe.firebasestorage.app",
+  messagingSenderId: "156720560629",
+  appId: "1:156720560629:web:1a138e4e89f02a131f88bc",
+  measurementId: "G-K5W7J8JHZG"
+};
 
-        function getTodayDateKey() {
-            return new Date().toISOString().split('T')[0];
-        }
-
-        function getLogbookEntries() {
-            try {
-                const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
-                if (!raw) return [];
-                const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
+        // Initialize Firebase
+        console.log('Initializing Firebase...');
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log('Firebase initialized successfully');
             } catch (error) {
-                console.warn('Kunne ikke læse logbogData:', error);
-                return [];
+            console.error('Firebase initialization error:', error);
             }
+        
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Get DOM elements
+        console.log('Getting DOM elements...');
+        const loginForm = document.getElementById('login-form');
+        const newUserForm = document.getElementById('new-user-form');
+        const errorMessage = document.getElementById('errorMessage');
+        const showLoginBtn = document.getElementById('showLoginBtn');
+        const showNewUserBtn = document.getElementById('showNewUserBtn');
+        const showLoginBtnFromNewUser = document.getElementById('showLoginBtnFromNewUser');
+        const loggedInSection = document.getElementById('loggedInSection');
+        const userEmailEl = document.getElementById('userEmail');
+        const goToCheckinBtn = document.getElementById('goToCheckinBtn');
+        const logoutButton = document.getElementById('logoutButton');
+        let currentUser = null;
+        
+        // Debug: Check if all elements exist
+        console.log('DOM elements check:');
+        console.log('loginForm:', loginForm ? 'found' : 'NOT FOUND');
+        console.log('newUserForm:', newUserForm ? 'found' : 'NOT FOUND');
+        console.log('errorMessage:', errorMessage ? 'found' : 'NOT FOUND');
+        
+        if (!loginForm) {
+            console.error('ERROR: login-form element not found!');
+        }
+        
+        if (!newUserForm) {
+            console.error('ERROR: new-user-form element not found!');
         }
 
-        function saveLogbookEntries(entries) {
-            try {
-                localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
-            } catch (error) {
-                console.error('Kunne ikke gemme logbogData:', error);
-            }
-        }
-
-        function upsertLogEntry(dateKey, partial) {
-            const entries = getLogbookEntries();
-            let entry = entries.find(item => item.date === dateKey);
-            if (!entry) {
-                entry = {
-                    date: dateKey,
-                    dagbog: '',
-                    dreams: ''
-                };
-                entries.push(entry);
-            }
-            Object.assign(entry, partial);
-            saveLogbookEntries(entries);
-            return entry;
-        }
-
-        function ensureTodayLogEntry() {
-            const todayKey = getTodayDateKey();
-            const entries = getLogbookEntries();
-            let entry = entries.find(item => item.date === todayKey);
-            if (!entry) {
-                entry = {
-                    date: todayKey,
-                    dagbog: '',
-                    dreams: ''
-                };
-                entries.push(entry);
-                saveLogbookEntries(entries);
-            }
-            return entry;
-        }
-
-        const OVERLAY_STATE_KEY = 'forside_overlay_data';
-        const OVERLAY_SHOW_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-
-        function loadOverlayState() {
-            try {
-                const raw = localStorage.getItem(OVERLAY_STATE_KEY);
-                if (!raw) return {};
-                const parsed = JSON.parse(raw);
-                return typeof parsed === 'object' && parsed !== null ? parsed : {};
-            } catch (error) {
-                console.warn('Kunne ikke læse forside_overlay_data:', error);
-                return {};
-            }
-        }
-
-        function saveOverlayState(state) {
-            try {
-                localStorage.setItem(OVERLAY_STATE_KEY, JSON.stringify(state));
-            } catch (error) {
-                console.warn('Kunne ikke gemme forside_overlay_data:', error);
-            }
-        }
-
-        function shouldShowOverlay() {
-            const now = new Date();
-            const currentHour = now.getHours();
-            const isNightTime = (currentHour >= 22 && currentHour <= 23) || (currentHour >= 0 && currentHour < 8);
-            if (!isNightTime) {
-                return false;
-            }
-
-            const state = loadOverlayState();
-        if (state.closedAt) {
-            const closedAt = new Date(state.closedAt);
-            if (!Number.isNaN(closedAt.getTime())) {
-                const timeSinceClosed = now.getTime() - closedAt.getTime();
-                if (timeSinceClosed < OVERLAY_SHOW_INTERVAL_MS) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-        function recordOverlayClosed() {
-            const state = loadOverlayState();
-            state.closedAt = new Date().toISOString();
-            saveOverlayState(state);
-        }
-
-        function hydrateNightOverlay() {
-            const overlay = document.getElementById('nightOverlay');
-            const textarea = document.getElementById('nightDreamEntry');
-            const closeBtn = document.getElementById('nightOverlayClose');
-
-            if (!overlay || !textarea || !closeBtn) return;
-
-            const entry = ensureTodayLogEntry();
-            textarea.value = entry.dreams || '';
-
-            textarea.addEventListener('input', () => {
-                upsertLogEntry(getTodayDateKey(), { dreams: textarea.value });
-            });
-
-            closeBtn.addEventListener('click', () => {
-                overlay.classList.remove('show');
-                recordOverlayClosed();
-            });
-
-        if (shouldShowOverlay()) {
-            overlay.classList.add('show');
-        }
-        }
-
-        let overlayActivityTimeoutId = null;
-
-        function setupOverlayActivityListeners() {
-            const activityEvents = ['mousemove', 'keydown', 'touchstart', 'click'];
-
-            function handleActivity() {
-                const overlay = document.getElementById('nightOverlay');
-                if (!overlay || overlay.classList.contains('show')) {
-                    resetOverlayActivityTimeout();
-                    return;
-                }
-                if (overlayActivityTimeoutId !== null) {
-                    return;
-                }
-                overlayActivityTimeoutId = window.setTimeout(() => {
-                    overlayActivityTimeoutId = null;
-                    hydrateNightOverlay();
-                }, 500);
-            }
-
-            activityEvents.forEach(eventName => {
-                window.addEventListener(eventName, handleActivity, { passive: true });
-            });
-        }
-
-        function resetOverlayActivityTimeout() {
-            if (overlayActivityTimeoutId !== null) {
-                clearTimeout(overlayActivityTimeoutId);
-                overlayActivityTimeoutId = null;
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            hydrateNightOverlay();
-            setupOverlayActivityListeners();
-
-            const logoContainer = document.getElementById('logoContainer');
-            if (logoContainer) {
-                logoContainer.addEventListener('click', (e) => {
-                    e.stopPropagation();
-
-                    const launchCoaching = () => {
-                        const openFunc =
-                            typeof window.openCoachingOverlay === 'function'
-                                ? window.openCoachingOverlay
-                                : (typeof openCoachingOverlay === 'function' ? openCoachingOverlay : null);
-                        if (openFunc) {
-                            openFunc('coaching_templates/forside_coaching.json');
-                        } else {
-                            console.error('Coaching overlay funktion ikke tilgængelig');
-                        }
-                    };
-
-                    if (typeof window.openCoachingOverlay === 'function' || typeof openCoachingOverlay === 'function') {
-                        launchCoaching();
-                    } else {
-                        const retryInterval = setInterval(() => {
-                            if (typeof window.openCoachingOverlay === 'function' || typeof openCoachingOverlay === 'function') {
-                                clearInterval(retryInterval);
-                                launchCoaching();
-                            }
-                        }, 100);
-                        setTimeout(() => clearInterval(retryInterval), 5000);
-                    }
-
-                    setTimeout(() => {
-                        const navBox = document.getElementById('navBox');
-                        if (navBox) {
-                            navBox.classList.add('show');
-                            const navLinks = navBox.querySelectorAll('a.nav-button');
-                            navLinks.forEach(link => {
-                                link.addEventListener('click', (linkEvent) => {
-                                    linkEvent.stopPropagation();
-                                    navBox.classList.remove('show');
-                                    const href = link.getAttribute('href');
-                                    if (href) {
-                                        window.location.href = href;
-                                    }
-                                });
-                            });
-                        }
-                    }, 300);
-                });
+        // Check if user is already logged in
+        auth.onAuthStateChanged(user => {
+            console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
+            if (user) {
+                console.log('User is logged in:', user.email);
+                currentUser = user;
+                showLoggedInSection(user);
+            } else {
+                console.log('User is not logged in, showing login form');
+                currentUser = null;
+                showLoginForm();
             }
         });
 
-        // Animations library
-        let animationsLibrary = {};
+        // Login form submit handler
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Login form submitted');
+            
+            // Hide previous messages
+            errorMessage.classList.remove('show');
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            console.log('Attempting login for:', email);
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log('Login successful!', userCredential.user);
+                    // Successful login - show logged in section
+                    currentUser = userCredential.user;
+                    showLoggedInSection(currentUser);
+                    // Clear form
+                    loginForm.reset();
+                })
+                .catch(error => {
+                    // Parse error message if it's JSON
+                    let errorCode = error.code || '';
+                    let errorMsgText = error.message || '';
         
-        // Default kram pose
-        const kramPose = {
-            name: "kram",
-            pose: {
-                translate_x_left: -4,
-                translate_y_left: 4,
-                skulder_rot_left: -28,
-                albue_rot_left: 11,
-                translate_x: 3,
-                translate_y: 3,
-                skulder_rot: 27,
-                albue_rot: -13,
-                translate_x_left_leg: 0,
-                translate_y_left_leg: 0,
-                hofte_rot_left: 4,
-                knae_rot_left: -4,
-                translate_x_right_leg: 0,
-                translate_y_right_leg: 0,
-                hofte_rot_right: -4,
-                knae_rot_right: 3,
-                left_arm_front: false,
-                right_arm_front: false
-            }
-        };
-        
-        // Load animations from JSON files
-        async function loadAnimations() {
-            try {
-                const manifestResponse = await fetch('Animations/manifest.json');
-                if (manifestResponse.ok) {
-                    const manifest = await manifestResponse.json();
-                    if (manifest.files && Array.isArray(manifest.files)) {
-                        for (const fileName of manifest.files) {
-                            try {
-                                const fileResponse = await fetch(`Animations/${fileName}`);
-                                if (fileResponse.ok) {
-                                    const animationData = await fileResponse.json();
-                                    const animName = fileName.replace('.json', '');
-                                    animationsLibrary[animName] = animationData;
-                                }
-                            } catch (error) {
-                                console.error(`Failed to load animation ${fileName}:`, error);
-                            }
-                        }
-                        return;
+                    // Try to parse JSON error messages
+                    try {
+                        if (typeof errorMsgText === 'string' && errorMsgText.startsWith('{')) {
+                            const parsed = JSON.parse(errorMsgText);
+                            if (parsed.error && parsed.error.message) {
+                                errorMsgText = parsed.error.message;
                     }
                 }
-            } catch (error) {
-                // Manifest not available, try directory listing
-            }
-            
-            // Fallback: Try directory listing
-            try {
-                const response = await fetch('Animations/');
-                if (response.ok) {
-                    const html = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const links = doc.querySelectorAll('a[href$=".json"]');
-                    const jsonFiles = Array.from(links)
-                        .map(link => link.getAttribute('href'))
-                        .filter(file => file !== 'manifest.json');
+                    } catch (e) {
+                        // Not JSON, continue with original message
+                    }
                     
-                    if (jsonFiles.length > 0) {
-                        for (const fileName of jsonFiles) {
-                            try {
-                                const fileResponse = await fetch(`Animations/${fileName}`);
-                                if (fileResponse.ok) {
-                                    const animationData = await fileResponse.json();
-                                    const animName = fileName.replace('.json', '');
-                                    animationsLibrary[animName] = animationData;
-                                }
-                            } catch (error) {
-                                console.error(`Failed to load animation ${fileName}:`, error);
-                            }
-                        }
-                        return;
+                    let errorMsg = 'Der opstod en fejl ved login';
+                    // Translate common error messages to Danish
+                    if (errorCode === 'auth/user-not-found' || 
+                        errorCode === 'auth/internal-error' || 
+                        errorMsgText.includes('INVALID_LOGIN_CREDENTIALS')) {
+                        errorMsg = 'Brugeren findes ikke eller forkert adgangskode. Tjek email og adgangskode.';
+                    } else if (errorCode === 'auth/wrong-password') {
+                        errorMsg = 'Forkert adgangskode. Prøv igen.';
+                    } else if (errorCode === 'auth/invalid-email') {
+                        errorMsg = 'Ugyldig email-adresse';
+                    } else if (errorCode === 'auth/user-disabled') {
+                        errorMsg = 'Denne bruger er deaktiveret';
+                    } else if (errorCode === 'auth/too-many-requests') {
+                        errorMsg = 'For mange mislykkede forsøg. Prøv igen senere.';
+                    } else if (errorCode === 'auth/network-request-failed') {
+                        errorMsg = 'Netværksfejl. Tjek din internetforbindelse.';
+                    } else if (errorMsgText && !errorMsgText.includes('{') && !errorMsgText.includes('error')) {
+                        // Only use error message if it's not JSON and doesn't contain error object
+                        errorMsg = errorMsgText;
                     }
-                }
-            } catch (error) {
-                // Directory listing not available
-            }
-        }
-        
-        // Apply pose to figure
-        function applyPoseToFigure(figure) {
-            const poseData = kramPose.pose;
-            const body = figure.querySelector('.body') || figure;
-            const skulderLeft = body.querySelector('.skulder_translate_left');
-            const skulderRight = body.querySelector('.skulder_translate_right');
-            const hofteLeft = body.querySelector('.hofte_translate_left');
-            const hofteRight = body.querySelector('.hofte_translate_right');
-            
-            if (skulderLeft) {
-                skulderLeft.style.transform = `translate(${poseData.translate_x_left || 0}px, ${poseData.translate_y_left || 0}px)`;
-                const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
-                if (skulderRotLeft) {
-                    skulderRotLeft.style.transform = `rotate(${poseData.skulder_rot_left || 0}deg)`;
-                    const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
-                    if (albueRotLeft) {
-                        albueRotLeft.style.transform = `rotate(${poseData.albue_rot_left || 0}deg)`;
-                    }
-                }
-            }
-            
-            if (skulderRight) {
-                skulderRight.style.transform = `translate(${poseData.translate_x || 0}px, ${poseData.translate_y || 0}px)`;
-                const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
-                if (skulderRotRight) {
-                    skulderRotRight.style.transform = `rotate(${poseData.skulder_rot || 0}deg)`;
-                    const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
-                    if (albueRotRight) {
-                        albueRotRight.style.transform = `rotate(${poseData.albue_rot || 0}deg)`;
-                    }
-                }
-            }
-            
-            if (hofteLeft) {
-                hofteLeft.style.transform = `translate(${poseData.translate_x_left_leg || 0}px, ${poseData.translate_y_left_leg || 0}px)`;
-                const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
-                if (hofteRotLeft) {
-                    hofteRotLeft.style.transform = `rotate(${poseData.hofte_rot_left || 0}deg)`;
-                    const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
-                    if (knaeRotLeft) {
-                        knaeRotLeft.style.transform = `rotate(${poseData.knae_rot_left || 0}deg)`;
-                    }
-                }
-            }
-            
-            if (hofteRight) {
-                hofteRight.style.transform = `translate(${poseData.translate_x_right_leg || 0}px, ${poseData.translate_y_right_leg || 0}px)`;
-                const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
-                if (hofteRotRight) {
-                    hofteRotRight.style.transform = `rotate(${poseData.hofte_rot_right || 0}deg)`;
-                    const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
-                    if (knaeRotRight) {
-                        knaeRotRight.style.transform = `rotate(${poseData.knae_rot_right || 0}deg)`;
-                    }
-                }
-            }
-        }
-        
-        // Apply slide data directly
-        function applyDirectSlideData(slideData, guideFigure) {
-            const body = guideFigure.querySelector('.body') || guideFigure;
-            const skulderLeft = body.querySelector('.skulder_translate_left');
-            const skulderRight = body.querySelector('.skulder_translate_right');
-            const hofteLeft = body.querySelector('.hofte_translate_left');
-            const hofteRight = body.querySelector('.hofte_translate_right');
-            
-            if (skulderLeft) {
-                skulderLeft.style.transform = `translate(${slideData.translate_x_left || 0}px, ${slideData.translate_y_left || 0}px)`;
-                const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
-                if (skulderRotLeft) {
-                    skulderRotLeft.style.transform = `rotate(${slideData.skulder_rot_left || 0}deg)`;
-                    const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
-                    if (albueRotLeft) {
-                        albueRotLeft.style.transform = `rotate(${slideData.albue_rot_left || 0}deg)`;
-                    }
-                }
-            }
-            
-            if (skulderRight) {
-                skulderRight.style.transform = `translate(${slideData.translate_x || 0}px, ${slideData.translate_y || 0}px)`;
-                const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
-                if (skulderRotRight) {
-                    skulderRotRight.style.transform = `rotate(${slideData.skulder_rot || 0}deg)`;
-                    const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
-                    if (albueRotRight) {
-                        albueRotRight.style.transform = `rotate(${slideData.albue_rot || 0}deg)`;
-                    }
-                }
-            }
-            
-            if (hofteLeft) {
-                hofteLeft.style.transform = `translate(${slideData.translate_x_left_leg || 0}px, ${slideData.translate_y_left_leg || 0}px)`;
-                const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
-                if (hofteRotLeft) {
-                    hofteRotLeft.style.transform = `rotate(${slideData.hofte_rot_left || 0}deg)`;
-                    const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
-                    if (knaeRotLeft) {
-                        knaeRotLeft.style.transform = `rotate(${slideData.knae_rot_left || 0}deg)`;
-                    }
-                }
-            }
-            
-            if (hofteRight) {
-                hofteRight.style.transform = `translate(${slideData.translate_x_right_leg || 0}px, ${slideData.translate_y_right_leg || 0}px)`;
-                const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
-                if (hofteRotRight) {
-                    hofteRotRight.style.transform = `rotate(${slideData.hofte_rot_right || 0}deg)`;
-                    const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
-                    if (knaeRotRight) {
-                        knaeRotRight.style.transform = `rotate(${slideData.knae_rot_right || 0}deg)`;
-                    }
-                }
-            }
-            
-            // Handle arm layering
-            if (skulderLeft) {
-                if (slideData.left_arm_front) {
-                    skulderLeft.classList.add('front-arm');
-                } else {
-                    skulderLeft.classList.remove('front-arm');
-                }
-            }
-            
-            if (skulderRight) {
-                if (slideData.right_arm_front) {
-                    skulderRight.classList.add('front-arm');
-                } else {
-                    skulderRight.classList.remove('front-arm');
-                }
-            }
-        }
-        
-        // Run animation with callback when done
-        function runAnimation(animName, onComplete) {
-            const animation = animationsLibrary[animName];
-            if (!animation || !animation.slides) {
-                if (onComplete) onComplete();
-                return;
-            }
-            
-            const guideFigure = document.getElementById('guideFigure');
-            if (!guideFigure) {
-                if (onComplete) onComplete();
-                return;
-            }
-            
-            // Apply default pose first
-            applyPoseToFigure(guideFigure);
-            
-            setTimeout(() => {
-                const body = guideFigure.querySelector('.body') || guideFigure;
-                const animatedElements = body.querySelectorAll(
-                    '.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
-                    '.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
-                    '.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
-                    '.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
-                );
-                
-                animatedElements.forEach(element => {
-                    element.style.display = 'block';
+                    errorMessage.textContent = errorMsg;
+                    errorMessage.classList.add('show');
                 });
-                
-                let slideIndex = 0;
-                
-                function playNextSlide() {
-                    if (slideIndex < animation.slides.length) {
-                        const slide = animation.slides[slideIndex];
-                        
-                        animatedElements.forEach((element) => {
-                            const transitionStr = `transform ${slide.duration}s cubic-bezier(0.25, 0.1, 0.25, 1)`;
-                            element.style.transition = transitionStr;
-                        });
-                        
-                        applyDirectSlideData(slide, guideFigure);
-                        guideFigure.offsetHeight;
-                        
-                        slideIndex++;
-                        setTimeout(playNextSlide, slide.duration * 1000);
-                    } else {
-                        animatedElements.forEach(element => {
-                            element.style.transition = '';
-                        });
-                        
-                        setTimeout(() => {
-                            animatedElements.forEach(element => {
-                                element.style.transition = 'transform 0.5s ease';
-                            });
-                            applyPoseToFigure(guideFigure);
-                            setTimeout(() => {
-                                animatedElements.forEach(element => {
-                                    element.style.transition = '';
-                                });
-                                // Call callback when animation is completely done
-                                if (onComplete) onComplete();
-                            }, 500);
-                        }, 50);
-                    }
-                }
-                
-                playNextSlide();
-            }, 1000);
-        }
-        
-        // LocalStorage for forsideData
-        const FORSIDE_DATA_KEY = 'forsideData';
-        let affirmations = [];
-        
-        // Load affirmations from JSON file
-        async function loadAffirmations() {
-            try {
-                const response = await fetch('affirmations.json');
-                if (response.ok) {
-                    affirmations = await response.json();
-                    return affirmations;
-                } else {
-                    console.error('Kunne ikke indlæse affirmations.json');
-                    return [];
-                }
-            } catch (error) {
-                console.error('Fejl ved indlæsning af affirmations:', error);
-                return [];
-            }
-        }
-        
-        // Calculate day number and get affirmation text
-        function getAffirmationText() {
-            if (affirmations.length === 0) {
-                return null;
-            }
-            
-            // Reference date (1. januar 2024)
-            const referenceDate = new Date('2024-01-01');
-            const today = new Date();
-            
-            // Set both dates to midnight for accurate day calculation
-            referenceDate.setHours(0, 0, 0, 0);
-            today.setHours(0, 0, 0, 0);
-            
-            // Calculate days difference
-            const daysDiff = Math.floor((today - referenceDate) / (1000 * 60 * 60 * 24));
-            
-            // Modulo based on number of affirmations and add 1 to get 1-based index
-            const dayNumber = (daysDiff % affirmations.length) + 1;
-            
-            // Get the affirmation text (convert to 0-based index)
-            const affirmationText = affirmations[dayNumber - 1];
-            
-            return affirmationText;
-        }
-        
-        // Save data to localStorage
-        async function saveForsideData() {
-            try {
-                // Make sure affirmations are loaded
-                if (affirmations.length === 0) {
-                    await loadAffirmations();
-                }
-                
-                const tekst = getAffirmationText();
-                
-                if (tekst) {
-                    const forsideData = {
-                        version: "1.0",
-                        lastUpdated: new Date().toISOString(),
-                        tekst: tekst
-                    };
-                    
-                    localStorage.setItem(FORSIDE_DATA_KEY, JSON.stringify(forsideData));
-                }
-            } catch (error) {
-                console.error('Fejl ved gemning til localStorage:', error);
-            }
-        }
-        
-        // Load data from localStorage
-        function loadForsideData() {
-            try {
-                const savedData = localStorage.getItem(FORSIDE_DATA_KEY);
-                if (savedData) {
-                    const forsideData = JSON.parse(savedData);
-                    // Use loaded data here
-                    return forsideData;
-                }
-            } catch (error) {
-                console.error('Fejl ved indlæsning fra localStorage:', error);
-            }
-            return null;
-        }
-        
-        // Initialize
-        async function init() {
-            // Load affirmations first
-            await loadAffirmations();
-            
-            // Calculate and save affirmation text
-            await saveForsideData();
-            
-            // Load saved data
-            const savedData = loadForsideData();
-            if (savedData) {
-                console.log('Forside data indlæst:', savedData);
-                console.log('Affirmation tekst:', savedData.tekst);
-            }
-            
-            await loadAnimations();
-            const guideFigure = document.getElementById('guideFigure');
-            if (guideFigure) {
-                applyPoseToFigure(guideFigure);
-                
-                // Function to play vinke animation with 10 second pause
-                function playVinkeWithPause() {
-                    if (animationsLibrary.vinke) {
-                        runAnimation('vinke', () => {
-                            // After animation completes, wait 10 seconds then play again
-                            setTimeout(playVinkeWithPause, 10000);
-                        });
-                    }
-                }
-                
-                // Start first animation after 2 seconds
-                setTimeout(playVinkeWithPause, 2000);
-            }
-        }
-        
-        // Start when page loads
-        init();
-        
-        // Navigation box toggle
-        function toggleNavBox() {
-            const navBox = document.getElementById('navBox');
-            
-            if (navBox) {
-                navBox.classList.toggle('show');
-            }
-        }
-        
-        // Save check-in data when coaching overlay closes
-        function saveCheckinData(engine) {
-            if (!engine || !engine.blackboard) {
-                return;
-            }
-            
-            const status = engine.blackboard.status;
-            const taknem = engine.blackboard.taknem;
-            
-            // Only save if both status and taknem exist
-            if (status !== undefined && taknem !== undefined && taknem !== null && taknem !== '') {
-                try {
-                    // Get existing data from localStorage
-                    const existingDataStr = localStorage.getItem('forside_checkin_data');
-                    let checkinData = [];
-                    
-                    if (existingDataStr) {
-                        try {
-                            checkinData = JSON.parse(existingDataStr);
-                            if (!Array.isArray(checkinData)) {
-                                checkinData = [];
-                            }
-                        } catch (e) {
-                            console.error('Error parsing existing checkin data:', e);
-                            checkinData = [];
-                        }
-                    }
-                    
-                    // Create new entry with ISO timestamp
-                    const newEntry = {
-                        date: new Date().toISOString(),
-                        status: Number(status),
-                        taknem: String(taknem)
-                    };
-                    
-                    // Add to array
-                    checkinData.push(newEntry);
-                    
-                    // Save back to localStorage
-                    localStorage.setItem('forside_checkin_data', JSON.stringify(checkinData));
-                } catch (error) {
-                    console.error('Error saving check-in data:', error);
-                }
-            }
-        }
-        
-        // Listen for coaching overlay closing event
-        window.addEventListener('coachingOverlayClosing', (event) => {
-            if (event.detail && event.detail.engine) {
-                saveCheckinData(event.detail.engine);
-            }
         });
 
+        // Show login form
+        function showLoginForm() {
+            loginForm.style.display = 'block';
+            newUserForm.style.display = 'none';
+            if (loggedInSection) loggedInSection.style.display = 'none';
+            errorMessage.classList.remove('show');
+            // Update toggle buttons
+            showLoginBtn.classList.add('active');
+            showNewUserBtn.classList.remove('active');
+            if (showLoginBtnFromNewUser) {
+                showLoginBtnFromNewUser.classList.remove('active');
+            }
+            const newUserSubmitBtn = newUserForm.querySelector('button[type="submit"]');
+            if (newUserSubmitBtn) {
+                newUserSubmitBtn.classList.remove('active');
+            }
+        }
+        
+        // Show logged in section
+        function showLoggedInSection(user) {
+            loginForm.style.display = 'none';
+            newUserForm.style.display = 'none';
+            if (loggedInSection) {
+                loggedInSection.style.display = 'block';
+            }
+            errorMessage.classList.remove('show');
+            // Update toggle buttons
+            showLoginBtn.classList.remove('active');
+            showNewUserBtn.classList.remove('active');
+            // Show user email
+            if (userEmailEl && user) {
+                userEmailEl.textContent = user.email;
+            }
+        }
+        
+        // Show new user form
+        function showNewUserForm() {
+            loginForm.style.display = 'none';
+            newUserForm.style.display = 'block';
+            if (loggedInSection) loggedInSection.style.display = 'none';
+            errorMessage.classList.remove('show');
+            // Update toggle buttons
+            showLoginBtn.classList.remove('active');
+            showNewUserBtn.classList.add('active');
+            if (showLoginBtnFromNewUser) {
+                showLoginBtnFromNewUser.classList.remove('active');
+            }
+            const newUserSubmitBtn = newUserForm.querySelector('button[type="submit"]');
+            if (newUserSubmitBtn) {
+                newUserSubmitBtn.classList.add('active');
+            }
+        }
+        
+        // Toggle between login and new user forms
+        // showLoginBtn is now a submit button, so we only handle the "Ny bruger" button click
+        showNewUserBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showNewUserForm();
+        });
+        
+        // New user form submit handler
+        newUserForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('New user form submitted');
+            
+            // Hide previous messages
+            errorMessage.classList.remove('show');
+            
+            const displayName = document.getElementById('displayName').value.trim();
+            const email = document.getElementById('newEmail').value;
+            const password = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Validate display name
+            if (!displayName) {
+                errorMessage.textContent = 'Du skal indtaste dit kalde navn';
+                errorMessage.classList.add('show');
+                return;
+        }
+        
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                errorMessage.textContent = 'Adgangskoderne matcher ikke';
+                errorMessage.classList.add('show');
+                return;
+            }
+            
+            // Validate password length
+            if (password.length < 6) {
+                errorMessage.textContent = 'Adgangskoden skal være mindst 6 tegn lang';
+                errorMessage.classList.add('show');
+                return;
+            }
+            
+            console.log('Attempting to create user:', email);
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log('User created successfully!', userCredential.user);
+                    currentUser = userCredential.user;
+                    
+                    // Save user data (displayName, email) to Firestore in userData structure
+                    const userDoc = {
+                        userData: {
+                            displayName: displayName,
+                            email: email
+                        },
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    return db.collection('users').doc(currentUser.uid).set(userDoc, { merge: true })
+                        .then(() => {
+                            console.log('User data saved to Firestore');
+                            // Show logged in section after successful user creation and data save
+                            showLoggedInSection(currentUser);
+                            // Clear form
+                            newUserForm.reset();
+                        });
+                })
+                .catch(error => {
+                    console.error('Create user error:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
+                    let errorMsg = error.message || 'Der opstod en fejl ved oprettelse af bruger';
+                    // Translate common error messages
+                    if (error.code === 'auth/email-already-in-use') {
+                        errorMsg = 'Denne email er allerede i brug';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMsg = 'Ugyldig email-adresse';
+                    } else if (error.code === 'auth/weak-password') {
+                        errorMsg = 'Adgangskoden er for svag';
+            }
+                    errorMessage.textContent = errorMsg;
+                    errorMessage.classList.add('show');
+                });
+        });
+
+        // Go to checkin button handler
+        if (goToCheckinBtn) {
+            goToCheckinBtn.addEventListener('click', function() {
+                window.location.href = 'checkin.html';
+            });
+        }
+        
+        // Logout button handler
+        if (logoutButton) {
+            logoutButton.addEventListener('click', function() {
+                auth.signOut()
+                    .then(() => {
+                        console.log('User logged out');
+                        currentUser = null;
+                        showLoginForm();
+                        // Clear forms
+                        loginForm.reset();
+                        newUserForm.reset();
+                    })
+                    .catch(error => {
+                        console.error('Error logging out:', error);
+                        errorMessage.textContent = 'Fejl ved logout: ' + error.message;
+                        errorMessage.classList.add('show');
+                    });
+            });
+        }
+        
+        // Auto-focus on email field and debug
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded');
+            console.log('Login form element:', loginForm);
+            console.log('Auth object:', auth);
+            console.log('DB object:', db);
+            
+            // Only focus if login form is visible
+            const emailInput = document.getElementById('email');
+            if (emailInput && loginForm.style.display !== 'none') {
+                emailInput.focus();
+            }
+        });
     </script>
 </body>
 </html>
+

@@ -2,6 +2,12 @@
 <html lang="da">
 <head>
 	<script src="https://cdn.jsdelivr.net/npm/modern-screenshot@4.4.39/dist/index.js"></script>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <!-- Firebase Authentication -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <!-- Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -33,6 +39,61 @@
             height: calc(100vh - 40px);
         }
         
+        .debug-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 200px;
+        }
+        
+        .debug-panel label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #374151;
+            cursor: pointer;
+        }
+        
+        .debug-panel input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .debug-panel-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        
+        .login-status {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .login-status.logged-in {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .login-status.logged-out {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
         .header {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: white;
@@ -42,6 +103,14 @@
             align-items: center;
             justify-content: center;
             position: relative;
+        }
+        
+        .header.data-source-firestore {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+        }
+        
+        .header.data-source-localstorage {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         
         .header h1 {
@@ -2070,6 +2139,16 @@
     </style>
 </head>
 <body>
+    <!-- Debug panel in top-right corner -->
+    <div class="debug-panel">
+        <div class="debug-panel-title">Debug</div>
+        <label>
+            <input type="checkbox" id="dataSourceToggle" />
+            <span>Læs fra Firestore</span>
+        </label>
+        <div id="loginStatus" class="login-status logged-out">Ikke logget ind</div>
+    </div>
+    
     <div class="container">
         <div class="header">
             <div class="nav-controls">
@@ -2084,7 +2163,7 @@
                     <a href="compare_01.html" class="nav-button">Ligheder</a>
                     <a href="bodymap_01.html" class="nav-button">BodyMap</a>
                     <a href="logbog_01.html" class="nav-button">Logbog</a>
-                    <a href="index.html" class="nav-button nav-checkin">Check in</a>
+                    <a href="checkin.html" class="nav-button nav-checkin">Check in</a>
                 </div>
             </div>
             <h1>Opstilling</h1>
@@ -2242,6 +2321,231 @@
 	
 
     <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCl6ZYtkfYx3kFF9329eGpeazsmJAPMKzA",
+            authDomain: "relationer-fe5fe.firebaseapp.com",
+            projectId: "relationer-fe5fe",
+            storageBucket: "relationer-fe5fe.firebasestorage.app",
+            messagingSenderId: "156720560629",
+            appId: "1:156720560629:web:1a138e4e89f02a131f88bc",
+            measurementId: "G-K5W7J8JHZG"
+        };
+        
+        // Initialize Firebase
+        let auth = null;
+        let db = null;
+        let currentUser = null;
+        
+        // Global Firestore toggle key - shared across all pages
+        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
+        
+        // Load global toggle state from localStorage
+        function loadGlobalFirestoreToggle() {
+            try {
+                const saved = localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY);
+                return saved === 'true';
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        // Save global toggle state to localStorage
+        function saveGlobalFirestoreToggle(value) {
+            try {
+                localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
+                // Trigger storage event for other tabs/windows
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: GLOBAL_FIRESTORE_TOGGLE_KEY,
+                    newValue: String(value),
+                    oldValue: localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY)
+                }));
+            } catch (error) {
+                console.error('Error saving global Firestore toggle:', error);
+            }
+        }
+        
+        let useFirestore = loadGlobalFirestoreToggle(); // Load from global state
+        
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log('Firebase initialized in opstilling_01.html');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
+        
+        // Update login status display
+        function updateLoginStatus() {
+            const loginStatus = document.getElementById('loginStatus');
+            if (loginStatus) {
+                if (currentUser) {
+                    loginStatus.textContent = 'Logget ind: ' + currentUser.email;
+                    loginStatus.className = 'login-status logged-in';
+                } else {
+                    loginStatus.textContent = 'Ikke logget ind';
+                    loginStatus.className = 'login-status logged-out';
+                }
+            }
+        }
+        
+        // Update header color based on data source
+        function updateDataSource() {
+            const headerEl = document.querySelector('.header');
+            if (headerEl) {
+                if (useFirestore && currentUser) {
+                    headerEl.classList.remove('data-source-localstorage');
+                    headerEl.classList.add('data-source-firestore');
+                } else {
+                    headerEl.classList.remove('data-source-firestore');
+                    headerEl.classList.add('data-source-localstorage');
+                    useFirestore = false; // Force localStorage if not logged in
+                }
+            }
+            updateLoginStatus();
+        }
+        
+        // Data source toggle handler - setup after DOM is ready
+        function setupDataSourceToggle() {
+            const dataSourceToggle = document.getElementById('dataSourceToggle');
+            if (dataSourceToggle) {
+                // Set initial state from global storage (re-read to ensure it's current)
+                const globalState = loadGlobalFirestoreToggle();
+                // Checkbox should always reflect global state
+                dataSourceToggle.checked = globalState;
+                // But only actually use Firestore if global state is true AND user is logged in
+                useFirestore = globalState && currentUser ? true : false;
+                
+                dataSourceToggle.addEventListener('change', async function() {
+                    if (this.checked && !currentUser) {
+                        alert('Du skal være logget ind for at bruge Firestore. Log ind på index.html først.');
+                        this.checked = false;
+                        return;
+                    }
+                    
+                    // Update useFirestore BEFORE loading data, so it knows which source to read from
+                    useFirestore = this.checked;
+                    console.log('Toggle changed. useFirestore:', useFirestore, 'currentUser:', currentUser?.email || 'null', 'db:', !!db);
+                    saveGlobalFirestoreToggle(useFirestore); // Save globally
+                    updateDataSource();
+                    
+                    // Reload data from the appropriate source (Firestore or localStorage)
+                    // IMPORTANT: Always reload, even if OpstillingData already exists, to ensure we get the correct source
+                    const data = await loadOpstillingDataFromLocalStorage();
+                    console.log('Loaded data after toggle:', data ? 'Data found' : 'No data');
+                    
+                    // Always update OpstillingData with the loaded data (or null if no data)
+                    OpstillingData = data;
+                    await ensureDefaultOpstillingData();
+                    
+                    // Always reload active setup to update workspace with positions and notes
+                    const activeSetup = getActiveSetup();
+                    console.log('Active setup after toggle:', activeSetup ? 'Found' : 'Not found');
+                    if (activeSetup) {
+                        loadSetupFromOpstillingData(activeSetup);
+                    } else {
+                        await loadActiveOpstilling();
+                    }
+                    await renderHistory();
+                });
+            }
+        }
+        
+        // Check auth state
+        if (auth) {
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
+                
+                // Update login status display
+                updateLoginStatus();
+                
+                // If user logs out and we're using Firestore, switch back to localStorage
+                if (!user && useFirestore) {
+                    useFirestore = false;
+                    saveGlobalFirestoreToggle(false); // Save globally
+                    const toggle = document.getElementById('dataSourceToggle');
+                    if (toggle) toggle.checked = false;
+                    updateDataSource();
+                } else if (user) {
+                    // When user logs in, restore global toggle state if they're logged in
+                    const globalState = loadGlobalFirestoreToggle();
+                    const toggle = document.getElementById('dataSourceToggle');
+                    // Checkbox should always reflect global state
+                    if (toggle) {
+                        toggle.checked = globalState;
+                    }
+                    // But only actually use Firestore if global state is true
+                    if (globalState) {
+                        useFirestore = true;
+                        updateDataSource();
+                        // Reload data from Firestore when user logs in
+                        (async () => {
+                            // Update useFirestore based on global state and login status
+                            const globalState = loadGlobalFirestoreToggle();
+                            useFirestore = globalState;
+                            updateDataSource();
+                            
+                            // IMPORTANT: Always reload, even if OpstillingData already exists, to ensure we get the correct source
+                            const data = await loadOpstillingDataFromLocalStorage();
+                            
+                            // Always update OpstillingData with the loaded data (or null if no data)
+                            OpstillingData = data;
+                            await ensureDefaultOpstillingData();
+                            
+                            // Always reload active setup to update workspace with positions and notes
+                            const activeSetup = getActiveSetup();
+                            if (activeSetup) {
+                                loadSetupFromOpstillingData(activeSetup);
+                            } else {
+                                await loadActiveOpstilling();
+                            }
+                            await renderHistory();
+                        })();
+                    } else {
+                        useFirestore = false;
+                        updateDataSource();
+                    }
+                }
+            });
+        }
+        
+        // Listen for storage events to sync toggle state across tabs
+        window.addEventListener('storage', async function(e) {
+            if (e.key === GLOBAL_FIRESTORE_TOGGLE_KEY) {
+                const newValue = e.newValue === 'true';
+                const toggle = document.getElementById('dataSourceToggle');
+                // Checkbox should always reflect global state
+                if (toggle) {
+                    toggle.checked = newValue;
+                }
+                // Update useFirestore BEFORE loading data, so it knows which source to read from
+                useFirestore = newValue && currentUser ? true : false;
+                console.log('Storage event: toggle changed. useFirestore:', useFirestore, 'currentUser:', currentUser?.email || 'null', 'db:', !!db);
+                updateDataSource();
+                
+                // Reload data from the appropriate source (Firestore or localStorage)
+                // IMPORTANT: Always reload, even if OpstillingData already exists, to ensure we get the correct source
+                const data = await loadOpstillingDataFromLocalStorage();
+                console.log('Loaded data after storage event:', data ? 'Data found' : 'No data');
+                
+                // Always update OpstillingData with the loaded data (or null if no data)
+                OpstillingData = data;
+                await ensureDefaultOpstillingData();
+                
+                // Always reload active setup to update workspace with positions and notes
+                const activeSetup = getActiveSetup();
+                console.log('Active setup after storage event:', activeSetup ? 'Found' : 'Not found');
+                if (activeSetup) {
+                    loadSetupFromOpstillingData(activeSetup);
+                } else {
+                    await loadActiveOpstilling();
+                }
+                await renderHistory();
+            }
+        });
+        
         // Multi-background system variables
         let currentBackground = 'none';
 		const allBackgrounds = ['none', 'har_onsker', 'xy_axes', 'timeline', 'for_imod', 'drama_trekant', 'mandala'];        
@@ -2272,22 +2576,101 @@
         const OPSTILLING_STORAGE_KEY = 'opstillingData';
         let OpstillingData = null; // { version, updated, activeCollectionId, activeSetupId, collections: [...] }
         
-        function loadOpstillingDataFromLocalStorage() {
+        // Firestore functions
+        async function loadOpstillingDataFromFirestore() {
+            if (!currentUser || !db) return null;
+            
             try {
-                const raw = localStorage.getItem(OPSTILLING_STORAGE_KEY);
-                if (!raw) return null;
-                const parsed = JSON.parse(raw);
-                if (!parsed || typeof parsed !== 'object') return null;
-                return parsed;
-            } catch (_) {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const userDoc = await userDocRef.get();
+                
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    if (userData && userData.opstillingData) {
+                        return userData.opstillingData;
+                    }
+                }
+                return null;
+            } catch (error) {
+                console.error('Error loading opstillingData from Firestore:', error);
                 return null;
             }
         }
         
-        function saveOpstillingDataToLocalStorage() {
+        async function saveOpstillingDataToFirestore() {
+            if (!currentUser || !db) return false;
+            
             try {
                 if (!OpstillingData) return false;
                 OpstillingData.updated = new Date().toISOString();
+                
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                await userDocRef.set({
+                    opstillingData: OpstillingData,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving opstillingData to Firestore:', error);
+                return false;
+            }
+        }
+        
+        // Load from localStorage or Firestore
+        async function loadOpstillingDataFromLocalStorage() {
+            console.log('loadOpstillingDataFromLocalStorage called. useFirestore:', useFirestore, 'currentUser:', currentUser?.email || 'null', 'db:', !!db);
+            
+            // Check if we should use Firestore
+            if (useFirestore && currentUser && db) {
+                console.log('Loading opstillingData from Firestore...');
+                const firestoreData = await loadOpstillingDataFromFirestore();
+                if (firestoreData !== null) {
+                    console.log('Loaded opstillingData from Firestore:', firestoreData);
+                    return firestoreData;
+                }
+                console.log('No data found in Firestore, returning null (not falling back to localStorage when useFirestore is true)');
+                // When useFirestore is true, don't fall back to localStorage - return null
+                return null;
+            }
+            
+            // Use localStorage only when useFirestore is false
+            console.log('Loading opstillingData from localStorage...');
+            try {
+                const raw = localStorage.getItem(OPSTILLING_STORAGE_KEY);
+                if (!raw) {
+                    console.log('No data found in localStorage');
+                    return null;
+                }
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') {
+                    console.log('Invalid data in localStorage');
+                    return null;
+                }
+                console.log('Loaded opstillingData from localStorage:', parsed);
+                return parsed;
+            } catch (_) {
+                console.log('Error parsing localStorage data');
+                return null;
+            }
+        }
+        
+        // Save to localStorage or Firestore
+        async function saveOpstillingDataToLocalStorage() {
+            try {
+                if (!OpstillingData) return false;
+                OpstillingData.updated = new Date().toISOString();
+                
+                // Check if we should use Firestore
+                if (useFirestore && currentUser && db) {
+                    const success = await saveOpstillingDataToFirestore();
+                    if (success) {
+                        return true; // Don't save to localStorage when using Firestore
+                    }
+                    // Fallback to localStorage if Firestore fails
+                }
+                
+                // Use localStorage only when not using Firestore
                 localStorage.setItem(OPSTILLING_STORAGE_KEY, JSON.stringify(OpstillingData));
                 return true;
             } catch (_) {
@@ -2295,7 +2678,7 @@
             }
         }
         
-        function ensureDefaultOpstillingData() {
+        async function ensureDefaultOpstillingData() {
             if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
                 OpstillingData = {
                     version: '1.0',
@@ -2348,7 +2731,7 @@
                 }
             });
             // Do not overwrite existing setups content here; just ensure structure exists
-            saveOpstillingDataToLocalStorage();
+            await saveOpstillingDataToLocalStorage();
         }
         
         function getActiveCollection() {
@@ -2462,7 +2845,7 @@
             }
         }
         
-        function syncCurrentWorkspaceToActiveSetup() {
+        async function syncCurrentWorkspaceToActiveSetup() {
             if (!OpstillingData) return;
             const setup = getActiveSetup();
             if (!setup) return;
@@ -2473,10 +2856,10 @@
             if (!setup.timestamp) {
                 setup.timestamp = now;
             }
-            saveOpstillingDataToLocalStorage();
+            await saveOpstillingDataToLocalStorage();
         }
         
-        function createNewCollection() {
+        async function createNewCollection() {
             if (!OpstillingData) {
                 OpstillingData = {
                     version: '1.0',
@@ -2500,7 +2883,7 @@
             if (!collectionName || collectionName.trim() === '') return;
             
             // Save current workspace before switching
-            syncCurrentWorkspaceToActiveSetup();
+            await syncCurrentWorkspaceToActiveSetup();
             
             // Create new collection with default setup
             const newCollection = {
@@ -2521,24 +2904,24 @@
             OpstillingData.activeCollectionId = newId;
             OpstillingData.activeSetupId = 1;
             
-            saveOpstillingDataToLocalStorage();
+            await saveOpstillingDataToLocalStorage();
             
             // Load the new empty setup
             loadSetupFromOpstillingData(newCollection.setups[0]);
         }
         
-        function createNewSetup() {
+        async function createNewSetup() {
             if (!OpstillingData) {
-                ensureDefaultOpstillingData();
+                await ensureDefaultOpstillingData();
             }
             
             let collection = getActiveCollection();
             if (!collection) {
-                ensureDefaultOpstillingData();
+                await ensureDefaultOpstillingData();
                 collection = getActiveCollection();
                 if (!collection) {
                     // If still no collection, create a default one
-                    ensureDefaultOpstillingData();
+                    await ensureDefaultOpstillingData();
                     collection = getActiveCollection();
                 }
             }
@@ -2555,7 +2938,7 @@
             const setupName = `Opstilling ${newId}`;
             
             // Save current workspace before switching
-            syncCurrentWorkspaceToActiveSetup();
+            await syncCurrentWorkspaceToActiveSetup();
             
             // Create new setup
             const now = new Date().toISOString();
@@ -2574,7 +2957,7 @@
             collection.setups.push(newSetup);
             OpstillingData.activeSetupId = newId;
             
-            saveOpstillingDataToLocalStorage();
+            await saveOpstillingDataToLocalStorage();
             
             // Load the new empty setup
             loadSetupFromOpstillingData(newSetup);
@@ -2658,13 +3041,13 @@
             renderHistory();
         }
         
-        function renderHistory() {
+        async function renderHistory() {
             const list = document.getElementById('historyList');
             if (!list) return;
             list.innerHTML = '';
             
             if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
-                ensureDefaultOpstillingData();
+                await ensureDefaultOpstillingData();
             }
             
             renderHistoryFilterOptions();
@@ -2726,12 +3109,14 @@
                     if (!isActive) {
                         OpstillingData.activeCollectionId = collection.id;
                         OpstillingData.activeSetupId = setup.id;
-                        saveOpstillingDataToLocalStorage();
-                        loadSetupFromOpstillingData(setup);
-                        updateNotesTitle();
-                        // Save to current_opstilling when switching
-                        saveCurrentOpstillingToStorage();
-                        renderHistory();
+                        (async () => {
+                            await saveOpstillingDataToLocalStorage();
+                            loadSetupFromOpstillingData(setup);
+                            updateNotesTitle();
+                            // Save to current_opstilling when switching
+                            saveCurrentOpstillingToStorage();
+                            await renderHistory();
+                        })();
                     }
                 });
                 
@@ -2758,8 +3143,10 @@
                         const setup = collection.setups.find(s => s.id === setupId);
                         if (setup) {
                             setup.name = e.target.value;
-                            saveOpstillingDataToLocalStorage();
-                            renderHistory();
+                            (async () => {
+                                await saveOpstillingDataToLocalStorage();
+                                await renderHistory();
+                            })();
                         }
                     }
                 });
@@ -2768,7 +3155,9 @@
                     e.stopPropagation();
                     const collectionId = parseFloat(e.target.dataset.collectionId);
                     const setupId = parseFloat(e.target.dataset.setupId);
-                    deleteSetup(collectionId, setupId);
+                    (async () => {
+                        await deleteSetup(collectionId, setupId);
+                    })();
                 });
                 
                 list.appendChild(item);
@@ -2781,7 +3170,7 @@
             if (navDown) navDown.disabled = !canNavigate;
         }
         
-        function navigateHistory(direction) {
+        async function navigateHistory(direction) {
             const sortedEntries = getFilteredSortedSetups();
             if (!sortedEntries.length) return;
             
@@ -2808,7 +3197,7 @@
             const targetEntry = sortedEntries[currentPos];
             OpstillingData.activeCollectionId = targetEntry.collection.id;
             OpstillingData.activeSetupId = targetEntry.setup.id;
-            saveOpstillingDataToLocalStorage();
+            await saveOpstillingDataToLocalStorage();
             loadSetupFromOpstillingData(targetEntry.setup);
             updateNotesTitle();
             // Save to current_opstilling when switching
@@ -2829,7 +3218,7 @@
             });
         }
         
-        function deleteSetup(collectionId, setupId) {
+        async function deleteSetup(collectionId, setupId) {
             const collection = OpstillingData.collections.find(c => c.id === collectionId);
             if (!collection || !Array.isArray(collection.setups)) return;
             
@@ -2859,17 +3248,17 @@
                 }
             }
             
-            saveOpstillingDataToLocalStorage();
+            await saveOpstillingDataToLocalStorage();
             const activeSetup = getActiveSetup();
             if (activeSetup) {
                 loadSetupFromOpstillingData(activeSetup);
             }
-            renderHistory();
+            await renderHistory();
         }
         
         // ===== SAMLING MANAGER FUNCTIONS (from map manager) =====
         
-        function openSamlingManager() {
+        async function openSamlingManager() {
             if (!samlingManagerOverlayEl) {
                 samlingManagerOverlayEl = document.getElementById('samlingManagerOverlay');
                 samlingManagerListEl = document.getElementById('samlingManagerList');
@@ -2889,8 +3278,18 @@
                 buildSamlingColorGrid();
             }
             if (!samlingManagerOverlayEl) return;
+            
+            // Always reload data (from Firestore or localStorage) to ensure we have the latest collections list
+            const data = await loadOpstillingDataFromLocalStorage();
+            if (data) {
+                OpstillingData = data;
+            }
+            await ensureDefaultOpstillingData();
+            
             resetNewSamlingDraft();
-            renderSamlingManagerList();
+            await renderSamlingManagerList();
+            // Also update history to ensure collection names are displayed correctly
+            await renderHistory();
             samlingManagerOverlayEl.classList.add('show');
             setTimeout(() => {
                 if (newSamlingNameInputEl) {
@@ -2937,12 +3336,12 @@
             }
         }
         
-        function renderSamlingManagerList() {
+        async function renderSamlingManagerList() {
             if (!samlingManagerListEl) return;
             samlingManagerListEl.innerHTML = '';
             
             if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
-                ensureDefaultOpstillingData();
+                await ensureDefaultOpstillingData();
             }
             
             OpstillingData.collections.forEach(collection => {
@@ -3008,10 +3407,14 @@
                 if (shouldSave && newName && newName !== collection.name) {
                     collection.name = newName;
                     renderHistoryFilterOptions();
-                    renderHistory();
-                    saveOpstillingDataToLocalStorage();
+                    (async () => {
+                        await renderHistory();
+                        await saveOpstillingDataToLocalStorage();
+                        await renderSamlingManagerList();
+                    })();
+                } else {
+                    renderSamlingManagerList();
                 }
-                renderSamlingManagerList();
             };
             
             input.addEventListener('keydown', (event) => {
@@ -3055,9 +3458,9 @@
         function handleSamlingColorSelected(color) {
             if (!samlingColorPickerTarget) return;
             if (samlingColorPickerTarget.type === 'samling') {
-                applySamlingColor(samlingColorPickerTarget.collectionId, color);
-                renderHistory();
-                saveOpstillingDataToLocalStorage();
+                (async () => {
+                    await applySamlingColor(samlingColorPickerTarget.collectionId, color);
+                })();
             } else if (samlingColorPickerTarget.type === 'new') {
                 newSamlingDraftColor = color;
                 newSamlingColorDirty = true;
@@ -3066,17 +3469,17 @@
             closeSamlingColorPicker();
         }
         
-        function applySamlingColor(collectionId, color) {
+        async function applySamlingColor(collectionId, color) {
             const collection = OpstillingData.collections.find(c => c.id === collectionId);
             if (!collection) return;
             collection.color = color;
-            renderHistory();
-            renderSamlingManagerList();
+            await renderHistory();
+            await renderSamlingManagerList();
             renderHistoryFilterOptions();
-            saveOpstillingDataToLocalStorage();
+            await saveOpstillingDataToLocalStorage();
         }
         
-        function confirmCreateSamling() {
+        async function confirmCreateSamling() {
             if (!newSamlingNameInputEl) return;
             const name = newSamlingNameInputEl.value.trim();
             if (!name) {
@@ -3086,7 +3489,15 @@
             const color = newSamlingDraftColor || SAMLING_COLOR_PRESETS[0];
             
             // Save current workspace before switching
-            syncCurrentWorkspaceToActiveSetup();
+            await syncCurrentWorkspaceToActiveSetup();
+            
+            // Always reload data from the active data source (localStorage or Firestore) before creating new collection
+            // This ensures we have the latest collections list
+            const data = await loadOpstillingDataFromLocalStorage();
+            if (data) {
+                OpstillingData = data;
+            }
+            await ensureDefaultOpstillingData();
             
             // Find highest collection ID
             let maxId = 0;
@@ -3118,7 +3529,7 @@
             OpstillingData.activeCollectionId = newId;
             OpstillingData.activeSetupId = 1;
             
-            saveOpstillingDataToLocalStorage();
+            await saveOpstillingDataToLocalStorage();
             
             // Load the new empty setup - this will set isLoadingSetup to false in finally block
             const loaded = loadSetupFromOpstillingData(newCollection.setups[0]);
@@ -3127,8 +3538,8 @@
             saveCurrentOpstillingToStorage();
             
             // Ensure workspace is ready and history is updated
-            renderHistory();
-            renderSamlingManagerList();
+            await renderHistory();
+            await renderSamlingManagerList();
             
             // Use requestAnimationFrame to ensure DOM is fully updated
             requestAnimationFrame(() => {
@@ -3148,7 +3559,7 @@
             closeSamlingManager();
         }
         
-        function deleteSamling(collectionId) {
+        async function deleteSamling(collectionId) {
             if (!OpstillingData || !Array.isArray(OpstillingData.collections)) return;
             
             // Prevent deleting the last remaining collection
@@ -3191,14 +3602,14 @@
                 }
             }
             
-            saveOpstillingDataToLocalStorage();
+            await saveOpstillingDataToLocalStorage();
             const activeSetup = getActiveSetup();
             if (activeSetup) {
                 loadSetupFromOpstillingData(activeSetup);
             }
             renderHistoryFilterOptions();
-            renderHistory();
-            renderSamlingManagerList();
+            await renderHistory();
+            await renderSamlingManagerList();
         }
         
         function buildSamlingColorGrid() {
@@ -3288,16 +3699,19 @@
             } finally {
                 isLoadingSetup = false;
                 // After loading is complete, sync to ensure data is saved
-                syncCurrentWorkspaceToActiveSetup();
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+                })();
             }
         }
         
         // Load active setup from opstillingData, or fallback to legacy storage
-        function loadActiveOpstilling() {
+        async function loadActiveOpstilling() {
             // First try to load from new opstillingData structure
             if (OpstillingData && Array.isArray(OpstillingData.collections) && OpstillingData.collections.length > 0) {
                 const activeSetup = getActiveSetup();
-                if (activeSetup && (Array.isArray(activeSetup.parts) && activeSetup.parts.length > 0 || activeSetup.notes)) {
+                if (activeSetup) {
+                    // Always load setup to update workspace with positions and notes, even if empty
                     const loaded = loadSetupFromOpstillingData(activeSetup);
                     if (loaded) {
                         console.log('Opstilling indlæst fra opstillingData');
@@ -3311,14 +3725,18 @@
             if (loaded) {
                 console.log('Opstilling indlæst fra legacy localStorage');
                 // Sync to new structure
-                try { syncCurrentWorkspaceToActiveSetup(); } catch(_) {}
+                try { 
+                    (async () => {
+                        await syncCurrentWorkspaceToActiveSetup();
+                    })();
+                } catch(_) {}
                 return true;
             }
             
             return false;
         }
         
-        function saveCharactersToShared() {
+        async function saveCharactersToShared() {
             if (isLoadingSetup) return;
             const parts = document.querySelectorAll('.part');
             const characters = [];
@@ -3375,8 +3793,8 @@
             // Also save to current_opstilling
             saveCurrentOpstillingToStorage();
             // Sync to opstillingData and update history
-            syncCurrentWorkspaceToActiveSetup();
-            renderHistory();
+            await syncCurrentWorkspaceToActiveSetup();
+            await renderHistory();
         }
         
         const partColors = [
@@ -3690,7 +4108,7 @@ async function loadPoseLibrary() {
 			const numericPoseIndex = poseIndex === '' ? '' : parseInt(poseIndex);
 			applyPose(selectedPart, numericPoseIndex, mirror);
 			// Auto-save after pose change
-			saveCharactersToShared();
+			(async () => { await saveCharactersToShared(); })();
 		}
 
 		function togglePartMirror() {
@@ -3706,7 +4124,7 @@ async function loadPoseLibrary() {
 			const numericPoseIndex = poseIndex === '' ? '' : parseInt(poseIndex);
 			applyPose(selectedPart, numericPoseIndex, mirror);
 			// Auto-save after mirror change
-			saveCharactersToShared();
+			(async () => { await saveCharactersToShared(); })();
 		}		
 		
 		function openPosePicker(btn) {
@@ -3855,7 +4273,7 @@ function selectPose(poseIndex) {
     // Update active button
     populatePoseGrid();
     // Auto-save after pose change (picker)
-    saveCharactersToShared();
+    (async () => { await saveCharactersToShared(); })();
 }
 
 function togglePosePickerMirror() {
@@ -3876,7 +4294,7 @@ function togglePosePickerMirror() {
     }
     applyPose(currentPosePart, poseIndex, mirror);
     // Auto-save after mirror change (picker)
-    saveCharactersToShared();
+    (async () => { await saveCharactersToShared(); })();
 }
 
 function closePosePicker() {
@@ -3940,7 +4358,7 @@ function closeKeywordsPopup() {
     // Update keywords display
     updatePartKeywords(currentKeywordsPart);
     // Auto-save after keywords popup close
-    saveCharactersToShared();
+    (async () => { await saveCharactersToShared(); })();
     
     // If this part is selected, update the bottom inputs too
     if (selectedPart === currentKeywordsPart) {
@@ -4154,7 +4572,7 @@ function closeKeywordsPopup() {
                 
                 // Save to shared storage
                 try {
-                    saveCharactersToShared();
+                    (async () => { await saveCharactersToShared(); })();
                 } catch (e) {
                     console.warn('Kunne ikke gemme navn:', e);
                 }
@@ -4211,14 +4629,14 @@ function closeKeywordsPopup() {
             currentPart.setAttribute('data-custom-border', borderColor);
 
             // Persist new color to shared storage
-            try { saveCharactersToShared(); } catch(_) {}
+            try { (async () => { await saveCharactersToShared(); })(); } catch(_) {}
 		} else if (currentGroupBtn) {
 			currentGroupBtn.style.backgroundColor = hex;
 			currentGroupBtn.setAttribute('data-custom-color', hex);
 			const groupNumber = currentGroupBtn.id.match(/\d+/)[0];
 			refreshPartsForGroup(groupNumber);
 			if (!isLoadingSetup) {
-				saveCharactersToShared();
+				(async () => { await saveCharactersToShared(); })();
 			}
 		}
 	}
@@ -4619,7 +5037,7 @@ function closeKeywordsPopup() {
 				// Name editing is only available via the "N" button
 				
 				// Update shared data
-				saveCharactersToShared();
+				(async () => { await saveCharactersToShared(); })();
                 
                 document.getElementById('partName').value = '';
                 document.getElementById('partName').placeholder = "Navn på del (f.eks. Beskytteren, Den Kritiske, Det Sårede Barn...)";
@@ -5462,17 +5880,22 @@ function closeKeywordsPopup() {
         }
         
         document.addEventListener('DOMContentLoaded', async function() {
+            // Setup data source toggle (auth state will be determined by onAuthStateChanged)
+            setupDataSourceToggle();
+            updateDataSource();
+            updateLoginStatus();
+            
             // Initialize new Opstilling data structure
-            OpstillingData = loadOpstillingDataFromLocalStorage();
-            ensureDefaultOpstillingData();
+            OpstillingData = await loadOpstillingDataFromLocalStorage();
+            await ensureDefaultOpstillingData();
             // Load pose library first
             await loadPoseLibrary();
             
             // Load active opstilling (from opstillingData or legacy storage)
-            loadActiveOpstilling();
+            await loadActiveOpstilling();
             
             // Initialize history sidebar
-            renderHistory();
+            await renderHistory();
             const isCollapsed = localStorage.getItem('opstilling_historySidebarCollapsed') === 'true';
             const sidebar = document.getElementById('historySidebar');
             if (sidebar) {
@@ -5647,8 +6070,39 @@ function closeKeywordsPopup() {
             }
             
             // Initial sync to persistent opstilling model
-            try { syncCurrentWorkspaceToActiveSetup(); } catch(_) {}
+            try { 
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+                })();
+            } catch(_) {}
         });
+        
+        // Initialize function for Firebase
+        async function init() {
+            // Update login status (auth state will be determined by onAuthStateChanged)
+            updateLoginStatus();
+            
+            // Setup data source toggle (after auth state is determined)
+            setupDataSourceToggle();
+            
+            // Sync toggle state with global storage on page load
+            const globalState = loadGlobalFirestoreToggle();
+            const toggle = document.getElementById('dataSourceToggle');
+            // Checkbox should always reflect global state
+            if (toggle) {
+                toggle.checked = globalState;
+            }
+            // But only actually use Firestore if global state is true AND user is logged in
+            useFirestore = globalState && currentUser ? true : false;
+            updateDataSource();
+        }
+        
+        // Call init when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
         
         document.addEventListener('dragover', (e) => e.preventDefault());
         document.addEventListener('drop', (e) => e.preventDefault());
