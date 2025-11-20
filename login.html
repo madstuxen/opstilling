@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>Login</title>
-    <!-- Firebase App (the core Firebase SDK) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <!-- Firebase App (the core Firebase SDK) - Using v8 for compatibility -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Authentication -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <!-- Firestore -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         * {
             margin: 0;
@@ -315,11 +315,19 @@ const firebaseConfig = {
 };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        console.log('Initializing Firebase...');
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log('Firebase initialized successfully');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
+        
         const auth = firebase.auth();
         const db = firebase.firestore();
 
         // Get DOM elements
+        console.log('Getting DOM elements...');
         const loginForm = document.getElementById('login-form');
         const errorMessage = document.getElementById('errorMessage');
         const userData = document.getElementById('user-data');
@@ -330,14 +338,27 @@ const firebaseConfig = {
         const savedData = document.getElementById('savedData');
         const logoutButton = document.getElementById('logoutButton');
         let currentUser = null;
+        
+        // Debug: Check if all elements exist
+        console.log('DOM elements check:');
+        console.log('loginForm:', loginForm ? 'found' : 'NOT FOUND');
+        console.log('errorMessage:', errorMessage ? 'found' : 'NOT FOUND');
+        console.log('userSection:', userSection ? 'found' : 'NOT FOUND');
+        
+        if (!loginForm) {
+            console.error('ERROR: login-form element not found!');
+        }
 
         // Check if user is already logged in
         auth.onAuthStateChanged(user => {
+            console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
             if (user) {
+                console.log('User is logged in:', user.email);
                 currentUser = user;
                 showUserSection(user);
                 loadUserData(user.uid);
             } else {
+                console.log('User is not logged in, showing login form');
                 showLoginForm();
             }
         });
@@ -345,6 +366,7 @@ const firebaseConfig = {
         // Login form submit handler
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            console.log('Login form submitted');
             
             // Hide previous messages
             errorMessage.classList.remove('show');
@@ -352,16 +374,22 @@ const firebaseConfig = {
             
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            
+            console.log('Attempting login for:', email);
 
             auth.signInWithEmailAndPassword(email, password)
                 .then(userCredential => {
+                    console.log('Login successful!', userCredential.user);
                     // Successful login
                     currentUser = userCredential.user;
                     showUserSection(currentUser);
                     loadUserData(currentUser.uid);
                 })
                 .catch(error => {
-                    errorMessage.textContent = error.message;
+                    console.error('Login error:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
+                    errorMessage.textContent = error.message || 'Der opstod en fejl ved login';
                     errorMessage.classList.add('show');
                 });
         });
@@ -412,43 +440,59 @@ const firebaseConfig = {
 
         // Load user data from Firestore
         function loadUserData(userId) {
+            console.log('Loading user data for userId:', userId);
             db.collection('users').doc(userId).get()
                 .then(doc => {
+                    console.log('Firestore doc:', doc.exists ? 'exists' : 'does not exist');
                     if (doc.exists) {
                         const data = doc.data();
+                        console.log('User data loaded:', data);
                         
                         // Display saved data
-                        document.getElementById('displayDog').textContent = data.favoriteDog || '-';
-                        document.getElementById('displayCat').textContent = data.favoriteCat || '-';
+                        const displayDog = document.getElementById('displayDog');
+                        const displayCat = document.getElementById('displayCat');
+                        const favoriteDogInput = document.getElementById('favoriteDog');
+                        const favoriteCatInput = document.getElementById('favoriteCat');
                         
-                        // Pre-fill form with existing data
-                        document.getElementById('favoriteDog').value = data.favoriteDog || '';
-                        document.getElementById('favoriteCat').value = data.favoriteCat || '';
+                        if (displayDog) displayDog.textContent = data.favoriteDog || '-';
+                        if (displayCat) displayCat.textContent = data.favoriteCat || '-';
+                        if (favoriteDogInput) favoriteDogInput.value = data.favoriteDog || '';
+                        if (favoriteCatInput) favoriteCatInput.value = data.favoriteCat || '';
                         
                         // Show saved data section if there's any data
-                        if (data.favoriteDog || data.favoriteCat) {
+                        if ((data.favoriteDog || data.favoriteCat) && savedData) {
                             savedData.style.display = 'block';
                         }
                     } else {
+                        console.log('No user data found in Firestore');
                         // No data yet
-                        savedData.style.display = 'none';
-                        document.getElementById('displayDog').textContent = '-';
-                        document.getElementById('displayCat').textContent = '-';
+                        if (savedData) savedData.style.display = 'none';
+                        const displayDog = document.getElementById('displayDog');
+                        const displayCat = document.getElementById('displayCat');
+                        if (displayDog) displayDog.textContent = '-';
+                        if (displayCat) displayCat.textContent = '-';
                     }
                 })
                 .catch(error => {
                     console.error('Error loading user data:', error);
+                    console.error('Error code:', error.code);
+                    console.error('Error message:', error.message);
                 });
         }
 
         // Show user section after login
         function showUserSection(user) {
+            console.log('Showing user section for:', user.email);
             loginForm.style.display = 'none';
             userData.classList.remove('show');
             userSection.classList.add('show');
-            userInfo.innerHTML = `
-                <strong>Logget ind som:</strong> ${user.email}
-            `;
+            if (userInfo) {
+                userInfo.innerHTML = `
+                    <strong>Logget ind som:</strong> ${user.email}
+                `;
+            } else {
+                console.error('userInfo element not found!');
+            }
         }
 
         // Show login form
@@ -477,11 +521,18 @@ const firebaseConfig = {
                 });
         });
         
-        // Auto-focus on email field
+        // Auto-focus on email field and debug
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded');
+            console.log('Login form element:', loginForm);
+            console.log('User section element:', userSection);
+            console.log('Auth object:', auth);
+            console.log('DB object:', db);
+            
             // Only focus if login form is visible
-            if (loginForm.style.display !== 'none') {
-                document.getElementById('email').focus();
+            const emailInput = document.getElementById('email');
+            if (emailInput && loginForm.style.display !== 'none') {
+                emailInput.focus();
             }
         });
     </script>
