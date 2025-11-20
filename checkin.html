@@ -674,7 +674,55 @@
             return new Date().toISOString().split('T')[0];
         }
 
-        function getLogbookEntries() {
+        // Load logbook data from Firestore
+        async function loadLogbookDataFromFirestore() {
+            if (!currentUser || !db) return null;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const userDoc = await userDocRef.get();
+                
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    if (userData && userData.logbogData) {
+                        const data = userData.logbogData;
+                        return Array.isArray(data) ? data : [];
+                    }
+                    return [];
+                }
+                return [];
+            } catch (error) {
+                console.error('Error loading logbook data from Firestore:', error);
+                return null;
+            }
+        }
+        
+        // Save logbook data to Firestore
+        async function saveLogbookDataToFirestore(entries) {
+            if (!currentUser || !db) return;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                await userDocRef.set({
+                    logbogData: entries
+                }, { merge: true });
+            } catch (error) {
+                console.error('Error saving logbook data to Firestore:', error);
+            }
+        }
+
+        async function getLogbookEntries() {
+            // Always check Firestore first if user is logged in
+            if (currentUser && db) {
+                const firestoreData = await loadLogbookDataFromFirestore();
+                if (firestoreData !== null) {
+                    return firestoreData;
+                }
+                // If Firestore returns null, return empty array (don't fall back to localStorage)
+                return [];
+            }
+            
+            // User not logged in - read from localStorage
             try {
                 const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
                 if (!raw) return [];
@@ -686,16 +734,23 @@
             }
         }
 
-        function saveLogbookEntries(entries) {
-            try {
-                localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
-            } catch (error) {
-                console.error('Kunne ikke gemme logbogData:', error);
+        async function saveLogbookEntries(entries) {
+            // Only save to Firestore if user is logged in
+            if (currentUser && db) {
+                await saveLogbookDataToFirestore(entries);
+                // Don't save to localStorage when using Firestore
+            } else {
+                // User not logged in - save to localStorage only
+                try {
+                    localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
+                } catch (error) {
+                    console.error('Kunne ikke gemme logbogData:', error);
+                }
             }
         }
 
-        function upsertLogEntry(dateKey, partial) {
-            const entries = getLogbookEntries();
+        async function upsertLogEntry(dateKey, partial) {
+            const entries = await getLogbookEntries();
             let entry = entries.find(item => item.date === dateKey);
             if (!entry) {
                 entry = {
@@ -706,13 +761,13 @@
                 entries.push(entry);
             }
             Object.assign(entry, partial);
-            saveLogbookEntries(entries);
+            await saveLogbookEntries(entries);
             return entry;
         }
 
-        function ensureTodayLogEntry() {
+        async function ensureTodayLogEntry() {
             const todayKey = getTodayDateKey();
-            const entries = getLogbookEntries();
+            const entries = await getLogbookEntries();
             let entry = entries.find(item => item.date === todayKey);
             if (!entry) {
                 entry = {
@@ -721,7 +776,7 @@
                     dreams: ''
                 };
                 entries.push(entry);
-                saveLogbookEntries(entries);
+                await saveLogbookEntries(entries);
             }
             return entry;
         }
@@ -777,18 +832,18 @@
             saveOverlayState(state);
         }
 
-        function hydrateNightOverlay() {
+        async function hydrateNightOverlay() {
             const overlay = document.getElementById('nightOverlay');
             const textarea = document.getElementById('nightDreamEntry');
             const closeBtn = document.getElementById('nightOverlayClose');
 
             if (!overlay || !textarea || !closeBtn) return;
 
-            const entry = ensureTodayLogEntry();
+            const entry = await ensureTodayLogEntry();
             textarea.value = entry.dreams || '';
 
-            textarea.addEventListener('input', () => {
-                upsertLogEntry(getTodayDateKey(), { dreams: textarea.value });
+            textarea.addEventListener('input', async () => {
+                await upsertLogEntry(getTodayDateKey(), { dreams: textarea.value });
             });
 
             closeBtn.addEventListener('click', () => {
