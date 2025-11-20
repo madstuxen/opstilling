@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <!-- Firebase Authentication -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <!-- Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -2120,6 +2126,61 @@
     <script src="coaching_engine.js"></script>
     <script src="coaching_overlay_complete.js"></script>
     <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCl6ZYtkfYx3kFF9329eGpeazsmJAPMKzA",
+            authDomain: "relationer-fe5fe.firebaseapp.com",
+            projectId: "relationer-fe5fe",
+            storageBucket: "relationer-fe5fe.firebasestorage.app",
+            messagingSenderId: "156720560629",
+            appId: "1:156720560629:web:1a138e4e89f02a131f88bc",
+            measurementId: "G-K5W7J8JHZG"
+        };
+        
+        // Initialize Firebase
+        let auth = null;
+        let db = null;
+        let currentUser = null;
+        
+        // Global Firestore toggle key - shared across all pages
+        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
+        
+        // Load global toggle state from localStorage
+        function loadGlobalFirestoreToggle() {
+            try {
+                const saved = localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY);
+                return saved === 'true';
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        // Save global toggle state to localStorage
+        function saveGlobalFirestoreToggle(value) {
+            try {
+                localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
+                // Trigger storage event for other tabs/windows
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: GLOBAL_FIRESTORE_TOGGLE_KEY,
+                    newValue: String(value),
+                    oldValue: localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY)
+                }));
+            } catch (error) {
+                console.error('Error saving global Firestore toggle:', error);
+            }
+        }
+        
+        let useFirestore = false; // Will be set after auth state is determined
+        
+        // Initialize Firebase immediately (before DOM is ready) for faster auth state detection
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
+        
 		let currentPosePart = null;
         let dialogActive = false;
         let currentSpeaker = 'left';
@@ -2135,7 +2196,7 @@
 const DIALOG_STORAGE_KEY = 'dialogData';
 const DIALOG_COACHING_KEY = 'dialogCoachingData';
 const DIALOG_HISTORY_COLLAPSED_KEY = 'dialog_historySidebarCollapsed';
-let dialogHistoryCollapsed = false;
+let dialogHistoryCollapsed = true; // Default to collapsed
         let activeDialogId = null; // Used in legacy functions and writeDialogData
         
         // New dialogData structure (similar to opstillingData)
@@ -2146,6 +2207,79 @@ let dialogHistoryCollapsed = false;
             '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
             '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
         ];
+        
+        // Check auth state - this should run before DOMContentLoaded loads data
+        let authStateReady = false;
+        let authStateResolver = null;
+        const authStatePromise = new Promise(resolve => {
+            authStateResolver = resolve;
+        });
+        
+        if (auth) {
+            // Set up auth state listener immediately - Firebase usually resolves auth state very quickly
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                
+                // Set useFirestore based on global toggle AND login status
+                const globalState = loadGlobalFirestoreToggle();
+                useFirestore = globalState && user ? true : false;
+                
+                // Mark auth as ready and resolve promise immediately
+                if (!authStateReady) {
+                    authStateReady = true;
+                    if (authStateResolver) {
+                        authStateResolver();
+                        authStateResolver = null;
+                    }
+                }
+                
+                // If user logs out and we're using Firestore, switch back to localStorage
+                if (!user && useFirestore) {
+                    useFirestore = false;
+                    saveGlobalFirestoreToggle(false); // Save globally
+                } else if (user && globalState) {
+                    // When user logs in and global state is true, reload data from Firestore
+                    (async () => {
+                        // IMPORTANT: Always reload, even if DialogData already exists, to ensure we get the correct source
+                        const data = await loadDialogDataFromLocalStorage();
+                        
+                        // Always update DialogData with the loaded data (or null if no data)
+                        DialogData = data;
+                        ensureDefaultDialogData();
+                        
+                        // Reload active dialog if it exists
+                        const activeDialog = getActiveDialog();
+                        if (activeDialog) {
+                            loadSavedDialogFromNewStructure(activeDialog);
+                        }
+                        renderDialogHistory();
+                    })();
+                }
+            });
+        }
+        
+        // Listen for storage events to sync toggle state across tabs
+        window.addEventListener('storage', async function(e) {
+            if (e.key === GLOBAL_FIRESTORE_TOGGLE_KEY) {
+                const newValue = e.newValue === 'true';
+                // Update useFirestore BEFORE loading data, so it knows which source to read from
+                useFirestore = newValue && currentUser ? true : false;
+                
+                // Reload data from the appropriate source (Firestore or localStorage)
+                const data = await loadDialogDataFromLocalStorage();
+                
+                // Always update DialogData with the loaded data (or null if no data)
+                DialogData = data;
+                ensureDefaultDialogData();
+                
+                // Reload active dialog if it exists
+                const activeDialog = getActiveDialog();
+                if (activeDialog) {
+                    loadSavedDialogFromNewStructure(activeDialog);
+                }
+                renderDialogHistory();
+            }
+        });
         
         let currentColorTarget = null;
         let currentColorSide = null;
@@ -2226,7 +2360,69 @@ let dialogHistoryCollapsed = false;
     }
 };
 		
-        function loadDialogDataFromLocalStorage() {
+        // Firestore functions
+        async function loadDialogDataFromFirestore() {
+            if (!currentUser || !db) return null;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                // Firestore get() with timeout for faster failure
+                const userDoc = await Promise.race([
+                    userDocRef.get(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), 3000))
+                ]);
+                
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    if (userData && userData.dialogData) {
+                        return userData.dialogData;
+                    }
+                }
+                return null;
+            } catch (error) {
+                // Only log if it's not a timeout (timeout is expected if no data)
+                if (error.message !== 'Firestore timeout') {
+                    console.error('Error loading dialogData from Firestore:', error);
+                }
+                return null;
+            }
+        }
+        
+        async function saveDialogDataToFirestore() {
+            if (!currentUser || !db) return false;
+            
+            try {
+                if (!DialogData) return false;
+                DialogData.updated = new Date().toISOString();
+                
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                await userDocRef.set({
+                    dialogData: DialogData,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving dialogData to Firestore:', error);
+                return false;
+            }
+        }
+        
+        async function loadDialogDataFromLocalStorage() {
+            // Check if we should use Firestore - if useFirestore is true, try Firestore first
+            if (useFirestore && currentUser && db) {
+                const firestoreData = await loadDialogDataFromFirestore();
+                if (firestoreData !== null) {
+                    // Also save to localStorage as cache
+                    try {
+                        localStorage.setItem(DIALOG_STORAGE_KEY, JSON.stringify(firestoreData));
+                    } catch (_) {}
+                    return firestoreData;
+                }
+                // If Firestore returns null (no data), fall back to localStorage
+            }
+            
+            // Use localStorage (either as primary source or fallback)
             try {
                 const raw = localStorage.getItem(DIALOG_STORAGE_KEY);
                 if (!raw) return null;
@@ -2286,11 +2482,19 @@ let dialogHistoryCollapsed = false;
             };
         }
         
-        function saveDialogDataToLocalStorage() {
+        async function saveDialogDataToLocalStorage() {
             try {
                 if (!DialogData) return false;
                 DialogData.updated = new Date().toISOString();
+                
+                // Always save to localStorage as cache
                 localStorage.setItem(DIALOG_STORAGE_KEY, JSON.stringify(DialogData));
+                
+                // If user is logged in and useFirestore is true, also save to Firestore
+                if (useFirestore && currentUser && db) {
+                    await saveDialogDataToFirestore();
+                }
+                
                 return true;
             } catch (_) {
                 return false;
@@ -2385,11 +2589,11 @@ let dialogHistoryCollapsed = false;
             };
         }
         
-        function saveDialogStorage(data) {
+        async function saveDialogStorage(data) {
             // This function is kept for backwards compatibility but will be replaced
             // by direct DialogData manipulation
             ensureDefaultDialogData();
-            saveDialogDataToLocalStorage();
+            await saveDialogDataToLocalStorage();
         }
         
         // Helper functions for colors (from opstilling)
@@ -2599,13 +2803,13 @@ let dialogHistoryCollapsed = false;
                     deleteBtn.textContent = '×';
                     item.appendChild(deleteBtn);
                 
-                item.addEventListener('click', (e) => {
+                item.addEventListener('click', async (e) => {
                     if (e.target.classList.contains('dialog-history-item-title-input') && isActive) return;
                     if (e.target.classList.contains('dialog-history-item-delete')) return;
                     if (!isActive) {
                         DialogData.activeCollectionId = collection.id;
                         DialogData.activeDialogId = dialog.id;
-                        saveDialogDataToLocalStorage();
+                        await saveDialogDataToLocalStorage();
                         loadSavedDialogFromNewStructure(dialog);
                         renderDialogHistory();
                     }
@@ -2626,7 +2830,7 @@ let dialogHistoryCollapsed = false;
                         return;
                     }
                 });
-                titleInput.addEventListener('change', (e) => {
+                titleInput.addEventListener('change', async (e) => {
                     const collectionId = parseFloat(e.target.dataset.collectionId);
                     const dialogId = parseFloat(e.target.dataset.dialogId);
                     const collection = DialogData.collections.find(c => c.id === collectionId);
@@ -2634,7 +2838,7 @@ let dialogHistoryCollapsed = false;
                         const dialog = collection.dialogs.find(d => d.id === dialogId);
                         if (dialog) {
                             dialog.name = e.target.value;
-                            saveDialogDataToLocalStorage();
+                            await saveDialogDataToLocalStorage();
                             renderDialogHistory();
                         }
                     }
@@ -2705,7 +2909,7 @@ let dialogHistoryCollapsed = false;
             } catch (_) {}
         }
         
-        function navigateDialogHistory(direction) {
+        async function navigateDialogHistory(direction) {
             const sortedEntries = getFilteredSortedDialogs();
             if (!sortedEntries.length) return;
             
@@ -2720,7 +2924,7 @@ let dialogHistoryCollapsed = false;
                 const targetEntry = sortedEntries[nextIndex];
                 DialogData.activeCollectionId = targetEntry.collection.id;
                 DialogData.activeDialogId = targetEntry.dialog.id;
-                saveDialogDataToLocalStorage();
+                await saveDialogDataToLocalStorage();
                 loadSavedDialogFromNewStructure(targetEntry.dialog);
                 renderDialogHistory();
             }
@@ -2760,7 +2964,7 @@ let dialogHistoryCollapsed = false;
             persistActiveDialogToNewStructure(false);
         }
         
-        function promptCleanupEmptyDialogsOnLoad() {
+        async function promptCleanupEmptyDialogsOnLoad() {
             try {
                 if (!DialogData || !Array.isArray(DialogData.collections)) return;
                 
@@ -2836,13 +3040,13 @@ let dialogHistoryCollapsed = false;
                     }
                 }
                 
-                saveDialogDataToLocalStorage();
+                await saveDialogDataToLocalStorage();
             } catch (error) {
                 console.error('Fejl i promptCleanupEmptyDialogsOnLoad:', error);
             }
         }
         
-        function deleteDialogFromNewStructure(collectionId, dialogId) {
+        async function deleteDialogFromNewStructure(collectionId, dialogId) {
             const collection = DialogData.collections.find(c => c.id === collectionId);
             if (!collection || !Array.isArray(collection.dialogs)) return;
             
@@ -2872,7 +3076,7 @@ let dialogHistoryCollapsed = false;
                 }
             }
             
-            saveDialogDataToLocalStorage();
+            await saveDialogDataToLocalStorage();
             const activeDialog = getActiveDialog();
             if (activeDialog) {
                 loadSavedDialogFromNewStructure(activeDialog);
@@ -3077,12 +3281,11 @@ let dialogHistoryCollapsed = false;
             }
         }
         
-        function handleDialogSamlingColorSelected(color) {
+        async function handleDialogSamlingColorSelected(color) {
             if (!dialogSamlingColorPickerTarget) return;
             if (dialogSamlingColorPickerTarget.type === 'samling') {
-                applyDialogSamlingColor(dialogSamlingColorPickerTarget.collectionId, color);
+                await applyDialogSamlingColor(dialogSamlingColorPickerTarget.collectionId, color);
                 renderDialogHistory();
-                saveDialogDataToLocalStorage();
             } else if (dialogSamlingColorPickerTarget.type === 'new') {
                 newDialogSamlingDraftColor = color;
                 newDialogSamlingColorDirty = true;
@@ -3091,17 +3294,17 @@ let dialogHistoryCollapsed = false;
             closeDialogSamlingColorPicker();
         }
         
-        function applyDialogSamlingColor(collectionId, color) {
+        async function applyDialogSamlingColor(collectionId, color) {
             const collection = DialogData.collections.find(c => c.id === collectionId);
             if (!collection) return;
             collection.color = color;
             renderDialogHistory();
             renderDialogSamlingManagerList();
             renderDialogHistoryFilterOptions();
-            saveDialogDataToLocalStorage();
+            await saveDialogDataToLocalStorage();
         }
         
-        function confirmCreateDialogSamling() {
+        async function confirmCreateDialogSamling() {
             if (!newDialogSamlingNameInputEl) return;
             const name = newDialogSamlingNameInputEl.value.trim();
             if (!name) {
@@ -3111,7 +3314,7 @@ let dialogHistoryCollapsed = false;
             const color = newDialogSamlingDraftColor || DIALOG_COLLECTION_COLOR_PRESETS[0];
             
             // Save current dialog before switching
-            persistActiveDialogToNewStructure();
+            await persistActiveDialogToNewStructure();
             
             // Find highest collection ID
             let maxId = 0;
@@ -3147,7 +3350,7 @@ let dialogHistoryCollapsed = false;
             DialogData.activeCollectionId = newId;
             DialogData.activeDialogId = 1;
             
-            saveDialogDataToLocalStorage();
+            await saveDialogDataToLocalStorage();
             
             // Load the new dialog
             loadSavedDialogFromNewStructure(newCollection.dialogs[0]);
@@ -3174,7 +3377,7 @@ let dialogHistoryCollapsed = false;
             closeDialogSamlingManager();
         }
         
-        function deleteDialogSamling(collectionId) {
+        async function deleteDialogSamling(collectionId) {
             if (!DialogData || !Array.isArray(DialogData.collections)) return;
             
             // Prevent deleting the last remaining collection
@@ -3205,7 +3408,7 @@ let dialogHistoryCollapsed = false;
                 }
             }
             
-            saveDialogDataToLocalStorage();
+            await saveDialogDataToLocalStorage();
             const activeDialog = getActiveDialog();
             if (activeDialog) {
                 loadSavedDialogFromNewStructure(activeDialog);
@@ -3316,7 +3519,7 @@ let dialogHistoryCollapsed = false;
             nameEl.style.cursor = 'default';
         }
         
-        function createNewDialogEntry() {
+        async function createNewDialogEntry() {
             ensureDefaultDialogData();
             
             let collection = getActiveCollection();
@@ -3342,7 +3545,7 @@ let dialogHistoryCollapsed = false;
             const dialogName = `Dialog ${newId}`;
             
             // Save current dialog before switching
-            persistActiveDialogToNewStructure();
+            await persistActiveDialogToNewStructure();
             
             // Create new dialog with default participants (venstre and højre)
             const now = new Date().toISOString();
@@ -3379,7 +3582,7 @@ let dialogHistoryCollapsed = false;
             collection.dialogs.push(newDialog);
             DialogData.activeDialogId = newId;
             
-            saveDialogDataToLocalStorage();
+            await saveDialogDataToLocalStorage();
             
             // Clear UI without deleting anything
             if (autoTimeout) clearTimeout(autoTimeout);
@@ -3436,7 +3639,7 @@ let dialogHistoryCollapsed = false;
             setStatus('Ny dialog klar.');
         }
         
-        function persistActiveDialogToNewStructure(updateTimestamp = true) {
+        async function persistActiveDialogToNewStructure(updateTimestamp = true) {
             if (isLoadingDialog) return;
             if (!DialogData || !DialogData.activeDialogId || !DialogData.activeCollectionId) return;
             
@@ -3491,13 +3694,13 @@ let dialogHistoryCollapsed = false;
                 dialog.updated = new Date().toISOString();
             }
             
-            saveDialogDataToLocalStorage();
+            await saveDialogDataToLocalStorage();
             renderDialogHistory();
         }
 
         // Legacy function for backwards compatibility
-        function persistActiveDialog(updateTimestamp = true) {
-            persistActiveDialogToNewStructure(updateTimestamp);
+        async function persistActiveDialog(updateTimestamp = true) {
+            await persistActiveDialogToNewStructure(updateTimestamp);
         }
 
         // Legacy function for backwards compatibility
@@ -4751,7 +4954,7 @@ function resetPose(side) {
         }
 
         // Save mini C button payload to localStorage as "dialogCoachingData"
-        function writeDialogData(side) {
+        async function writeDialogData(side) {
             try {
                 const youSide = side;
                 const otherSide = side === 'left' ? 'right' : 'left';
@@ -4794,7 +4997,7 @@ function resetPose(side) {
                 }
                 const storage = loadDialogStorage();
                 storage.lastCoachingUpdate = new Date().toISOString();
-                saveDialogStorage(storage);
+                await saveDialogStorage(storage);
                 setStatus('dialogCoachingData opdateret for ' + youName);
                 
                 // Open coaching overlay with dialog_coaching.json
@@ -5864,6 +6067,29 @@ if (rightPart.pose) {
         }
 
         document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for auth state to be determined before loading data
+            // This ensures useFirestore is correctly set before we try to load
+            // Firebase auth is usually very fast, so we only wait 1 second max
+            try {
+                await Promise.race([
+                    authStatePromise,
+                    new Promise(resolve => setTimeout(resolve, 1000))
+                ]);
+            } catch (e) {
+                console.warn('Auth state wait error:', e);
+            }
+            
+            // Set useFirestore based on current state (in case auth was already determined or timed out)
+            if (!authStateReady) {
+                const globalState = loadGlobalFirestoreToggle();
+                useFirestore = globalState && currentUser ? true : false;
+                // Resolve manually if not resolved yet
+                if (authStateResolver) {
+                    authStateResolver();
+                    authStateResolver = null;
+                }
+            }
+            
             // Load pose library first
             await loadPoseLibrary();
             // Load animations
@@ -6004,7 +6230,7 @@ if (rightPart.pose) {
 			}
 
             // Initialize new dialogData structure
-            DialogData = loadDialogDataFromLocalStorage();
+            DialogData = await loadDialogDataFromLocalStorage();
             ensureDefaultDialogData();
             
             // Cleanup: ask to remove empty dialogs (no messages)
@@ -6017,7 +6243,9 @@ if (rightPart.pose) {
             }
             
             // Initialize history sidebar
-            dialogHistoryCollapsed = localStorage.getItem(DIALOG_HISTORY_COLLAPSED_KEY) === 'true';
+            // Default to collapsed (true) unless explicitly set to false in localStorage
+            const savedState = localStorage.getItem(DIALOG_HISTORY_COLLAPSED_KEY);
+            dialogHistoryCollapsed = savedState === null || savedState === 'true';
             updateDialogHistoryToggleUI();
             
             const newDialogBtn = document.getElementById('newDialogBtn');
@@ -6101,8 +6329,8 @@ if (rightPart.pose) {
             });
         });
         
-        // Navigation overlay toggle function
-        function toggleNavBox() {
+        // Navigation overlay toggle function - must be global for onclick handler
+        window.toggleNavBox = function() {
             const navBox = document.getElementById('navBox');
             const navToggleBtn = document.querySelector('.nav-toggle-btn');
             
@@ -6118,7 +6346,7 @@ if (rightPart.pose) {
                     navBox.classList.add('show');
                 }
             }
-        }
+        };
 
         function applyParticipantPose(side, poseName, mirror) {
             if (!poseLibrary || !poseLibrary.length) {

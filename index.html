@@ -318,6 +318,21 @@ const firebaseConfig = {
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Global Firestore toggle key (same as other pages)
+        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
+
+        // Save global Firestore toggle state
+        function saveGlobalFirestoreToggle(value) {
+            try {
+                localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
+                // Dispatch custom event to notify other tabs
+                window.dispatchEvent(new CustomEvent('firestoreToggleChanged', { detail: value }));
+                console.log('Global Firestore toggle set to:', value);
+            } catch (e) {
+                console.error('Error saving global Firestore toggle:', e);
+            }
+        }
+
         // Get DOM elements
         console.log('Getting DOM elements...');
         const loginForm = document.getElementById('login-form');
@@ -352,10 +367,14 @@ const firebaseConfig = {
             if (user) {
                 console.log('User is logged in:', user.email);
                 currentUser = user;
+                // Set global_useFirestore to true when user logs in
+                saveGlobalFirestoreToggle(true);
                 showLoggedInSection(user);
             } else {
                 console.log('User is not logged in, showing login form');
                 currentUser = null;
+                // Set global_useFirestore to false when user logs out
+                saveGlobalFirestoreToggle(false);
                 showLoginForm();
             }
         });
@@ -378,6 +397,8 @@ const firebaseConfig = {
                     console.log('Login successful!', userCredential.user);
                     // Successful login - show logged in section
                     currentUser = userCredential.user;
+                    // Set global_useFirestore to true on successful login
+                    saveGlobalFirestoreToggle(true);
                     showLoggedInSection(currentUser);
                     // Clear form
                     loginForm.reset();
@@ -538,6 +559,8 @@ const firebaseConfig = {
                     return db.collection('users').doc(currentUser.uid).set(userDoc, { merge: true })
                         .then(() => {
                             console.log('User data saved to Firestore');
+                            // Set global_useFirestore to true when new user is created successfully
+                            saveGlobalFirestoreToggle(true);
                             // Show logged in section after successful user creation and data save
                             showLoggedInSection(currentUser);
                             // Clear form
@@ -576,6 +599,8 @@ const firebaseConfig = {
                     .then(() => {
                         console.log('User logged out');
                         currentUser = null;
+                        // Set global_useFirestore to false on logout
+                        saveGlobalFirestoreToggle(false);
                         showLoginForm();
                         // Clear forms
                         loginForm.reset();

@@ -50,71 +50,6 @@
             position: relative;
             transition: background 0.3s ease;
         }
-        
-        /* Header colors based on data source */
-        .header.data-source-firestore {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        }
-        
-        .header.data-source-localstorage {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-        }
-        
-        /* Debug panel in top-right corner */
-        .debug-panel {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 12px 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            min-width: 200px;
-        }
-        
-        .debug-panel label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: #374151;
-            cursor: pointer;
-        }
-        
-        .debug-panel input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        
-        .debug-panel-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: #1f2937;
-            margin-bottom: 4px;
-        }
-        
-        .login-status {
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-            text-align: center;
-        }
-        
-        .login-status.logged-in {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .login-status.logged-out {
-            background: #fee2e2;
-            color: #991b1b;
-        }
 
         .header h1 {
             font-size: 2rem;
@@ -1342,16 +1277,6 @@
     </style>
 </head>
 <body>
-    <!-- Debug panel in top-right corner -->
-    <div class="debug-panel">
-        <div class="debug-panel-title">Debug</div>
-        <label>
-            <input type="checkbox" id="dataSourceToggle" />
-            <span>Læs fra Firestore</span>
-        </label>
-        <div id="loginStatus" class="login-status logged-out">Ikke logget ind</div>
-    </div>
-    
     <div class="container">
         <div class="header" id="pageHeader">
             <div class="nav-controls">
@@ -1627,33 +1552,21 @@
 
         // Load logbook data from Firestore
         async function loadLogbookDataFromFirestore() {
-            if (!currentUser || !db) {
-                console.log('loadLogbookDataFromFirestore: No currentUser or db', { currentUser: !!currentUser, db: !!db });
-                return null;
-            }
+            if (!currentUser || !db) return null;
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 const userDoc = await userDocRef.get();
                 
-                console.log('loadLogbookDataFromFirestore: userDoc.exists =', userDoc.exists);
-                
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    console.log('loadLogbookDataFromFirestore: userData keys =', Object.keys(userData || {}));
-                    
                     if (userData && userData.logbogData) {
                         const data = userData.logbogData;
-                        console.log('loadLogbookDataFromFirestore: Found logbogData, length =', Array.isArray(data) ? data.length : 'not an array');
                         return Array.isArray(data) ? data : [];
-                    } else {
-                        console.log('loadLogbookDataFromFirestore: No logbogData field in user document');
-                        return [];
                     }
-                } else {
-                    console.log('loadLogbookDataFromFirestore: User document does not exist');
                     return [];
                 }
+                return [];
             } catch (error) {
                 console.error('Error loading logbook data from Firestore:', error);
                 return null;
@@ -1669,23 +1582,27 @@
                 await userDocRef.set({
                     logbogData: entries
                 }, { merge: true });
-                console.log('Logbook data saved to Firestore');
             } catch (error) {
                 console.error('Error saving logbook data to Firestore:', error);
             }
         }
         
-        async function getLogbookData() {
-            // Check if we should use Firestore
-            console.log('getLogbookData: useFirestore =', useFirestore, 'currentUser =', !!currentUser);
-            
-            if (useFirestore && currentUser) {
-                console.log('getLogbookData: Attempting to load from Firestore...');
+        // Cache for logbook data to reduce repeated calls
+        let logbookDataCache = null;
+        let logbookDataCacheKey = null; // Track what the cache is for (currentUser.uid)
+
+        async function getLogbookData(forceRefresh = false) {
+            // Return cached data if available and user hasn't changed
+            const cacheKey = currentUser ? currentUser.uid : 'none';
+            if (!forceRefresh && logbookDataCache !== null && logbookDataCacheKey === cacheKey) {
+                return logbookDataCache;
+            }
+
+            if (currentUser && db) {
+                // User is logged in - read from Firestore
                 const firestoreData = await loadLogbookDataFromFirestore();
-                console.log('getLogbookData: firestoreData =', firestoreData !== null ? (Array.isArray(firestoreData) ? `Array(${firestoreData.length})` : firestoreData) : 'null');
                 
                 if (firestoreData !== null) {
-                    console.log('getLogbookData: Using Firestore data');
                     // Normalize data
                     let mutated = false;
                     const normalizedEntries = firestoreData.map(entry => {
@@ -1717,56 +1634,61 @@
                         await saveLogbookDataToFirestore(normalizedEntries);
                     }
                     
+                    // Cache the result
+                    logbookDataCache = normalizedEntries;
+                    logbookDataCacheKey = cacheKey;
+                    
                     return normalizedEntries;
-                } else {
-                    console.log('getLogbookData: Firestore returned null, falling back to localStorage');
                 }
-                // Fallback to localStorage if Firestore fails
-            } else {
-                console.log('getLogbookData: Not using Firestore (useFirestore =', useFirestore, ', currentUser =', !!currentUser, ')');
-            }
-            
-            // Use localStorage
-            console.log('getLogbookData: Loading from localStorage');
-            try {
-                const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
-                if (!raw) return [];
-                const parsed = JSON.parse(raw);
-                if (!Array.isArray(parsed)) return [];
-
-                let mutated = false;
-                const normalizedEntries = parsed.map(entry => {
-                    if (!entry || typeof entry !== 'object') return entry;
-                    // Normalize date to ISO YYYY-MM-DD
-                    const normalizedKey = normalizeDateKey(entry.date);
-                    let nextEntry = entry;
-                    if (normalizedKey && normalizedKey !== entry.date) {
-                        mutated = true;
-                        nextEntry = { ...nextEntry, date: normalizedKey };
-                    }
-                    // Ensure timestamp (ISO 8601). For legacy entries without timestamp, derive from date at local midnight
-                    if (!nextEntry.timestamp) {
-                        const derived = new Date(`${normalizedKey || entry.date}T00:00:00`);
-                        if (!Number.isNaN(derived.getTime())) {
-                            nextEntry = { ...nextEntry, timestamp: derived.toISOString() };
-                            mutated = true;
-                        } else {
-                            // Fallback to "now"
-                            nextEntry = { ...nextEntry, timestamp: new Date().toISOString() };
-                            mutated = true;
-                        }
-                    }
-                    return nextEntry;
-                });
-
-                if (mutated) {
-                    localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(normalizedEntries));
-                }
-
-                return normalizedEntries;
-            } catch (error) {
-                console.warn('Kunne ikke læse logbogData:', error);
+                
+                // If Firestore fails, return empty array
                 return [];
+            } else {
+                // User not logged in - read from localStorage as backup
+                try {
+                    const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
+                    if (!raw) return [];
+                    const parsed = JSON.parse(raw);
+                    if (!Array.isArray(parsed)) return [];
+
+                    let mutated = false;
+                    const normalizedEntries = parsed.map(entry => {
+                        if (!entry || typeof entry !== 'object') return entry;
+                        // Normalize date to ISO YYYY-MM-DD
+                        const normalizedKey = normalizeDateKey(entry.date);
+                        let nextEntry = entry;
+                        if (normalizedKey && normalizedKey !== entry.date) {
+                            mutated = true;
+                            nextEntry = { ...nextEntry, date: normalizedKey };
+                        }
+                        // Ensure timestamp (ISO 8601). For legacy entries without timestamp, derive from date at local midnight
+                        if (!nextEntry.timestamp) {
+                            const derived = new Date(`${normalizedKey || entry.date}T00:00:00`);
+                            if (!Number.isNaN(derived.getTime())) {
+                                nextEntry = { ...nextEntry, timestamp: derived.toISOString() };
+                                mutated = true;
+                            } else {
+                                // Fallback to "now"
+                                nextEntry = { ...nextEntry, timestamp: new Date().toISOString() };
+                                mutated = true;
+                            }
+                        }
+                        return nextEntry;
+                    });
+
+                    if (mutated) {
+                        localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(normalizedEntries));
+                    }
+
+                    // Cache the result
+                    logbookDataCache = normalizedEntries;
+                    logbookDataCacheKey = cacheKey;
+                    
+                    return normalizedEntries;
+                } catch (error) {
+                    console.warn('Kunne ikke læse logbogData:', error);
+                    return [];
+                }
             }
         }
 
@@ -1775,30 +1697,39 @@
         }
 
         async function saveLogbookData(entries) {
-            // Check if we should use Firestore
-            if (useFirestore && currentUser) {
-                await saveLogbookDataToFirestore(entries);
-                return; // Don't save to localStorage when using Firestore
-            }
+            // Invalidate cache
+            logbookDataCache = null;
+            logbookDataCacheKey = null;
             
-            // Use localStorage
-            try {
-                localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
-            } catch (error) {
-                console.error('Kunne ikke gemme logbogData:', error);
+            if (currentUser && db) {
+                // User is logged in - save to Firestore
+                await saveLogbookDataToFirestore(entries);
+                // Also save to localStorage as backup
+                try {
+                    localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
+                } catch (error) {
+                    console.warn('Kunne ikke gemme logbogData til localStorage som backup:', error);
+                }
+            } else {
+                // User not logged in - save to localStorage only (will sync to Firestore when user logs in)
+                try {
+                    localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
+                } catch (error) {
+                    console.error('Kunne ikke gemme logbogData:', error);
+                }
             }
         }
 
         async function getBodymapData() {
-            // Check if we should use Firestore
-            if (useFirestore && currentUser && db) {
+            // Always try Firestore first if user is logged in
+            if (currentUser && db) {
                 const firestoreData = await loadBodymapDataFromFirestore();
                 if (firestoreData !== null) {
                     return firestoreData;
                 }
             }
             
-            // Use localStorage
+            // Fallback to localStorage (for backup or when user not logged in)
             try {
                 const raw = localStorage.getItem(BODYMAP_STORAGE_KEY);
                 if (!raw) return null;
@@ -1810,8 +1741,16 @@
             }
         }
 
-        function getDialogData() {
-            // Dialog not yet integrated with Firestore - always use localStorage
+        async function getDialogData() {
+            // Always try Firestore first if user is logged in
+            if (currentUser && db) {
+                const firestoreData = await loadDialogDataFromFirestore();
+                if (firestoreData !== null) {
+                    return firestoreData;
+                }
+            }
+            
+            // Fallback to localStorage (for backup or when user not logged in)
             try {
                 const raw = localStorage.getItem(DIALOG_STORAGE_KEY);
                 if (!raw) return null;
@@ -1833,15 +1772,15 @@
         }
 
         async function getOpstillingData() {
-            // Check if we should use Firestore
-            if (useFirestore && currentUser && db) {
+            // Always try Firestore first if user is logged in
+            if (currentUser && db) {
                 const firestoreData = await loadOpstillingDataFromFirestore();
                 if (firestoreData !== null) {
                     return firestoreData;
                 }
             }
             
-            // Use localStorage
+            // Fallback to localStorage (for backup or when user not logged in)
             try {
                 const raw = localStorage.getItem(OPSTILLING_STORAGE_KEY);
                 if (!raw) return null;
@@ -1853,8 +1792,16 @@
             }
         }
 
-        function getCompareData() {
-            // Compare not yet integrated with Firestore - always use localStorage
+        async function getCompareData() {
+            // Always try Firestore first if user is logged in
+            if (currentUser && db) {
+                const firestoreData = await loadCompareDataFromFirestore();
+                if (firestoreData !== null) {
+                    return firestoreData;
+                }
+            }
+            
+            // Fallback to localStorage (for backup or when user not logged in)
             try {
                 const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
                 if (!raw) return null;
@@ -2012,34 +1959,23 @@
 
         async function getBodymapActivityInfo(dateKey) {
             if (!dateKey) {
-                console.log('getBodymapActivityInfo: No dateKey provided');
                 return { hasEntries: false };
             }
 
-            console.log('getBodymapActivityInfo: Looking for dateKey:', dateKey, 'useFirestore:', useFirestore);
             const bodymapData = await getBodymapData();
-            console.log('getBodymapActivityInfo: bodymapData:', bodymapData ? 'found' : 'null', 'dataIndexes:', bodymapData?.dataIndexes?.length || 0);
-            
             if (!bodymapData || !Array.isArray(bodymapData.dataIndexes)) {
-                console.log('getBodymapActivityInfo: No bodymapData or dataIndexes');
                 return { hasEntries: false };
             }
 
             const entriesForDate = [];
-            bodymapData.dataIndexes.forEach((index, idx) => {
+            bodymapData.dataIndexes.forEach(index => {
                 const entryDate = getBodymapEntryDate(index);
-                if (!entryDate) {
-                    console.log(`getBodymapActivityInfo: Entry ${idx} has no valid date`);
-                    return;
-                }
+                if (!entryDate) return;
                 const normalizedDateKey = formatDateKey(entryDate);
-                console.log(`getBodymapActivityInfo: Entry ${idx} date:`, normalizedDateKey, 'matches:', normalizedDateKey === dateKey);
                 if (normalizedDateKey === dateKey) {
                     entriesForDate.push({ entry: index, timestamp: entryDate });
                 }
             });
-            
-            console.log('getBodymapActivityInfo: Found', entriesForDate.length, 'entries for date', dateKey);
 
             if (!entriesForDate.length) {
                 return { hasEntries: false };
@@ -2054,38 +1990,36 @@
                 });
             }
 
-            const mapIds = new Set();
-            let latest = entriesForDate[0];
+            // Sort by timestamp and get the latest entry for display
+            entriesForDate.sort((a, b) => b.timestamp - a.timestamp);
+            const latest = entriesForDate[0];
 
+            // Count unique maps (by mapId) for the day
+            const uniqueMapIds = new Set();
             entriesForDate.forEach(wrapper => {
-                mapIds.add(wrapper.entry.mapId);
-                if (wrapper.timestamp > latest.timestamp) {
-                    latest = wrapper;
-                }
+                uniqueMapIds.add(wrapper.entry.mapId);
             });
+            const mapCount = uniqueMapIds.size;
 
-            const mapNames = Array.from(mapIds)
-                .map(id => mapNameById.get(id))
-                .filter(Boolean);
-            const mapCount = mapIds.size;
-            const displayTextRaw = summarizeMapNames(mapNames, mapCount);
-            const displayText = displayTextRaw || (mapCount ? `${mapCount} map${mapCount === 1 ? '' : 's'}` : '');
+            // Get the name of the latest map
+            const latestMapId = latest.entry.mapId;
+            const mapName = mapNameById.get(latestMapId) || 'BodyMap';
             const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
 
             return {
                 hasEntries: true,
-                displayText,
+                displayText: mapName,
                 latestTime,
-                mapCount
+                mapCount // Show actual count of unique maps
             };
         }
 
-        function getDialogActivityInfo(dateKey) {
+        async function getDialogActivityInfo(dateKey) {
             if (!dateKey) {
                 return { hasEntries: false };
             }
 
-            const dialogData = getDialogData();
+            const dialogData = await getDialogData();
             if (!dialogData) {
                 return { hasEntries: false };
             }
@@ -2182,49 +2116,33 @@
 
         async function getOpstillingActivityInfo(dateKey) {
             if (!dateKey) {
-                console.log('getOpstillingActivityInfo: No dateKey provided');
                 return { hasEntries: false };
             }
 
-            console.log('getOpstillingActivityInfo: Looking for dateKey:', dateKey, 'useFirestore:', useFirestore);
             const opstillingData = await getOpstillingData();
-            console.log('getOpstillingActivityInfo: opstillingData:', opstillingData ? 'found' : 'null', 'collections:', opstillingData?.collections?.length || 0);
-            
             if (!opstillingData || !Array.isArray(opstillingData.collections)) {
-                console.log('getOpstillingActivityInfo: No opstillingData or collections');
                 return { hasEntries: false };
             }
 
             const matches = [];
-            opstillingData.collections.forEach((collection, colIdx) => {
-                if (!Array.isArray(collection.setups)) {
-                    console.log(`getOpstillingActivityInfo: Collection ${colIdx} has no setups array`);
-                    return;
-                }
-                collection.setups.forEach((setup, setupIdx) => {
+            opstillingData.collections.forEach(collection => {
+                if (!Array.isArray(collection.setups)) return;
+                collection.setups.forEach(setup => {
                     const source = setup.timestamp || setup.updated;
-                    if (!source) {
-                        console.log(`getOpstillingActivityInfo: Setup ${colIdx}-${setupIdx} has no timestamp/updated`);
-                        return;
-                    }
+                    if (!source) return;
                     const timestamp = new Date(source);
-                    if (Number.isNaN(timestamp.getTime())) {
-                        console.log(`getOpstillingActivityInfo: Setup ${colIdx}-${setupIdx} has invalid timestamp:`, source);
-                        return;
-                    }
+                    if (Number.isNaN(timestamp.getTime())) return;
                     const normalized = formatDateKey(timestamp);
-                    console.log(`getOpstillingActivityInfo: Setup ${colIdx}-${setupIdx} date:`, normalized, 'matches:', normalized === dateKey);
                     if (normalized !== dateKey) return;
                     matches.push({ setup, collection, timestamp });
                 });
             });
-            
-            console.log('getOpstillingActivityInfo: Found', matches.length, 'matches for date', dateKey);
 
             if (!matches.length) {
                 return { hasEntries: false };
             }
 
+            // Sort by timestamp and get the latest one only
             matches.sort((a, b) => b.timestamp - a.timestamp);
             const latest = matches[0];
             const setupName = latest.setup.name || 'Opstilling';
@@ -2232,26 +2150,25 @@
             const partsCount = Array.isArray(latest.setup.parts) ? latest.setup.parts.length : 0;
             const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
 
+            // Show the latest opstilling name, but count all matches
             const count = matches.length;
-            const displayText = count === 1 
-                ? `${setupName} i ${collectionName}`
-                : `${setupName} i ${collectionName} (+${count - 1} ${count === 2 ? 'anden' : 'andre'})`;
+            const displayText = `${setupName} i ${collectionName}`;
 
             return {
                 hasEntries: true,
                 displayText,
                 latestTime,
                 partsCount,
-                count
+                count // Show actual count of opstillinger on this day
             };
         }
 
-        function getCompareActivityInfo(dateKey) {
+        async function getCompareActivityInfo(dateKey) {
             if (!dateKey) {
                 return { hasEntries: false };
             }
 
-            const compareData = getCompareData();
+            const compareData = await getCompareData();
             if (!compareData || !Array.isArray(compareData.collections)) {
                 return { hasEntries: false };
             }
@@ -2336,11 +2253,11 @@
             return parsed.toLocaleDateString('da-DK', options);
         }
 
-        async function renderLogHistory() {
+        async function renderLogHistory(externalEntries = null) {
             const listEl = document.getElementById('logHistoryList');
             if (!listEl) return;
 
-            const entries = await getSortedLogEntries();
+            const entries = externalEntries !== null ? externalEntries : await getSortedLogEntries();
             listEl.innerHTML = '';
 
             let activeItemEl = null;
@@ -2449,29 +2366,18 @@
             try {
                 let parsed = [];
                 
-                // Load from Firestore if toggle is on and user is logged in
-                if (useFirestore && currentUser) {
+                // Always load from Firestore if user is logged in
+                if (currentUser && db) {
                     const firestoreData = await loadCheckinDataFromFirestore();
                     if (firestoreData !== null) {
                         parsed = firestoreData;
                     } else {
-                        // If Firestore fails, fall back to localStorage
-                        console.warn('Failed to load taknem from Firestore, falling back to localStorage');
-                        const raw = localStorage.getItem('forside_checkin_data');
-                        if (raw) {
-                            const localParsed = JSON.parse(raw);
-                            if (Array.isArray(localParsed)) {
-                                parsed = localParsed;
-                            }
-                        }
+                        // If Firestore fails, return empty
+                        return '';
                     }
                 } else {
-                    // Load from localStorage
-                    const raw = localStorage.getItem('forside_checkin_data');
-                    if (!raw) return '';
-                    const localParsed = JSON.parse(raw);
-                    if (!Array.isArray(localParsed)) return '';
-                    parsed = localParsed;
+                    // User not logged in - return empty
+                    return '';
                 }
                 
                 // Calculate date in same format as checkin.html - convert dateKey to YYYY-MM-DD
@@ -2647,7 +2553,13 @@
             }
             entry[field] = value;
             await saveLogbookData(entries);
-            await renderLogHistory();
+            // Pass entries to renderLogHistory to avoid another getLogbookData() call
+            const sortedEntries = entries.slice().sort((a, b) => {
+                const dateA = new Date(a.date || a.timestamp || 0);
+                const dateB = new Date(b.date || b.timestamp || 0);
+                return dateB - dateA; // Most recent first
+            });
+            await renderLogHistory(sortedEntries);
         }
 
         async function refreshActiveLogEntry(externalEntries) {
@@ -2670,22 +2582,17 @@
         }
 
         async function handleLogbookStorageEvent(event) {
+            // Firestore doesn't use storage events - data syncs via auth state changes
+            // This function is kept for localStorage backup compatibility only
             if (event.key !== LOGBOOK_STORAGE_KEY) return;
-
-            let latestEntries = [];
-            if (event.newValue) {
-                try {
-                    const parsed = JSON.parse(event.newValue);
-                    if (Array.isArray(parsed)) {
-                        latestEntries = parsed;
-                    }
-                } catch (error) {
-                    console.warn('Kunne ikke parse logbogData fra storage event:', error);
-                }
+            
+            // Only handle if user is not logged in (using localStorage as primary)
+            if (!currentUser || !db) {
+                logbookDataCache = null;
+                logbookDataCacheKey = null;
+                await refreshActiveLogEntry();
+                await renderLogHistory();
             }
-
-            await refreshActiveLogEntry(latestEntries);
-            await renderLogHistory();
         }
 
         async function handleBodymapStorageEvent(event) {
@@ -2788,7 +2695,13 @@
             if (entry) {
                 entry.color = color;
                 await saveLogbookData(entries);
-                await renderLogHistory();
+                // Pass entries to renderLogHistory to avoid another getLogbookData() call
+                const sortedEntries = entries.slice().sort((a, b) => {
+                    const dateA = new Date(a.date || a.timestamp || 0);
+                    const dateB = new Date(b.date || b.timestamp || 0);
+                    return dateB - dateA; // Most recent first
+                });
+                await renderLogHistory(sortedEntries);
             }
             closeLogHistoryColorPicker();
         }
@@ -2800,7 +2713,13 @@
             if (entry) {
                 delete entry.color;
                 await saveLogbookData(entries);
-                await renderLogHistory();
+                // Pass entries to renderLogHistory to avoid another getLogbookData() call
+                const sortedEntries = entries.slice().sort((a, b) => {
+                    const dateA = new Date(a.date || a.timestamp || 0);
+                    const dateB = new Date(b.date || b.timestamp || 0);
+                    return dateB - dateA; // Most recent first
+                });
+                await renderLogHistory(sortedEntries);
             }
             closeLogHistoryColorPicker();
         }
@@ -2918,33 +2837,93 @@
 
         const CLOCK_ICON_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>';
 
+        let renderingActivities = false;
         async function renderActivitiesForDate(dateKey) {
+            // Prevent multiple simultaneous renders
+            if (renderingActivities) return;
+            renderingActivities = true;
+            
             const normalizedKey = normalizeDateKey(dateKey) || getTodayDateKey();
             const grid = document.getElementById('activitiesGrid');
-            if (!grid) return;
-            grid.innerHTML = '';
+            if (!grid) {
+                renderingActivities = false;
+                return;
+            }
 
             // Always render exactly 4 activities (opstilling, dialog, relationer, bodymap)
             // The content changes based on whether there's data for the selected date
             if (!mockActivities || mockActivities.length < 4) {
                 console.error('mockActivities must contain exactly 4 activities');
+                renderingActivities = false;
                 return;
             }
+
+            // Get or create the 4 activity links (one of each type)
+            // First, ensure we only have exactly 4 links (remove any extras or duplicates)
+            const allLinks = Array.from(grid.querySelectorAll('.activity-link[data-activity-type]'));
+            const linksByType = {};
+            const expectedTypes = new Set(mockActivities.map(a => a.type));
+            const seenTypes = new Set();
+            
+            // Remove duplicates and invalid links
+            allLinks.forEach(link => {
+                const type = link.getAttribute('data-activity-type');
+                if (type && expectedTypes.has(type)) {
+                    // If we've already seen this type, remove the duplicate
+                    if (seenTypes.has(type)) {
+                        link.remove();
+                        return;
+                    }
+                    seenTypes.add(type);
+                    linksByType[type] = link;
+                } else {
+                    // Remove link if type is invalid or not in expected types
+                    link.remove();
+                }
+            });
 
             // Process activities sequentially to handle async data loading
             for (const activity of mockActivities) {
                 const styleConfig = activityStyles[activity.type] || activityStyles.default;
                 const accentColor = styleConfig.accent || '#475569';
 
-                const link = document.createElement('a');
-                link.className = 'activity-link';
+                // Find existing link or create new one
+                let link = linksByType[activity.type];
+                let tile;
+                
+                if (link && grid.contains(link)) {
+                    // Use existing link - find existing tile (never create new tile)
+                    tile = link.querySelector('.activity-tile');
+                    if (!tile) {
+                        // Only create tile if it truly doesn't exist (shouldn't happen normally)
+                        tile = document.createElement('article');
+                        tile.className = 'activity-tile';
+                        link.appendChild(tile);
+                    }
+                } else {
+                    // Create new link only if it doesn't exist
+                    link = document.createElement('a');
+                    link.className = 'activity-link';
+                    link.setAttribute('data-activity-type', activity.type);
+                    link.href = styleConfig.url || '#';
+
+                    tile = document.createElement('article');
+                    tile.className = 'activity-tile';
+                    link.appendChild(tile);
+                    grid.appendChild(link);
+                    linksByType[activity.type] = link; // Store for next iteration
+                }
+
+                // Update link href
                 link.href = styleConfig.url || '#';
 
-                const tile = document.createElement('article');
+                // Only clear tile content (never remove/recreate the tile element itself)
+                tile.innerHTML = '';
                 tile.className = 'activity-tile';
                 tile.style.background = styleConfig.gradient;
                 tile.style.color = '#ffffff';
                 tile.style.border = 'none';
+                tile.classList.remove('empty');
 
                 const labelEl = document.createElement('div');
                 labelEl.className = 'activity-label';
@@ -2960,46 +2939,46 @@
                 let displayTime = activity.time || '--:--';
                 let displayText = activity.text || '';
                 let isEmptyState = false;
-            let emptyTextLabel = 'Ingen aktivitet';
-            let badgeText = '';
+                let emptyTextLabel = 'Ingen aktivitet';
+                let badgeText = '';
 
                 if (activity.type === 'bodymap') {
-                    console.log('renderActivitiesForDate: Checking bodymap for dateKey:', normalizedKey);
                     const info = await getBodymapActivityInfo(normalizedKey);
-                    console.log('renderActivitiesForDate: bodymap info:', info);
                     if (info.hasEntries) {
                         displayTime = info.latestTime || displayTime;
                         displayText = info.displayText || displayText;
-                    const mapLabel = info.mapCount === 1 ? '1 map' : `${info.mapCount} maps`;
-                    badgeText = mapLabel;
+                        const mapLabel = info.mapCount === 1 ? '1 map' : `${info.mapCount} maps`;
+                        badgeText = mapLabel;
                     } else {
                         isEmptyState = true;
-                    emptyTextLabel = 'Lav et map';
-                }
-            } else if (activity.type === 'dialog') {
-                const info = getDialogActivityInfo(normalizedKey);
-                if (info.hasEntries) {
-                    displayTime = info.latestTime || displayTime;
-                    const messageSuffix = typeof info.messageCount === 'number' && info.messageCount > 0
-                        ? ` · ${info.messageCount} beskeder`
-                        : '';
-                    displayText = (info.displayText || displayText) + messageSuffix;
-                    const dialogLabel = info.count === 1 ? '1 dialog' : `${info.count} dialoger`;
-                    badgeText = dialogLabel;
-                } else {
-                    isEmptyState = true;
-                    emptyTextLabel = 'Lav en dialog';
+                        emptyTextLabel = 'Lav et map';
                     }
-                } else if (activity.type === 'opstilling') {
-                    console.log('renderActivitiesForDate: Checking opstilling for dateKey:', normalizedKey);
-                    const info = await getOpstillingActivityInfo(normalizedKey);
-                    console.log('renderActivitiesForDate: opstilling info:', info);
+                } else if (activity.type === 'dialog') {
+                    const info = await getDialogActivityInfo(normalizedKey);
                     if (info.hasEntries) {
                         displayTime = info.latestTime || displayTime;
-                        const partsSuffix = typeof info.partsCount === 'number' && info.partsCount > 0
-                            ? ` · ${info.partsCount} ${info.partsCount === 1 ? 'deltager' : 'deltagere'}`
-                            : '';
-                        displayText = (info.displayText || displayText) + partsSuffix;
+                        // Use displayText from info, don't append messageSuffix if it's already there
+                        displayText = info.displayText || displayText;
+                        if (typeof info.messageCount === 'number' && info.messageCount > 0 && !displayText.includes('beskeder')) {
+                            const messageSuffix = ` · ${info.messageCount} beskeder`;
+                            displayText = displayText + messageSuffix;
+                        }
+                        const dialogLabel = info.count === 1 ? '1 dialog' : `${info.count} dialoger`;
+                        badgeText = dialogLabel;
+                    } else {
+                        isEmptyState = true;
+                        emptyTextLabel = 'Lav en dialog';
+                    }
+                } else if (activity.type === 'opstilling') {
+                    const info = await getOpstillingActivityInfo(normalizedKey);
+                    if (info.hasEntries) {
+                        displayTime = info.latestTime || displayTime;
+                        // Use displayText from info, don't append partsSuffix if it's already there
+                        displayText = info.displayText || displayText;
+                        if (typeof info.partsCount === 'number' && info.partsCount > 0 && !displayText.includes('deltager')) {
+                            const partsSuffix = ` · ${info.partsCount} ${info.partsCount === 1 ? 'deltager' : 'deltagere'}`;
+                            displayText = displayText + partsSuffix;
+                        }
                         const opstillingLabel = info.count === 1 ? '1 opstilling' : `${info.count} opstillinger`;
                         badgeText = opstillingLabel;
                     } else {
@@ -3007,7 +2986,7 @@
                         emptyTextLabel = 'Lav en opstilling';
                     }
                 } else if (activity.type === 'relationer') {
-                    const info = getCompareActivityInfo(normalizedKey);
+                    const info = await getCompareActivityInfo(normalizedKey);
                     if (info.hasEntries) {
                         displayTime = info.latestTime || displayTime;
                         displayText = info.displayText || displayText;
@@ -3024,7 +3003,7 @@
                     tile.style.background = '#ffffff';
                     tile.style.backgroundImage = 'none';
                     tile.style.color = accentColor;
-                tile.style.border = `3px dashed ${accentColor}`;
+                    tile.style.border = `3px dashed ${accentColor}`;
                     tile.style.boxShadow = 'none';
 
                     const emptyCircleEl = document.createElement('div');
@@ -3038,7 +3017,7 @@
 
                     const emptyTextEl = document.createElement('div');
                     emptyTextEl.className = 'activity-empty-text';
-                emptyTextEl.textContent = emptyTextLabel;
+                    emptyTextEl.textContent = emptyTextLabel;
 
                     tile.append(labelEl, emptyCircleEl, emptyTextEl);
                 } else {
@@ -3052,15 +3031,13 @@
                         if (activity.type === 'relationer') {
                             badgeEl.innerHTML = badgeText;
                         } else {
-                        badgeEl.textContent = badgeText;
+                            badgeEl.textContent = badgeText;
                         }
                         tile.appendChild(badgeEl);
                     }
                 }
-
-                link.appendChild(tile);
-                grid.appendChild(link);
             }
+            renderingActivities = false;
         }
 
         let checkinDetailedView = false; // Default to simple view
@@ -3085,10 +3062,10 @@
         let db = null;
         let currentUser = null;
         
-        // Global Firestore toggle key - shared across all pages
+        // Global Firestore toggle key - shared across all pages (for check-in data only)
         const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
         
-        // Load global toggle state from localStorage
+        // Load global toggle state from localStorage (for check-in data)
         function loadGlobalFirestoreToggle() {
             try {
                 const saved = localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY);
@@ -3098,7 +3075,7 @@
             }
         }
         
-        // Save global toggle state to localStorage
+        // Save global toggle state to localStorage (for check-in data)
         function saveGlobalFirestoreToggle(value) {
             try {
                 localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
@@ -3113,194 +3090,84 @@
             }
         }
         
-        let useFirestore = loadGlobalFirestoreToggle(); // Load from global state
+        // Use Firestore toggle for check-in data only (logbogData always uses Firestore if user is logged in)
+        let useFirestore = loadGlobalFirestoreToggle();
         
         try {
             firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
             db = firebase.firestore();
-            console.log('Firebase initialized in logbog_01.html');
         } catch (error) {
             console.error('Firebase initialization error:', error);
         }
         
         // Check auth state
         if (auth) {
-            auth.onAuthStateChanged(user => {
+            auth.onAuthStateChanged(async user => {
+                const wasLoggedOut = !currentUser && user; // User just logged in
                 currentUser = user;
-                updateLoginStatus();
-                console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
                 
-                // If user logs out and we're using Firestore, switch back to localStorage
-                if (!user && useFirestore) {
-                    useFirestore = false;
-                    saveGlobalFirestoreToggle(false); // Save globally
-                    const toggle = document.getElementById('dataSourceToggle');
-                    if (toggle) toggle.checked = false;
-                    updateDataSource();
-                } else if (user) {
-                    // When user logs in, restore global toggle state if they're logged in
-                    const globalState = loadGlobalFirestoreToggle();
-                    if (globalState) {
-                        useFirestore = true;
-                        const toggle = document.getElementById('dataSourceToggle');
-                        if (toggle) {
-                            toggle.checked = true;
-                            updateDataSource();
-                            // Reload data if needed
-                            if (typeof renderCheckinChart === 'function') {
-                                loadCheckinData().then(() => {
-                                    renderCheckinChart();
-                                });
+                // Invalidate cache when auth state changes
+                logbookDataCache = null;
+                logbookDataCacheKey = null;
+                
+                if (user && wasLoggedOut) {
+                    // User just logged in - sync localStorage data to Firestore
+                    try {
+                        const localData = localStorage.getItem(LOGBOOK_STORAGE_KEY);
+                        if (localData) {
+                            const parsed = JSON.parse(localData);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                // Merge with Firestore data (Firestore takes precedence)
+                                const firestoreData = await loadLogbookDataFromFirestore();
+                                if (firestoreData && firestoreData.length > 0) {
+                                    // Firestore has data - use it, but keep local as backup
+                                    await setActiveLogDate(activeLogDate);
+                                } else {
+                                    // Firestore is empty - upload local data to Firestore
+                                    await saveLogbookDataToFirestore(parsed);
+                                    await setActiveLogDate(activeLogDate);
+                                }
+                            } else {
+                                await setActiveLogDate(activeLogDate);
                             }
-                            // Reload logbook data from Firestore when user logs in
-                            setActiveLogDate(activeLogDate).then(() => {
-                                renderLogHistory();
-                            });
-                            // Update tanker field
-                            const tankerEntryEl = document.getElementById('tankerEntry');
-                            if (tankerEntryEl) {
-                                const affirmationText = getAffirmationTextForDate(activeLogDate);
-                                getTaknemForDate(activeLogDate).then(taknem => {
-                                    let combinedText = '';
-                                    if (affirmationText) {
-                                        combinedText = `Bekræftelse: "${affirmationText}"`;
-                                    }
-                                    if (taknem && taknem.trim()) {
-                                        if (combinedText) combinedText += '\n';
-                                        combinedText += `Taknemmelighed : "${taknem.trim()}"`;
-                                    }
-                                    tankerEntryEl.value = combinedText;
-                                    autoResizeTextarea(tankerEntryEl);
-                                });
-                            }
+                        } else {
+                            await setActiveLogDate(activeLogDate);
                         }
+                    } catch (error) {
+                        console.warn('Kunne ikke synkronisere logbogData ved login:', error);
+                        await setActiveLogDate(activeLogDate);
                     }
+                } else if (user) {
+                    // User was already logged in - just reload
+                    await setActiveLogDate(activeLogDate);
                 }
-            });
-        }
-        
-        // Update login status display
-        function updateLoginStatus() {
-            const loginStatus = document.getElementById('loginStatus');
-            if (loginStatus) {
-                if (currentUser) {
-                    loginStatus.textContent = 'Logget ind: ' + currentUser.email;
-                    loginStatus.className = 'login-status logged-in';
-                } else {
-                    loginStatus.textContent = 'Ikke logget ind';
-                    loginStatus.className = 'login-status logged-out';
-                }
-            }
-        }
-        
-        // Update header color based on data source
-        function updateDataSource() {
-            const headerEl = document.getElementById('pageHeader');
-            if (headerEl) {
-                if (useFirestore && currentUser) {
-                    headerEl.classList.remove('data-source-localstorage');
-                    headerEl.classList.add('data-source-firestore');
-                    console.log('Data source: Firestore');
-                } else {
-                    headerEl.classList.remove('data-source-firestore');
-                    headerEl.classList.add('data-source-localstorage');
-                    useFirestore = false; // Force localStorage if not logged in
-                    console.log('Data source: localStorage');
-                }
-            }
-        }
-        
-        // Data source toggle handler - setup after DOM is ready
-        function setupDataSourceToggle() {
-            const dataSourceToggle = document.getElementById('dataSourceToggle');
-            if (dataSourceToggle) {
-                // Set initial state from global storage
-                dataSourceToggle.checked = useFirestore;
                 
-                dataSourceToggle.addEventListener('change', async function() {
-                    if (this.checked && !currentUser) {
-                        alert('Du skal være logget ind for at bruge Firestore. Log ind på index.html først.');
-                        this.checked = false;
-                        return;
-                    }
-                    useFirestore = this.checked;
-                    saveGlobalFirestoreToggle(useFirestore); // Save globally
-                    updateDataSource();
-                    // Reload check-in data when switching source
-                    if (typeof renderCheckinChart === 'function') {
-                        await loadCheckinData();
-                        renderCheckinChart();
-                    }
-                    // Reload logbook data when switching source
-                    await setActiveLogDate(activeLogDate); // This will reload from the correct source
+                if (user) {
                     await renderLogHistory();
-                    // Update tanker field (taknem value) when switching source
+                    // Update tanker field
                     const tankerEntryEl = document.getElementById('tankerEntry');
                     if (tankerEntryEl) {
-                        // Get affirmation text for the selected date
                         const affirmationText = getAffirmationTextForDate(activeLogDate);
-                        // Get taknem value for the selected date (now async, reads from correct source)
                         const taknem = await getTaknemForDate(activeLogDate);
-                        
-                        // Combine affirmation text and taknem value
                         let combinedText = '';
                         if (affirmationText) {
                             combinedText = `Bekræftelse: "${affirmationText}"`;
                         }
                         if (taknem && taknem.trim()) {
-                            if (combinedText) {
-                                combinedText += '\n';
-                            }
+                            if (combinedText) combinedText += '\n';
                             combinedText += `Taknemmelighed : "${taknem.trim()}"`;
                         }
-                        
                         tankerEntryEl.value = combinedText;
                         autoResizeTextarea(tankerEntryEl);
                     }
-                });
-                
-                // Listen for changes from other tabs/pages
-                window.addEventListener('storage', async function(e) {
-                    if (e.key === GLOBAL_FIRESTORE_TOGGLE_KEY) {
-                        const newValue = e.newValue === 'true';
-                        if (newValue !== useFirestore) {
-                            // Check if user is logged in before applying
-                            if (newValue && !currentUser) {
-                                dataSourceToggle.checked = false;
-                                return;
-                            }
-                            useFirestore = newValue;
-                            dataSourceToggle.checked = useFirestore;
-                            updateDataSource();
-                            // Reload data when toggle changes from another page
-                            if (typeof renderCheckinChart === 'function') {
-                                await loadCheckinData();
-                                renderCheckinChart();
-                            }
-                            // Reload logbook data when switching source
-                            await setActiveLogDate(activeLogDate); // This will reload from the correct source
-                            await renderLogHistory();
-                            // Update tanker field
-                            const tankerEntryEl = document.getElementById('tankerEntry');
-                            if (tankerEntryEl) {
-                                const affirmationText = getAffirmationTextForDate(activeLogDate);
-                                const taknem = await getTaknemForDate(activeLogDate);
-                                let combinedText = '';
-                                if (affirmationText) {
-                                    combinedText = `Bekræftelse: "${affirmationText}"`;
-                                }
-                                if (taknem && taknem.trim()) {
-                                    if (combinedText) combinedText += '\n';
-                                    combinedText += `Taknemmelighed : "${taknem.trim()}"`;
-                                }
-                                tankerEntryEl.value = combinedText;
-                                autoResizeTextarea(tankerEntryEl);
-                            }
-                        }
+                    // Reload check-in chart if needed
+                    if (typeof renderCheckinChart === 'function') {
+                        await loadCheckinData();
+                        renderCheckinChart();
                     }
-                });
-            }
+                }
+            });
         }
         
         // Save check-in data to Firestore
@@ -3326,7 +3193,6 @@
                 const userDoc = await db.collection('users').doc(currentUser.uid).get();
                 if (userDoc.exists && userDoc.data().forside_checkin_data) {
                     const data = userDoc.data().forside_checkin_data;
-                    console.log('Check-in data loaded from Firestore');
                     return Array.isArray(data) ? data : [];
                 }
                 return [];
@@ -3367,33 +3233,58 @@
                 return null;
             }
         }
+        
+        // Load dialog data from Firestore
+        async function loadDialogDataFromFirestore() {
+            if (!currentUser || !db) return null;
+            
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists && userDoc.data().dialogData) {
+                    return userDoc.data().dialogData;
+                }
+                return null;
+            } catch (error) {
+                console.error('Error loading dialogData from Firestore:', error);
+                return null;
+            }
+        }
+        
+        // Load compare data from Firestore
+        async function loadCompareDataFromFirestore() {
+            if (!currentUser || !db) return null;
+            
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists && userDoc.data().compareData) {
+                    return userDoc.data().compareData;
+                }
+                return null;
+            } catch (error) {
+                console.error('Error loading compareData from Firestore:', error);
+                return null;
+            }
+        }
 
         async function loadCheckinData() {
             try {
-                // If debug data is loaded, use it instead of localStorage/Firestore
+                // If debug data is loaded, use it instead of Firestore
                 if (debugCheckinData !== null) {
                     return processCheckinDataForDisplay(debugCheckinData);
                 }
 
-                let rawData = null;
-                
-                // Load from Firestore if toggle is on and user is logged in
-                if (useFirestore && currentUser) {
-                    rawData = await loadCheckinDataFromFirestore();
+                // Always load from Firestore if user is logged in
+                if (currentUser && db) {
+                    const rawData = await loadCheckinDataFromFirestore();
                     if (rawData !== null) {
                         return processCheckinDataForDisplay(rawData);
                     }
-                    // If Firestore fails, fall back to localStorage
-                    console.warn('Failed to load from Firestore, falling back to localStorage');
-                }
-
-                // Load from localStorage
-                const raw = localStorage.getItem('forside_checkin_data');
-                if (!raw) {
+                    // If Firestore fails, return empty array
                     return [];
                 }
-                rawData = JSON.parse(raw);
-                return processCheckinDataForDisplay(rawData);
+
+                // User not logged in - return empty array
+                return [];
             } catch (error) {
                 console.error('Fejl ved indlæsning af check-in data:', error);
                 return [];
@@ -3840,6 +3731,10 @@
                         };
                     });
 
+                // Save to Firestore if user is logged in, otherwise localStorage
+                if (currentUser && db) {
+                    await saveLogbookDataToFirestore(normalizedEntries);
+                }
                 localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(normalizedEntries));
 
                 const sorted = normalizedEntries.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -4084,34 +3979,22 @@
 
             // Check if user can make a new check-in
             const checkIfCanMakeCheckin = async () => {
+                if (!currentUser || !db) {
+                    alert('Du skal være logget ind for at lave et check-in.');
+                    return false;
+                }
+                
                 const now = new Date();
                 let existingData = [];
                 
-                // Check if we should use Firestore
-                if (useFirestore && currentUser) {
-                    try {
-                        const firestoreData = await loadCheckinDataFromFirestore();
-                        if (firestoreData !== null) {
-                            existingData = firestoreData;
-                        }
-                    } catch (error) {
-                        console.warn('Kunne ikke læse check-in data fra Firestore:', error);
+                // Always load from Firestore
+                try {
+                    const firestoreData = await loadCheckinDataFromFirestore();
+                    if (firestoreData !== null) {
+                        existingData = firestoreData;
                     }
-                }
-                
-                // If no Firestore data or not using Firestore, try localStorage
-                if (existingData.length === 0) {
-                    try {
-                        const raw = localStorage.getItem('forside_checkin_data');
-                        if (raw) {
-                            const parsed = JSON.parse(raw);
-                            if (Array.isArray(parsed)) {
-                                existingData = parsed;
-                            }
-                        }
-                    } catch (error) {
-                        console.warn('Kunne ikke læse forside_checkin_data:', error);
-                    }
+                } catch (error) {
+                    console.warn('Kunne ikke læse check-in data fra Firestore:', error);
                 }
 
                 // Check if there's a recent check-in (within last 30 minutes)
@@ -4170,38 +4053,24 @@
 
             // Save check-in
             saveBtn.addEventListener('click', async () => {
+                if (!currentUser || !db) {
+                    alert('Du skal være logget ind for at gemme et check-in.');
+                    return;
+                }
+                
                 const status = parseInt(slider.value, 10);
                 const now = new Date();
                 const date = now.toISOString();
 
-                // Load existing data
+                // Load existing data from Firestore
                 let existingData = [];
-                
-                // Check if we should use Firestore
-                if (useFirestore && currentUser) {
-                    try {
-                        const firestoreData = await loadCheckinDataFromFirestore();
-                        if (firestoreData !== null) {
-                            existingData = firestoreData;
-                        }
-                    } catch (error) {
-                        console.warn('Kunne ikke læse check-in data fra Firestore:', error);
+                try {
+                    const firestoreData = await loadCheckinDataFromFirestore();
+                    if (firestoreData !== null) {
+                        existingData = firestoreData;
                     }
-                }
-                
-                // If no Firestore data or not using Firestore, try localStorage
-                if (existingData.length === 0 || !useFirestore || !currentUser) {
-                    try {
-                        const raw = localStorage.getItem('forside_checkin_data');
-                        if (raw) {
-                            const parsed = JSON.parse(raw);
-                            if (Array.isArray(parsed)) {
-                                existingData = parsed;
-                            }
-                        }
-                    } catch (error) {
-                        console.warn('Kunne ikke læse forside_checkin_data:', error);
-                    }
+                } catch (error) {
+                    console.warn('Kunne ikke læse check-in data fra Firestore:', error);
                 }
 
                 // Add new entry
@@ -4213,13 +4082,9 @@
 
                 existingData.push(newEntry);
 
-                // Save back to Firestore or localStorage
+                // Save to Firestore
                 try {
-                    if (useFirestore && currentUser) {
-                        await saveCheckinDataToFirestore(existingData);
-                    } else {
-                        localStorage.setItem('forside_checkin_data', JSON.stringify(existingData));
-                    }
+                    await saveCheckinDataToFirestore(existingData);
                     
                     closeModal();
                     renderCheckinChart();
@@ -4248,6 +4113,7 @@
                     }
                 } catch (error) {
                     console.error('Kunne ikke gemme check-in data:', error);
+                    alert('Kunne ikke gemme check-in. Prøv igen.');
                 }
             });
         }
@@ -4370,24 +4236,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Setup Firebase toggle and header color
-            setupDataSourceToggle();
-            
             // Wait a bit for auth state to be determined
             await new Promise(resolve => setTimeout(resolve, 200));
-            
-            // Sync toggle state with global storage on page load
-            const globalState = loadGlobalFirestoreToggle();
-            if (globalState && currentUser) {
-                useFirestore = true;
-                const toggle = document.getElementById('dataSourceToggle');
-                if (toggle) toggle.checked = true;
-                console.log('DOMContentLoaded: Set useFirestore = true based on global state and currentUser');
-            } else {
-                console.log('DOMContentLoaded: useFirestore =', useFirestore, 'globalState =', globalState, 'currentUser =', !!currentUser);
-            }
-            
-            updateDataSource();
             
             // Load affirmations first
             await loadAffirmations();
@@ -4454,7 +4304,9 @@
 
             const historySidebar = document.getElementById('logHistorySidebar');
             if (historySidebar) {
-                const collapsedState = localStorage.getItem(LOG_HISTORY_COLLAPSED_KEY) === 'true';
+                // Default to collapsed (true) unless explicitly set to false in localStorage
+                const savedState = localStorage.getItem(LOG_HISTORY_COLLAPSED_KEY);
+                const collapsedState = savedState === null ? true : savedState === 'true';
                 if (collapsedState) {
                     historySidebar.classList.add('collapsed');
                 } else {

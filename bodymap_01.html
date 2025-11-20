@@ -50,13 +50,6 @@
             position: relative;
         }
         
-        .header.data-source-firestore {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        }
-        
-        .header.data-source-localstorage {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-        }
         
         .header h1 {
             font-size: 2.0em;
@@ -81,61 +74,6 @@
             opacity: 0.9;
         }
         
-        /* Debug panel in top-right corner */
-        .debug-panel {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 12px 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            min-width: 200px;
-        }
-        
-        .debug-panel label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: #374151;
-            cursor: pointer;
-        }
-        
-        .debug-panel input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        
-        .debug-panel-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: #1f2937;
-            margin-bottom: 4px;
-        }
-        
-        .login-status {
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-            text-align: center;
-        }
-        
-        .login-status.logged-in {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .login-status.logged-out {
-            background: #fee2e2;
-            color: #991b1b;
-        }
         
         .toolbar {
             background: #f8fafc;
@@ -1521,16 +1459,6 @@
     </style>
 </head>
 <body>
-    <!-- Debug panel in top-right corner -->
-    <div class="debug-panel">
-        <div class="debug-panel-title">Debug</div>
-        <label>
-            <input type="checkbox" id="dataSourceToggle" />
-            <span>Læs fra Firestore</span>
-        </label>
-        <div id="loginStatus" class="login-status logged-out">Ikke logget ind</div>
-    </div>
-    
     <div class="container">
         <div class="header">
             <div class="nav-controls">
@@ -1641,40 +1569,12 @@
         let currentUser = null;
         
         // Global Firestore toggle key - shared across all pages
-        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
-        
-        // Load global toggle state from localStorage
-        function loadGlobalFirestoreToggle() {
-            try {
-                const saved = localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY);
-                return saved === 'true';
-            } catch (error) {
-                return false;
-            }
-        }
-        
-        // Save global toggle state to localStorage
-        function saveGlobalFirestoreToggle(value) {
-            try {
-                localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
-                // Trigger storage event for other tabs/windows
-                window.dispatchEvent(new StorageEvent('storage', {
-                    key: GLOBAL_FIRESTORE_TOGGLE_KEY,
-                    newValue: String(value),
-                    oldValue: localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY)
-                }));
-            } catch (error) {
-                console.error('Error saving global Firestore toggle:', error);
-            }
-        }
-        
-        let useFirestore = loadGlobalFirestoreToggle(); // Load from global state
+        // Always use Firestore (no localStorage fallback)
         
         try {
             firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
             db = firebase.firestore();
-            console.log('Firebase initialized in bodymap_01.html');
         } catch (error) {
             console.error('Firebase initialization error:', error);
         }
@@ -1683,130 +1583,18 @@
         if (auth) {
             auth.onAuthStateChanged(user => {
                 currentUser = user;
-                console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
                 
-                // Update login status display
-                updateLoginStatus();
-                
-                // If user logs out and we're using Firestore, switch back to localStorage
-                if (!user && useFirestore) {
-                    useFirestore = false;
-                    saveGlobalFirestoreToggle(false); // Save globally
-                    const toggle = document.getElementById('dataSourceToggle');
-                    if (toggle) toggle.checked = false;
-                    updateDataSource();
-                } else if (user) {
-                    // When user logs in, restore global toggle state if they're logged in
-                    const globalState = loadGlobalFirestoreToggle();
-                    const toggle = document.getElementById('dataSourceToggle');
-                    // Checkbox should always reflect global state
-                    if (toggle) {
-                        toggle.checked = globalState;
-                    }
-                    // But only actually use Firestore if global state is true
-                    if (globalState) {
-                        useFirestore = true;
-                        updateDataSource();
-                        // Reload data from Firestore when user logs in
-                        loadFromLocalStorage().then(() => {
-                            renderHistory();
-                            renderWorkspace();
-                        });
-                    } else {
-                        useFirestore = false;
-                        updateDataSource();
-                    }
+                if (user) {
+                    // Reload data from Firestore when user logs in
+                    loadFromLocalStorage().then(() => {
+                        renderHistory();
+                        renderWorkspace();
+                    });
                 }
             });
         }
         
-        // Update login status display
-        function updateLoginStatus() {
-            const loginStatus = document.getElementById('loginStatus');
-            console.log('updateLoginStatus called, currentUser:', currentUser?.email || 'null', 'loginStatus element:', !!loginStatus);
-            if (loginStatus) {
-                if (currentUser) {
-                    loginStatus.textContent = 'Logget ind: ' + currentUser.email;
-                    loginStatus.className = 'login-status logged-in';
-                    console.log('Login status updated to logged in:', currentUser.email);
-                } else {
-                    loginStatus.textContent = 'Ikke logget ind';
-                    loginStatus.className = 'login-status logged-out';
-                    console.log('Login status updated to logged out');
-                }
-            } else {
-                console.warn('loginStatus element not found!');
-            }
-        }
         
-        // Update header color based on data source
-        function updateDataSource() {
-            const headerEl = document.querySelector('.header');
-            if (headerEl) {
-                if (useFirestore && currentUser) {
-                    headerEl.classList.remove('data-source-localstorage');
-                    headerEl.classList.add('data-source-firestore');
-                    console.log('Data source: Firestore');
-                } else {
-                    headerEl.classList.remove('data-source-firestore');
-                    headerEl.classList.add('data-source-localstorage');
-                    useFirestore = false; // Force localStorage if not logged in
-                    console.log('Data source: localStorage');
-                }
-            }
-            updateLoginStatus();
-        }
-        
-        // Data source toggle handler - setup after DOM is ready
-        function setupDataSourceToggle() {
-            const dataSourceToggle = document.getElementById('dataSourceToggle');
-            if (dataSourceToggle) {
-                // Set initial state from global storage (re-read to ensure it's current)
-                const globalState = loadGlobalFirestoreToggle();
-                // Checkbox should always reflect global state
-                dataSourceToggle.checked = globalState;
-                // But only actually use Firestore if global state is true AND user is logged in
-                useFirestore = globalState && currentUser ? true : false;
-                
-                dataSourceToggle.addEventListener('change', async function() {
-                    if (this.checked && !currentUser) {
-                        alert('Du skal være logget ind for at bruge Firestore. Log ind på index.html først.');
-                        this.checked = false;
-                        return;
-                    }
-                    useFirestore = this.checked;
-                    saveGlobalFirestoreToggle(useFirestore); // Save globally
-                    updateDataSource();
-                    // Reload data when switching source
-                    await loadFromLocalStorage().then(() => {
-                        renderHistory();
-                        renderWorkspace();
-                    });
-                });
-                
-                // Listen for changes from other tabs/pages
-                window.addEventListener('storage', async function(e) {
-                    if (e.key === GLOBAL_FIRESTORE_TOGGLE_KEY) {
-                        const newValue = e.newValue === 'true';
-                        // Checkbox should always reflect global state
-                        dataSourceToggle.checked = newValue;
-                        // But only actually use Firestore if global state is true AND user is logged in
-                        if (newValue && currentUser) {
-                            useFirestore = true;
-                            updateDataSource();
-                            // Reload data when toggle changes from another page
-                            await loadFromLocalStorage().then(() => {
-                                renderHistory();
-                                renderWorkspace();
-                            });
-                        } else {
-                            useFirestore = false;
-                            updateDataSource();
-                        }
-                    }
-                });
-            }
-        }
         
         // Pose library for "kram" pose
         const kramPose = {
@@ -2485,35 +2273,15 @@
                     const user = auth.currentUser;
                     if (user && user !== currentUser) {
                         currentUser = user;
-                        console.log('init: Found logged in user:', user.email);
                     } else if (!user && currentUser) {
                         currentUser = null;
-                        console.log('init: No logged in user found');
                     }
                 } catch (error) {
                     console.error('Error getting current auth state:', error);
                 }
             }
             
-            // Update login status after auth state is determined
-            updateLoginStatus();
-            
-            // Setup data source toggle (after auth state is determined)
-            setupDataSourceToggle();
-            
-            // Sync toggle state with global storage on page load
-            const globalState = loadGlobalFirestoreToggle();
-            const toggle = document.getElementById('dataSourceToggle');
-            // Checkbox should always reflect global state
-            if (toggle) {
-                toggle.checked = globalState;
-            }
-            // But only actually use Firestore if global state is true AND user is logged in
-            useFirestore = globalState && currentUser ? true : false;
-            console.log('init: useFirestore =', useFirestore, 'globalState =', globalState, 'currentUser =', currentUser?.email || 'null');
-            updateDataSource();
-            
-            // Try to load from localStorage/Firestore first
+            // Try to load from Firestore first
             if (!(await loadFromLocalStorage())) {
                 // If no saved data, create first index and default to showing layers
                 showOnionLayers = true;
@@ -2527,7 +2295,9 @@
                 await saveToLocalStorage();
             }
             // Load history sidebar collapsed state
-            const isCollapsed = localStorage.getItem('body_historySidebarCollapsed') === 'true';
+            // Default to collapsed (true) unless explicitly set to false in localStorage
+            const savedState = localStorage.getItem('body_historySidebarCollapsed');
+            const isCollapsed = savedState === null || savedState === 'true';
             const sidebar = document.getElementById('historySidebar');
             if (sidebar) {
                 const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
@@ -2535,6 +2305,7 @@
                     sidebar.classList.add('collapsed');
                     toggleBtns.forEach(btn => btn.textContent = '<');
                 } else {
+                    sidebar.classList.remove('collapsed');
                     toggleBtns.forEach(btn => btn.textContent = '>');
                 }
             }
@@ -2594,7 +2365,6 @@
                 await userDocRef.set({
                     bodymapData: BodyMapData
                 }, { merge: true });
-                console.log('Bodymap data saved to Firestore');
             } catch (error) {
                 console.error('Error saving bodymap data to Firestore:', error);
             }
@@ -2602,67 +2372,41 @@
         
         // Load bodymap data from Firestore
         async function loadBodymapDataFromFirestore() {
-            if (!currentUser || !db) {
-                console.log('loadBodymapDataFromFirestore: No currentUser or db', { currentUser: !!currentUser, db: !!db });
-                return null;
-            }
+            if (!currentUser || !db) return null;
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 const userDoc = await userDocRef.get();
                 
-                console.log('loadBodymapDataFromFirestore: userDoc.exists =', userDoc.exists);
-                
                 if (userDoc.exists) {
                     const userData = userDoc.data();
-                    console.log('loadBodymapDataFromFirestore: userData keys =', Object.keys(userData || {}));
-                    
                     if (userData && userData.bodymapData) {
-                        const data = userData.bodymapData;
-                        console.log('loadBodymapDataFromFirestore: Found bodymapData', {
-                            hasMetadata: !!(data && data.metadata),
-                            mapsCount: data && data.maps ? data.maps.length : 0,
-                            indexesCount: data && data.dataIndexes ? data.dataIndexes.length : 0
-                        });
-                        return data;
-                    } else {
-                        console.log('loadBodymapDataFromFirestore: No bodymapData field in user document');
-                        return null;
+                        return userData.bodymapData;
                     }
-                } else {
-                    console.log('loadBodymapDataFromFirestore: User document does not exist');
                     return null;
                 }
+                return null;
             } catch (error) {
                 console.error('Error loading bodymap data from Firestore:', error);
                 return null;
             }
         }
         
-        // Save to localStorage or Firestore
+        // Save to Firestore
         async function saveToLocalStorage() {
             updateBodyMapData();
             
-            // Check if we should use Firestore
-            if (useFirestore && currentUser) {
+            if (currentUser && db) {
                 await saveBodymapDataToFirestore();
-                return true; // Don't save to localStorage when using Firestore
+                return true;
             }
             
-            // Use localStorage
-            try {
-                localStorage.setItem('bodymapData', JSON.stringify(BodyMapData));
-                return true;
-            } catch (error) {
-                console.error('Error saving to localStorage:', error);
-                return false;
-            }
+            return false;
         }
         
-        // Process loaded data (common for both Firestore and localStorage)
+        // Process loaded data
         async function processLoadedData(parsed) {
             if (!parsed || typeof parsed !== 'object') {
-                console.warn('processLoadedData: Invalid data format');
                 return false;
             }
             
@@ -2769,54 +2513,22 @@
             return true;
         }
         
-        // Load from localStorage or Firestore
+        // Load from Firestore
         async function loadFromLocalStorage() {
-            // Check if we should use Firestore
-            console.log('loadFromLocalStorage: useFirestore =', useFirestore, 'currentUser =', !!currentUser);
+            if (!currentUser || !db) return false;
             
-            if (useFirestore && currentUser) {
-                console.log('loadFromLocalStorage: Attempting to load from Firestore...');
-                const firestoreData = await loadBodymapDataFromFirestore();
-                console.log('loadFromLocalStorage: firestoreData =', firestoreData !== null ? 'found' : 'null');
-                
-                if (firestoreData !== null) {
-                    console.log('loadFromLocalStorage: Using Firestore data');
-                    const parsed = firestoreData;
-                    const success = await processLoadedData(parsed);
-                    if (success) {
-                        // Re-render everything
-                        updateLayerToggleUI();
-                        renderHistory();
-                        renderWorkspace();
-                    }
-                    return success;
-                }
-                // Fallback to localStorage if Firestore fails
-                console.warn('loadFromLocalStorage: Failed to load from Firestore, falling back to localStorage');
-            } else {
-                console.log('loadFromLocalStorage: Not using Firestore (useFirestore =', useFirestore, ', currentUser =', !!currentUser, ')');
-            }
-            
-            // Use localStorage
-            try {
-                const savedData = localStorage.getItem('bodymapData');
-                if (!savedData) {
-                    return false;
-                }
-                
-                const parsed = JSON.parse(savedData);
-                const success = await processLoadedData(parsed);
+            const firestoreData = await loadBodymapDataFromFirestore();
+            if (firestoreData !== null) {
+                const success = await processLoadedData(firestoreData);
                 if (success) {
-                    // Re-render everything
                     updateLayerToggleUI();
                     renderHistory();
                     renderWorkspace();
                 }
                 return success;
-            } catch (error) {
-                console.error('Error loading from localStorage:', error);
-                return false;
             }
+            
+            return false;
         }
         
         // Export map to JSON file
@@ -4038,7 +3750,7 @@
                 copyFrom = mapIndexes[mapIndexes.length - 1];
             }
             
-            const index = createNewIndex({ mapId: currentMapId, skipRender: true, autoScroll: true });
+            const index = await createNewIndex({ mapId: currentMapId, skipRender: true, autoScroll: true });
             
             if (copyFrom) {
                 copyFrom.labels.forEach(origLabel => {

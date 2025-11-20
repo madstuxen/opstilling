@@ -39,61 +39,6 @@
             height: calc(100vh - 40px);
         }
         
-        .debug-panel {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 12px 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            min-width: 200px;
-        }
-        
-        .debug-panel label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: #374151;
-            cursor: pointer;
-        }
-        
-        .debug-panel input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        
-        .debug-panel-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: #1f2937;
-            margin-bottom: 4px;
-        }
-        
-        .login-status {
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-            text-align: center;
-        }
-        
-        .login-status.logged-in {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .login-status.logged-out {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
         .header {
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: white;
@@ -105,13 +50,6 @@
             position: relative;
         }
         
-        .header.data-source-firestore {
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-        }
-        
-        .header.data-source-localstorage {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
         
         .header h1 {
             font-size: 2.0em;
@@ -2139,16 +2077,6 @@
     </style>
 </head>
 <body>
-    <!-- Debug panel in top-right corner -->
-    <div class="debug-panel">
-        <div class="debug-panel-title">Debug</div>
-        <label>
-            <input type="checkbox" id="dataSourceToggle" />
-            <span>Læs fra Firestore</span>
-        </label>
-        <div id="loginStatus" class="login-status logged-out">Ikke logget ind</div>
-    </div>
-    
     <div class="container">
         <div class="header">
             <div class="nav-controls">
@@ -2365,46 +2293,17 @@
             }
         }
         
-        let useFirestore = loadGlobalFirestoreToggle(); // Load from global state
+        let useFirestore = false; // Will be set after auth state is determined
         
+        // Initialize Firebase immediately (before DOM is ready) for faster auth state detection
         try {
             firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
             db = firebase.firestore();
-            console.log('Firebase initialized in opstilling_01.html');
         } catch (error) {
             console.error('Firebase initialization error:', error);
         }
         
-        // Update login status display
-        function updateLoginStatus() {
-            const loginStatus = document.getElementById('loginStatus');
-            if (loginStatus) {
-                if (currentUser) {
-                    loginStatus.textContent = 'Logget ind: ' + currentUser.email;
-                    loginStatus.className = 'login-status logged-in';
-                } else {
-                    loginStatus.textContent = 'Ikke logget ind';
-                    loginStatus.className = 'login-status logged-out';
-                }
-            }
-        }
-        
-        // Update header color based on data source
-        function updateDataSource() {
-            const headerEl = document.querySelector('.header');
-            if (headerEl) {
-                if (useFirestore && currentUser) {
-                    headerEl.classList.remove('data-source-localstorage');
-                    headerEl.classList.add('data-source-firestore');
-                } else {
-                    headerEl.classList.remove('data-source-firestore');
-                    headerEl.classList.add('data-source-localstorage');
-                    useFirestore = false; // Force localStorage if not logged in
-                }
-            }
-            updateLoginStatus();
-        }
         
         // Data source toggle handler - setup after DOM is ready
         function setupDataSourceToggle() {
@@ -2428,7 +2327,6 @@
                     useFirestore = this.checked;
                     console.log('Toggle changed. useFirestore:', useFirestore, 'currentUser:', currentUser?.email || 'null', 'db:', !!db);
                     saveGlobalFirestoreToggle(useFirestore); // Save globally
-                    updateDataSource();
                     
                     // Reload data from the appropriate source (Firestore or localStorage)
                     // IMPORTANT: Always reload, even if OpstillingData already exists, to ensure we get the correct source
@@ -2452,61 +2350,55 @@
             }
         }
         
-        // Check auth state
+        // Check auth state - this should run before DOMContentLoaded loads data
+        let authStateReady = false;
+        let authStateResolver = null;
+        const authStatePromise = new Promise(resolve => {
+            authStateResolver = resolve;
+        });
+        
         if (auth) {
+            // Set up auth state listener immediately - Firebase usually resolves auth state very quickly
             auth.onAuthStateChanged(user => {
                 currentUser = user;
-                console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
                 
-                // Update login status display
-                updateLoginStatus();
+                // Set useFirestore based on global toggle AND login status
+                const globalState = loadGlobalFirestoreToggle();
+                useFirestore = globalState && user ? true : false;
+                
+                // Mark auth as ready and resolve promise immediately
+                if (!authStateReady) {
+                    authStateReady = true;
+                    if (authStateResolver) {
+                        authStateResolver();
+                        authStateResolver = null;
+                    }
+                }
                 
                 // If user logs out and we're using Firestore, switch back to localStorage
                 if (!user && useFirestore) {
                     useFirestore = false;
                     saveGlobalFirestoreToggle(false); // Save globally
-                    const toggle = document.getElementById('dataSourceToggle');
-                    if (toggle) toggle.checked = false;
-                    updateDataSource();
-                } else if (user) {
-                    // When user logs in, restore global toggle state if they're logged in
-                    const globalState = loadGlobalFirestoreToggle();
-                    const toggle = document.getElementById('dataSourceToggle');
-                    // Checkbox should always reflect global state
-                    if (toggle) {
-                        toggle.checked = globalState;
-                    }
-                    // But only actually use Firestore if global state is true
-                    if (globalState) {
-                        useFirestore = true;
-                        updateDataSource();
-                        // Reload data from Firestore when user logs in
-                        (async () => {
-                            // Update useFirestore based on global state and login status
-                            const globalState = loadGlobalFirestoreToggle();
-                            useFirestore = globalState;
-                            updateDataSource();
-                            
-                            // IMPORTANT: Always reload, even if OpstillingData already exists, to ensure we get the correct source
-                            const data = await loadOpstillingDataFromLocalStorage();
-                            
-                            // Always update OpstillingData with the loaded data (or null if no data)
-                            OpstillingData = data;
-                            await ensureDefaultOpstillingData();
-                            
-                            // Always reload active setup to update workspace with positions and notes
-                            const activeSetup = getActiveSetup();
-                            if (activeSetup) {
-                                loadSetupFromOpstillingData(activeSetup);
-                            } else {
-                                await loadActiveOpstilling();
-                            }
-                            await renderHistory();
-                        })();
-                    } else {
-                        useFirestore = false;
-                        updateDataSource();
-                    }
+                } else if (user && globalState) {
+                    // When user logs in and global state is true, reload data from Firestore
+                    // Reload data from Firestore when user logs in
+                    (async () => {
+                        // IMPORTANT: Always reload, even if OpstillingData already exists, to ensure we get the correct source
+                        const data = await loadOpstillingDataFromLocalStorage();
+                        
+                        // Always update OpstillingData with the loaded data (or null if no data)
+                        OpstillingData = data;
+                        await ensureDefaultOpstillingData();
+                        
+                        // Always reload active setup to update workspace with positions and notes
+                        const activeSetup = getActiveSetup();
+                        if (activeSetup) {
+                            loadSetupFromOpstillingData(activeSetup);
+                        } else {
+                            await loadActiveOpstilling();
+                        }
+                        await renderHistory();
+                    })();
                 }
             });
         }
@@ -2515,15 +2407,9 @@
         window.addEventListener('storage', async function(e) {
             if (e.key === GLOBAL_FIRESTORE_TOGGLE_KEY) {
                 const newValue = e.newValue === 'true';
-                const toggle = document.getElementById('dataSourceToggle');
-                // Checkbox should always reflect global state
-                if (toggle) {
-                    toggle.checked = newValue;
-                }
                 // Update useFirestore BEFORE loading data, so it knows which source to read from
                 useFirestore = newValue && currentUser ? true : false;
                 console.log('Storage event: toggle changed. useFirestore:', useFirestore, 'currentUser:', currentUser?.email || 'null', 'db:', !!db);
-                updateDataSource();
                 
                 // Reload data from the appropriate source (Firestore or localStorage)
                 // IMPORTANT: Always reload, even if OpstillingData already exists, to ensure we get the correct source
@@ -2582,7 +2468,11 @@
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                const userDoc = await userDocRef.get();
+                // Firestore get() is already optimized, but we can add timeout for faster failure
+                const userDoc = await Promise.race([
+                    userDocRef.get(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), 3000))
+                ]);
                 
                 if (userDoc.exists) {
                     const userData = userDoc.data();
@@ -2592,7 +2482,10 @@
                 }
                 return null;
             } catch (error) {
-                console.error('Error loading opstillingData from Firestore:', error);
+                // Only log if it's not a timeout (timeout is expected if no data)
+                if (error.message !== 'Firestore timeout') {
+                    console.error('Error loading opstillingData from Firestore:', error);
+                }
                 return null;
             }
         }
@@ -2619,38 +2512,35 @@
         
         // Load from localStorage or Firestore
         async function loadOpstillingDataFromLocalStorage() {
-            console.log('loadOpstillingDataFromLocalStorage called. useFirestore:', useFirestore, 'currentUser:', currentUser?.email || 'null', 'db:', !!db);
-            
-            // Check if we should use Firestore
-            if (useFirestore && currentUser && db) {
-                console.log('Loading opstillingData from Firestore...');
+            // Always check Firestore first if user is logged in (regardless of useFirestore toggle)
+            // This ensures we load data from Firestore even when localStorage is empty
+            if (currentUser && db) {
                 const firestoreData = await loadOpstillingDataFromFirestore();
                 if (firestoreData !== null) {
-                    console.log('Loaded opstillingData from Firestore:', firestoreData);
+                    // Also save to localStorage as backup
+                    try {
+                        localStorage.setItem(OPSTILLING_STORAGE_KEY, JSON.stringify(firestoreData));
+                    } catch (_) {}
                     return firestoreData;
                 }
-                console.log('No data found in Firestore, returning null (not falling back to localStorage when useFirestore is true)');
-                // When useFirestore is true, don't fall back to localStorage - return null
-                return null;
+                // If useFirestore is true, don't fall back to localStorage - return null
+                if (useFirestore) {
+                    return null;
+                }
             }
             
-            // Use localStorage only when useFirestore is false
-            console.log('Loading opstillingData from localStorage...');
+            // Use localStorage only when not using Firestore or user not logged in
             try {
                 const raw = localStorage.getItem(OPSTILLING_STORAGE_KEY);
                 if (!raw) {
-                    console.log('No data found in localStorage');
                     return null;
                 }
                 const parsed = JSON.parse(raw);
                 if (!parsed || typeof parsed !== 'object') {
-                    console.log('Invalid data in localStorage');
                     return null;
                 }
-                console.log('Loaded opstillingData from localStorage:', parsed);
                 return parsed;
             } catch (_) {
-                console.log('Error parsing localStorage data');
                 return null;
             }
         }
@@ -3720,17 +3610,19 @@
                 }
             }
             
-            // Fallback to legacy current_opstilling storage
-            const loaded = loadCurrentOpstillingFromStorage();
-            if (loaded) {
-                console.log('Opstilling indlæst fra legacy localStorage');
-                // Sync to new structure
-                try { 
-                    (async () => {
-                        await syncCurrentWorkspaceToActiveSetup();
-                    })();
-                } catch(_) {}
-                return true;
+            // Only fallback to legacy localStorage if NOT using Firestore
+            if (!useFirestore) {
+                const loaded = loadCurrentOpstillingFromStorage();
+                if (loaded) {
+                    console.log('Opstilling indlæst fra legacy localStorage');
+                    // Sync to new structure
+                    try { 
+                        (async () => {
+                            await syncCurrentWorkspaceToActiveSetup();
+                        })();
+                    } catch(_) {}
+                    return true;
+                }
             }
             
             return false;
@@ -5882,21 +5774,47 @@ function closeKeywordsPopup() {
         document.addEventListener('DOMContentLoaded', async function() {
             // Setup data source toggle (auth state will be determined by onAuthStateChanged)
             setupDataSourceToggle();
-            updateDataSource();
-            updateLoginStatus();
             
-            // Initialize new Opstilling data structure
-            OpstillingData = await loadOpstillingDataFromLocalStorage();
+            // Wait for auth state to be determined before loading data
+            // This ensures useFirestore is correctly set before we try to load
+            // Firebase auth is usually very fast, so we only wait 1 second max
+            try {
+                await Promise.race([
+                    authStatePromise,
+                    new Promise(resolve => setTimeout(resolve, 1000))
+                ]);
+            } catch (e) {
+                console.warn('Auth state wait error:', e);
+            }
+            
+            // Set useFirestore based on current state (in case auth was already determined or timed out)
+            if (!authStateReady) {
+                const globalState = loadGlobalFirestoreToggle();
+                useFirestore = globalState && currentUser ? true : false;
+                // Resolve manually if not resolved yet
+                if (authStateResolver) {
+                    authStateResolver();
+                    authStateResolver = null;
+                }
+            }
+            
+            // Initialize new Opstilling data structure and load pose library in parallel
+            const [loadedData] = await Promise.all([
+                loadOpstillingDataFromLocalStorage(),
+                loadPoseLibrary() // Load pose library in parallel, not blocking
+            ]);
+            
+            OpstillingData = loadedData;
             await ensureDefaultOpstillingData();
-            // Load pose library first
-            await loadPoseLibrary();
             
             // Load active opstilling (from opstillingData or legacy storage)
             await loadActiveOpstilling();
             
             // Initialize history sidebar
             await renderHistory();
-            const isCollapsed = localStorage.getItem('opstilling_historySidebarCollapsed') === 'true';
+            // Default to collapsed (true) unless explicitly set to false in localStorage
+            const savedState = localStorage.getItem('opstilling_historySidebarCollapsed');
+            const isCollapsed = savedState === null || savedState === 'true';
             const sidebar = document.getElementById('historySidebar');
             if (sidebar) {
                 const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
@@ -5904,6 +5822,7 @@ function closeKeywordsPopup() {
                     sidebar.classList.add('collapsed');
                     toggleBtns.forEach(btn => btn.textContent = '<');
                 } else {
+                    sidebar.classList.remove('collapsed');
                     toggleBtns.forEach(btn => btn.textContent = '>');
                 }
             }
@@ -6079,22 +5998,13 @@ function closeKeywordsPopup() {
         
         // Initialize function for Firebase
         async function init() {
-            // Update login status (auth state will be determined by onAuthStateChanged)
-            updateLoginStatus();
-            
             // Setup data source toggle (after auth state is determined)
             setupDataSourceToggle();
             
             // Sync toggle state with global storage on page load
             const globalState = loadGlobalFirestoreToggle();
-            const toggle = document.getElementById('dataSourceToggle');
-            // Checkbox should always reflect global state
-            if (toggle) {
-                toggle.checked = globalState;
-            }
             // But only actually use Firestore if global state is true AND user is logged in
             useFirestore = globalState && currentUser ? true : false;
-            updateDataSource();
         }
         
         // Call init when DOM is ready

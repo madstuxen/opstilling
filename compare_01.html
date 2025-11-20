@@ -6,6 +6,10 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
     <title>Forskelle og Ligheder</title>
+    <!-- Firebase SDK v8.10.1 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         * {
             margin: 0;
@@ -2354,6 +2358,159 @@
         });
     </script>
     <script>
+        // Firebase Configuration (same as other pages)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCl6ZYtkfYx3kFF9329eGpeazsmJAPMKzA",
+            authDomain: "relationer-fe5fe.firebaseapp.com",
+            projectId: "relationer-fe5fe",
+            storageBucket: "relationer-fe5fe.firebasestorage.app",
+            messagingSenderId: "156720560629",
+            appId: "1:156720560629:web:1a138e4e89f02a131f88bc",
+            measurementId: "G-K5W7J8ZHZG"
+        };
+
+        // Initialize Firebase
+        let auth, db, currentUser;
+        let useFirestore = false;
+        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+        } catch (error) {
+            // If Firebase is already initialized, just get auth and db
+            if (error.code === 'app/duplicate-app') {
+                auth = firebase.auth();
+                db = firebase.firestore();
+            } else {
+                console.error('Firebase initialization error:', error);
+            }
+        }
+
+        // Load global Firestore toggle state
+        function loadGlobalFirestoreToggle() {
+            try {
+                const stored = localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY);
+                return stored === 'true';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Save global Firestore toggle state
+        function saveGlobalFirestoreToggle(value) {
+            try {
+                localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
+                // Dispatch custom event to notify other tabs
+                window.dispatchEvent(new CustomEvent('firestoreToggleChanged', { detail: value }));
+            } catch (e) {
+                console.error('Error saving global Firestore toggle:', e);
+            }
+        }
+
+        // Helper function to refresh auth state
+        function refreshAuthState() {
+            if (!auth) {
+                useFirestore = false;
+                currentUser = null;
+                return false;
+            }
+            
+            const globalToggle = loadGlobalFirestoreToggle();
+            
+            // ALWAYS check auth.currentUser directly first (most reliable - this is the source of truth)
+            const authUser = auth.currentUser;
+            
+            // Use auth.currentUser if available, otherwise use currentUser variable
+            const user = authUser || currentUser;
+            
+            // Update currentUser variable to match auth.currentUser (source of truth)
+            if (authUser) {
+                currentUser = authUser;
+            }
+            
+            useFirestore = globalToggle && user ? true : false;
+            
+            return useFirestore && user;
+        }
+
+        // Helper function to wait for auth state (useful when user might be logged in but auth.currentUser is null)
+        async function waitForAuthState(timeout = 2000) {
+            if (!auth) return false;
+            
+            // If we already have a user, return immediately
+            if (auth.currentUser) {
+                currentUser = auth.currentUser;
+                const globalToggle = loadGlobalFirestoreToggle();
+                useFirestore = globalToggle && currentUser ? true : false;
+                return useFirestore && currentUser;
+            }
+            
+            // Wait for auth state to be determined
+            return new Promise((resolve) => {
+                const unsubscribe = auth.onAuthStateChanged((user) => {
+                    currentUser = user;
+                    const globalToggle = loadGlobalFirestoreToggle();
+                    useFirestore = globalToggle && user ? true : false;
+                    
+                    unsubscribe();
+                    resolve(useFirestore && user);
+                });
+                
+                // Timeout after specified time
+                setTimeout(() => {
+                    unsubscribe();
+                    const finalUser = auth.currentUser;
+                    currentUser = finalUser;
+                    const globalToggle = loadGlobalFirestoreToggle();
+                    useFirestore = globalToggle && finalUser ? true : false;
+                    resolve(useFirestore && finalUser);
+                }, timeout);
+            });
+        }
+
+        // Load compareData from Firestore
+        async function loadCompareDataFromFirestore() {
+            if (!auth || !db) return null;
+            
+            // Refresh auth state to get current user
+            const isReady = refreshAuthState();
+            if (!isReady || !currentUser) return null;
+            
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists && userDoc.data().compareData) {
+                    return userDoc.data().compareData;
+                }
+                return null;
+            } catch (error) {
+                console.error('Error loading compareData from Firestore:', error);
+                return null;
+            }
+        }
+
+        // Save compareData to Firestore
+        async function saveCompareDataToFirestore() {
+            // Refresh auth state to ensure we have the latest user
+            refreshAuthState();
+            
+            if (!auth || !db || !currentUser || !CompareData) {
+                return false;
+            }
+            
+            try {
+                await db.collection('users').doc(currentUser.uid).set({
+                    compareData: CompareData,
+                    updated: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                return true;
+            } catch (error) {
+                console.error('Error saving compareData to Firestore:', error);
+                return false;
+            }
+        }
+
         let leftColor = null;
         let rightColor = null;
         let leftLightColor = null;
@@ -2392,7 +2549,7 @@
 		let newSamlingColorDirty = false;
 		
 		// History sidebar state
-		let historySidebarCollapsed = false;
+		let historySidebarCollapsed = true; // Default to collapsed
 		
 		// Helper functions for colors
 		function hexToRgba(hex, alpha) {
@@ -2450,7 +2607,27 @@
 		}
 		
 		// CompareData functions
-		function loadCompareDataFromLocalStorage() {
+		async function loadCompareDataFromLocalStorage() {
+			// Always check Firestore first if user is logged in (regardless of useFirestore toggle)
+			// This ensures we load data from Firestore even when localStorage is empty
+			if (currentUser && auth && db) {
+				const firestoreData = await loadCompareDataFromFirestore();
+				if (firestoreData !== null) {
+					// Also save to localStorage as backup
+					try {
+						localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(firestoreData));
+					} catch (e) {
+						// Ignore localStorage errors
+					}
+					return firestoreData;
+				}
+				// If useFirestore is true, don't fall back to localStorage - return null
+				if (useFirestore) {
+					return null;
+				}
+			}
+			
+			// Fall back to localStorage only when not using Firestore or user not logged in
 			try {
 				const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
 				if (!raw) return null;
@@ -2462,18 +2639,40 @@
 			}
 		}
 		
-		function saveCompareDataToLocalStorage() {
+		async function saveCompareDataToLocalStorage() {
 			try {
 				if (!CompareData) return false;
 				CompareData.updated = new Date().toISOString();
-				localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(CompareData));
+				
+				// ALWAYS refresh auth state before saving (don't rely on cached values)
+				refreshAuthState();
+				
+				// ALWAYS check auth.currentUser directly (most reliable - this is the source of truth)
+				const authUser = auth ? auth.currentUser : null;
+				const globalToggle = loadGlobalFirestoreToggle();
+				
+				// If we have a user and global toggle is enabled, ONLY save to Firestore
+				if (authUser && globalToggle && auth && db) {
+					// Update currentUser to match auth.currentUser
+					currentUser = authUser;
+					await saveCompareDataToFirestore();
+					return true;
+				}
+				
+				// Only save to localStorage if user is not logged in
+				if (!authUser) {
+					localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(CompareData));
+					return true;
+				}
+				
 				return true;
-			} catch (_) {
+			} catch (error) {
+				console.error('Error in saveCompareDataToLocalStorage:', error);
 				return false;
 			}
 		}
 		
-		function ensureDefaultCompareData() {
+		async function ensureDefaultCompareData() {
 			if (!CompareData || !Array.isArray(CompareData.collections)) {
 				CompareData = {
 					version: '1.0',
@@ -2539,7 +2738,7 @@
 					});
 				}
 			});
-			saveCompareDataToLocalStorage();
+			await saveCompareDataToLocalStorage();
 		}
 		
 		function getActiveCollection() {
@@ -2553,12 +2752,12 @@
 			return col.comparisons.find(c => c.id === CompareData.activeComparisonId) || col.comparisons[0] || null;
 		}
 		
-		function updateComparisonNotes(value) {
+		async function updateComparisonNotes(value) {
 			comparisonNotes = value || '';
-			syncCurrentWorkspaceToActiveComparison();
+			await syncCurrentWorkspaceToActiveComparison();
 		}
 		
-		function syncCurrentWorkspaceToActiveComparison() {
+		async function syncCurrentWorkspaceToActiveComparison() {
 			if (!CompareData) return;
 			const comparison = getActiveComparison();
 			if (!comparison) return;
@@ -2632,7 +2831,7 @@
 			if (!comparison.timestamp) {
 				comparison.timestamp = now;
 			}
-			saveCompareDataToLocalStorage();
+			await saveCompareDataToLocalStorage();
 		}
 		
 		function loadComparisonFromCompareData(comparison) {
@@ -2771,7 +2970,7 @@
 		
 		// ===== SAMLING MANAGER FUNCTIONS =====
 		
-		function openSamlingManager() {
+		async function openSamlingManager() {
 			if (!samlingManagerOverlayEl) {
 				samlingManagerOverlayEl = document.getElementById('samlingManagerOverlay');
 				samlingManagerListEl = document.getElementById('samlingManagerList');
@@ -2839,12 +3038,12 @@
 			}
 		}
 		
-		function renderSamlingManagerList() {
+		async function renderSamlingManagerList() {
 			if (!samlingManagerListEl) return;
 			samlingManagerListEl.innerHTML = '';
 			
 			if (!CompareData || !Array.isArray(CompareData.collections)) {
-				ensureDefaultCompareData();
+				await ensureDefaultCompareData();
 			}
 			
 			CompareData.collections.forEach(collection => {
@@ -2892,7 +3091,7 @@
 			updateNewSamlingColorButton();
 		}
 		
-		function beginSamlingNameInlineEdit(collection, buttonEl) {
+		async function beginSamlingNameInlineEdit(collection, buttonEl) {
 			if (!collection || !buttonEl) return;
 			const baseColor = collection.color || COMPARE_COLLECTION_COLOR_PRESETS[0];
 			const input = document.createElement('input');
@@ -2903,17 +3102,17 @@
 			input.style.borderColor = baseColor;
 			
 			let finished = false;
-			const commit = (shouldSave) => {
+			const commit = async (shouldSave) => {
 				if (finished) return;
 				finished = true;
 				const newName = input.value.trim();
 				if (shouldSave && newName && newName !== collection.name) {
 					collection.name = newName;
 					renderHistoryFilterOptions();
-					renderHistory();
-					saveCompareDataToLocalStorage();
+					await renderHistory();
+					await saveCompareDataToLocalStorage();
 				}
-				renderSamlingManagerList();
+				await renderSamlingManagerList();
 			};
 			
 			input.addEventListener('keydown', (event) => {
@@ -2954,12 +3153,12 @@
 			}
 		}
 		
-		function handleSamlingColorSelected(color) {
+		async function handleSamlingColorSelected(color) {
 			if (!samlingColorPickerTarget) return;
 			if (samlingColorPickerTarget.type === 'samling') {
-				applySamlingColor(samlingColorPickerTarget.collectionId, color);
-				renderHistory();
-				saveCompareDataToLocalStorage();
+				await applySamlingColor(samlingColorPickerTarget.collectionId, color);
+				await renderHistory();
+				await saveCompareDataToLocalStorage();
 			} else if (samlingColorPickerTarget.type === 'new') {
 				newSamlingDraftColor = color;
 				newSamlingColorDirty = true;
@@ -2968,17 +3167,17 @@
 			closeSamlingColorPicker();
 		}
 		
-		function applySamlingColor(collectionId, color) {
+		async function applySamlingColor(collectionId, color) {
 			const collection = CompareData.collections.find(c => c.id === collectionId);
 			if (!collection) return;
 			collection.color = color;
 			renderHistory();
 			renderSamlingManagerList();
 			renderHistoryFilterOptions();
-			saveCompareDataToLocalStorage();
+			await saveCompareDataToLocalStorage();
 		}
 		
-		function confirmCreateSamling() {
+		async function confirmCreateSamling() {
 			if (!newSamlingNameInputEl) return;
 			const name = newSamlingNameInputEl.value.trim();
 			if (!name) {
@@ -2988,7 +3187,7 @@
 			const color = newSamlingDraftColor || COMPARE_COLLECTION_COLOR_PRESETS[0];
 			
 			// Save current workspace before switching
-			syncCurrentWorkspaceToActiveComparison();
+			await syncCurrentWorkspaceToActiveComparison();
 			
 			// Find highest collection ID
 			let maxId = 0;
@@ -3035,7 +3234,7 @@
 			CompareData.activeCollectionId = newId;
 			CompareData.activeComparisonId = 1;
 			
-			saveCompareDataToLocalStorage();
+			await saveCompareDataToLocalStorage();
 			
 			// Load the new empty comparison
 			loadComparisonFromCompareData(newCollection.comparisons[0]);
@@ -3053,7 +3252,7 @@
 			});
 		}
 		
-		function deleteSamling(collectionId) {
+		async function deleteSamling(collectionId) {
 			if (!CompareData || !Array.isArray(CompareData.collections)) return;
 			
 			if (CompareData.collections.length <= 1) {
@@ -3082,7 +3281,7 @@
 				}
 			}
 			
-			saveCompareDataToLocalStorage();
+			await saveCompareDataToLocalStorage();
 			const activeComparison = getActiveComparison();
 			if (activeComparison) {
 				loadComparisonFromCompareData(activeComparison);
@@ -3169,7 +3368,7 @@
 			updateHistoryNavState();
 		}
 		
-		function renderHistory() {
+		async function renderHistory() {
 			const listEl = document.getElementById('historyList');
 			if (!listEl) return;
 			listEl.innerHTML = '';
@@ -3202,11 +3401,11 @@
 				dateInput.readOnly = !isActive;
 				dateInput.setAttribute('data-comparison-id', comparison.id);
 				if (isActive) {
-					dateInput.addEventListener('blur', () => {
+					dateInput.addEventListener('blur', async () => {
 						const newName = dateInput.value.trim();
 						if (newName && newName !== comparison.name) {
 							comparison.name = newName;
-							saveCompareDataToLocalStorage();
+							await saveCompareDataToLocalStorage();
 						}
 					});
 					dateInput.addEventListener('keydown', (e) => {
@@ -3262,13 +3461,13 @@
 				item.appendChild(metaDiv);
 				item.appendChild(deleteBtn);
 				
-				item.onclick = () => {
-					syncCurrentWorkspaceToActiveComparison();
+				item.onclick = async () => {
+					await syncCurrentWorkspaceToActiveComparison();
 					CompareData.activeCollectionId = collection.id;
 					CompareData.activeComparisonId = comparison.id;
-					saveCompareDataToLocalStorage();
+					await saveCompareDataToLocalStorage();
 					loadComparisonFromCompareData(comparison);
-					renderHistory();
+					await renderHistory();
 					updateHistoryNavState();
 				};
 				
@@ -3292,7 +3491,7 @@
 			if (navDown) navDown.disabled = currentIndex >= filtered.length - 1;
 		}
 		
-		function navigateHistory(direction) {
+		async function navigateHistory(direction) {
 			const filtered = getFilteredSortedComparisons();
 			const currentIndex = filtered.findIndex(item => 
 				item.comparison.id === CompareData.activeComparisonId && 
@@ -3305,12 +3504,12 @@
 			if (newIndex < 0 || newIndex >= filtered.length) return;
 			
 			const { comparison, collection } = filtered[newIndex];
-			syncCurrentWorkspaceToActiveComparison();
+			await syncCurrentWorkspaceToActiveComparison();
 			CompareData.activeCollectionId = collection.id;
 			CompareData.activeComparisonId = comparison.id;
-			saveCompareDataToLocalStorage();
+			await saveCompareDataToLocalStorage();
 			loadComparisonFromCompareData(comparison);
-			renderHistory();
+			await renderHistory();
 			updateHistoryNavState();
 		}
 		
@@ -3327,7 +3526,7 @@
 			});
 		}
 		
-		function deleteComparison(collectionId, comparisonId) {
+		async function deleteComparison(collectionId, comparisonId) {
 			const collection = CompareData.collections.find(c => c.id === collectionId);
 			if (!collection || !Array.isArray(collection.comparisons)) return;
 			
@@ -3356,7 +3555,7 @@
 				}
 			}
 			
-			saveCompareDataToLocalStorage();
+			await saveCompareDataToLocalStorage();
 			const activeComparison = getActiveComparison();
 			if (activeComparison) {
 				loadComparisonFromCompareData(activeComparison);
@@ -3364,14 +3563,14 @@
 			renderHistory();
 		}
 		
-		function createNewComparison() {
+		async function createNewComparison() {
 			if (!CompareData) {
-				ensureDefaultCompareData();
+				await ensureDefaultCompareData();
 			}
 			
 			let collection = getActiveCollection();
 			if (!collection) {
-				ensureDefaultCompareData();
+				await ensureDefaultCompareData();
 				collection = getActiveCollection();
 			}
 			
@@ -3387,7 +3586,7 @@
 			const comparisonName = `Sammenligning ${newId}`;
 			
 			// Save current workspace before switching
-			syncCurrentWorkspaceToActiveComparison();
+			await syncCurrentWorkspaceToActiveComparison();
 			
 			// Create new comparison
 			const now = new Date().toISOString();
@@ -3420,7 +3619,7 @@
 			collection.comparisons.push(newComparison);
 			CompareData.activeComparisonId = newId;
 			
-			saveCompareDataToLocalStorage();
+			await saveCompareDataToLocalStorage();
 			
 			// Load the new empty comparison
 			loadComparisonFromCompareData(newComparison);
@@ -5357,7 +5556,7 @@ function resetPose(side) {
 
         // CSV import/export functions removed - no longer needed
 
-        function clearAll() {
+        async function clearAll() {
 			// Reset all sliders to 0
 			leftScores = {};
 			rightScores = {};
@@ -5447,7 +5646,7 @@ function resetPose(side) {
     updateButtonStates();
 			
 			// Sync to active comparison (this will save the cleared state to the active history item)
-			syncCurrentWorkspaceToActiveComparison();
+			await syncCurrentWorkspaceToActiveComparison();
 }
 
         // CSV data persistence functions removed - no longer needed
@@ -5462,8 +5661,136 @@ function resetPose(side) {
             }
         }
 
+        // Wait for Firebase auth state to be ready
+        let authStateReady = false;
+        let authStateResolver = null;
+        const authStatePromise = new Promise((resolve) => {
+            authStateResolver = resolve;
+        });
+
+        // Set up continuous auth state listener
+        if (auth) {
+            // Check current user immediately (in case auth state already resolved)
+            const currentAuthUser = auth.currentUser;
+            if (currentAuthUser) {
+                currentUser = currentAuthUser;
+                const globalState = loadGlobalFirestoreToggle();
+                useFirestore = globalState && currentUser ? true : false;
+            } else {
+                // If no user found, wait a bit and check again (auth state might not be ready yet)
+                setTimeout(() => {
+                    const delayedUser = auth.currentUser;
+                    if (delayedUser && !currentUser) {
+                        currentUser = delayedUser;
+                        const globalState = loadGlobalFirestoreToggle();
+                        useFirestore = globalState && currentUser ? true : false;
+                    }
+                }, 1000);
+                
+                // Also check again after 3 seconds (in case auth state takes longer)
+                setTimeout(() => {
+                    const delayedUser = auth.currentUser;
+                    if (delayedUser && !currentUser) {
+                        currentUser = delayedUser;
+                        const globalState = loadGlobalFirestoreToggle();
+                        useFirestore = globalState && currentUser ? true : false;
+                    }
+                }, 3000);
+            }
+            
+            auth.onAuthStateChanged(async (user) => {
+                // ALWAYS set currentUser from the user parameter first (this is the most reliable)
+                currentUser = user;
+                
+                // Also check auth.currentUser directly in case user parameter is null but auth.currentUser exists
+                if (!currentUser && auth.currentUser) {
+                    currentUser = auth.currentUser;
+                }
+                
+                // Now refresh auth state to ensure useFirestore is set correctly
+                refreshAuthState();
+                
+                // Mark auth as ready and resolve promise immediately
+                if (!authStateReady) {
+                    authStateReady = true;
+                    if (authStateResolver) {
+                        authStateResolver();
+                        authStateResolver = null;
+                    }
+                }
+                
+                // If user logs out and we're using Firestore, switch back to localStorage
+                if (!user && useFirestore) {
+                    useFirestore = false;
+                    saveGlobalFirestoreToggle(false); // Save globally
+                } else if (user && loadGlobalFirestoreToggle()) {
+                    // When user logs in and global state is true, reload data from Firestore
+                    (async () => {
+                        // IMPORTANT: Always reload, even if CompareData already exists, to ensure we get the correct source
+                        const data = await loadCompareDataFromLocalStorage();
+                        
+                        if (data) {
+                            CompareData = data;
+                            await ensureDefaultCompareData();
+                            const activeComparison = getActiveComparison();
+                            if (activeComparison) {
+                                loadComparisonFromCompareData(activeComparison);
+                            }
+                            await renderHistory();
+                            renderHistoryFilterOptions();
+                        }
+                    })();
+                }
+            });
+            
+            // Timeout after 2 seconds if auth state doesn't resolve
+            setTimeout(() => {
+                if (!authStateReady) {
+                    authStateReady = true;
+                    if (authStateResolver) {
+                        authStateResolver();
+                        authStateResolver = null;
+                    }
+                }
+            }, 2000);
+        } else {
+            // No auth available, resolve immediately
+            authStateReady = true;
+            if (authStateResolver) {
+                authStateResolver();
+                authStateResolver = null;
+            }
+        }
+
+        // Listen for global Firestore toggle changes
+        window.addEventListener('storage', async function(e) {
+            if (e.key === GLOBAL_FIRESTORE_TOGGLE_KEY) {
+                const globalToggle = loadGlobalFirestoreToggle();
+                const shouldUseFirestore = globalToggle && !!currentUser;
+                
+                if (shouldUseFirestore !== useFirestore) {
+                    useFirestore = shouldUseFirestore;
+                    
+                    // Reload data from the appropriate source
+                    CompareData = await loadCompareDataFromLocalStorage();
+                    if (CompareData) {
+                        await ensureDefaultCompareData();
+                        const activeComparison = getActiveComparison();
+                        if (activeComparison) {
+                            loadComparisonFromCompareData(activeComparison);
+                        }
+                        renderHistory();
+                        renderHistoryFilterOptions();
+                    }
+                }
+            }
+        });
+
         // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for auth state to be ready
+            await authStatePromise;
+            
             // Load pose library first
             await loadPoseLibrary();
             // Load animations
@@ -5593,25 +5920,25 @@ function resetPose(side) {
 			const leftPoseDropdown = document.getElementById('leftPose');
 			const rightPoseDropdown = document.getElementById('rightPose');
 			if (leftPoseDropdown) {
-				leftPoseDropdown.addEventListener('change', function() {
+				leftPoseDropdown.addEventListener('change', async function() {
 					const poseIndex = this.value;
 					if (poseIndex) {
 						applyPose('left', poseIndex);
 					} else {
 						resetPose('left');
 					}
-					syncCurrentWorkspaceToActiveComparison();
+					await syncCurrentWorkspaceToActiveComparison();
 				});
 			}
 			if (rightPoseDropdown) {
-				rightPoseDropdown.addEventListener('change', function() {
+				rightPoseDropdown.addEventListener('change', async function() {
 					const poseIndex = this.value;
 					if (poseIndex) {
 						applyPose('right', poseIndex);
 					} else {
 						resetPose('right');
 					}
-					syncCurrentWorkspaceToActiveComparison();
+					await syncCurrentWorkspaceToActiveComparison();
 				});
 			}
 			
@@ -5632,19 +5959,28 @@ function resetPose(side) {
             document.querySelector('.clear-btn').addEventListener('click', clearAll);
             document.getElementById('randomBtn').addEventListener('click', randomizeCurrentStep);
             
-            // Initialize CompareData
-            CompareData = loadCompareDataFromLocalStorage();
-            ensureDefaultCompareData();
+            // Initialize CompareData (only if not already loaded from auth state)
+            if (!CompareData) {
+                // Refresh auth state to ensure we have the latest user
+                refreshAuthState();
+                
+                CompareData = await loadCompareDataFromLocalStorage();
+            }
+            await ensureDefaultCompareData();
             
             // Initialize history sidebar
+            // Default to collapsed (true) unless explicitly set to false in localStorage
             const savedCollapsed = localStorage.getItem('compare_historySidebarCollapsed');
-            if (savedCollapsed === 'true') {
-                historySidebarCollapsed = true;
-                const sidebar = document.getElementById('historySidebar');
-                if (sidebar) {
+            historySidebarCollapsed = savedCollapsed === null || savedCollapsed === 'true';
+            const sidebar = document.getElementById('historySidebar');
+            if (sidebar) {
+                const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
+                if (historySidebarCollapsed) {
                     sidebar.classList.add('collapsed');
-                    const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
                     toggleBtns.forEach(btn => btn.textContent = '<');
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    toggleBtns.forEach(btn => btn.textContent = '>');
                 }
             }
             
