@@ -674,27 +674,55 @@
             return new Date().toISOString().split('T')[0];
         }
 
-        // Load logbook data from Firestore
-        async function loadLogbookDataFromFirestore() {
-            if (!currentUser || !db) return null;
+        // Global cache for logbook entries
+        let logbookEntriesCache = [];
+        let logbookSnapshotUnsubscribe = null;
+
+        // Setup real-time listener for logbook data from Firestore
+        function setupLogbookSnapshotListener() {
+            // Clean up existing listener if any
+            if (logbookSnapshotUnsubscribe) {
+                logbookSnapshotUnsubscribe();
+                logbookSnapshotUnsubscribe = null;
+            }
+            
+            if (!currentUser || !db) {
+                logbookEntriesCache = [];
+                return;
+            }
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                const userDoc = await userDocRef.get();
                 
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    if (userData && userData.logbogData) {
-                        const data = userData.logbogData;
-                        return Array.isArray(data) ? data : [];
+                // Set up real-time listener
+                logbookSnapshotUnsubscribe = userDocRef.onSnapshot(
+                    (doc) => {
+                        if (doc.exists) {
+                            const userData = doc.data();
+                            if (userData && userData.logbogData) {
+                                logbookEntriesCache = Array.isArray(userData.logbogData) ? userData.logbogData : [];
+                            } else {
+                                logbookEntriesCache = [];
+                            }
+                        } else {
+                            logbookEntriesCache = [];
+                        }
+                    },
+                    (error) => {
+                        console.error('Error in logbook snapshot listener:', error);
+                        // Keep existing cache on error
                     }
-                    return [];
-                }
-                return [];
+                );
             } catch (error) {
-                console.error('Error loading logbook data from Firestore:', error);
-                return null;
+                console.error('Error setting up logbook snapshot listener:', error);
+                logbookEntriesCache = [];
             }
+        }
+
+        // Load logbook data from Firestore (now uses cache from snapshot)
+        async function loadLogbookDataFromFirestore() {
+            // Return cached data from snapshot listener
+            return logbookEntriesCache;
         }
         
         // Save logbook data to Firestore
@@ -714,11 +742,28 @@
         async function getLogbookEntries() {
             // Always check Firestore first if user is logged in
             if (currentUser && db) {
+                // Ensure snapshot listener is set up
+                if (!logbookSnapshotUnsubscribe) {
+                    setupLogbookSnapshotListener();
+                }
+                
                 const firestoreData = await loadLogbookDataFromFirestore();
-                if (firestoreData !== null) {
+                if (firestoreData !== null && Array.isArray(firestoreData)) {
                     return firestoreData;
                 }
-                // If Firestore returns null, return empty array (don't fall back to localStorage)
+                // If Firestore returns null or empty, try localStorage as backup
+                try {
+                    const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed)) {
+                            console.warn('Firestore cache tom, bruger localStorage backup');
+                            return parsed;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Kunne ikke læse fra localStorage backup:', error);
+                }
                 return [];
             }
             
@@ -760,7 +805,12 @@
                 };
                 entries.push(entry);
             }
-            Object.assign(entry, partial);
+            // KUN overskriv hvis partial har en værdi (ikke tom string, undefined eller null)
+            Object.keys(partial).forEach(key => {
+                if (partial[key] !== undefined && partial[key] !== null && partial[key] !== '') {
+                    entry[key] = partial[key];
+                }
+            });
             await saveLogbookEntries(entries);
             return entry;
         }
@@ -832,6 +882,30 @@
             saveOverlayState(state);
         }
 
+        // Global variabler til at gemme event listener referencer
+        let dreamInputListener = null;
+        let dreamDebounceTimeout = null;
+        let dreamCloseListener = null;
+
+        // Funktion til at gemme dreams data (bruges både ved input og ved luk)
+        async function saveDreamsData() {
+            const textarea = document.getElementById('nightDreamEntry');
+            if (!textarea) return;
+            
+            const value = textarea.value.trim();
+            
+            // Clear pending debounce timeout
+            if (dreamDebounceTimeout) {
+                clearTimeout(dreamDebounceTimeout);
+                dreamDebounceTimeout = null;
+            }
+            
+            // Gem kun hvis der faktisk er tekst
+            if (value) {
+                await upsertLogEntry(getTodayDateKey(), { dreams: textarea.value });
+            }
+        }
+
         async function hydrateNightOverlay() {
             const overlay = document.getElementById('nightOverlay');
             const textarea = document.getElementById('nightDreamEntry');
@@ -840,16 +914,58 @@
             if (!overlay || !textarea || !closeBtn) return;
 
             const entry = await ensureTodayLogEntry();
-            textarea.value = entry.dreams || '';
+            
+            // KUN sæt værdi hvis textarea er tom (brugeren har måske skrevet noget)
+            if (!textarea.value.trim()) {
+                textarea.value = entry.dreams || '';
+            }
 
-            textarea.addEventListener('input', async () => {
-                await upsertLogEntry(getTodayDateKey(), { dreams: textarea.value });
-            });
+            // Fjern gammel input listener hvis den findes
+            if (dreamInputListener) {
+                textarea.removeEventListener('input', dreamInputListener);
+                dreamInputListener = null;
+            }
+            
+            // Fjern gammel close listener hvis den findes
+            if (dreamCloseListener) {
+                closeBtn.removeEventListener('click', dreamCloseListener);
+                dreamCloseListener = null;
+            }
+            
+            // Clear tidligere debounce timeout
+            if (dreamDebounceTimeout) {
+                clearTimeout(dreamDebounceTimeout);
+                dreamDebounceTimeout = null;
+            }
 
-            closeBtn.addEventListener('click', () => {
+            // Opret ny input listener med debouncing og gem referencen
+            dreamInputListener = async () => {
+                const value = textarea.value.trim();
+                
+                // Clear tidligere timeout
+                if (dreamDebounceTimeout) {
+                    clearTimeout(dreamDebounceTimeout);
+                }
+                
+                // Gem kun hvis der faktisk er tekst, og vent 2 sekunder efter sidste taste
+                if (value) {
+                    dreamDebounceTimeout = setTimeout(async () => {
+                        await saveDreamsData();
+                    }, 2000);
+                }
+            };
+            
+            textarea.addEventListener('input', dreamInputListener);
+
+            // Opret close listener der gemmer data før overlay lukkes
+            dreamCloseListener = async () => {
+                // Gem data med det samme når overlay lukkes
+                await saveDreamsData();
                 overlay.classList.remove('show');
                 recordOverlayClosed();
-            });
+            };
+            
+            closeBtn.addEventListener('click', dreamCloseListener);
 
         if (shouldShowOverlay()) {
             overlay.classList.add('show');
@@ -1430,6 +1546,18 @@
             authStatePromise = new Promise((resolve) => {
                 auth.onAuthStateChanged(user => {
                     currentUser = user;
+                    // Setup snapshot listener when user logs in
+                    if (user) {
+                        setupLogbookSnapshotListener();
+                    } else {
+                        // Clean up listener when user logs out
+                        if (logbookSnapshotUnsubscribe) {
+                            logbookSnapshotUnsubscribe();
+                            logbookSnapshotUnsubscribe = null;
+                        }
+                        logbookEntriesCache = [];
+                    }
+                    
                     if (!authStateResolved) {
                         authStateResolved = true;
                         resolve();

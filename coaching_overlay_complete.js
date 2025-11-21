@@ -165,89 +165,120 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
         closeCoachingOverlay();
     }
     
-    // Create overlay container
+    // Inject global styles for overlay if not already present
+    if (!document.getElementById('coachingOverlayGlobalStyles')) {
+        const globalStyles = document.createElement('style');
+        globalStyles.id = 'coachingOverlayGlobalStyles';
+        globalStyles.textContent = `
+            /* Coaching Overlay Container */
+            #coachingOverlay {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 100%;
+                max-width: 600px;
+                height: auto;
+                background: white;
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                z-index: 10000;
+                display: flex;
+                flex-direction: column;
+                animation: coachingSlideIn 0.3s ease;
+                overflow: visible;
+                will-change: transform;
+            }
+            
+            @keyframes coachingSlideIn {
+                from {
+                    opacity: 0;
+                    transform: translate(-50%, -60%);
+                }
+                to {
+                    opacity: 1;
+                    transform: translate(-50%, -50%);
+                }
+            }
+            
+            /* Overlay Header */
+            .overlay-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 15px 20px;
+                cursor: move;
+                user-select: none;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-radius: 15px 15px 0 0;
+                position: relative;
+                z-index: 2;
+            }
+            
+            .overlay-header h3 {
+                margin: 0;
+                font-size: 1.2em;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .overlay-header button {
+                background: rgba(255,255,255,0.2);
+                border: 2px solid white;
+                color: white;
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s ease;
+            }
+            
+            .overlay-header button:hover {
+                background: rgba(255,255,255,0.3);
+            }
+            
+            /* Overlay Content */
+            .overlay-content {
+                flex: 1;
+                padding: 20px;
+                position: relative;
+                z-index: 2;
+                background: white;
+                min-height: 400px;
+                overflow: visible;
+            }
+        `;
+        document.head.appendChild(globalStyles);
+    }
+    
+    // Create overlay container (styles are now in CSS)
     const overlay = document.createElement('div');
     overlay.id = 'coachingOverlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 85%;
-        max-width: 750px;
-        height: auto;
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        z-index: 10000;
-        display: flex;
-        flex-direction: column;
-        animation: slideIn 0.3s ease;
-        overflow: visible;
-        will-change: transform;
-    `;
     
-    // Create header
+    // Create header (styles are now in CSS)
     const header = document.createElement('div');
     header.className = 'overlay-header';
-    header.style.cssText = `
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 15px 20px;
-        cursor: move;
-        user-select: none;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-radius: 15px 15px 0 0;
-        position: relative;
-        z-index: 2;
-    `;
     
-    // Create header content
+    // Create header content (styles are now in CSS)
     const headerTitle = document.createElement('h3');
-    headerTitle.style.cssText = `
-        margin: 0;
-        font-size: 1.2em;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    `;
     headerTitle.innerHTML = 'Reflektion';
     
     const closeBtn = document.createElement('button');
-    closeBtn.style.cssText = `
-        background: rgba(255,255,255,0.2);
-        border: 2px solid white;
-        color: white;
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        cursor: pointer;
-        font-size: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s ease;
-    `;
     closeBtn.innerHTML = '✕';
     closeBtn.addEventListener('click', closeCoachingOverlay);
     
     header.appendChild(headerTitle);
     header.appendChild(closeBtn);
     
-    // Create content area
+    // Create content area (styles are now in CSS)
     const content = document.createElement('div');
     content.className = 'overlay-content';
-    content.style.cssText = `
-        flex: 1;
-        padding: 20px;
-        position: relative;
-        z-index: 2;
-        background: white;
-        min-height: 400px;
-        overflow: visible;
-    `;
     
     // Add to DOM
     overlay.appendChild(header);
@@ -1469,7 +1500,7 @@ function applyFlipped(side, circle) {
                         circle.dataset.originalTransform = `translate(${offsetX}, ${offsetY})`;
                     }
                 } else {
-                    // Last resort: use default values
+                    // Fallback: use default values if CSS variables cannot be read
                     if (side === 'coach') {
                         circle.dataset.originalTransform = 'translate(-90px, -20px)';
                     } else {
@@ -1818,35 +1849,31 @@ function showCoachingQuestion(contentElement, question) {
     // Always show coach bubble with question
     const leftBubble = contentElement.querySelector('#leftBubble');
     if (leftBubble) {
-        // Get current transform from computed style or use default
-        const computed = window.getComputedStyle(leftBubble);
-        const computedTransform = computed.transform;
-        let transformBase = 'translate(calc(var(--left-bubble-shift-x, 0px)), -50%)';
-        
-        // Extract translate part from computed transform if it exists
-        if (computedTransform && computedTransform !== 'none' && computedTransform.includes('translate')) {
-            const match = computedTransform.match(/(translate\([^)]+\))/);
-            if (match) {
-                transformBase = match[1];
-            }
-        }
+        // Position bubble with specific values from manual guidance
+        leftBubble.style.position = 'absolute';
+        leftBubble.style.top = '21%';
+        leftBubble.style.left = '59px';
+        leftBubble.style.right = 'auto';
+        leftBubble.style.transformOrigin = 'left center';
+        leftBubble.style.transform = 'translateY(-50%) scale(0.85)';
+        leftBubble.style.pointerEvents = 'auto';
         
         // Ensure transition is set (same as dialog)
         leftBubble.style.transition = 'all 0.35s cubic-bezier(0.4, 1.3, 0.7, 1)';
         
         // Start animation state: small and invisible
         leftBubble.style.opacity = '0';
-        leftBubble.style.transform = transformBase + ' scale(0.85)';
         leftBubble.style.display = 'block';
         
         // Animate to full size after a short delay (same pattern as dialog)
         setTimeout(() => {
-            leftBubble.style.transform = transformBase.replace(/\s*scale\([^)]+\)/g, '') + ' scale(1)';
+            leftBubble.style.transform = 'translateY(-50%) scale(1)';
             leftBubble.style.opacity = '1';
         }, 10);
         
         // Force reflow to trigger animation
         leftBubble.offsetHeight;
+        leftBubble.classList.add('visible');
     }
     
     // Show coach question in coach bubble (clean text without placeholders)
@@ -1862,71 +1889,24 @@ function showCoachingQuestion(contentElement, question) {
     // Animate coach when speaking - transition from slapper to tænke
     waitForPoseLibraryAndApplyCoachPose('tænke');
     
-    // Show client input area if not done and session is active
+    // Hide client bubble and show next arrow button if not done and session is active
+    const rightBubble = contentElement.querySelector('#rightBubble');
+    if (rightBubble) {
+        rightBubble.style.display = 'none';
+    }
+    
+    // Show next arrow button instead of client bubble if not done
     if (!question.done && window.coachingActive !== false) {
-        debugLog('Question not done, showing client input area');
-        
-        // Show client bubble for input with animation, but after a short delay (after coach bubble appears)
-        const rightBubble = contentElement.querySelector('#rightBubble');
-        if (rightBubble) {
-            // Wait 200ms before showing client bubble (so coach appears first)
-            setTimeout(() => {
-                // Get current transform from computed style or use default
-                const computed = window.getComputedStyle(rightBubble);
-                const computedTransform = computed.transform;
-                let transformBase = 'translateY(-50%)';
-                
-                // Extract translate part from computed transform if it exists
-                if (computedTransform && computedTransform !== 'none' && computedTransform.includes('translate')) {
-                    const match = computedTransform.match(/(translateY\([^)]+\))/);
-                    if (match) {
-                        transformBase = match[1];
-                    }
-                }
-                
-                // Ensure transition is set (same as dialog)
-                rightBubble.style.transition = 'all 0.35s cubic-bezier(0.4, 1.3, 0.7, 1)';
-                
-                // Start animation state: small and invisible
-                rightBubble.style.opacity = '0';
-                rightBubble.style.transform = transformBase + ' scale(0.85)';
-                rightBubble.style.display = 'block';
-                
-                // Animate to full size after a short delay (same pattern as dialog)
-                setTimeout(() => {
-                    rightBubble.style.transform = transformBase.replace(/\s*scale\([^)]+\)/g, '') + ' scale(1)';
-                    rightBubble.style.opacity = '1';
-                }, 10);
-                
-                    // Force reflow to trigger animation
-                    rightBubble.offsetHeight;
-                    
-                    // Handle different question types after bubble is shown
-                    if (question.mmm) {
-                        // Show single Mmmm button
-                        showMmmButton(contentElement);
-                    } else if (question.type === 'choice' && question.choices && question.input_type !== 'slider') {
-                        // Show choice buttons
-                        showChoiceQuestion(contentElement, question);
-                    } else if (question.type === 'slider' || 
-                               (question.type === 'choice' && question.input_type === 'slider')) {
-                        // Show slider
-                        showSliderQuestion(contentElement, question);
-                    } else {
-                        // Regular text input
-                        const textarea = contentElement.querySelector('#rightTextarea');
-                        if (textarea) {
-                            textarea.style.display = 'block';
-                            textarea.focus();
-                        }
-                    }
-            }, 200);
+        debugLog('Question not done, showing next arrow button');
+        const nextArrowBtn = contentElement.querySelector('#nextArrowBtn');
+        if (nextArrowBtn) {
+            nextArrowBtn.classList.add('show');
         }
-    } else if (question.done || window.coachingActive === false) {
-        // Hide client input area when session is done
-        const rightBubble = contentElement.querySelector('#rightBubble');
-        if (rightBubble) {
-            rightBubble.style.display = 'none';
+    } else {
+        // Hide next arrow button when session is done
+        const nextArrowBtn = contentElement.querySelector('#nextArrowBtn');
+        if (nextArrowBtn) {
+            nextArrowBtn.classList.remove('show');
         }
     }
 }
@@ -2323,6 +2303,14 @@ function setupCoachingEventListeners(contentElement) {
         controls.appendChild(copyBtn);
     }
     
+    // Next arrow button for navigating questions
+    const nextArrowBtn = contentElement.querySelector('#nextArrowBtn');
+    if (nextArrowBtn) {
+        nextArrowBtn.addEventListener('click', () => {
+            handleNextArrow(contentElement);
+        });
+    }
+    
     // Textarea for responses
     const textarea = contentElement.querySelector('#rightTextarea');
     if (textarea) {
@@ -2343,6 +2331,111 @@ function setupCoachingEventListeners(contentElement) {
 /**
  * Send response to coaching engine
  */
+/**
+ * Handle next arrow button click
+ */
+function handleNextArrow(contentElement) {
+    if (!currentEngine || !currentQuestion || currentQuestion.done) {
+        return;
+    }
+    
+    // Check if current question is monolog (<<m>> marker)
+    const isMonolog = currentQuestion.mmm === true;
+    
+    if (isMonolog) {
+        // Skip client bubble - go directly to next coach question
+        // Process with empty answer to move to next question
+        currentQuestion = currentEngine.answer('');
+        
+        // Hide next arrow button
+        const nextArrowBtn = contentElement.querySelector('#nextArrowBtn');
+        if (nextArrowBtn) {
+            nextArrowBtn.classList.remove('show');
+        }
+        
+        if (currentQuestion.done) {
+            // Session finished
+            addToTranscript(contentElement, 'coach', currentQuestion.text);
+            const coachMessage = contentElement.querySelector('#coachMessage');
+            if (coachMessage) {
+                const cleanText = currentQuestion.text.replace(/<<[^>]+>>/g, '');
+                coachMessage.innerHTML = cleanText.replace(/\n/g, '<br>');
+            }
+            
+            const leftBubble = contentElement.querySelector('#leftBubble');
+            if (leftBubble) {
+                leftBubble.style.display = 'block';
+            }
+            
+            window.coachingActive = false;
+        } else {
+            // Show next coach question
+            showCoachingQuestion(contentElement, currentQuestion);
+        }
+    } else {
+        // Normal dialog - switch to client bubble
+        // Hide coach bubble and show client bubble
+        const leftBubble = contentElement.querySelector('#leftBubble');
+        if (leftBubble) {
+            leftBubble.style.display = 'none';
+        }
+        
+        const nextArrowBtn = contentElement.querySelector('#nextArrowBtn');
+        if (nextArrowBtn) {
+            nextArrowBtn.classList.remove('show');
+        }
+        
+        // Show client bubble with input area
+        const rightBubble = contentElement.querySelector('#rightBubble');
+        if (rightBubble) {
+            // Get current transform from computed style or use default
+            const computed = window.getComputedStyle(rightBubble);
+            // Position bubble with specific values from manual guidance
+            rightBubble.style.position = 'absolute';
+            rightBubble.style.top = '20%';
+            rightBubble.style.right = '65px';
+            rightBubble.style.left = 'auto';
+            rightBubble.style.transformOrigin = 'right center';
+            rightBubble.style.transform = 'translateY(-50%) scale(0.85)';
+            rightBubble.style.pointerEvents = 'auto';
+            
+            // Ensure transition is set
+            rightBubble.style.transition = 'all 0.35s cubic-bezier(0.4, 1.3, 0.7, 1)';
+            
+            // Start animation state: small and invisible
+            rightBubble.style.opacity = '0';
+            rightBubble.style.display = 'block';
+            
+            // Animate to full size after a short delay
+            setTimeout(() => {
+                rightBubble.style.transform = 'translateY(-50%) scale(1)';
+                rightBubble.style.opacity = '1';
+            }, 10);
+            
+            // Force reflow to trigger animation
+            rightBubble.offsetHeight;
+            rightBubble.classList.add('visible');
+            
+            // Handle different question types in client bubble
+            if (currentQuestion.type === 'choice' && currentQuestion.choices && currentQuestion.input_type !== 'slider') {
+                // Show choice buttons
+                showChoiceQuestion(contentElement, currentQuestion);
+            } else if (currentQuestion.type === 'slider' || 
+                       (currentQuestion.type === 'choice' && currentQuestion.input_type === 'slider')) {
+                // Show slider
+                showSliderQuestion(contentElement, currentQuestion);
+            } else {
+                // Regular text input
+                const textarea = contentElement.querySelector('#rightTextarea');
+                if (textarea) {
+                    textarea.style.display = 'block';
+                    textarea.focus();
+                }
+            }
+        }
+    }
+}
+
 function sendResponse(response) {
     if (!currentEngine || !currentQuestion) return;
     
@@ -2369,6 +2462,13 @@ function sendResponse(response) {
     // Process response
     currentQuestion = currentEngine.answer(response);
     
+    // Hide client bubble after response
+    const rootElForHide = (window.coachingOverlay && window.coachingOverlay.contentRoot) ? window.coachingOverlay.contentRoot : coachingOverlay.content;
+    const rightBubble = rootElForHide.querySelector('#rightBubble');
+    if (rightBubble) {
+        rightBubble.style.display = 'none';
+    }
+    
     if (currentQuestion.done) {
         // Session finished
         const rootEl3 = (window.coachingOverlay && window.coachingOverlay.contentRoot) ? window.coachingOverlay.contentRoot : coachingOverlay.content;
@@ -2381,10 +2481,15 @@ function sendResponse(response) {
             coachMessage.innerHTML = cleanText.replace(/\n/g, '<br>');
         }
         
-        // Hide client input area
-        const rightBubble = rootEl3.querySelector('#rightBubble');
-        if (rightBubble) {
-            rightBubble.style.display = 'none';
+        // Show coach bubble and hide next arrow button
+        const leftBubble = rootEl3.querySelector('#leftBubble');
+        if (leftBubble) {
+            leftBubble.style.display = 'block';
+        }
+        
+        const nextArrowBtn = rootEl3.querySelector('#nextArrowBtn');
+        if (nextArrowBtn) {
+            nextArrowBtn.classList.remove('show');
         }
         
         // Set session as inactive
@@ -2392,17 +2497,13 @@ function sendResponse(response) {
         
         debugLog('Coaching session finished');
     } else {
-        // Show next question after a short pause
+        // Show next question (coach bubble with arrow button)
         const rootEl2 = (window.coachingOverlay && window.coachingOverlay.contentRoot) ? window.coachingOverlay.contentRoot : coachingOverlay.content;
         
-        // Hide both coach and client bubbles during pause
+        // Hide client bubble during pause
         const leftBubble = rootEl2.querySelector('#leftBubble');
-        const rightBubble = rootEl2.querySelector('#rightBubble');
         if (leftBubble) {
             leftBubble.style.display = 'none';
-        }
-        if (rightBubble) {
-            rightBubble.style.display = 'none';
         }
         
         // Wait 500ms before showing next question (shorter pause)

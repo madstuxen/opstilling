@@ -2471,23 +2471,64 @@
         }
 
         // Load compareData from Firestore
-        async function loadCompareDataFromFirestore() {
-            if (!auth || !db) return null;
+        // Global cache for compare data
+        let compareDataCache = null;
+        let compareSnapshotUnsubscribe = null;
+
+        // Setup real-time listener for compare data from Firestore
+        function setupCompareSnapshotListener() {
+            // Clean up existing listener if any
+            if (compareSnapshotUnsubscribe) {
+                compareSnapshotUnsubscribe();
+                compareSnapshotUnsubscribe = null;
+            }
             
-            // Refresh auth state to get current user
-            const isReady = refreshAuthState();
-            if (!isReady || !currentUser) return null;
+            if (!currentUser || !db) {
+                compareDataCache = null;
+                return;
+            }
             
             try {
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                if (userDoc.exists && userDoc.data().compareData) {
-                    return userDoc.data().compareData;
-                }
-                return null;
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                
+                // Set up real-time listener
+                compareSnapshotUnsubscribe = userDocRef.onSnapshot(
+                    (doc) => {
+                        if (doc.exists) {
+                            const userData = doc.data();
+                            if (userData && userData.compareData) {
+                                compareDataCache = userData.compareData;
+                                // Reload compare display if page is loaded
+                                if (document.readyState === 'complete') {
+                                    if (typeof loadCompareDataFromLocalStorage === 'function') {
+                                        loadCompareDataFromLocalStorage().then(() => {
+                                            if (typeof renderHistory === 'function') {
+                                                renderHistory();
+                                            }
+                                        });
+                                    }
+                                }
+                            } else {
+                                compareDataCache = null;
+                            }
+                        } else {
+                            compareDataCache = null;
+                        }
+                    },
+                    (error) => {
+                        console.error('Error in compare snapshot listener:', error);
+                        // Keep existing cache on error
+                    }
+                );
             } catch (error) {
-                console.error('Error loading compareData from Firestore:', error);
-                return null;
+                console.error('Error setting up compare snapshot listener:', error);
+                compareDataCache = null;
             }
+        }
+
+        async function loadCompareDataFromFirestore() {
+            // Return cached data from snapshot listener
+            return compareDataCache;
         }
 
         // Save compareData to Firestore
@@ -2611,6 +2652,11 @@
 			// Always check Firestore first if user is logged in (regardless of useFirestore toggle)
 			// This ensures we load data from Firestore even when localStorage is empty
 			if (currentUser && auth && db) {
+				// Ensure snapshot listener is set up
+				if (!compareSnapshotUnsubscribe) {
+					setupCompareSnapshotListener();
+				}
+				
 				const firestoreData = await loadCompareDataFromFirestore();
 				if (firestoreData !== null) {
 					// Also save to localStorage as backup
@@ -2752,9 +2798,22 @@
 			return col.comparisons.find(c => c.id === CompareData.activeComparisonId) || col.comparisons[0] || null;
 		}
 		
+		// Debounce timeout for comparison notes
+		let comparisonNotesDebounceTimeout = null;
+
 		async function updateComparisonNotes(value) {
 			comparisonNotes = value || '';
-			await syncCurrentWorkspaceToActiveComparison();
+			
+			// Clear previous timeout
+			if (comparisonNotesDebounceTimeout) {
+				clearTimeout(comparisonNotesDebounceTimeout);
+			}
+			
+			// Debounce: wait 2 seconds after last input
+			comparisonNotesDebounceTimeout = setTimeout(async () => {
+				await syncCurrentWorkspaceToActiveComparison();
+				comparisonNotesDebounceTimeout = null;
+			}, 2000);
 		}
 		
 		async function syncCurrentWorkspaceToActiveComparison() {
@@ -5709,6 +5768,18 @@ function resetPose(side) {
                 
                 // Now refresh auth state to ensure useFirestore is set correctly
                 refreshAuthState();
+                
+                if (currentUser && useFirestore) {
+                    // Setup snapshot listener for real-time updates
+                    setupCompareSnapshotListener();
+                } else {
+                    // Clean up listener when user logs out or Firestore is disabled
+                    if (compareSnapshotUnsubscribe) {
+                        compareSnapshotUnsubscribe();
+                        compareSnapshotUnsubscribe = null;
+                    }
+                    compareDataCache = null;
+                }
                 
                 // Mark auth as ready and resolve promise immediately
                 if (!authStateReady) {

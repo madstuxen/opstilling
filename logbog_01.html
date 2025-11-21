@@ -834,11 +834,14 @@
             border: none;
             background: rgba(255, 255, 255, 0.92);
             color: #1f2937;
+            font-family: 'Arial', sans-serif;
             font-size: 16px; /* avoid iOS zoom on focus */
             line-height: 1.6;
             resize: none;
             overflow-y: auto;
             max-height: 450px;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .journal-entry textarea:focus {
@@ -888,11 +891,14 @@
             padding: 16px;
             border: none;
             border-radius: 12px;
+            font-family: 'Arial', sans-serif;
             font-size: 16px;
             line-height: 1.6;
             resize: vertical;
             background: #d1fae5;
             color: #1f2937;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .tanker-entry textarea:focus {
@@ -912,7 +918,10 @@
             background: rgba(139, 92, 246, 0.08);
             border: 1px solid rgba(124, 58, 237, 0.25);
             color: #312e81;
+            font-family: 'Arial', sans-serif;
             font-size: 16px; /* ensure >=16px for iOS */
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .dreams-title {
@@ -1551,26 +1560,102 @@
         }
 
         // Load logbook data from Firestore
-        async function loadLogbookDataFromFirestore() {
-            if (!currentUser || !db) return null;
+        // Global snapshot listener for logbook data
+        let logbookSnapshotUnsubscribe = null;
+
+        // Setup real-time listener for logbook data from Firestore
+        function setupLogbookSnapshotListener() {
+            // Clean up existing listener if any
+            if (logbookSnapshotUnsubscribe) {
+                logbookSnapshotUnsubscribe();
+                logbookSnapshotUnsubscribe = null;
+            }
+            
+            if (!currentUser || !db) {
+                logbookDataCache = null;
+                logbookDataCacheKey = null;
+                return;
+            }
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                const userDoc = await userDocRef.get();
                 
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    if (userData && userData.logbogData) {
-                        const data = userData.logbogData;
-                        return Array.isArray(data) ? data : [];
+                // Set up real-time listener
+                logbookSnapshotUnsubscribe = userDocRef.onSnapshot(
+                    (doc) => {
+                        if (doc.exists) {
+                            const userData = doc.data();
+                            if (userData && userData.logbogData) {
+                                const data = userData.logbogData;
+                                const normalizedData = Array.isArray(data) ? data : [];
+                                
+                                // Normalize data
+                                let mutated = false;
+                                const normalizedEntries = normalizedData.map(entry => {
+                                    if (!entry || typeof entry !== 'object') return entry;
+                                    const normalizedKey = normalizeDateKey(entry.date);
+                                    let nextEntry = entry;
+                                    if (normalizedKey && normalizedKey !== entry.date) {
+                                        mutated = true;
+                                        nextEntry = { ...nextEntry, date: normalizedKey };
+                                    }
+                                    if (!nextEntry.timestamp) {
+                                        const derived = new Date(`${normalizedKey || entry.date}T00:00:00`);
+                                        if (!Number.isNaN(derived.getTime())) {
+                                            nextEntry = { ...nextEntry, timestamp: derived.toISOString() };
+                                            mutated = true;
+                                        } else {
+                                            nextEntry = { ...nextEntry, timestamp: new Date().toISOString() };
+                                            mutated = true;
+                                        }
+                                    }
+                                    return nextEntry;
+                                });
+                                
+                                // Update cache
+                                const cacheKey = currentUser ? currentUser.uid : 'none';
+                                logbookDataCache = normalizedEntries;
+                                logbookDataCacheKey = cacheKey;
+                                
+                                // If data was normalized, save it back
+                                if (mutated) {
+                                    saveLogbookDataToFirestore(normalizedEntries);
+                                }
+                                
+                                // Trigger UI update if page is loaded
+                                if (document.readyState === 'complete') {
+                                    // Reload logbook display
+                                    if (typeof renderLogbookEntries === 'function') {
+                                        renderLogbookEntries();
+                                    }
+                                }
+                            } else {
+                                logbookDataCache = [];
+                                logbookDataCacheKey = currentUser ? currentUser.uid : 'none';
+                            }
+                        } else {
+                            logbookDataCache = [];
+                            logbookDataCacheKey = currentUser ? currentUser.uid : 'none';
+                        }
+                    },
+                    (error) => {
+                        console.error('Error in logbook snapshot listener:', error);
+                        // Keep existing cache on error
                     }
-                    return [];
-                }
-                return [];
+                );
             } catch (error) {
-                console.error('Error loading logbook data from Firestore:', error);
-                return null;
+                console.error('Error setting up logbook snapshot listener:', error);
+                logbookDataCache = null;
+                logbookDataCacheKey = null;
             }
+        }
+
+        async function loadLogbookDataFromFirestore() {
+            // Return cached data from snapshot listener
+            if (logbookDataCache !== null && logbookDataCacheKey === (currentUser ? currentUser.uid : 'none')) {
+                return logbookDataCache;
+            }
+            return null;
         }
         
         // Save logbook data to Firestore
@@ -1592,6 +1677,11 @@
         let logbookDataCacheKey = null; // Track what the cache is for (currentUser.uid)
 
         async function getLogbookData(forceRefresh = false) {
+            // Ensure snapshot listener is set up
+            if (currentUser && db && !logbookSnapshotUnsubscribe) {
+                setupLogbookSnapshotListener();
+            }
+            
             // Return cached data if available and user hasn't changed
             const cacheKey = currentUser ? currentUser.uid : 'none';
             if (!forceRefresh && logbookDataCache !== null && logbookDataCacheKey === cacheKey) {
@@ -1599,7 +1689,7 @@
             }
 
             if (currentUser && db) {
-                // User is logged in - read from Firestore
+                // User is logged in - read from Firestore (now uses cache from snapshot)
                 const firestoreData = await loadLogbookDataFromFirestore();
                 
                 if (firestoreData !== null) {
@@ -2238,7 +2328,20 @@
 
         async function getSortedLogEntries() {
             const entries = await getLogbookData();
-            return entries
+            // Ensure all entries have valid dates and filter out any invalid entries
+            const validEntries = entries.filter(entry => {
+                if (!entry || typeof entry !== 'object') return false;
+                const date = entry.date;
+                if (!date) return false;
+                // Normalize date to ensure it's in correct format
+                const normalized = normalizeDateKey(date);
+                if (normalized) {
+                    entry.date = normalized; // Update to normalized date
+                }
+                return true;
+            });
+            
+            return validEntries
                 .slice()
                 .sort((a, b) => {
                     const tb = new Date(b.timestamp || `${b.date}T00:00:00`).getTime();
@@ -2424,7 +2527,7 @@
             const entries = await getLogbookData();
             let entry = entries.find(item => item.date === activeLogDate);
             if (!entry) {
-                entry = { date: activeLogDate, dagbog: '', dreams: '' };
+                entry = { date: activeLogDate, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
                 entries.push(entry);
                 await saveLogbookData(entries);
             }
@@ -2545,10 +2648,17 @@
         }
 
         async function updateActiveLogEntry(field, value) {
+            // Check if date has changed and update activeLogDate if needed
+            const todayKey = getTodayDateKey();
+            if (activeLogDate !== todayKey) {
+                // Date has changed - switch to today's date
+                activeLogDate = todayKey;
+            }
+            
             const entries = await getLogbookData();
             let entry = entries.find(item => item.date === activeLogDate);
             if (!entry) {
-                entry = { date: activeLogDate, dagbog: '', dreams: '' };
+                entry = { date: activeLogDate, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
                 entries.push(entry);
             }
             entry[field] = value;
@@ -2727,6 +2837,8 @@
         // Store handlers to prevent listener accumulation
         let logbookInputHandler = null;
         let dreamInputHandler = null;
+        let logbookDebounceTimeout = null;
+        let dreamDebounceTimeout = null;
 
         function autoResizeTextarea(textarea) {
             if (!textarea) return;
@@ -2754,15 +2866,46 @@
             if (dreamInputHandler) {
                 dreamEntryEl.removeEventListener('input', dreamInputHandler);
             }
+            
+            // Clear existing debounce timeouts
+            if (logbookDebounceTimeout) {
+                clearTimeout(logbookDebounceTimeout);
+                logbookDebounceTimeout = null;
+            }
+            if (dreamDebounceTimeout) {
+                clearTimeout(dreamDebounceTimeout);
+                dreamDebounceTimeout = null;
+            }
 
-            // Create new handlers
+            // Create new handlers with debounce
             logbookInputHandler = async () => {
-                await updateActiveLogEntry('dagbog', logbookEntryEl.value);
                 autoResizeTextarea(logbookEntryEl);
+                
+                // Clear previous timeout
+                if (logbookDebounceTimeout) {
+                    clearTimeout(logbookDebounceTimeout);
+                }
+                
+                // Debounce: wait 2 seconds after last input
+                logbookDebounceTimeout = setTimeout(async () => {
+                    await updateActiveLogEntry('dagbog', logbookEntryEl.value);
+                    logbookDebounceTimeout = null;
+                }, 2000);
             };
+            
             dreamInputHandler = async () => {
-                await updateActiveLogEntry('dreams', dreamEntryEl.value);
                 autoResizeTextarea(dreamEntryEl);
+                
+                // Clear previous timeout
+                if (dreamDebounceTimeout) {
+                    clearTimeout(dreamDebounceTimeout);
+                }
+                
+                // Debounce: wait 2 seconds after last input
+                dreamDebounceTimeout = setTimeout(async () => {
+                    await updateActiveLogEntry('dreams', dreamEntryEl.value);
+                    dreamDebounceTimeout = null;
+                }, 2000);
             };
 
             // Add new listeners
@@ -3106,6 +3249,17 @@
             auth.onAuthStateChanged(async user => {
                 const wasLoggedOut = !currentUser && user; // User just logged in
                 currentUser = user;
+                
+                if (user) {
+                    // Setup snapshot listener for real-time updates
+                    setupLogbookSnapshotListener();
+                } else {
+                    // Clean up listener when user logs out
+                    if (logbookSnapshotUnsubscribe) {
+                        logbookSnapshotUnsubscribe();
+                        logbookSnapshotUnsubscribe = null;
+                    }
+                }
                 
                 // Invalidate cache when auth state changes
                 logbookDataCache = null;
@@ -4254,8 +4408,36 @@
             await new Promise(resolve => setTimeout(resolve, 100));
             
             await ensureSeedLogbookData();
-            activeLogDate = getTodayDateKey();
+            
+            // Always use today's date when page loads
+            const todayKey = getTodayDateKey();
+            if (activeLogDate !== todayKey) {
+                activeLogDate = todayKey;
+            }
+            
             await hydrateLogbookFields();
+            
+            // Check date periodically and update if it changes (e.g., at midnight)
+            setInterval(() => {
+                const currentTodayKey = getTodayDateKey();
+                if (activeLogDate !== currentTodayKey) {
+                    // Date has changed - update to today
+                    activeLogDate = currentTodayKey;
+                    setActiveLogDate(currentTodayKey);
+                }
+            }, 60000); // Check every minute
+            
+            // Also check when page becomes visible again (user comes back to tab)
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    const currentTodayKey = getTodayDateKey();
+                    if (activeLogDate !== currentTodayKey) {
+                        // Date has changed - update to today
+                        activeLogDate = currentTodayKey;
+                        setActiveLogDate(currentTodayKey);
+                    }
+                }
+            });
 
             // Add copy button functionality
             const journalCopyBtn = document.getElementById('journalCopyBtn');

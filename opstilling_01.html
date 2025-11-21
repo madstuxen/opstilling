@@ -2366,6 +2366,18 @@
                 const globalState = loadGlobalFirestoreToggle();
                 useFirestore = globalState && user ? true : false;
                 
+                if (user && useFirestore) {
+                    // Setup snapshot listener for real-time updates
+                    setupOpstillingSnapshotListener();
+                } else {
+                    // Clean up listener when user logs out or Firestore is disabled
+                    if (opstillingSnapshotUnsubscribe) {
+                        opstillingSnapshotUnsubscribe();
+                        opstillingSnapshotUnsubscribe = null;
+                    }
+                    opstillingDataCache = null;
+                }
+                
                 // Mark auth as ready and resolve promise immediately
                 if (!authStateReady) {
                     authStateReady = true;
@@ -2463,31 +2475,64 @@
         let OpstillingData = null; // { version, updated, activeCollectionId, activeSetupId, collections: [...] }
         
         // Firestore functions
-        async function loadOpstillingDataFromFirestore() {
-            if (!currentUser || !db) return null;
+        // Global cache for opstilling data
+        let opstillingDataCache = null;
+        let opstillingSnapshotUnsubscribe = null;
+
+        // Setup real-time listener for opstilling data from Firestore
+        function setupOpstillingSnapshotListener() {
+            // Clean up existing listener if any
+            if (opstillingSnapshotUnsubscribe) {
+                opstillingSnapshotUnsubscribe();
+                opstillingSnapshotUnsubscribe = null;
+            }
+            
+            if (!currentUser || !db) {
+                opstillingDataCache = null;
+                return;
+            }
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                // Firestore get() is already optimized, but we can add timeout for faster failure
-                const userDoc = await Promise.race([
-                    userDocRef.get(),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), 3000))
-                ]);
                 
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    if (userData && userData.opstillingData) {
-                        return userData.opstillingData;
+                // Set up real-time listener
+                opstillingSnapshotUnsubscribe = userDocRef.onSnapshot(
+                    (doc) => {
+                        if (doc.exists) {
+                            const userData = doc.data();
+                            if (userData && userData.opstillingData) {
+                                opstillingDataCache = userData.opstillingData;
+                                // Reload opstilling display if page is loaded
+                                if (document.readyState === 'complete') {
+                                    if (typeof loadOpstillingDataFromLocalStorage === 'function') {
+                                        loadOpstillingDataFromLocalStorage().then(() => {
+                                            if (typeof renderHistory === 'function') {
+                                                renderHistory();
+                                            }
+                                        });
+                                    }
+                                }
+                            } else {
+                                opstillingDataCache = null;
+                            }
+                        } else {
+                            opstillingDataCache = null;
+                        }
+                    },
+                    (error) => {
+                        console.error('Error in opstilling snapshot listener:', error);
+                        // Keep existing cache on error
                     }
-                }
-                return null;
+                );
             } catch (error) {
-                // Only log if it's not a timeout (timeout is expected if no data)
-                if (error.message !== 'Firestore timeout') {
-                    console.error('Error loading opstillingData from Firestore:', error);
-                }
-                return null;
+                console.error('Error setting up opstilling snapshot listener:', error);
+                opstillingDataCache = null;
             }
+        }
+
+        async function loadOpstillingDataFromFirestore() {
+            // Return cached data from snapshot listener
+            return opstillingDataCache;
         }
         
         async function saveOpstillingDataToFirestore() {
@@ -2515,6 +2560,11 @@
             // Always check Firestore first if user is logged in (regardless of useFirestore toggle)
             // This ensures we load data from Firestore even when localStorage is empty
             if (currentUser && db) {
+                // Ensure snapshot listener is set up
+                if (!opstillingSnapshotUnsubscribe) {
+                    setupOpstillingSnapshotListener();
+                }
+                
                 const firestoreData = await loadOpstillingDataFromFirestore();
                 if (firestoreData !== null) {
                     // Also save to localStorage as backup
@@ -2545,22 +2595,24 @@
             }
         }
         
-        // Save to localStorage or Firestore
+        // Save to Firestore (if logged in) or localStorage (if not logged in)
         async function saveOpstillingDataToLocalStorage() {
             try {
                 if (!OpstillingData) return false;
                 OpstillingData.updated = new Date().toISOString();
                 
-                // Check if we should use Firestore
-                if (useFirestore && currentUser && db) {
+                // If user is logged in, ONLY save to Firestore
+                if (currentUser && db) {
                     const success = await saveOpstillingDataToFirestore();
                     if (success) {
-                        return true; // Don't save to localStorage when using Firestore
+                        return true; // Only saved to Firestore, not localStorage
                     }
-                    // Fallback to localStorage if Firestore fails
+                    // If Firestore save fails, don't fallback to localStorage when logged in
+                    console.error('Failed to save to Firestore, but user is logged in. Not saving to localStorage.');
+                    return false;
                 }
                 
-                // Use localStorage only when not using Firestore
+                // Only use localStorage when user is NOT logged in
                 localStorage.setItem(OPSTILLING_STORAGE_KEY, JSON.stringify(OpstillingData));
                 return true;
             } catch (_) {
@@ -3675,16 +3727,18 @@
                 characters.push(character);
             });
             
-            const sharedData = {
-                characters: characters,
-                lastUpdated: new Date().toISOString()
-            };
+            // Only save to legacy localStorage keys if user is NOT logged in
+            if (!currentUser || !db) {
+                const sharedData = {
+                    characters: characters,
+                    lastUpdated: new Date().toISOString()
+                };
+                localStorage.setItem(SHARED_DATA_KEY, JSON.stringify(sharedData));
+                // Also save to current_opstilling
+                saveCurrentOpstillingToStorage();
+            }
             
-            localStorage.setItem(SHARED_DATA_KEY, JSON.stringify(sharedData));
-            
-            // Also save to current_opstilling
-            saveCurrentOpstillingToStorage();
-            // Sync to opstillingData and update history
+            // Sync to opstillingData and save to Firestore (if logged in) or localStorage (if not)
             await syncCurrentWorkspaceToActiveSetup();
             await renderHistory();
         }
@@ -5578,6 +5632,12 @@ function closeKeywordsPopup() {
         }
 
         function saveCurrentOpstillingToStorage() {
+            // Only save to legacy localStorage if user is NOT logged in
+            if (currentUser && db) {
+                // User is logged in - data is saved via syncCurrentWorkspaceToActiveSetup() to Firestore
+                return;
+            }
+            
             try {
                 const csv = buildOpstillingCsv();
                 localStorage.setItem('current_opstilling', csv);
@@ -5930,9 +5990,20 @@ function closeKeywordsPopup() {
                 });
                 
                 const partNotesTextarea = document.getElementById('partNotes');
+                let partNotesDebounceTimeout = null;
 				partNotesTextarea.addEventListener('input', function() {
 					generalNotes = this.value;
-					saveCurrentOpstillingToStorage();
+					
+					// Clear previous timeout
+					if (partNotesDebounceTimeout) {
+						clearTimeout(partNotesDebounceTimeout);
+					}
+					
+					// Debounce: wait 2 seconds after last input
+					partNotesDebounceTimeout = setTimeout(() => {
+						saveCurrentOpstillingToStorage();
+						partNotesDebounceTimeout = null;
+					}, 2000);
 				});
                 
                 // Removed keyword inputs (#keyword1..#keyword6) – no listeners needed

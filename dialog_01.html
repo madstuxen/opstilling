@@ -2224,6 +2224,18 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 const globalState = loadGlobalFirestoreToggle();
                 useFirestore = globalState && user ? true : false;
                 
+                if (user && useFirestore) {
+                    // Setup snapshot listener for real-time updates
+                    setupDialogSnapshotListener();
+                } else {
+                    // Clean up listener when user logs out or Firestore is disabled
+                    if (dialogSnapshotUnsubscribe) {
+                        dialogSnapshotUnsubscribe();
+                        dialogSnapshotUnsubscribe = null;
+                    }
+                    dialogDataCache = null;
+                }
+                
                 // Mark auth as ready and resolve promise immediately
                 if (!authStateReady) {
                     authStateReady = true;
@@ -2361,31 +2373,65 @@ let dialogHistoryCollapsed = true; // Default to collapsed
 };
 		
         // Firestore functions
-        async function loadDialogDataFromFirestore() {
-            if (!currentUser || !db) return null;
+        // Global cache for dialog data
+        let dialogDataCache = null;
+        let dialogSnapshotUnsubscribe = null;
+
+        // Setup real-time listener for dialog data from Firestore
+        function setupDialogSnapshotListener() {
+            // Clean up existing listener if any
+            if (dialogSnapshotUnsubscribe) {
+                dialogSnapshotUnsubscribe();
+                dialogSnapshotUnsubscribe = null;
+            }
+            
+            if (!currentUser || !db) {
+                dialogDataCache = null;
+                return;
+            }
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                // Firestore get() with timeout for faster failure
-                const userDoc = await Promise.race([
-                    userDocRef.get(),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Firestore timeout')), 3000))
-                ]);
                 
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    if (userData && userData.dialogData) {
-                        return userData.dialogData;
+                // Set up real-time listener
+                dialogSnapshotUnsubscribe = userDocRef.onSnapshot(
+                    (doc) => {
+                        if (doc.exists) {
+                            const userData = doc.data();
+                            if (userData && userData.dialogData) {
+                                dialogDataCache = userData.dialogData;
+                                // Reload dialog display if page is loaded
+                                if (document.readyState === 'complete') {
+                                    if (typeof loadDialogDataFromNewStructure === 'function' && DialogData) {
+                                        // Reload current dialog
+                                        const activeDialog = getActiveDialog();
+                                        if (activeDialog) {
+                                            loadDialogDataFromNewStructure(activeDialog);
+                                        }
+                                        renderDialogHistory();
+                                    }
+                                }
+                            } else {
+                                dialogDataCache = null;
+                            }
+                        } else {
+                            dialogDataCache = null;
+                        }
+                    },
+                    (error) => {
+                        console.error('Error in dialog snapshot listener:', error);
+                        // Keep existing cache on error
                     }
-                }
-                return null;
+                );
             } catch (error) {
-                // Only log if it's not a timeout (timeout is expected if no data)
-                if (error.message !== 'Firestore timeout') {
-                    console.error('Error loading dialogData from Firestore:', error);
-                }
-                return null;
+                console.error('Error setting up dialog snapshot listener:', error);
+                dialogDataCache = null;
             }
+        }
+
+        async function loadDialogDataFromFirestore() {
+            // Return cached data from snapshot listener
+            return dialogDataCache;
         }
         
         async function saveDialogDataToFirestore() {
@@ -2411,6 +2457,11 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         async function loadDialogDataFromLocalStorage() {
             // Check if we should use Firestore - if useFirestore is true, try Firestore first
             if (useFirestore && currentUser && db) {
+                // Ensure snapshot listener is set up
+                if (!dialogSnapshotUnsubscribe) {
+                    setupDialogSnapshotListener();
+                }
+                
                 const firestoreData = await loadDialogDataFromFirestore();
                 if (firestoreData !== null) {
                     // Also save to localStorage as cache

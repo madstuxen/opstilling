@@ -1585,11 +1585,20 @@
                 currentUser = user;
                 
                 if (user) {
+                    // Setup snapshot listener for real-time updates
+                    setupBodymapSnapshotListener();
                     // Reload data from Firestore when user logs in
                     loadFromLocalStorage().then(() => {
                         renderHistory();
                         renderWorkspace();
                     });
+                } else {
+                    // Clean up listener when user logs out
+                    if (bodymapSnapshotUnsubscribe) {
+                        bodymapSnapshotUnsubscribe();
+                        bodymapSnapshotUnsubscribe = null;
+                    }
+                    bodymapDataCache = null;
                 }
             });
         }
@@ -2370,26 +2379,65 @@
             }
         }
         
-        // Load bodymap data from Firestore
-        async function loadBodymapDataFromFirestore() {
-            if (!currentUser || !db) return null;
+        // Global cache for bodymap data
+        let bodymapDataCache = null;
+        let bodymapSnapshotUnsubscribe = null;
+
+        // Setup real-time listener for bodymap data from Firestore
+        function setupBodymapSnapshotListener() {
+            // Clean up existing listener if any
+            if (bodymapSnapshotUnsubscribe) {
+                bodymapSnapshotUnsubscribe();
+                bodymapSnapshotUnsubscribe = null;
+            }
+            
+            if (!currentUser || !db) {
+                bodymapDataCache = null;
+                return;
+            }
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                const userDoc = await userDocRef.get();
                 
-                if (userDoc.exists) {
-                    const userData = userDoc.data();
-                    if (userData && userData.bodymapData) {
-                        return userData.bodymapData;
+                // Set up real-time listener
+                bodymapSnapshotUnsubscribe = userDocRef.onSnapshot(
+                    (doc) => {
+                        if (doc.exists) {
+                            const userData = doc.data();
+                            if (userData && userData.bodymapData) {
+                                bodymapDataCache = userData.bodymapData;
+                                // Reload data if page is already loaded
+                                if (document.readyState === 'complete') {
+                                    processLoadedData(bodymapDataCache).then(success => {
+                                        if (success) {
+                                            updateLayerToggleUI();
+                                            renderHistory();
+                                            renderWorkspace();
+                                        }
+                                    });
+                                }
+                            } else {
+                                bodymapDataCache = null;
+                            }
+                        } else {
+                            bodymapDataCache = null;
+                        }
+                    },
+                    (error) => {
+                        console.error('Error in bodymap snapshot listener:', error);
+                        // Keep existing cache on error
                     }
-                    return null;
-                }
-                return null;
+                );
             } catch (error) {
-                console.error('Error loading bodymap data from Firestore:', error);
-                return null;
+                console.error('Error setting up bodymap snapshot listener:', error);
+                bodymapDataCache = null;
             }
+        }
+
+        // Load bodymap data from Firestore (now uses cache from snapshot)
+        async function loadBodymapDataFromFirestore() {
+            // Return cached data from snapshot listener
+            return bodymapDataCache;
         }
         
         // Save to Firestore
@@ -2516,6 +2564,11 @@
         // Load from Firestore
         async function loadFromLocalStorage() {
             if (!currentUser || !db) return false;
+            
+            // Ensure snapshot listener is set up
+            if (!bodymapSnapshotUnsubscribe) {
+                setupBodymapSnapshotListener();
+            }
             
             const firestoreData = await loadBodymapDataFromFirestore();
             if (firestoreData !== null) {
@@ -3428,9 +3481,24 @@
             
             if (isActive) {
                 // Make editable and draggable if active
+                // Use a unique debounce timeout per label (stored on the label object)
+                if (!label._debounceTimeout) {
+                    label._debounceTimeout = null;
+                }
+                
                 inputEl.addEventListener('input', async () => {
                     label.text = inputEl.value;
-                    await saveToLocalStorage();
+                    
+                    // Clear previous timeout
+                    if (label._debounceTimeout) {
+                        clearTimeout(label._debounceTimeout);
+                    }
+                    
+                    // Debounce: wait 2 seconds after last input
+                    label._debounceTimeout = setTimeout(async () => {
+                        await saveToLocalStorage();
+                        label._debounceTimeout = null;
+                    }, 2000);
                 });
                 
                 inputEl.addEventListener('change', async () => {
