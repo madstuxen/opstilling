@@ -696,21 +696,57 @@
                 
                 // Set up real-time listener
                 logbookSnapshotUnsubscribe = userDocRef.onSnapshot(
+                    {
+                        includeMetadataChanges: true // Important for offline support
+                    },
                     (doc) => {
-                        if (doc.exists) {
-                            const userData = doc.data();
-                            if (userData && userData.logbogData) {
-                                logbookEntriesCache = Array.isArray(userData.logbogData) ? userData.logbogData : [];
-                            } else {
-                                logbookEntriesCache = [];
-                            }
-                        } else {
+                        if (!doc.exists) {
                             logbookEntriesCache = [];
+                            return;
+                        }
+                        
+                        const userData = doc.data();
+                        const newData = userData && userData.logbogData 
+                            ? (Array.isArray(userData.logbogData) ? userData.logbogData : [])
+                            : [];
+                        
+                        const source = doc.metadata.fromCache ? 'cache' : 'server';
+                        console.log('[SNAPSHOT] Logbook data from:', source, 'entries:', newData.length);
+                        
+                        // GUARD 5: Don't reload during operations
+                        if (isInitialLoad || isLoadingData || isSavingData) {
+                            console.log('[SNAPSHOT] Ignored: operation in progress');
+                            logbookEntriesCache = newData; // Update cache but don't reload
+                            return;
+                        }
+                        
+                        // Check if data actually changed
+                        const currentEntryCount = logbookEntriesCache?.length || 0;
+                        const newEntryCount = newData.length;
+                        
+                        if (currentEntryCount === newEntryCount) {
+                            // Do deep comparison if counts match
+                            const currentJson = JSON.stringify(logbookEntriesCache || []);
+                            const newJson = JSON.stringify(newData);
+                            
+                            if (currentJson === newJson) {
+                                console.log('[SNAPSHOT] No changes detected');
+                                logbookEntriesCache = newData; // Silent update
+                                return;
+                            }
+                        }
+                        
+                        // Data changed - update cache
+                        console.log('[SNAPSHOT] Data changed:', currentEntryCount, '→', newEntryCount, 'entries');
+                        logbookEntriesCache = newData;
+                        
+                        // Reload UI if needed (night overlay hydration)
+                        if (document.readyState === 'complete' && typeof hydrateNightOverlay === 'function') {
+                            hydrateNightOverlay();
                         }
                     },
                     (error) => {
-                        console.error('Error in logbook snapshot listener:', error);
-                        // Keep existing cache on error
+                        console.error('[SNAPSHOT] Error:', error);
                     }
                 );
             } catch (error) {
@@ -740,57 +776,80 @@
         }
 
         async function getLogbookEntries() {
-            // Always check Firestore first if user is logged in
-            if (currentUser && db) {
-                // Ensure snapshot listener is set up
-                if (!logbookSnapshotUnsubscribe) {
-                    setupLogbookSnapshotListener();
-                }
-                
-                const firestoreData = await loadLogbookDataFromFirestore();
-                if (firestoreData !== null && Array.isArray(firestoreData)) {
-                    return firestoreData;
-                }
-                // If Firestore returns null or empty, try localStorage as backup
-                try {
-                    const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
-                    if (raw) {
-                        const parsed = JSON.parse(raw);
-                        if (Array.isArray(parsed)) {
-                            console.warn('Firestore cache tom, bruger localStorage backup');
-                            return parsed;
-                        }
-                    }
-                } catch (error) {
-                    console.warn('Kunne ikke læse fra localStorage backup:', error);
-                }
+            if (!currentUser || !db) {
+                console.error('[LOAD] User not logged in - cannot load data');
                 return [];
             }
             
-            // User not logged in - read from localStorage
-            try {
-                const raw = localStorage.getItem(LOGBOOK_STORAGE_KEY);
-                if (!raw) return [];
-                const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (error) {
-                console.warn('Kunne ikke læse logbogData:', error);
-                return [];
+            // Ensure snapshot listener is set up
+            if (!logbookSnapshotUnsubscribe) {
+                setupLogbookSnapshotListener();
+                // Wait for snapshot listener to get initial data from Firestore
+                // Wait up to 2 seconds, checking every 100ms if data has arrived
+                for (let i = 0; i < 20; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    if (logbookEntriesCache !== undefined) {
+                        // Snapshot listener has responded (either with data or null)
+                        break;
+                    }
+                }
             }
+            
+            const firestoreData = await loadLogbookDataFromFirestore();
+            if (firestoreData !== null && Array.isArray(firestoreData)) {
+                return firestoreData;
+            }
+            
+            return [];
         }
 
         async function saveLogbookEntries(entries) {
-            // Only save to Firestore if user is logged in
-            if (currentUser && db) {
-                await saveLogbookDataToFirestore(entries);
-                // Don't save to localStorage when using Firestore
-            } else {
-                // User not logged in - save to localStorage only
+            if (!currentUser || !db) {
+                console.error('[SAVE] User not logged in - cannot save data');
+                return false;
+            }
+            
+            // GUARD 2: Never save during initial load or loading
+            if (isInitialLoad) {
+                console.log('[SAVE] Blocked: initial load in progress');
+                return false;
+            }
+            
+            if (isLoadingData) {
+                console.log('[SAVE] Blocked: loading in progress');
+                return false;
+            }
+            
+            // GUARD 3: Never save empty data if Firestore has data
+            if (!Array.isArray(entries) || entries.length === 0) {
+                // Check if Firestore actually has data
                 try {
-                    localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
+                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                    if (userDoc.exists) {
+                        const firestoreData = userDoc.data();
+                        const firestoreEntryCount = Array.isArray(firestoreData.logbogData) ? firestoreData.logbogData.length : 0;
+                        
+                        if (firestoreEntryCount > 0) {
+                            console.error('[SAVE] BLOCKED: Refusing to overwrite', 
+                                         firestoreEntryCount, 'entries with empty data');
+                            return false;
+                        }
+                    }
                 } catch (error) {
-                    console.error('Kunne ikke gemme logbogData:', error);
+                    console.error('[SAVE] Error checking Firestore:', error);
                 }
+            }
+            
+            // Safe to save now
+            isSavingData = true;
+            try {
+                await saveLogbookDataToFirestore(entries);
+                return true;
+            } catch (error) {
+                console.error('[SAVE] Error saving to Firestore:', error);
+                return false;
+            } finally {
+                isSavingData = false;
             }
         }
 
@@ -889,6 +948,17 @@
 
         // Funktion til at gemme dreams data (bruges både ved input og ved luk)
         async function saveDreamsData() {
+            // GUARD 2: Never save during initial load or loading
+            if (isInitialLoad) {
+                console.log('[SAVE_DREAMS] Blocked: initial load in progress');
+                return;
+            }
+            
+            if (isLoadingData) {
+                console.log('[SAVE_DREAMS] Blocked: loading in progress');
+                return;
+            }
+            
             const textarea = document.getElementById('nightDreamEntry');
             if (!textarea) return;
             
@@ -1005,8 +1075,58 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Wait for auth state to be determined before loading data
-            await authStatePromise;
+            // GUARD 1: Extend initial load period - wait for ALL
+            
+            // 1. Wait for auth state (max 3 seconds)
+            try {
+                await Promise.race([
+                    authStatePromise,
+                    new Promise(resolve => setTimeout(resolve, 3000))
+                ]);
+            } catch (e) {
+                console.warn('Auth state wait error:', e);
+            }
+            
+            // Resolve manually if not resolved yet
+            if (!authStateReady && authStateResolver) {
+                authStateResolver();
+                authStateResolver = null;
+            }
+            
+            // 2. Check if user is logged in - require login
+            if (!currentUser) {
+                alert('Du skal være logget ind for at bruge denne side. Redirecter til login...');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // 3. Wait for snapshot listener to have data (max 2 seconds extra)
+            if (logbookEntriesCache === undefined) {
+                for (let i = 0; i < 20; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    if (logbookEntriesCache !== undefined) break;
+                }
+            }
+            
+            // 4. Load data from Firestore
+            isLoadingData = true;
+            try {
+                const entries = await getLogbookEntries();
+                console.log('[INIT] Loaded', entries.length, 'logbook entries');
+            } catch (error) {
+                console.error('[INIT] Error loading logbook entries:', error);
+            } finally {
+                isLoadingData = false;
+            }
+            
+            // 5. Wait for DOM to be fully rendered
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // 6. NU FØRST: Mark initial load complete
+            isInitialLoad = false;
+            console.log('[INIT] Initial load complete');
+            
+            // Now safe to hydrate and setup
             hydrateNightOverlay();
             setupOverlayActivityListeners();
 
@@ -1500,40 +1620,32 @@
         let db = null;
         let currentUser = null;
         
-        // Global Firestore toggle key - shared across all pages
-        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
-        
-        // Load global toggle state from localStorage
-        function loadGlobalFirestoreToggle() {
-            try {
-                const saved = localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY);
-                return saved === 'true';
-            } catch (error) {
-                return false;
-            }
-        }
-        
-        // Save global toggle state to localStorage
-        function saveGlobalFirestoreToggle(value) {
-            try {
-                localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
-                // Trigger storage event for other tabs/windows
-                window.dispatchEvent(new StorageEvent('storage', {
-                    key: GLOBAL_FIRESTORE_TOGGLE_KEY,
-                    newValue: String(value),
-                    oldValue: localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY)
-                }));
-            } catch (error) {
-                console.error('Error saving global Firestore toggle:', error);
-            }
-        }
-        
-        let useFirestore = loadGlobalFirestoreToggle(); // Load from global state
+        // Flags for race condition protection
+        let isInitialLoad = true;
+        let isLoadingData = false;
+        let isSavingData = false;
         
         try {
             firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
             db = firebase.firestore();
+            
+            // Enable Firestore offline persistence
+            try {
+                firebase.firestore().enablePersistence({
+                    synchronizeTabs: true
+                });
+                console.log('Firestore offline persistence enabled');
+            } catch (err) {
+                if (err.code === 'failed-precondition') {
+                    console.warn('Persistence can only be enabled in one tab at a time');
+                } else if (err.code === 'unimplemented') {
+                    console.warn('Browser doesn\'t support persistence');
+                } else {
+                    console.error('Error enabling Firestore persistence:', err);
+                }
+            }
+            
             console.log('Firebase initialized in checkin.html');
         } catch (error) {
             console.error('Firebase initialization error:', error);
@@ -1541,33 +1653,42 @@
         
         // Check auth state - create a promise that resolves when auth state is determined
         let authStatePromise = Promise.resolve();
-        let authStateResolved = false;
+        let authStateResolver = null;
+        let authStateReady = false;
+        
         if (auth) {
             authStatePromise = new Promise((resolve) => {
-                auth.onAuthStateChanged(user => {
-                    currentUser = user;
-                    // Setup snapshot listener when user logs in
-                    if (user) {
-                        setupLogbookSnapshotListener();
-                    } else {
-                        // Clean up listener when user logs out
-                        if (logbookSnapshotUnsubscribe) {
-                            logbookSnapshotUnsubscribe();
-                            logbookSnapshotUnsubscribe = null;
-                        }
-                        logbookEntriesCache = [];
+                authStateResolver = resolve;
+            });
+            
+            auth.onAuthStateChanged(user => {
+                currentUser = user;
+                
+                // Setup snapshot listener when user logs in
+                if (user) {
+                    setupLogbookSnapshotListener();
+                } else {
+                    // Clean up listener when user logs out
+                    if (logbookSnapshotUnsubscribe) {
+                        logbookSnapshotUnsubscribe();
+                        logbookSnapshotUnsubscribe = null;
                     }
-                    
-                    if (!authStateResolved) {
-                        authStateResolved = true;
-                        resolve();
-                    } else {
-                        // Reload night overlay data when auth state changes after initial load
-                        if (document.readyState === 'complete') {
-                            hydrateNightOverlay();
-                        }
+                    logbookEntriesCache = [];
+                }
+                
+                // Mark auth as ready and resolve promise
+                if (!authStateReady) {
+                    authStateReady = true;
+                    if (authStateResolver) {
+                        authStateResolver();
+                        authStateResolver = null;
                     }
-                });
+                } else {
+                    // Reload night overlay data when auth state changes after initial load
+                    if (document.readyState === 'complete') {
+                        hydrateNightOverlay();
+                    }
+                }
             });
         }
         
@@ -1640,17 +1761,34 @@
                 return;
             }
             
+            // GUARD 2: Never save during initial load or loading
+            if (isInitialLoad) {
+                console.log('[SAVE_CHECKIN] Blocked: initial load in progress');
+                return;
+            }
+            
+            if (isLoadingData) {
+                console.log('[SAVE_CHECKIN] Blocked: loading in progress');
+                return;
+            }
+            
+            if (!currentUser || !db) {
+                console.error('[SAVE_CHECKIN] User not logged in - cannot save data');
+                return;
+            }
+            
             const status = engine.blackboard.status;
             const taknem = engine.blackboard.taknem;
             
             // Only save if both status and taknem exist
             if (status !== undefined && taknem !== undefined && taknem !== null && taknem !== '') {
-                if (currentUser && db) {
-                    // Save to Firestore
+                isSavingData = true;
+                try {
                     await saveCheckinDataToFirestore(engine);
-                } else {
-                    // User not logged in - show message
-                    console.warn('Kan ikke gemme check-in: Ingen bruger logget ind');
+                } catch (error) {
+                    console.error('[SAVE_CHECKIN] Error saving:', error);
+                } finally {
+                    isSavingData = false;
                 }
             }
         }

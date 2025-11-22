@@ -2371,13 +2371,32 @@
 
         // Initialize Firebase
         let auth, db, currentUser;
-        let useFirestore = false;
-        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
+        
+        // Flags for race condition protection
+        let isInitialLoad = true;
+        let isLoadingData = false;
+        let isSavingData = false;
 
         try {
             firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
             db = firebase.firestore();
+            
+            // Enable Firestore offline persistence
+            try {
+                firebase.firestore().enablePersistence({
+                    synchronizeTabs: true
+                });
+                console.log('Firestore offline persistence enabled');
+            } catch (err) {
+                if (err.code === 'failed-precondition') {
+                    console.warn('Persistence can only be enabled in one tab at a time');
+                } else if (err.code === 'unimplemented') {
+                    console.warn('Browser doesn\'t support persistence');
+                } else {
+                    console.error('Error enabling Firestore persistence:', err);
+                }
+            }
         } catch (error) {
             // If Firebase is already initialized, just get auth and db
             if (error.code === 'app/duplicate-app') {
@@ -2388,91 +2407,17 @@
             }
         }
 
-        // Load global Firestore toggle state
-        function loadGlobalFirestoreToggle() {
-            try {
-                const stored = localStorage.getItem(GLOBAL_FIRESTORE_TOGGLE_KEY);
-                return stored === 'true';
-            } catch (e) {
-                return false;
-            }
-        }
-
-        // Save global Firestore toggle state
-        function saveGlobalFirestoreToggle(value) {
-            try {
-                localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
-                // Dispatch custom event to notify other tabs
-                window.dispatchEvent(new CustomEvent('firestoreToggleChanged', { detail: value }));
-            } catch (e) {
-                console.error('Error saving global Firestore toggle:', e);
-            }
-        }
-
-        // Helper function to refresh auth state
-        function refreshAuthState() {
-            if (!auth) {
-                useFirestore = false;
-                currentUser = null;
-                return false;
-            }
-            
-            const globalToggle = loadGlobalFirestoreToggle();
-            
-            // ALWAYS check auth.currentUser directly first (most reliable - this is the source of truth)
-            const authUser = auth.currentUser;
-            
-            // Use auth.currentUser if available, otherwise use currentUser variable
-            const user = authUser || currentUser;
-            
-            // Update currentUser variable to match auth.currentUser (source of truth)
-            if (authUser) {
-                currentUser = authUser;
-            }
-            
-            useFirestore = globalToggle && user ? true : false;
-            
-            return useFirestore && user;
-        }
-
-        // Helper function to wait for auth state (useful when user might be logged in but auth.currentUser is null)
-        async function waitForAuthState(timeout = 2000) {
-            if (!auth) return false;
-            
-            // If we already have a user, return immediately
-            if (auth.currentUser) {
-                currentUser = auth.currentUser;
-                const globalToggle = loadGlobalFirestoreToggle();
-                useFirestore = globalToggle && currentUser ? true : false;
-                return useFirestore && currentUser;
-            }
-            
-            // Wait for auth state to be determined
-            return new Promise((resolve) => {
-                const unsubscribe = auth.onAuthStateChanged((user) => {
-                    currentUser = user;
-                    const globalToggle = loadGlobalFirestoreToggle();
-                    useFirestore = globalToggle && user ? true : false;
-                    
-                    unsubscribe();
-                    resolve(useFirestore && user);
-                });
-                
-                // Timeout after specified time
-                setTimeout(() => {
-                    unsubscribe();
-                    const finalUser = auth.currentUser;
-                    currentUser = finalUser;
-                    const globalToggle = loadGlobalFirestoreToggle();
-                    useFirestore = globalToggle && finalUser ? true : false;
-                    resolve(useFirestore && finalUser);
-                }, timeout);
-            });
-        }
+        // Check auth state - create a promise that resolves when auth state is determined
+        let authStateReady = false;
+        let authStateResolver = null;
+        const authStatePromise = new Promise(resolve => {
+            authStateResolver = resolve;
+        });
 
         // Load compareData from Firestore
         // Global cache for compare data
-        let compareDataCache = null;
+        // undefined = not yet loaded, null = confirmed no data, object = has data
+        let compareDataCache = undefined;
         let compareSnapshotUnsubscribe = null;
 
         // Setup real-time listener for compare data from Firestore
@@ -2493,31 +2438,65 @@
                 
                 // Set up real-time listener
                 compareSnapshotUnsubscribe = userDocRef.onSnapshot(
+                    {
+                        includeMetadataChanges: true // Important for offline support
+                    },
                     (doc) => {
-                        if (doc.exists) {
-                            const userData = doc.data();
-                            if (userData && userData.compareData) {
-                                compareDataCache = userData.compareData;
-                                // Reload compare display if page is loaded
-                                if (document.readyState === 'complete') {
-                                    if (typeof loadCompareDataFromLocalStorage === 'function') {
-                                        loadCompareDataFromLocalStorage().then(() => {
-                                            if (typeof renderHistory === 'function') {
-                                                renderHistory();
-                                            }
-                                        });
-                                    }
-                                }
-                            } else {
-                                compareDataCache = null;
-                            }
-                        } else {
+                        if (!doc.exists || !doc.data()?.compareData) {
                             compareDataCache = null;
+                            return;
+                        }
+                        
+                        const newData = doc.data().compareData;
+                        const source = doc.metadata.fromCache ? 'cache' : 'server';
+                        console.log('[SNAPSHOT] Compare data from:', source);
+                        
+                        // GUARD 5: Don't reload during operations
+                        if (isInitialLoad || isLoadingData || isSavingData) {
+                            console.log('[SNAPSHOT] Ignored: operation in progress');
+                            compareDataCache = newData; // Update cache but don't reload
+                            return;
+                        }
+                        
+                        // Check if data actually changed
+                        const currentCollectionsCount = CompareData?.collections?.length || 0;
+                        const newCollectionsCount = newData?.collections?.length || 0;
+                        
+                        if (currentCollectionsCount === newCollectionsCount) {
+                            // Do deep comparison if counts match
+                            const currentJson = JSON.stringify(CompareData?.collections || []);
+                            const newJson = JSON.stringify(newData?.collections || []);
+                            
+                            if (currentJson === newJson) {
+                                console.log('[SNAPSHOT] No changes detected');
+                                compareDataCache = newData; // Silent update
+                                CompareData = newData; // Update CompareData silently
+                                return;
+                            }
+                        }
+                        
+                        // Data changed - reload
+                        console.log('[SNAPSHOT] Reloading:', currentCollectionsCount, '→', newCollectionsCount, 'collections');
+                        
+                        compareDataCache = newData;
+                        CompareData = newData;
+                        
+                        // Reload active comparison if it exists
+                        if (document.readyState === 'complete') {
+                            const activeComparison = getActiveComparison();
+                            if (activeComparison) {
+                                loadComparisonFromCompareData(activeComparison);
+                            }
+                            if (typeof renderHistory === 'function') {
+                                renderHistory();
+                            }
+                            if (typeof renderHistoryFilterOptions === 'function') {
+                                renderHistoryFilterOptions();
+                            }
                         }
                     },
                     (error) => {
-                        console.error('Error in compare snapshot listener:', error);
-                        // Keep existing cache on error
+                        console.error('[SNAPSHOT] Error:', error);
                     }
                 );
             } catch (error) {
@@ -2528,14 +2507,12 @@
 
         async function loadCompareDataFromFirestore() {
             // Return cached data from snapshot listener
-            return compareDataCache;
+            // undefined means not loaded yet, null means confirmed no data
+            return compareDataCache === undefined ? null : compareDataCache;
         }
 
         // Save compareData to Firestore
         async function saveCompareDataToFirestore() {
-            // Refresh auth state to ensure we have the latest user
-            refreshAuthState();
-            
             if (!auth || !db || !currentUser || !CompareData) {
                 return false;
             }
@@ -2648,67 +2625,80 @@
 		}
 		
 		// CompareData functions
-		async function loadCompareDataFromLocalStorage() {
-			// Always check Firestore first if user is logged in (regardless of useFirestore toggle)
-			// This ensures we load data from Firestore even when localStorage is empty
-			if (currentUser && auth && db) {
-				// Ensure snapshot listener is set up
-				if (!compareSnapshotUnsubscribe) {
-					setupCompareSnapshotListener();
-				}
-				
-				const firestoreData = await loadCompareDataFromFirestore();
-				if (firestoreData !== null) {
-					// Also save to localStorage as backup
-					try {
-						localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(firestoreData));
-					} catch (e) {
-						// Ignore localStorage errors
+		async function loadCompareData() {
+			if (!currentUser || !db) {
+				console.error('[LOAD] User not logged in - cannot load data');
+				return null;
+			}
+			
+			// Ensure snapshot listener is set up
+			if (!compareSnapshotUnsubscribe) {
+				setupCompareSnapshotListener();
+				// Wait for snapshot listener to get initial data from Firestore
+				// Wait up to 2 seconds, checking every 100ms if data has arrived
+				for (let i = 0; i < 20; i++) {
+					await new Promise(resolve => setTimeout(resolve, 100));
+					if (compareDataCache !== undefined) {
+						// Snapshot listener has responded (either with data or null)
+						break;
 					}
-					return firestoreData;
-				}
-				// If useFirestore is true, don't fall back to localStorage - return null
-				if (useFirestore) {
-					return null;
 				}
 			}
 			
-			// Fall back to localStorage only when not using Firestore or user not logged in
-			try {
-				const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
-				if (!raw) return null;
-				const parsed = JSON.parse(raw);
-				if (!parsed || typeof parsed !== 'object') return null;
-				return parsed;
-			} catch (_) {
-				return null;
-			}
+			const firestoreData = await loadCompareDataFromFirestore();
+			return firestoreData;
 		}
 		
 		async function saveCompareDataToLocalStorage() {
+			// GUARD 2: Never save during initial load or loading
+			if (isInitialLoad) {
+				console.log('[SAVE] Blocked: initial load in progress');
+				return false;
+			}
+			
+			if (isLoadingData) {
+				console.log('[SAVE] Blocked: loading in progress');
+				return false;
+			}
+			
+			if (!currentUser || !db) {
+				console.error('[SAVE] User not logged in - cannot save data');
+				return false;
+			}
+			
 			try {
 				if (!CompareData) return false;
 				CompareData.updated = new Date().toISOString();
 				
-				// ALWAYS refresh auth state before saving (don't rely on cached values)
-				refreshAuthState();
-				
-				// ALWAYS check auth.currentUser directly (most reliable - this is the source of truth)
-				const authUser = auth ? auth.currentUser : null;
-				const globalToggle = loadGlobalFirestoreToggle();
-				
-				// If we have a user and global toggle is enabled, ONLY save to Firestore
-				if (authUser && globalToggle && auth && db) {
-					// Update currentUser to match auth.currentUser
-					currentUser = authUser;
-					await saveCompareDataToFirestore();
-					return true;
+				// GUARD 3: Never save empty data if Firestore has data
+				const collectionsCount = Array.isArray(CompareData.collections) ? CompareData.collections.length : 0;
+				if (collectionsCount === 0) {
+					// Check if Firestore actually has data
+					try {
+						const userDoc = await db.collection('users').doc(currentUser.uid).get();
+						if (userDoc.exists) {
+							const firestoreData = userDoc.data();
+							const firestoreCollectionsCount = Array.isArray(firestoreData.compareData?.collections) 
+								? firestoreData.compareData.collections.length : 0;
+							
+							if (firestoreCollectionsCount > 0) {
+								console.error('[SAVE] BLOCKED: Refusing to overwrite', 
+											 firestoreCollectionsCount, 'collections with empty data');
+								return false;
+							}
+						}
+					} catch (error) {
+						console.error('[SAVE] Error checking Firestore:', error);
+					}
 				}
 				
-				// Only save to localStorage if user is not logged in
-				if (!authUser) {
-					localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(CompareData));
+				// Safe to save now
+				isSavingData = true;
+				try {
+					await saveCompareDataToFirestore();
 					return true;
+				} finally {
+					isSavingData = false;
 				}
 				
 				return true;
@@ -2719,6 +2709,8 @@
 		}
 		
 		async function ensureDefaultCompareData() {
+			let dataWasCreated = false;
+			
 			if (!CompareData || !Array.isArray(CompareData.collections)) {
 				CompareData = {
 					version: '1.0',
@@ -2727,6 +2719,7 @@
 					activeComparisonId: 1,
 					collections: []
 				};
+				dataWasCreated = true;
 			}
 			if (!Array.isArray(CompareData.collections) || CompareData.collections.length === 0) {
 				CompareData.collections = [{
@@ -2736,6 +2729,7 @@
 					comparisons: []
 				}];
 				CompareData.activeCollectionId = 1;
+				dataWasCreated = true;
 			}
 			// Ensure all collections have colors
 			CompareData.collections.forEach((collection, idx) => {
@@ -2770,6 +2764,7 @@
 				};
 				collection.comparisons = [initialComparison];
 				CompareData.activeComparisonId = 1;
+				dataWasCreated = true;
 			}
 			// Ensure all comparisons have timestamps
 			CompareData.collections.forEach(collection => {
@@ -2784,7 +2779,11 @@
 					});
 				}
 			});
-			await saveCompareDataToLocalStorage();
+			// Only save if we actually created new data structure
+			// This prevents overwriting existing Firestore data with empty data on page load
+			if (dataWasCreated) {
+				await saveCompareDataToLocalStorage();
+			}
 		}
 		
 		function getActiveCollection() {
@@ -2817,6 +2816,17 @@
 		}
 		
 		async function syncCurrentWorkspaceToActiveComparison() {
+			// GUARD 2: Never save during initial load or loading
+			if (isInitialLoad) {
+				console.log('[SYNC] Blocked: initial load in progress');
+				return;
+			}
+			
+			if (isLoadingData) {
+				console.log('[SYNC] Blocked: loading in progress');
+				return;
+			}
+			
 			if (!CompareData) return;
 			const comparison = getActiveComparison();
 			if (!comparison) return;
@@ -2893,10 +2903,16 @@
 			await saveCompareDataToLocalStorage();
 		}
 		
-		function loadComparisonFromCompareData(comparison) {
+		async function loadComparisonFromCompareData(comparison) {
 			if (!comparison) return;
 			
-			// Load participants
+			const previousLoadingState = isLoadingData;
+			
+			try {
+				// Set flag FIRST
+				isLoadingData = true;
+				
+				// Load participants
 			const leftCircle = document.getElementById('leftCircle');
 			const rightCircle = document.getElementById('rightCircle');
 			
@@ -3025,7 +3041,17 @@
 			
 			// Update UI
 			updateComparisonView();
+			
+			return true;
+		} catch (err) {
+			console.error('[LOAD] Load failed:', err);
+			return false;
+		} finally {
+			// Only clear flag after data is fully loaded
+			await new Promise(resolve => setTimeout(resolve, 200));
+			isLoadingData = previousLoadingState;
 		}
+	}
 		
 		// ===== SAMLING MANAGER FUNCTIONS =====
 		
@@ -5463,6 +5489,9 @@ function resetPose(side) {
         }
 
 
+        // Debounce timeout for saving slider scores
+        let sliderScoreDebounceTimeout = null;
+        
         function setSingleTraitScore(traitId, side, value) {
             if (side === 'left') {
                 leftScores[traitId] = parseInt(value);
@@ -5470,7 +5499,16 @@ function resetPose(side) {
                 rightScores[traitId] = parseInt(value);
             }
             
-           
+            // Clear previous debounce timeout
+            if (sliderScoreDebounceTimeout) {
+                clearTimeout(sliderScoreDebounceTimeout);
+            }
+            
+            // Save scores to Firestore with debounce (2 seconds)
+            sliderScoreDebounceTimeout = setTimeout(async () => {
+                await syncCurrentWorkspaceToActiveComparison();
+                sliderScoreDebounceTimeout = null;
+            }, 2000);
             
             if (currentStep === 3) {
                 updateComparisonResults();
@@ -5721,67 +5759,23 @@ function resetPose(side) {
         }
 
         // Wait for Firebase auth state to be ready
-        let authStateReady = false;
-        let authStateResolver = null;
-        const authStatePromise = new Promise((resolve) => {
-            authStateResolver = resolve;
-        });
-
-        // Set up continuous auth state listener
         if (auth) {
-            // Check current user immediately (in case auth state already resolved)
-            const currentAuthUser = auth.currentUser;
-            if (currentAuthUser) {
-                currentUser = currentAuthUser;
-                const globalState = loadGlobalFirestoreToggle();
-                useFirestore = globalState && currentUser ? true : false;
-            } else {
-                // If no user found, wait a bit and check again (auth state might not be ready yet)
-                setTimeout(() => {
-                    const delayedUser = auth.currentUser;
-                    if (delayedUser && !currentUser) {
-                        currentUser = delayedUser;
-                        const globalState = loadGlobalFirestoreToggle();
-                        useFirestore = globalState && currentUser ? true : false;
-                    }
-                }, 1000);
-                
-                // Also check again after 3 seconds (in case auth state takes longer)
-                setTimeout(() => {
-                    const delayedUser = auth.currentUser;
-                    if (delayedUser && !currentUser) {
-                        currentUser = delayedUser;
-                        const globalState = loadGlobalFirestoreToggle();
-                        useFirestore = globalState && currentUser ? true : false;
-                    }
-                }, 3000);
-            }
-            
-            auth.onAuthStateChanged(async (user) => {
-                // ALWAYS set currentUser from the user parameter first (this is the most reliable)
+            auth.onAuthStateChanged(user => {
                 currentUser = user;
                 
-                // Also check auth.currentUser directly in case user parameter is null but auth.currentUser exists
-                if (!currentUser && auth.currentUser) {
-                    currentUser = auth.currentUser;
-                }
-                
-                // Now refresh auth state to ensure useFirestore is set correctly
-                refreshAuthState();
-                
-                if (currentUser && useFirestore) {
+                if (user) {
                     // Setup snapshot listener for real-time updates
                     setupCompareSnapshotListener();
                 } else {
-                    // Clean up listener when user logs out or Firestore is disabled
+                    // Clean up listener when user logs out
                     if (compareSnapshotUnsubscribe) {
                         compareSnapshotUnsubscribe();
                         compareSnapshotUnsubscribe = null;
                     }
-                    compareDataCache = null;
+                    compareDataCache = undefined;
                 }
                 
-                // Mark auth as ready and resolve promise immediately
+                // Mark auth as ready and resolve promise
                 if (!authStateReady) {
                     authStateReady = true;
                     if (authStateResolver) {
@@ -5790,77 +5784,86 @@ function resetPose(side) {
                     }
                 }
                 
-                // If user logs out and we're using Firestore, switch back to localStorage
-                if (!user && useFirestore) {
-                    useFirestore = false;
-                    saveGlobalFirestoreToggle(false); // Save globally
-                } else if (user && loadGlobalFirestoreToggle()) {
-                    // When user logs in and global state is true, reload data from Firestore
+                // When user logs in, reload data from Firestore
+                if (user) {
                     (async () => {
-                        // IMPORTANT: Always reload, even if CompareData already exists, to ensure we get the correct source
-                        const data = await loadCompareDataFromLocalStorage();
-                        
-                        if (data) {
+                        const data = await loadCompareData();
+                        if (data !== null) {
                             CompareData = data;
+                        } else if (compareDataCache === null) {
+                            CompareData = null;
                             await ensureDefaultCompareData();
-                            const activeComparison = getActiveComparison();
-                            if (activeComparison) {
-                                loadComparisonFromCompareData(activeComparison);
-                            }
-                            await renderHistory();
-                            renderHistoryFilterOptions();
                         }
-                    })();
-                }
-            });
-            
-            // Timeout after 2 seconds if auth state doesn't resolve
-            setTimeout(() => {
-                if (!authStateReady) {
-                    authStateReady = true;
-                    if (authStateResolver) {
-                        authStateResolver();
-                        authStateResolver = null;
-                    }
-                }
-            }, 2000);
-        } else {
-            // No auth available, resolve immediately
-            authStateReady = true;
-            if (authStateResolver) {
-                authStateResolver();
-                authStateResolver = null;
-            }
-        }
-
-        // Listen for global Firestore toggle changes
-        window.addEventListener('storage', async function(e) {
-            if (e.key === GLOBAL_FIRESTORE_TOGGLE_KEY) {
-                const globalToggle = loadGlobalFirestoreToggle();
-                const shouldUseFirestore = globalToggle && !!currentUser;
-                
-                if (shouldUseFirestore !== useFirestore) {
-                    useFirestore = shouldUseFirestore;
-                    
-                    // Reload data from the appropriate source
-                    CompareData = await loadCompareDataFromLocalStorage();
-                    if (CompareData) {
-                        await ensureDefaultCompareData();
+                        
                         const activeComparison = getActiveComparison();
                         if (activeComparison) {
                             loadComparisonFromCompareData(activeComparison);
                         }
-                        renderHistory();
+                        await renderHistory();
                         renderHistoryFilterOptions();
-                    }
+                    })();
                 }
-            }
-        });
+            });
+        }
 
         // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', async function() {
-            // Wait for auth state to be ready
-            await authStatePromise;
+            // GUARD 1: Extend initial load period - wait for ALL
+            
+            // 1. Wait for auth state (max 3 seconds)
+            try {
+                await Promise.race([
+                    authStatePromise,
+                    new Promise(resolve => setTimeout(resolve, 3000))
+                ]);
+            } catch (e) {
+                console.warn('Auth state wait error:', e);
+            }
+            
+            // Resolve manually if not resolved yet
+            if (!authStateReady && authStateResolver) {
+                authStateResolver();
+                authStateResolver = null;
+            }
+            
+            // 2. Check if user is logged in - require login
+            if (!currentUser) {
+                alert('Du skal være logget ind for at bruge denne side. Redirecter til login...');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // 3. Wait for snapshot listener to have data (max 2 seconds extra)
+            if (compareDataCache === undefined) {
+                for (let i = 0; i < 20; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    if (compareDataCache !== undefined) break;
+                }
+            }
+            
+            // 4. Load data from Firestore
+            isLoadingData = true;
+            try {
+                const data = await loadCompareData();
+                if (data !== null) {
+                    CompareData = data;
+                } else if (compareDataCache === null) {
+                    CompareData = null;
+                    await ensureDefaultCompareData();
+                }
+                console.log('[INIT] Loaded compare data, collections:', CompareData?.collections?.length || 0);
+            } catch (error) {
+                console.error('[INIT] Error loading compare data:', error);
+            } finally {
+                isLoadingData = false;
+            }
+            
+            // 5. Wait for DOM to be fully rendered
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // 6. NU FØRST: Mark initial load complete
+            isInitialLoad = false;
+            console.log('[INIT] Initial load complete');
             
             // Load pose library first
             await loadPoseLibrary();
@@ -6030,14 +6033,7 @@ function resetPose(side) {
             document.querySelector('.clear-btn').addEventListener('click', clearAll);
             document.getElementById('randomBtn').addEventListener('click', randomizeCurrentStep);
             
-            // Initialize CompareData (only if not already loaded from auth state)
-            if (!CompareData) {
-                // Refresh auth state to ensure we have the latest user
-                refreshAuthState();
-                
-                CompareData = await loadCompareDataFromLocalStorage();
-            }
-            await ensureDefaultCompareData();
+            // CompareData is already loaded above in GUARD 1
             
             // Initialize history sidebar
             // Default to collapsed (true) unless explicitly set to false in localStorage
