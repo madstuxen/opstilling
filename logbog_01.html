@@ -4498,6 +4498,9 @@
                 activeLogDate = todayKey;
             }
             
+            // Render history and activities after data is loaded
+            await renderLogHistory();
+            await renderActivitiesForDate(activeLogDate);
             await hydrateLogbookFields();
             
             // Check date periodically and update if it changes (e.g., at midnight)
