@@ -1542,25 +1542,6 @@
             auth = firebase.auth();
             db = firebase.firestore();
             
-            // Enable offline persistence
-            db.enablePersistence({
-                synchronizeTabs: true  // CRITICAL: Sync cache across tabs
-            })
-            .then(() => {
-                console.log('✅ Firestore offline persistence enabled');
-            })
-            .catch((err) => {
-                if (err.code === 'failed-precondition') {
-                    // Multiple tabs open, only first tab enables persistence
-                    console.warn('⚠️ Persistence already enabled in another tab');
-                } else if (err.code === 'unimplemented') {
-                    // Browser doesn't support persistence (e.g. old Safari)
-                    console.warn('⚠️ Browser doesn\'t support offline persistence');
-                } else {
-                    console.error('❌ Persistence error:', err);
-                }
-            });
-            
             console.log('Firebase initialized in checkin.html');
         } catch (error) {
             console.error('Firebase initialization error:', error);
