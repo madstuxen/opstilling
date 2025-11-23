@@ -1559,163 +1559,45 @@
             return parsed.toISOString().split('T')[0];
         }
 
-        // Load logbook data from Firestore
-        // Global snapshot listener for logbook data
-        let logbookSnapshotUnsubscribe = null;
-
-        // Setup real-time listener for logbook data from Firestore
-        function setupLogbookSnapshotListener() {
-            // Clean up existing listener if any
-            if (logbookSnapshotUnsubscribe) {
-                logbookSnapshotUnsubscribe();
-                logbookSnapshotUnsubscribe = null;
-            }
-            
-            if (!currentUser || !db) {
-                logbookDataCache = null;
-                logbookDataCacheKey = null;
-                return;
-            }
+        // Load data from Firestore (simple, no cache)
+        async function loadLogbookDataFromFirestore() {
+            if (!currentUser || !db) return null;
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
                 
-                // Set up real-time listener
-                logbookSnapshotUnsubscribe = userDocRef.onSnapshot(
-                    {
-                        includeMetadataChanges: true // Important for offline support
-                    },
-                    (doc) => {
-                        if (!doc.exists || !doc.data()?.logbogData) {
-                            logbookDataCache = null;
-                            logbookDataCacheKey = null;
-                            return;
-                        }
-                        
-                        const userData = doc.data();
-                        const data = userData.logbogData;
-                        const normalizedData = Array.isArray(data) ? data : [];
-                        const source = doc.metadata.fromCache ? 'cache' : 'server';
-                        console.log('[SNAPSHOT] Logbook data from:', source);
-                        
-                        // Normalize data
-                        let mutated = false;
-                        const normalizedEntries = normalizedData.map(entry => {
-                            if (!entry || typeof entry !== 'object') return entry;
-                            const normalizedKey = normalizeDateKey(entry.date);
-                            let nextEntry = entry;
-                            if (normalizedKey && normalizedKey !== entry.date) {
-                                mutated = true;
-                                nextEntry = { ...nextEntry, date: normalizedKey };
-                            }
-                            if (!nextEntry.timestamp) {
-                                const derived = new Date(`${normalizedKey || entry.date}T00:00:00`);
-                                if (!Number.isNaN(derived.getTime())) {
-                                    nextEntry = { ...nextEntry, timestamp: derived.toISOString() };
-                                    mutated = true;
-                                } else {
-                                    nextEntry = { ...nextEntry, timestamp: new Date().toISOString() };
-                                    mutated = true;
-                                }
-                            }
-                            return nextEntry;
-                        });
-                        
-                        // GUARD 5: Don't reload during operations
-                        if (isInitialLoad || isLoadingData || isSavingData) {
-                            console.log('[SNAPSHOT] Ignored: operation in progress');
-                            // Update cache but don't reload
-                            const cacheKey = currentUser ? currentUser.uid : 'none';
-                            logbookDataCache = normalizedEntries;
-                            logbookDataCacheKey = cacheKey;
-                            return;
-                        }
-                        
-                        // Check if data actually changed
-                        const currentEntriesCount = logbookDataCache?.length || 0;
-                        const newEntriesCount = normalizedEntries.length;
-                        
-                        if (currentEntriesCount === newEntriesCount) {
-                            // Do deep comparison if counts match
-                            const currentJson = JSON.stringify(logbookDataCache || []);
-                            const newJson = JSON.stringify(normalizedEntries);
-                            
-                            if (currentJson === newJson) {
-                                console.log('[SNAPSHOT] No changes detected');
-                                const cacheKey = currentUser ? currentUser.uid : 'none';
-                                logbookDataCache = normalizedEntries;
-                                logbookDataCacheKey = cacheKey;
-                                return;
-                            }
-                        }
-                        
-                        // Data changed - reload
-                        console.log('[SNAPSHOT] Reloading:', currentEntriesCount, '→', newEntriesCount, 'entries');
-                        
-                        // Update cache
-                        const cacheKey = currentUser ? currentUser.uid : 'none';
-                        logbookDataCache = normalizedEntries;
-                        logbookDataCacheKey = cacheKey;
-                        
-                        // Reload logbook display if page is already loaded
-                        if (document.readyState === 'complete') {
-                            if (typeof renderLogbookEntries === 'function') {
-                                renderLogbookEntries();
-                            }
-                        }
-                    },
-                    (error) => {
-                        console.error('Error in logbook snapshot listener:', error);
-                        // Keep existing cache on error
-                    }
-                );
+                if (!doc.exists) return null;
+                const data = doc.data()?.logbogData;
+                return Array.isArray(data) ? data : null;
             } catch (error) {
-                console.error('Error setting up logbook snapshot listener:', error);
-                logbookDataCache = null;
-                logbookDataCacheKey = null;
+                console.error('[LOAD] Error:', error);
+                return null;
             }
-        }
-
-        async function loadLogbookDataFromFirestore() {
-            // Return cached data from snapshot listener
-            if (logbookDataCache !== null && logbookDataCacheKey === (currentUser ? currentUser.uid : 'none')) {
-                return logbookDataCache;
-            }
-            return null;
         }
         
         // Save logbook data to Firestore
         async function saveLogbookDataToFirestore(entries) {
-            if (!currentUser || !db) return;
+            if (!currentUser || !db) return false;
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 await userDocRef.set({
-                    logbogData: entries
+                    logbogData: entries,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
+                
+                console.log('[SAVE] Success');
+                return true;
             } catch (error) {
-                console.error('Error saving logbook data to Firestore:', error);
+                console.error('[SAVE] Error:', error);
+                return false;
             }
         }
-        
-        // Cache for logbook data to reduce repeated calls
-        let logbookDataCache = null;
-        let logbookDataCacheKey = null; // Track what the cache is for (currentUser.uid)
 
         async function getLogbookData(forceRefresh = false) {
-            // Ensure snapshot listener is set up
-            if (currentUser && db && !logbookSnapshotUnsubscribe) {
-                setupLogbookSnapshotListener();
-            }
-            
-            // Return cached data if available and user hasn't changed
-            const cacheKey = currentUser ? currentUser.uid : 'none';
-            if (!forceRefresh && logbookDataCache !== null && logbookDataCacheKey === cacheKey) {
-                return logbookDataCache;
-            }
-
             if (currentUser && db) {
-                // User is logged in - read from Firestore (now uses cache from snapshot)
+                // User is logged in - read from Firestore
                 const firestoreData = await loadLogbookDataFromFirestore();
                 
                 if (firestoreData !== null) {
@@ -1749,10 +1631,6 @@
                     if (mutated) {
                         await saveLogbookDataToFirestore(normalizedEntries);
                     }
-                    
-                    // Cache the result
-                    logbookDataCache = normalizedEntries;
-                    logbookDataCacheKey = cacheKey;
                     
                     return normalizedEntries;
                 }
@@ -1795,10 +1673,6 @@
                     if (mutated) {
                         localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(normalizedEntries));
                     }
-
-                    // Cache the result
-                    logbookDataCache = normalizedEntries;
-                    logbookDataCacheKey = cacheKey;
                     
                     return normalizedEntries;
                 } catch (error) {
@@ -1813,14 +1687,9 @@
         }
 
         async function saveLogbookData(entries) {
-            // GUARD 2: Never save during initial load or loading
+            // Never save during initial load
             if (isInitialLoad) {
                 console.log('[SAVE] Blocked: initial load in progress');
-                return;
-            }
-            
-            if (isLoadingData) {
-                console.log('[SAVE] Blocked: loading in progress');
                 return;
             }
             
@@ -1835,33 +1704,6 @@
                 return;
             }
             
-            // GUARD 3: Never save empty data if Firestore has data
-            if (!Array.isArray(entries) || entries.length === 0) {
-                // Check if Firestore actually has data
-                try {
-                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                    if (userDoc.exists) {
-                        const firestoreData = userDoc.data();
-                        const firestoreEntriesCount = Array.isArray(firestoreData.logbogData) 
-                            ? firestoreData.logbogData.length : 0;
-                        
-                        if (firestoreEntriesCount > 0) {
-                            console.error('[SAVE] BLOCKED: Refusing to overwrite', 
-                                         firestoreEntriesCount, 'entries with empty data');
-                            return;
-                        }
-                    }
-                } catch (error) {
-                    console.error('[SAVE] Error checking Firestore:', error);
-                }
-            }
-            
-            // Invalidate cache
-            logbookDataCache = null;
-            logbookDataCacheKey = null;
-            
-            // Safe to save now
-            isSavingData = true;
             try {
                 await saveLogbookDataToFirestore(entries);
                 // Also save to localStorage as backup
@@ -1872,8 +1714,6 @@
                 }
             } catch (error) {
                 console.error('[SAVE] Error saving to Firestore:', error);
-            } finally {
-                isSavingData = false;
             }
         }
 
@@ -2765,8 +2605,6 @@
             
             // Only handle if user is not logged in (using localStorage as primary)
             if (!currentUser || !db) {
-                logbookDataCache = null;
-                logbookDataCacheKey = null;
                 await refreshActiveLogEntry();
                 await renderLogHistory();
             }
@@ -3049,6 +2887,11 @@
 
         let renderingActivities = false;
         async function renderActivitiesForDate(dateKey) {
+            // Guard: Skip render during initial load (wait for all data to be loaded first)
+            if (!initialActivityRenderDone) {
+                return;
+            }
+            
             // Prevent multiple simultaneous renders
             if (renderingActivities) return;
             renderingActivities = true;
@@ -3274,29 +3117,47 @@
         
         // Flags for race condition protection
         let isInitialLoad = true;
-        let isLoadingData = false;
-        let isSavingData = false;
+        let initialActivityRenderDone = false;
+        
+        // Auto-save timeout
+        let autoSaveTimeout = null;
+        
+        // Schedule auto-save after changes
+        function scheduleAutoSave() {
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+            
+            autoSaveTimeout = setTimeout(async () => {
+                const entries = await getLogbookData();
+                await saveLogbookData(entries);
+                autoSaveTimeout = null;
+            }, 2000);
+        }
         
         try {
             firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
             db = firebase.firestore();
             
-            // Enable Firestore offline persistence
-            try {
-                firebase.firestore().enablePersistence({
-                    synchronizeTabs: true
-                });
-                console.log('Firestore offline persistence enabled');
-            } catch (err) {
+            // Enable offline persistence
+            db.enablePersistence({
+                synchronizeTabs: true  // CRITICAL: Sync cache across tabs
+            })
+            .then(() => {
+                console.log('✅ Firestore offline persistence enabled');
+            })
+            .catch((err) => {
                 if (err.code === 'failed-precondition') {
-                    console.warn('Persistence can only be enabled in one tab at a time');
+                    // Multiple tabs open, only first tab enables persistence
+                    console.warn('⚠️ Persistence already enabled in another tab');
                 } else if (err.code === 'unimplemented') {
-                    console.warn('Browser doesn\'t support persistence');
+                    // Browser doesn't support persistence (e.g. old Safari)
+                    console.warn('⚠️ Browser doesn\'t support offline persistence');
                 } else {
-                    console.error('Error enabling Firestore persistence:', err);
+                    console.error('❌ Persistence error:', err);
                 }
-            }
+            });
         } catch (error) {
             console.error('Firebase initialization error:', error);
         }
@@ -3311,21 +3172,6 @@
         if (auth) {
             auth.onAuthStateChanged(async user => {
                 currentUser = user;
-                
-                if (user) {
-                    // Setup snapshot listener for real-time updates
-                    setupLogbookSnapshotListener();
-                } else {
-                    // Clean up listener when user logs out
-                    if (logbookSnapshotUnsubscribe) {
-                        logbookSnapshotUnsubscribe();
-                        logbookSnapshotUnsubscribe = null;
-                    }
-                }
-                
-                // Invalidate cache when auth state changes
-                logbookDataCache = null;
-                logbookDataCacheKey = null;
                 
                 // Mark auth as ready and resolve promise
                 if (!authStateReady) {
@@ -4456,39 +4302,23 @@
                 return;
             }
             
-            // 3. Wait for snapshot listener to have data (max 2 seconds extra)
-            if (logbookDataCache === undefined) {
-                for (let i = 0; i < 20; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (logbookDataCache !== undefined) break;
-                }
-            }
-            
-            // 4. Load affirmations first
+            // 3. Load affirmations first
             await loadAffirmations();
             
             hydrateHeaderDates();
-            await renderActivitiesForDate(activeLogDate);
             initCheckinDaysButtons();
             initCheckinViewToggle();
             initCheckinModal();
             renderCheckinChart();
             
-            // 5. Load data from Firestore
-            isLoadingData = true;
-            try {
-                await ensureSeedLogbookData();
-                console.log('[INIT] Loaded logbook data, entries:', logbookDataCache?.length || 0);
-            } catch (error) {
-                console.error('[INIT] Error loading logbook data:', error);
-            } finally {
-                isLoadingData = false;
-            }
+            // 4. Load data ÉN gang
+            const entries = await ensureSeedLogbookData();
+            console.log('[INIT] Loaded logbook data, entries:', entries?.length || 0);
             
-            // 6. Wait for DOM to be fully rendered
+            // 5. Wait for DOM to be fully rendered
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // 7. NU FØRST: Mark initial load complete
+            // 6. Mark initial load complete
             isInitialLoad = false;
             console.log('[INIT] Initial load complete');
             
@@ -4498,9 +4328,23 @@
                 activeLogDate = todayKey;
             }
             
-            // Render history and activities after data is loaded
-            await renderLogHistory();
+            // 7. Load ALL activity data in parallel before first render
+            console.log('[INIT] Loading activity data in parallel...');
+            await Promise.all([
+                getBodymapData(),
+                getDialogData(),
+                getOpstillingData(),
+                getCompareData()
+            ]);
+            console.log('[INIT] All activity data loaded');
+            
+            // 8. Now render activities ONCE with all data loaded
             await renderActivitiesForDate(activeLogDate);
+            initialActivityRenderDone = true;
+            console.log('[INIT] Initial activity render complete');
+            
+            // 9. Render history and hydrate fields
+            await renderLogHistory();
             await hydrateLogbookFields();
             
             // Check date periodically and update if it changes (e.g., at midnight)

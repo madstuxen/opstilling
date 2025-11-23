@@ -2374,34 +2374,69 @@
         
         // Flags for race condition protection
         let isInitialLoad = true;
-        let isLoadingData = false;
-        let isSavingData = false;
+        
+        // Auto-save timeout
+        let autoSaveTimeout = null;
+        
+        // Schedule auto-save after changes
+        function scheduleAutoSave() {
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+            
+            autoSaveTimeout = setTimeout(async () => {
+                await saveCompareDataToFirestore();
+                autoSaveTimeout = null;
+            }, 2000);
+        }
 
         try {
             firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
             db = firebase.firestore();
             
-            // Enable Firestore offline persistence
-            try {
-                firebase.firestore().enablePersistence({
-                    synchronizeTabs: true
-                });
-                console.log('Firestore offline persistence enabled');
-            } catch (err) {
+            // Enable offline persistence
+            db.enablePersistence({
+                synchronizeTabs: true  // CRITICAL: Sync cache across tabs
+            })
+            .then(() => {
+                console.log('✅ Firestore offline persistence enabled');
+            })
+            .catch((err) => {
                 if (err.code === 'failed-precondition') {
-                    console.warn('Persistence can only be enabled in one tab at a time');
+                    // Multiple tabs open, only first tab enables persistence
+                    console.warn('⚠️ Persistence already enabled in another tab');
                 } else if (err.code === 'unimplemented') {
-                    console.warn('Browser doesn\'t support persistence');
+                    // Browser doesn't support persistence (e.g. old Safari)
+                    console.warn('⚠️ Browser doesn\'t support offline persistence');
                 } else {
-                    console.error('Error enabling Firestore persistence:', err);
+                    console.error('❌ Persistence error:', err);
                 }
-            }
+            });
         } catch (error) {
             // If Firebase is already initialized, just get auth and db
             if (error.code === 'app/duplicate-app') {
                 auth = firebase.auth();
                 db = firebase.firestore();
+                
+                // Enable offline persistence
+                db.enablePersistence({
+                    synchronizeTabs: true  // CRITICAL: Sync cache across tabs
+                })
+                .then(() => {
+                    console.log('✅ Firestore offline persistence enabled');
+                })
+                .catch((err) => {
+                    if (err.code === 'failed-precondition') {
+                        // Multiple tabs open, only first tab enables persistence
+                        console.warn('⚠️ Persistence already enabled in another tab');
+                    } else if (err.code === 'unimplemented') {
+                        // Browser doesn't support persistence (e.g. old Safari)
+                        console.warn('⚠️ Browser doesn\'t support offline persistence');
+                    } else {
+                        console.error('❌ Persistence error:', err);
+                    }
+                });
             } else {
                 console.error('Firebase initialization error:', error);
             }
@@ -2415,116 +2450,39 @@
         });
 
         // Load compareData from Firestore
-        // Global cache for compare data
-        // undefined = not yet loaded, null = confirmed no data, object = has data
-        let compareDataCache = undefined;
-        let compareSnapshotUnsubscribe = null;
-
-        // Setup real-time listener for compare data from Firestore
-        function setupCompareSnapshotListener() {
-            // Clean up existing listener if any
-            if (compareSnapshotUnsubscribe) {
-                compareSnapshotUnsubscribe();
-                compareSnapshotUnsubscribe = null;
-            }
-            
-            if (!currentUser || !db) {
-                compareDataCache = null;
-                return;
-            }
+        // Load data from Firestore (simple, no cache)
+        async function loadCompareDataFromFirestore() {
+            if (!currentUser || !db) return null;
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
                 
-                // Set up real-time listener
-                compareSnapshotUnsubscribe = userDocRef.onSnapshot(
-                    {
-                        includeMetadataChanges: true // Important for offline support
-                    },
-                    (doc) => {
-                        if (!doc.exists || !doc.data()?.compareData) {
-                            compareDataCache = null;
-                            return;
-                        }
-                        
-                        const newData = doc.data().compareData;
-                        const source = doc.metadata.fromCache ? 'cache' : 'server';
-                        console.log('[SNAPSHOT] Compare data from:', source);
-                        
-                        // GUARD 5: Don't reload during operations
-                        if (isInitialLoad || isLoadingData || isSavingData) {
-                            console.log('[SNAPSHOT] Ignored: operation in progress');
-                            compareDataCache = newData; // Update cache but don't reload
-                            return;
-                        }
-                        
-                        // Check if data actually changed
-                        const currentCollectionsCount = CompareData?.collections?.length || 0;
-                        const newCollectionsCount = newData?.collections?.length || 0;
-                        
-                        if (currentCollectionsCount === newCollectionsCount) {
-                            // Do deep comparison if counts match
-                            const currentJson = JSON.stringify(CompareData?.collections || []);
-                            const newJson = JSON.stringify(newData?.collections || []);
-                            
-                            if (currentJson === newJson) {
-                                console.log('[SNAPSHOT] No changes detected');
-                                compareDataCache = newData; // Silent update
-                                CompareData = newData; // Update CompareData silently
-                                return;
-                            }
-                        }
-                        
-                        // Data changed - reload
-                        console.log('[SNAPSHOT] Reloading:', currentCollectionsCount, '→', newCollectionsCount, 'collections');
-                        
-                        compareDataCache = newData;
-                        CompareData = newData;
-                        
-                        // Reload active comparison if it exists
-                        if (document.readyState === 'complete') {
-                            const activeComparison = getActiveComparison();
-                            if (activeComparison) {
-                                loadComparisonFromCompareData(activeComparison);
-                            }
-                            if (typeof renderHistory === 'function') {
-                                renderHistory();
-                            }
-                            if (typeof renderHistoryFilterOptions === 'function') {
-                                renderHistoryFilterOptions();
-                            }
-                        }
-                    },
-                    (error) => {
-                        console.error('[SNAPSHOT] Error:', error);
-                    }
-                );
+                if (!doc.exists) return null;
+                return doc.data()?.compareData || null;
             } catch (error) {
-                console.error('Error setting up compare snapshot listener:', error);
-                compareDataCache = null;
+                console.error('[LOAD] Error:', error);
+                return null;
             }
-        }
-
-        async function loadCompareDataFromFirestore() {
-            // Return cached data from snapshot listener
-            // undefined means not loaded yet, null means confirmed no data
-            return compareDataCache === undefined ? null : compareDataCache;
         }
 
         // Save compareData to Firestore
         async function saveCompareDataToFirestore() {
-            if (!auth || !db || !currentUser || !CompareData) {
-                return false;
-            }
+            if (!currentUser || !db) return false;
+            if (!CompareData) return false;
+            
+            CompareData.updated = new Date().toISOString();
             
             try {
                 await db.collection('users').doc(currentUser.uid).set({
                     compareData: CompareData,
-                    updated: firebase.firestore.FieldValue.serverTimestamp()
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
+                
+                console.log('[SAVE] Success');
                 return true;
             } catch (error) {
-                console.error('Error saving compareData to Firestore:', error);
+                console.error('[SAVE] Error:', error);
                 return false;
             }
         }
@@ -2631,33 +2589,14 @@
 				return null;
 			}
 			
-			// Ensure snapshot listener is set up
-			if (!compareSnapshotUnsubscribe) {
-				setupCompareSnapshotListener();
-				// Wait for snapshot listener to get initial data from Firestore
-				// Wait up to 2 seconds, checking every 100ms if data has arrived
-				for (let i = 0; i < 20; i++) {
-					await new Promise(resolve => setTimeout(resolve, 100));
-					if (compareDataCache !== undefined) {
-						// Snapshot listener has responded (either with data or null)
-						break;
-					}
-				}
-			}
-			
 			const firestoreData = await loadCompareDataFromFirestore();
 			return firestoreData;
 		}
 		
 		async function saveCompareDataToLocalStorage() {
-			// GUARD 2: Never save during initial load or loading
+			// Never save during initial load
 			if (isInitialLoad) {
 				console.log('[SAVE] Blocked: initial load in progress');
-				return false;
-			}
-			
-			if (isLoadingData) {
-				console.log('[SAVE] Blocked: loading in progress');
 				return false;
 			}
 			
@@ -2668,39 +2607,7 @@
 			
 			try {
 				if (!CompareData) return false;
-				CompareData.updated = new Date().toISOString();
-				
-				// GUARD 3: Never save empty data if Firestore has data
-				const collectionsCount = Array.isArray(CompareData.collections) ? CompareData.collections.length : 0;
-				if (collectionsCount === 0) {
-					// Check if Firestore actually has data
-					try {
-						const userDoc = await db.collection('users').doc(currentUser.uid).get();
-						if (userDoc.exists) {
-							const firestoreData = userDoc.data();
-							const firestoreCollectionsCount = Array.isArray(firestoreData.compareData?.collections) 
-								? firestoreData.compareData.collections.length : 0;
-							
-							if (firestoreCollectionsCount > 0) {
-								console.error('[SAVE] BLOCKED: Refusing to overwrite', 
-											 firestoreCollectionsCount, 'collections with empty data');
-								return false;
-							}
-						}
-					} catch (error) {
-						console.error('[SAVE] Error checking Firestore:', error);
-					}
-				}
-				
-				// Safe to save now
-				isSavingData = true;
-				try {
-					await saveCompareDataToFirestore();
-					return true;
-				} finally {
-					isSavingData = false;
-				}
-				
+				await saveCompareDataToFirestore();
 				return true;
 			} catch (error) {
 				console.error('Error in saveCompareDataToLocalStorage:', error);
@@ -2822,10 +2729,6 @@
 				return;
 			}
 			
-			if (isLoadingData) {
-				console.log('[SYNC] Blocked: loading in progress');
-				return;
-			}
 			
 			if (!CompareData) return;
 			const comparison = getActiveComparison();
@@ -2906,11 +2809,7 @@
 		async function loadComparisonFromCompareData(comparison) {
 			if (!comparison) return;
 			
-			const previousLoadingState = isLoadingData;
-			
 			try {
-				// Set flag FIRST
-				isLoadingData = true;
 				
 				// Load participants
 			const leftCircle = document.getElementById('leftCircle');
@@ -3046,10 +2945,6 @@
 		} catch (err) {
 			console.error('[LOAD] Load failed:', err);
 			return false;
-		} finally {
-			// Only clear flag after data is fully loaded
-			await new Promise(resolve => setTimeout(resolve, 200));
-			isLoadingData = previousLoadingState;
 		}
 	}
 		
@@ -5763,18 +5658,6 @@ function resetPose(side) {
             auth.onAuthStateChanged(user => {
                 currentUser = user;
                 
-                if (user) {
-                    // Setup snapshot listener for real-time updates
-                    setupCompareSnapshotListener();
-                } else {
-                    // Clean up listener when user logs out
-                    if (compareSnapshotUnsubscribe) {
-                        compareSnapshotUnsubscribe();
-                        compareSnapshotUnsubscribe = null;
-                    }
-                    compareDataCache = undefined;
-                }
-                
                 // Mark auth as ready and resolve promise
                 if (!authStateReady) {
                     authStateReady = true;
@@ -5782,26 +5665,6 @@ function resetPose(side) {
                         authStateResolver();
                         authStateResolver = null;
                     }
-                }
-                
-                // When user logs in, reload data from Firestore
-                if (user) {
-                    (async () => {
-                        const data = await loadCompareData();
-                        if (data !== null) {
-                            CompareData = data;
-                        } else if (compareDataCache === null) {
-                            CompareData = null;
-                            await ensureDefaultCompareData();
-                        }
-                        
-                        const activeComparison = getActiveComparison();
-                        if (activeComparison) {
-                            loadComparisonFromCompareData(activeComparison);
-                        }
-                        await renderHistory();
-                        renderHistoryFilterOptions();
-                    })();
                 }
             });
         }
@@ -5833,30 +5696,16 @@ function resetPose(side) {
                 return;
             }
             
-            // 3. Wait for snapshot listener to have data (max 2 seconds extra)
-            if (compareDataCache === undefined) {
-                for (let i = 0; i < 20; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (compareDataCache !== undefined) break;
-                }
+            // 3. Load data ÉN gang
+            const data = await loadCompareData();
+            if (data) {
+                CompareData = data;
+            } else {
+                // No data in Firestore, create defaults
+                CompareData = null;
+                await ensureDefaultCompareData();
             }
-            
-            // 4. Load data from Firestore
-            isLoadingData = true;
-            try {
-                const data = await loadCompareData();
-                if (data !== null) {
-                    CompareData = data;
-                } else if (compareDataCache === null) {
-                    CompareData = null;
-                    await ensureDefaultCompareData();
-                }
-                console.log('[INIT] Loaded compare data, collections:', CompareData?.collections?.length || 0);
-            } catch (error) {
-                console.error('[INIT] Error loading compare data:', error);
-            } finally {
-                isLoadingData = false;
-            }
+            console.log('[INIT] Loaded compare data, collections:', CompareData?.collections?.length || 0);
             
             // 5. Wait for DOM to be fully rendered
             await new Promise(resolve => setTimeout(resolve, 1000));

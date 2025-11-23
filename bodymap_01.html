@@ -1570,29 +1570,45 @@
         
         // Flags for race condition protection
         let isInitialLoad = true;
-        let isLoadingData = false;
-        let isSavingData = false;
+        
+        // Auto-save timeout
+        let autoSaveTimeout = null;
+        
+        // Schedule auto-save after changes
+        function scheduleAutoSave() {
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+            
+            autoSaveTimeout = setTimeout(async () => {
+                await saveToLocalStorage();
+                autoSaveTimeout = null;
+            }, 2000);
+        }
         
         try {
             firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
             db = firebase.firestore();
             
-            // Enable Firestore offline persistence
-            try {
-                firebase.firestore().enablePersistence({
-                    synchronizeTabs: true
-                });
-                console.log('Firestore offline persistence enabled');
-            } catch (err) {
+            // Enable offline persistence
+            db.enablePersistence({
+                synchronizeTabs: true  // CRITICAL: Sync cache across tabs
+            })
+            .then(() => {
+                console.log('✅ Firestore offline persistence enabled');
+            })
+            .catch((err) => {
                 if (err.code === 'failed-precondition') {
-                    console.warn('Persistence can only be enabled in one tab at a time');
+                    // Multiple tabs open, only first tab enables persistence
+                    console.warn('⚠️ Persistence already enabled in another tab');
                 } else if (err.code === 'unimplemented') {
-                    console.warn('Browser doesn\'t support persistence');
+                    // Browser doesn't support persistence (e.g. old Safari)
+                    console.warn('⚠️ Browser doesn\'t support offline persistence');
                 } else {
-                    console.error('Error enabling Firestore persistence:', err);
+                    console.error('❌ Persistence error:', err);
                 }
-            }
+            });
         } catch (error) {
             console.error('Firebase initialization error:', error);
         }
@@ -1607,18 +1623,6 @@
         if (auth) {
             auth.onAuthStateChanged(user => {
                 currentUser = user;
-                
-                if (user) {
-                    // Setup snapshot listener for real-time updates
-                    setupBodymapSnapshotListener();
-                } else {
-                    // Clean up listener when user logs out
-                    if (bodymapSnapshotUnsubscribe) {
-                        bodymapSnapshotUnsubscribe();
-                        bodymapSnapshotUnsubscribe = null;
-                    }
-                    bodymapDataCache = undefined;
-                }
                 
                 // Mark auth as ready and resolve promise
                 if (!authStateReady) {
@@ -2323,41 +2327,24 @@
                 return;
             }
             
-            // 3. Wait for snapshot listener to have data (max 2 seconds extra)
-            if (bodymapDataCache === undefined) {
-                for (let i = 0; i < 20; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (bodymapDataCache !== undefined) break;
-                }
-            }
-            
-            // 4. Load animations
+            // 3. Load animations
             await loadAnimations();
             
-            // 5. Load data from Firestore
-            isLoadingData = true;
-            try {
-                const loaded = await loadFromLocalStorage();
-                // Only create blank page if we're sure there's no data in Firestore
-                // (bodymapDataCache must be null, not undefined)
-                if (!loaded && bodymapDataCache === null) {
-                    // Confirmed no data in Firestore - create first index and default to showing layers
-                    showOnionLayers = true;
-                    updateLayerToggleUI();
-                    ensureDefaultMap();
-                    const firstIndex = createNewIndex({ autoScroll: true });
-                    // Force explicit title "Lag 1" for the very first layer
-                    if (firstIndex) {
-                        firstIndex.title = 'Lag 1';
-                    }
-                    await saveToLocalStorage();
+            // 4. Load data ÉN gang
+            const loaded = await loadFromLocalStorage();
+            if (!loaded) {
+                // No data in Firestore - create first index and default to showing layers
+                showOnionLayers = true;
+                updateLayerToggleUI();
+                ensureDefaultMap();
+                const firstIndex = createNewIndex({ autoScroll: true });
+                // Force explicit title "Lag 1" for the very first layer
+                if (firstIndex) {
+                    firstIndex.title = 'Lag 1';
                 }
-                console.log('[INIT] Loaded bodymap data, maps:', maps.length, 'indexes:', dataIndexes.length);
-            } catch (error) {
-                console.error('[INIT] Error loading bodymap data:', error);
-            } finally {
-                isLoadingData = false;
+                await saveToLocalStorage();
             }
+            console.log('[INIT] Loaded bodymap data, maps:', maps.length, 'indexes:', dataIndexes.length);
             
             // 6. Wait for DOM to be fully rendered
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -2428,124 +2415,46 @@
         
         // Save bodymap data to Firestore
         async function saveBodymapDataToFirestore() {
-            if (!currentUser || !db) return;
+            if (!currentUser || !db) return false;
+            
+            updateBodyMapData();
             
             try {
-                updateBodyMapData();
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 await userDocRef.set({
-                    bodymapData: BodyMapData
+                    bodymapData: BodyMapData,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
+                
+                console.log('[SAVE] Success');
+                return true;
             } catch (error) {
-                console.error('Error saving bodymap data to Firestore:', error);
+                console.error('[SAVE] Error:', error);
+                return false;
             }
         }
         
-        // Global cache for bodymap data
-        // undefined = not yet loaded, null = confirmed no data, object = has data
-        let bodymapDataCache = undefined;
-        let bodymapSnapshotUnsubscribe = null;
-
-        // Setup real-time listener for bodymap data from Firestore
-        function setupBodymapSnapshotListener() {
-            // Clean up existing listener if any
-            if (bodymapSnapshotUnsubscribe) {
-                bodymapSnapshotUnsubscribe();
-                bodymapSnapshotUnsubscribe = null;
-            }
-            
-            if (!currentUser || !db) {
-                bodymapDataCache = undefined;
-                return;
-            }
+        // Load data from Firestore (simple, no cache)
+        async function loadBodymapDataFromFirestore() {
+            if (!currentUser || !db) return null;
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
                 
-                // Set up real-time listener
-                bodymapSnapshotUnsubscribe = userDocRef.onSnapshot(
-                    {
-                        includeMetadataChanges: true // Important for offline support
-                    },
-                    (doc) => {
-                        if (!doc.exists || !doc.data()?.bodymapData) {
-                            bodymapDataCache = null;
-                            return;
-                        }
-                        
-                        const newData = doc.data().bodymapData;
-                        const source = doc.metadata.fromCache ? 'cache' : 'server';
-                        console.log('[SNAPSHOT] Bodymap data from:', source);
-                        
-                        // GUARD 5: Don't reload during operations
-                        if (isInitialLoad || isLoadingData || isSavingData) {
-                            console.log('[SNAPSHOT] Ignored: operation in progress');
-                            bodymapDataCache = newData; // Update cache but don't reload
-                            return;
-                        }
-                        
-                        // Check if data actually changed
-                        const currentMapsCount = maps?.length || 0;
-                        const newMapsCount = newData?.maps?.length || 0;
-                        const currentIndexesCount = dataIndexes?.length || 0;
-                        const newIndexesCount = newData?.dataIndexes?.length || 0;
-                        
-                        if (currentMapsCount === newMapsCount && currentIndexesCount === newIndexesCount) {
-                            // Do deep comparison if counts match
-                            const currentJson = JSON.stringify({ maps, dataIndexes });
-                            const newJson = JSON.stringify({ maps: newData.maps, dataIndexes: newData.dataIndexes });
-                            
-                            if (currentJson === newJson) {
-                                console.log('[SNAPSHOT] No changes detected');
-                                bodymapDataCache = newData; // Silent update
-                                return;
-                            }
-                        }
-                        
-                        // Data changed - reload
-                        console.log('[SNAPSHOT] Reloading:', currentMapsCount, '→', newMapsCount, 'maps,', 
-                                    currentIndexesCount, '→', newIndexesCount, 'indexes');
-                        
-                        bodymapDataCache = newData;
-                        
-                        // Reload data if page is already loaded
-                        if (document.readyState === 'complete') {
-                            processLoadedData(newData).then(success => {
-                                if (success) {
-                                    updateLayerToggleUI();
-                                    renderHistory();
-                                    renderWorkspace();
-                                }
-                            });
-                        }
-                    },
-                    (error) => {
-                        console.error('[SNAPSHOT] Error:', error);
-                    }
-                );
+                if (!doc.exists) return null;
+                return doc.data()?.bodymapData || null;
             } catch (error) {
-                console.error('Error setting up bodymap snapshot listener:', error);
-                bodymapDataCache = undefined;
+                console.error('[LOAD] Error:', error);
+                return null;
             }
-        }
-
-        // Load bodymap data from Firestore (now uses cache from snapshot)
-        async function loadBodymapDataFromFirestore() {
-            // Return cached data from snapshot listener
-            // undefined means not loaded yet, null means confirmed no data
-            return bodymapDataCache === undefined ? null : bodymapDataCache;
         }
         
         // Save to Firestore
         async function saveToLocalStorage() {
-            // GUARD 2: Never save during initial load or loading
+            // Never save during initial load
             if (isInitialLoad) {
                 console.log('[SAVE] Blocked: initial load in progress');
-                return false;
-            }
-            
-            if (isLoadingData) {
-                console.log('[SAVE] Blocked: loading in progress');
                 return false;
             }
             
@@ -2556,41 +2465,12 @@
             
             updateBodyMapData();
             
-            // GUARD 3: Never save empty data if Firestore has data
-            const mapsCount = Array.isArray(maps) ? maps.length : 0;
-            const indexesCount = Array.isArray(dataIndexes) ? dataIndexes.length : 0;
-            if (mapsCount === 0 && indexesCount === 0) {
-                // Check if Firestore actually has data
-                try {
-                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                    if (userDoc.exists) {
-                        const firestoreData = userDoc.data();
-                        const firestoreMapsCount = Array.isArray(firestoreData.bodymapData?.maps) 
-                            ? firestoreData.bodymapData.maps.length : 0;
-                        const firestoreIndexesCount = Array.isArray(firestoreData.bodymapData?.dataIndexes) 
-                            ? firestoreData.bodymapData.dataIndexes.length : 0;
-                        
-                        if (firestoreMapsCount > 0 || firestoreIndexesCount > 0) {
-                            console.error('[SAVE] BLOCKED: Refusing to overwrite', 
-                                         firestoreMapsCount, 'maps,', firestoreIndexesCount, 'indexes with empty data');
-                            return false;
-                        }
-                    }
-                } catch (error) {
-                    console.error('[SAVE] Error checking Firestore:', error);
-                }
-            }
-            
-            // Safe to save now
-            isSavingData = true;
             try {
                 await saveBodymapDataToFirestore();
                 return true;
             } catch (error) {
                 console.error('[SAVE] Error saving to Firestore:', error);
                 return false;
-            } finally {
-                isSavingData = false;
             }
         }
         
@@ -2600,11 +2480,7 @@
                 return false;
             }
             
-            const previousLoadingState = isLoadingData;
-            
             try {
-                // Set flag FIRST
-                isLoadingData = true;
             
             // Restore title
             bodymapTitle = parsed.metadata?.title || '';
@@ -2712,29 +2588,12 @@
             return false;
         } finally {
             // Only clear flag after data is fully loaded
-            await new Promise(resolve => setTimeout(resolve, 200));
-            isLoadingData = previousLoadingState;
         }
         }
         
         // Load from Firestore
         async function loadFromLocalStorage() {
             if (!currentUser || !db) return false;
-            
-            // Ensure snapshot listener is set up
-            if (!bodymapSnapshotUnsubscribe) {
-                setupBodymapSnapshotListener();
-                // Wait longer for snapshot listener to get initial data from Firestore
-                // This prevents race condition where we think there's no data and create empty data
-                // Wait up to 2 seconds, checking every 100ms if data has arrived
-                for (let i = 0; i < 20; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (bodymapDataCache !== undefined) {
-                        // Snapshot listener has responded (either with data or null)
-                        break;
-                    }
-                }
-            }
             
             const firestoreData = await loadBodymapDataFromFirestore();
             if (firestoreData !== null) {
@@ -2747,8 +2606,6 @@
                 return success;
             }
             
-            // Return false only if we're sure there's no data (snapshot listener has responded)
-            // If bodymapDataCache is still undefined, snapshot hasn't responded yet
             return false;
         }
         

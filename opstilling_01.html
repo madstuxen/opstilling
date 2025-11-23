@@ -2271,21 +2271,24 @@
             auth = firebase.auth();
             db = firebase.firestore();
             
-            // Enable Firestore offline persistence
-            try {
-                firebase.firestore().enablePersistence({
-                    synchronizeTabs: true
-                });
-                console.log('Firestore offline persistence enabled');
-            } catch (err) {
+            // Enable offline persistence
+            db.enablePersistence({
+                synchronizeTabs: true  // CRITICAL: Sync cache across tabs
+            })
+            .then(() => {
+                console.log('✅ Firestore offline persistence enabled');
+            })
+            .catch((err) => {
                 if (err.code === 'failed-precondition') {
-                    console.warn('Persistence can only be enabled in one tab at a time');
+                    // Multiple tabs open, only first tab enables persistence
+                    console.warn('⚠️ Persistence already enabled in another tab');
                 } else if (err.code === 'unimplemented') {
-                    console.warn('Browser doesn\'t support persistence');
+                    // Browser doesn't support persistence (e.g. old Safari)
+                    console.warn('⚠️ Browser doesn\'t support offline persistence');
                 } else {
-                    console.error('Error enabling Firestore persistence:', err);
+                    console.error('❌ Persistence error:', err);
                 }
-            }
+            });
         } catch (error) {
             console.error('Firebase initialization error:', error);
         }
@@ -2302,18 +2305,6 @@
             auth.onAuthStateChanged(user => {
                 currentUser = user;
                 
-                if (user) {
-                    // Setup snapshot listener for real-time updates
-                    setupOpstillingSnapshotListener();
-                } else {
-                    // Clean up listener when user logs out
-                    if (opstillingSnapshotUnsubscribe) {
-                        opstillingSnapshotUnsubscribe();
-                        opstillingSnapshotUnsubscribe = null;
-                    }
-                    opstillingDataCache = undefined;
-                }
-                
                 // Mark auth as ready and resolve promise immediately
                 if (!authStateReady) {
                     authStateReady = true;
@@ -2321,34 +2312,6 @@
                         authStateResolver();
                         authStateResolver = null;
                     }
-                }
-                
-                // When user logs in, reload data from Firestore
-                if (user) {
-                    (async () => {
-                        // IMPORTANT: Always reload, even if OpstillingData already exists, to ensure we get the correct source
-                        const data = await loadOpstillingData();
-                        
-                        // Only update OpstillingData if we got data from Firestore
-                        // If data is null, only create blank structure if we're sure there's no data (opstillingDataCache === null)
-                        if (data !== null) {
-                            OpstillingData = data;
-                        } else if (opstillingDataCache === null) {
-                            // Confirmed no data in Firestore - create default structure
-                            OpstillingData = null;
-                            await ensureDefaultOpstillingData();
-                        }
-                        // If opstillingDataCache is undefined, snapshot hasn't responded yet - don't create blank data
-                        
-                        // Always reload active setup to update workspace with positions and notes
-                        const activeSetup = getActiveSetup();
-                        if (activeSetup) {
-                            await loadSetupFromOpstillingData(activeSetup);
-                        } else {
-                            await loadActiveOpstilling();
-                        }
-                        await renderHistory();
-                    })();
                 }
             });
         }
@@ -2377,241 +2340,59 @@
 
         let isLoadingSetup = false;
         let isInitialLoad = true; // Track if page is still doing initial load
-        let isSavingToFirestore = false; // Track if we're currently saving to prevent snapshot loops
         
         // New persistent data model for Opstilling
         let OpstillingData = null; // { version, updated, activeCollectionId, activeSetupId, collections: [...] }
         
-        // Firestore functions
-        // Global cache for opstilling data
-        // undefined = not yet loaded, null = confirmed no data, object = has data
-        let opstillingDataCache = undefined;
-        let opstillingSnapshotUnsubscribe = null;
+        // Auto-save timeout
+        let autoSaveTimeout = null;
 
-        // Setup real-time listener for opstilling data from Firestore
-        function setupOpstillingSnapshotListener() {
-            // Clean up existing listener if any
-            if (opstillingSnapshotUnsubscribe) {
-                opstillingSnapshotUnsubscribe();
-                opstillingSnapshotUnsubscribe = null;
-            }
-            
-            if (!currentUser || !db) {
-                opstillingDataCache = null;
-                return;
-            }
-            
-            try {
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                
-                // Set up real-time listener
-                opstillingSnapshotUnsubscribe = userDocRef.onSnapshot(
-                    (doc) => {
-                        if (!doc.exists || !doc.data()?.opstillingData) {
-                            opstillingDataCache = null;
-                            return;
-                        }
-                        
-                        const newData = doc.data().opstillingData;
-                        
-                        // CRITICAL: Deduplicate snapshot data before using it
-                        // Create a copy to avoid mutating the original
-                        const dataCopy = JSON.parse(JSON.stringify(newData));
-                        OpstillingData = dataCopy;
-                        const hadDuplicates = deduplicateOpstillingData();
-                        if (hadDuplicates) {
-                            console.error('[SNAPSHOT] Received data with duplicates from Firestore!');
-                            opstillingDataCache = OpstillingData; // Update cache with cleaned data
-                            // Don't save back - might create loop
-                        } else {
-                            opstillingDataCache = newData;
-                        }
-                        
-                        // CRITICAL: Don't reload during saves or loads
-                        if (isSavingToFirestore || isLoadingSetup || isInitialLoad) {
-                            console.log('[SNAPSHOT] Ignored: operation in progress');
-                            return;
-                        }
-                        
-                        // Check if actually changed (deep comparison of parts)
-                        const currentSetup = getActiveSetup();
-                        const newSetup = OpstillingData.collections
-                            ?.find(c => c.id === OpstillingData?.activeCollectionId)
-                            ?.setups?.find(s => s.id === OpstillingData?.activeSetupId);
-                        
-                        const currentParts = currentSetup?.parts?.length || 0;
-                        const newParts = newSetup?.parts?.length || 0;
-                        
-                        // Only reload if significant change
-                        if (Math.abs(currentParts - newParts) > 0 || 
-                            JSON.stringify(currentSetup?.parts) !== JSON.stringify(newSetup?.parts)) {
-                            console.log('[SNAPSHOT] Reloading:', currentParts, '→', newParts, 'parts');
-                            
-                            const activeSetup = getActiveSetup();
-                            if (activeSetup) {
-                                loadSetupFromOpstillingData(activeSetup);
-                            }
-                            renderHistory();
-                        }
-                    },
-                    (error) => {
-                        console.error('Snapshot error:', error);
-                    }
-                );
-            } catch (error) {
-                console.error('Error setting up opstilling snapshot listener:', error);
-                opstillingDataCache = null;
-            }
-        }
-
+        // Load data from Firestore (simple, no cache)
         async function loadOpstillingDataFromFirestore() {
-            // Return cached data from snapshot listener
-            // undefined means not loaded yet, null means confirmed no data
-            return opstillingDataCache === undefined ? null : opstillingDataCache;
-        }
-        
-        // Check if there's any opstilling data in Firestore (for verification before overwriting)
-        // First checks cache (faster and more reliable), then Firestore if cache is not available
-        async function checkOpstillingDataExistsInFirestore() {
-            // First check cache - it should have the latest data from snapshot listener
-            if (opstillingDataCache && typeof opstillingDataCache === 'object') {
-                const opstillingData = opstillingDataCache;
-                
-                // Check if there are any collections with setups that have parts
-                if (Array.isArray(opstillingData.collections) && opstillingData.collections.length > 0) {
-                    let totalParts = 0;
-                    let totalSetups = 0;
-                    opstillingData.collections.forEach(collection => {
-                        if (Array.isArray(collection.setups)) {
-                            collection.setups.forEach(setup => {
-                                totalSetups++;
-                                if (Array.isArray(setup.parts)) {
-                                    totalParts += setup.parts.length;
-                                }
-                            });
-                        }
-                    });
-                    
-                    console.log(`[FIRESTORE_CHECK] From cache: Found ${opstillingData.collections.length} collections, ${totalSetups} setups, ${totalParts} total parts`);
-                    
-                    return {
-                        exists: true,
-                        collectionsCount: opstillingData.collections.length,
-                        setupsCount: totalSetups,
-                        partsCount: totalParts,
-                        data: opstillingData,
-                        source: 'cache'
-                    };
-                }
-            }
-            
-            // If cache is not available, check Firestore directly
-            if (!currentUser || !db) {
-                console.log('[FIRESTORE_CHECK] No user or db, cannot check Firestore');
-                return false;
-            }
+            if (!currentUser || !db) return null;
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 const doc = await userDocRef.get();
                 
-                if (!doc.exists) {
-                    console.log('[FIRESTORE_CHECK] User document does not exist');
-                    return false;
-                }
-                
-                const userData = doc.data();
-                if (!userData || !userData.opstillingData) {
-                    console.log('[FIRESTORE_CHECK] No opstillingData in user document');
-                    return false;
-                }
-                
-                const opstillingData = userData.opstillingData;
-                
-                // Check if there are any collections with setups that have parts
-                if (!Array.isArray(opstillingData.collections) || opstillingData.collections.length === 0) {
-                    console.log('[FIRESTORE_CHECK] No collections in opstillingData');
-                    return false;
-                }
-                
-                // Check if any setup has parts
-                let totalParts = 0;
-                let totalSetups = 0;
-                opstillingData.collections.forEach(collection => {
-                    if (Array.isArray(collection.setups)) {
-                        collection.setups.forEach(setup => {
-                            totalSetups++;
-                            if (Array.isArray(setup.parts)) {
-                                totalParts += setup.parts.length;
-                            }
-                        });
-                    }
-                });
-                
-                console.log(`[FIRESTORE_CHECK] From Firestore: Found ${opstillingData.collections.length} collections, ${totalSetups} setups, ${totalParts} total parts`);
-                
-                return {
-                    exists: true,
-                    collectionsCount: opstillingData.collections.length,
-                    setupsCount: totalSetups,
-                    partsCount: totalParts,
-                    data: opstillingData,
-                    source: 'firestore'
-                };
+                if (!doc.exists) return null;
+                return doc.data()?.opstillingData || null;
             } catch (error) {
-                console.error('[FIRESTORE_CHECK] Error checking Firestore:', error);
+                console.error('[LOAD] Error:', error);
+                return null;
+            }
+        }
+        
+        // Check if there's any opstilling data in Firestore
+        async function hasDataInFirestore() {
+            if (!currentUser || !db) return false;
+            
+            try {
+                const doc = await db.collection('users').doc(currentUser.uid).get();
+                const data = doc.data()?.opstillingData;
+                return data && Array.isArray(data.collections) && data.collections.length > 0;
+            } catch (error) {
                 return false;
             }
         }
         
         async function saveOpstillingDataToFirestore() {
             if (!currentUser || !db) return false;
+            if (!OpstillingData) return false;
+            
+            OpstillingData.updated = new Date().toISOString();
             
             try {
-                if (!OpstillingData) return false;
-                OpstillingData.updated = new Date().toISOString();
-                
-                // Log what we're saving
-                const activeSetup = getActiveSetup();
-                const partsCount = activeSetup ? (Array.isArray(activeSetup.parts) ? activeSetup.parts.length : 0) : 0;
-                const collectionsCount = Array.isArray(OpstillingData.collections) ? OpstillingData.collections.length : 0;
-                const stackTrace = new Error().stack;
-                console.log(`[FIRESTORE WRITE] Saving opstillingData to Firestore:`, {
-                    timestamp: new Date().toISOString(),
-                    partsCount: partsCount,
-                    collectionsCount: collectionsCount,
-                    activeCollectionId: OpstillingData.activeCollectionId,
-                    activeSetupId: OpstillingData.activeSetupId,
-                    isLoadingSetup: isLoadingSetup,
-                    isSavingToFirestore: isSavingToFirestore,
-                    stackTrace: stackTrace
-                });
-                
-                // Set flag to prevent snapshot listener from reloading while we're saving
-                isSavingToFirestore = true;
-                
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                // Use set() instead of merge to ensure complete data is written
                 await userDocRef.set({
                     opstillingData: OpstillingData,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
                 
-                console.log(`[FIRESTORE WRITE] Successfully saved to Firestore with ${partsCount} parts`);
-                
-                // Update cache immediately to prevent snapshot from overwriting with stale data
-                opstillingDataCache = OpstillingData;
-                
-                // Clear flag after a longer delay to allow snapshot to process and prevent loops
-                // This gives Firestore time to process the write and update the snapshot
-                setTimeout(() => {
-                    isSavingToFirestore = false;
-                }, 2000);
-                
+                console.log('[SAVE] Success');
                 return true;
             } catch (error) {
-                console.error('[FIRESTORE WRITE] Error saving opstillingData to Firestore:', error);
-                isSavingToFirestore = false;
+                console.error('[SAVE] Error:', error);
                 return false;
             }
         }
@@ -2621,20 +2402,6 @@
             if (!currentUser || !db) {
                 console.error('[LOAD] User not logged in - cannot load data');
                 return null;
-            }
-            
-            // Ensure snapshot listener is set up
-            if (!opstillingSnapshotUnsubscribe) {
-                setupOpstillingSnapshotListener();
-                // Wait for snapshot listener to get initial data from Firestore
-                // Wait up to 2 seconds, checking every 100ms if data has arrived
-                for (let i = 0; i < 20; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (opstillingDataCache !== undefined) {
-                        // Snapshot listener has responded (either with data or null)
-                        break;
-                    }
-                }
             }
             
             const firestoreData = await loadOpstillingDataFromFirestore();
@@ -2734,20 +2501,31 @@
             // BUT: Before saving, check if Firestore already has data - if so, don't overwrite
             if (dataWasCreated) {
                 // Check if Firestore has data before saving empty defaults
-                const firestoreCheck = await checkOpstillingDataExistsInFirestore();
-                if (firestoreCheck && firestoreCheck.exists && (firestoreCheck.partsCount > 0 || firestoreCheck.setupsCount > 0)) {
-                    console.log(`[ENSURE_DEFAULT] Firestore has data (${firestoreCheck.partsCount} parts, ${firestoreCheck.setupsCount} setups), not saving empty defaults`);
-                    // Use Firestore data instead
-                    OpstillingData = firestoreCheck.data;
-                    return; // Don't save empty defaults
+                if (await hasDataInFirestore()) {
+                    // Firestore has data, load it instead of creating defaults
+                    const loadedData = await loadOpstillingData();
+                    if (loadedData) {
+                        OpstillingData = loadedData;
+                        return; // Don't save empty defaults
+                    }
                 }
                 console.log('[ENSURE_DEFAULT] No data in Firestore, saving default structure');
                 await saveOpstillingDataToLocalStorage();
             }
         }
         
-        // Debounce timeout for saving parts to Firestore
-        let partSaveDebounceTimeout = null;
+        // Schedule auto-save after changes
+        function scheduleAutoSave() {
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+            
+            autoSaveTimeout = setTimeout(async () => {
+                await syncCurrentWorkspaceToActiveSetup();
+                await saveOpstillingDataToFirestore();
+                autoSaveTimeout = null;
+            }, 2000);
+        }
         
         function getActiveCollection() {
             if (!OpstillingData || !Array.isArray(OpstillingData.collections)) return null;
@@ -2948,10 +2726,10 @@
             
             // CRITICAL: Never save 0 parts if Firestore has >0 parts
             if (exportedParts.length === 0) {
-                const firestoreCheck = await checkOpstillingDataExistsInFirestore();
-                if (firestoreCheck && firestoreCheck.exists && firestoreCheck.partsCount > 0) {
-                    console.error('[SYNC] BLOCKED: Refusing to overwrite', 
-                                 firestoreCheck.partsCount, 'parts with empty data');
+                const activeSetup = getActiveSetup();
+                const partsInData = Array.isArray(activeSetup?.parts) ? activeSetup.parts.length : 0;
+                if (partsInData > 0) {
+                    console.log('[SYNC] Skipping save - setup has parts in data but 0 in DOM (still loading)');
                     return;
                 }
             }
@@ -3005,6 +2783,7 @@
             
             // Save current workspace before switching
             await syncCurrentWorkspaceToActiveSetup();
+            await saveOpstillingDataToFirestore();
             
             // Create new collection with default setup
             const newCollection = {
@@ -3076,6 +2855,7 @@
             
             // Save current workspace BEFORE switching
             await syncCurrentWorkspaceToActiveSetup();
+            await saveOpstillingDataToFirestore();
             
             // Create new setup
             const now = new Date().toISOString();
@@ -3653,6 +3433,7 @@
             
             // Save current workspace before switching
             await syncCurrentWorkspaceToActiveSetup();
+            await saveOpstillingDataToFirestore();
             
             // DON'T reload - work with existing OpstillingData
             await ensureDefaultOpstillingData();
@@ -3924,9 +3705,10 @@
         }
         
         async function saveCharactersToShared() {
-            // Wrapper for syncCurrentWorkspaceToActiveSetup - kept for compatibility
-            // All saves now go through syncCurrentWorkspaceToActiveSetup which has safety guards
+            // Wrapper for queuedSave - kept for compatibility
+            // All saves now go through queuedSave which serializes saves
             await syncCurrentWorkspaceToActiveSetup();
+            await saveOpstillingDataToFirestore();
             await renderHistory();
         }
         
@@ -4436,6 +4218,7 @@ function closePosePicker() {
     if (currentPosePart) {
         (async () => {
             await syncCurrentWorkspaceToActiveSetup();
+            await saveOpstillingDataToFirestore();
         })();
     }
     currentPosePart = null;
@@ -4624,6 +4407,7 @@ function closeKeywordsPopup() {
             if (currentPart) {
                 (async () => {
                     await syncCurrentWorkspaceToActiveSetup();
+            await saveOpstillingDataToFirestore();
                 })();
             }
             currentPart = null;
@@ -5204,7 +4988,7 @@ function closeKeywordsPopup() {
 						}
 						// Force save immediately - don't wait for debounce
 						// Wait for save to complete before continuing
-						await syncCurrentWorkspaceToActiveSetup();
+						await queuedSave();
 					}, 300);
 				});
                 
@@ -5246,14 +5030,8 @@ function closeKeywordsPopup() {
                 normalizeLayers();
                 // Auto-save after delete
                 saveCharactersToShared();
-                // Save parts to Firestore with debounce (2 seconds)
-                if (partSaveDebounceTimeout) {
-                    clearTimeout(partSaveDebounceTimeout);
-                }
-                partSaveDebounceTimeout = setTimeout(async () => {
-                    await syncCurrentWorkspaceToActiveSetup();
-                    partSaveDebounceTimeout = null;
-                }, 2000);
+                // Schedule auto-save
+                scheduleAutoSave();
                 
             } catch (error) {
                 console.error('Fejl i deletePart:', error);
@@ -5296,14 +5074,8 @@ function closeKeywordsPopup() {
                 }
                 // Auto-save after layer change (front)
                 saveCharactersToShared();
-                // Save parts to Firestore with debounce (2 seconds)
-                if (partSaveDebounceTimeout) {
-                    clearTimeout(partSaveDebounceTimeout);
-                }
-                partSaveDebounceTimeout = setTimeout(async () => {
-                    await syncCurrentWorkspaceToActiveSetup();
-                    partSaveDebounceTimeout = null;
-                }, 2000);
+                // Schedule auto-save
+                scheduleAutoSave();
             } catch (error) {
                 console.error('Fejl i moveToFront:', error);
             }
@@ -5344,14 +5116,8 @@ function closeKeywordsPopup() {
                 }
                 // Auto-save after layer change (back)
                 saveCharactersToShared();
-                // Save parts to Firestore with debounce (2 seconds)
-                if (partSaveDebounceTimeout) {
-                    clearTimeout(partSaveDebounceTimeout);
-                }
-                partSaveDebounceTimeout = setTimeout(async () => {
-                    await syncCurrentWorkspaceToActiveSetup();
-                    partSaveDebounceTimeout = null;
-                }, 2000);
+                // Schedule auto-save
+                scheduleAutoSave();
             } catch (error) {
                 console.error('Fejl i moveToBack:', error);
             }
@@ -5389,14 +5155,8 @@ function closeKeywordsPopup() {
 				
                     saveCharactersToShared();
 					
-					// Save parts to Firestore with debounce (2 seconds)
-					if (partSaveDebounceTimeout) {
-						clearTimeout(partSaveDebounceTimeout);
-					}
-					partSaveDebounceTimeout = setTimeout(async () => {
-						await syncCurrentWorkspaceToActiveSetup();
-						partSaveDebounceTimeout = null;
-					}, 2000);
+					// Schedule auto-save
+					scheduleAutoSave();
 				
 			} catch (error) {
 				console.error('Fejl i increaseSize:', error);
@@ -5417,14 +5177,8 @@ function closeKeywordsPopup() {
 				
                     saveCharactersToShared();
 					
-					// Save parts to Firestore with debounce (2 seconds)
-					if (partSaveDebounceTimeout) {
-						clearTimeout(partSaveDebounceTimeout);
-					}
-					partSaveDebounceTimeout = setTimeout(async () => {
-						await syncCurrentWorkspaceToActiveSetup();
-						partSaveDebounceTimeout = null;
-					}, 2000);
+					// Schedule auto-save
+					scheduleAutoSave();
 				
 				} catch (error) {
 					console.error('Fejl i decreaseSize:', error);
@@ -5439,14 +5193,8 @@ function closeKeywordsPopup() {
 		if (!isLoadingSetup) {
 			saveCharactersToShared();
 			
-			// Save parts to Firestore with debounce (2 seconds)
-			if (partSaveDebounceTimeout) {
-				clearTimeout(partSaveDebounceTimeout);
-			}
-			partSaveDebounceTimeout = setTimeout(async () => {
-				await syncCurrentWorkspaceToActiveSetup();
-				partSaveDebounceTimeout = null;
-			}, 2000);
+			// Schedule auto-save
+			scheduleAutoSave();
 		}
 		}
         
@@ -5574,42 +5322,41 @@ function closeKeywordsPopup() {
         
         function stopDrag() {
 			try {
-				if (draggedElement && dragState) {
-					draggedElement.classList.remove('dragging');
+				// Gem dragState og draggedElement i lokale variabler først
+				const localDragState = dragState;
+				const localDraggedElement = draggedElement;
+				
+				// Null de globale med det samme
+				dragState = null;
+				draggedElement = null;
+				
+				if (localDraggedElement && localDragState) {
+					localDraggedElement.classList.remove('dragging');
 					
 					// Clear any pending settle timeout
-					if (dragState.settleTimeout) {
-						clearTimeout(dragState.settleTimeout);
+					if (localDragState.settleTimeout) {
+						clearTimeout(localDragState.settleTimeout);
 					}
 					
 					// Stop dragging flag but continue animation
-					dragState.isDragging = false;
-					dragState.targetRotation = 0;
-					
-					// Save parts to Firestore with debounce (2 seconds) when drag ends
-					if (partSaveDebounceTimeout) {
-						clearTimeout(partSaveDebounceTimeout);
-					}
-					partSaveDebounceTimeout = setTimeout(async () => {
-						await syncCurrentWorkspaceToActiveSetup();
-						partSaveDebounceTimeout = null;
-					}, 2000);
+					localDragState.isDragging = false;
+					localDragState.targetRotation = 0;
 					
 					// Continue settle animation until rotation is back to 0
 					const settleAnimation = () => {
-						if (dragState && Math.abs(dragState.currentRotation) > 0.1) {
+						if (localDragState && Math.abs(localDragState.currentRotation) > 0.1) {
 							const lerpFactor = 0.2; // Slower settling
-							dragState.currentRotation += (dragState.targetRotation - dragState.currentRotation) * lerpFactor;
+							localDragState.currentRotation += (localDragState.targetRotation - localDragState.currentRotation) * lerpFactor;
 							
-							const body = draggedElement.querySelector('.body');
+							const body = localDraggedElement.querySelector('.body');
 							if (body) {
-								body.style.transform = `translateX(-50%) rotate(${dragState.currentRotation}deg)`;
+								body.style.transform = `translateX(-50%) rotate(${localDragState.currentRotation}deg)`;
 							}
 							
-							dragState.animationId = requestAnimationFrame(settleAnimation);
+							localDragState.animationId = requestAnimationFrame(settleAnimation);
 						} else {
 							// Final cleanup when settled
-							const body = draggedElement.querySelector('.body');
+							const body = localDraggedElement.querySelector('.body');
 							if (body) {
 								body.style.transform = `translateX(-50%) rotate(0deg)`;
 							}
@@ -5617,21 +5364,12 @@ function closeKeywordsPopup() {
 							// Save shared characters (updates x,y)
 							saveCharactersToShared();
 							
-							// Save parts to Firestore with debounce (2 seconds)
-							if (partSaveDebounceTimeout) {
-								clearTimeout(partSaveDebounceTimeout);
-							}
-							partSaveDebounceTimeout = setTimeout(async () => {
-								await syncCurrentWorkspaceToActiveSetup();
-								partSaveDebounceTimeout = null;
-							}, 2000);
-							
-							draggedElement = null;
-							dragState = null;
+							// Save parts to Firestore using queued save after animation is complete
+							queuedSave();
 						}
 					};
 					
-					dragState.animationId = requestAnimationFrame(settleAnimation);
+					localDragState.animationId = requestAnimationFrame(settleAnimation);
 				}
                 document.removeEventListener('pointermove', drag);
                 document.removeEventListener('pointerup', stopDrag);
@@ -5797,7 +5535,7 @@ function closeKeywordsPopup() {
                 colorIndex = 0;
                 
                 // Update the active setup in opstillingData
-                syncCurrentWorkspaceToActiveSetup();
+                queuedSave();
                 
                 // Data saved via syncCurrentWorkspaceToActiveSetup() to Firestore
 
@@ -6135,55 +5873,31 @@ function closeKeywordsPopup() {
                 return;
             }
             
-            // Wait for snapshot listener to have data (max 2 seconds extra)
-            if (opstillingDataCache === undefined) {
-                for (let i = 0; i < 20; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (opstillingDataCache !== undefined) break;
-                }
-            }
-            
-            // Initialize new Opstilling data structure and load pose library in parallel
+            // Load data ÉN gang
             const [loadedData] = await Promise.all([
                 loadOpstillingData(),
                 loadPoseLibrary() // Load pose library in parallel, not blocking
             ]);
             
-            // Only update OpstillingData if we got data from Firestore
-            // If data is null, only create blank structure if we're sure there's no data (opstillingDataCache === null)
-            if (loadedData !== null) {
+            if (loadedData) {
                 OpstillingData = loadedData;
-            } else if (opstillingDataCache === null) {
-                // Confirmed no data in Firestore - create default structure
+            } else {
                 OpstillingData = null;
             }
-            // If opstillingDataCache is undefined, snapshot hasn't responded yet - wait a bit more
-            if (opstillingDataCache === undefined) {
-                // Wait a bit more for snapshot to respond (up to 1 more second)
-                for (let i = 0; i < 10; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (opstillingDataCache !== undefined) {
-                        // Snapshot has responded
-                        const firestoreData = await loadOpstillingDataFromFirestore();
-                        if (firestoreData !== null) {
-                            OpstillingData = firestoreData;
-                        } else if (opstillingDataCache === null) {
-                            OpstillingData = null;
-                        }
-                        break;
-                    }
-                }
-            }
             
-            // Only ensure default if OpstillingData is null (confirmed no data)
-            // But first check if Firestore actually has data before creating defaults
+            // Only ensure default if OpstillingData is null
             if (OpstillingData === null) {
                 // Before creating default data, check if Firestore has data
-                const firestoreCheck = await checkOpstillingDataExistsInFirestore();
-                if (firestoreCheck && firestoreCheck.exists) {
-                    // Firestore has data, use it instead of creating defaults
-                    console.log(`[INIT] Firestore has data (${firestoreCheck.collectionsCount} collections, ${firestoreCheck.setupsCount} setups, ${firestoreCheck.partsCount} parts), using it instead of creating defaults`);
-                    OpstillingData = firestoreCheck.data;
+                if (await hasDataInFirestore()) {
+                    // Firestore has data, load it instead of creating defaults
+                    const loadedData = await loadOpstillingData();
+                    if (loadedData) {
+                        OpstillingData = loadedData;
+                    } else {
+                        // No data in Firestore, create defaults
+                        console.log('[INIT] No data in Firestore, creating default structure');
+                        await ensureDefaultOpstillingData();
+                    }
                 } else {
                     // No data in Firestore, create defaults
                     console.log('[INIT] No data in Firestore, creating default structure');
@@ -6194,8 +5908,30 @@ function closeKeywordsPopup() {
             // Load active opstilling (from opstillingData or legacy storage)
             await loadActiveOpstilling();
             
-            // Wait for parts to be loaded in DOM (1 second)
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Wait for parts to be loaded in DOM
+            async function waitForPartsToLoad() {
+                const activeSetup = getActiveSetup();
+                if (!activeSetup || !Array.isArray(activeSetup.parts)) {
+                    return; // No setup or no parts expected
+                }
+                
+                const expectedPartsCount = activeSetup.parts.length;
+                const maxIterations = 50; // 50 × 100ms = 5 seconds max
+                
+                for (let i = 0; i < maxIterations; i++) {
+                    const partsInDOM = document.querySelectorAll('.part').length;
+                    if (partsInDOM === expectedPartsCount) {
+                        console.log(`[INIT] Parts loaded: ${partsInDOM}/${expectedPartsCount} (iteration ${i + 1})`);
+                        return;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                const finalPartsCount = document.querySelectorAll('.part').length;
+                console.warn(`[INIT] Parts load timeout: ${finalPartsCount}/${expectedPartsCount} parts after ${maxIterations} iterations`);
+            }
+            
+            await waitForPartsToLoad();
             
             // Mark initial load as complete
             isInitialLoad = false;
@@ -6393,6 +6129,7 @@ function closeKeywordsPopup() {
             try { 
                 (async () => {
                     await syncCurrentWorkspaceToActiveSetup();
+            await saveOpstillingDataToFirestore();
                 })();
             } catch(_) {}
         });

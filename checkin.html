@@ -674,104 +674,38 @@
             return new Date().toISOString().split('T')[0];
         }
 
-        // Global cache for logbook entries
-        let logbookEntriesCache = [];
-        let logbookSnapshotUnsubscribe = null;
-
-        // Setup real-time listener for logbook data from Firestore
-        function setupLogbookSnapshotListener() {
-            // Clean up existing listener if any
-            if (logbookSnapshotUnsubscribe) {
-                logbookSnapshotUnsubscribe();
-                logbookSnapshotUnsubscribe = null;
-            }
-            
-            if (!currentUser || !db) {
-                logbookEntriesCache = [];
-                return;
-            }
+        // Load logbook data from Firestore (simple, no cache)
+        async function loadLogbookDataFromFirestore() {
+            if (!currentUser || !db) return null;
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
                 
-                // Set up real-time listener
-                logbookSnapshotUnsubscribe = userDocRef.onSnapshot(
-                    {
-                        includeMetadataChanges: true // Important for offline support
-                    },
-                    (doc) => {
-                        if (!doc.exists) {
-                            logbookEntriesCache = [];
-                            return;
-                        }
-                        
-                        const userData = doc.data();
-                        const newData = userData && userData.logbogData 
-                            ? (Array.isArray(userData.logbogData) ? userData.logbogData : [])
-                            : [];
-                        
-                        const source = doc.metadata.fromCache ? 'cache' : 'server';
-                        console.log('[SNAPSHOT] Logbook data from:', source, 'entries:', newData.length);
-                        
-                        // GUARD 5: Don't reload during operations
-                        if (isInitialLoad || isLoadingData || isSavingData) {
-                            console.log('[SNAPSHOT] Ignored: operation in progress');
-                            logbookEntriesCache = newData; // Update cache but don't reload
-                            return;
-                        }
-                        
-                        // Check if data actually changed
-                        const currentEntryCount = logbookEntriesCache?.length || 0;
-                        const newEntryCount = newData.length;
-                        
-                        if (currentEntryCount === newEntryCount) {
-                            // Do deep comparison if counts match
-                            const currentJson = JSON.stringify(logbookEntriesCache || []);
-                            const newJson = JSON.stringify(newData);
-                            
-                            if (currentJson === newJson) {
-                                console.log('[SNAPSHOT] No changes detected');
-                                logbookEntriesCache = newData; // Silent update
-                                return;
-                            }
-                        }
-                        
-                        // Data changed - update cache
-                        console.log('[SNAPSHOT] Data changed:', currentEntryCount, '→', newEntryCount, 'entries');
-                        logbookEntriesCache = newData;
-                        
-                        // Reload UI if needed (night overlay hydration)
-                        if (document.readyState === 'complete' && typeof hydrateNightOverlay === 'function') {
-                            hydrateNightOverlay();
-                        }
-                    },
-                    (error) => {
-                        console.error('[SNAPSHOT] Error:', error);
-                    }
-                );
+                if (!doc.exists) return null;
+                const data = doc.data()?.logbogData;
+                return Array.isArray(data) ? data : null;
             } catch (error) {
-                console.error('Error setting up logbook snapshot listener:', error);
-                logbookEntriesCache = [];
+                console.error('[LOAD] Error:', error);
+                return null;
             }
-        }
-
-        // Load logbook data from Firestore (now uses cache from snapshot)
-        async function loadLogbookDataFromFirestore() {
-            // Return cached data from snapshot listener
-            return logbookEntriesCache;
         }
         
         // Save logbook data to Firestore
         async function saveLogbookDataToFirestore(entries) {
-            if (!currentUser || !db) return;
+            if (!currentUser || !db) return false;
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 await userDocRef.set({
-                    logbogData: entries
+                    logbogData: entries,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
+                console.log('[SAVE] Success');
+                return true;
             } catch (error) {
-                console.error('Error saving logbook data to Firestore:', error);
+                console.error('[SAVE] Error:', error);
+                return false;
             }
         }
 
@@ -779,20 +713,6 @@
             if (!currentUser || !db) {
                 console.error('[LOAD] User not logged in - cannot load data');
                 return [];
-            }
-            
-            // Ensure snapshot listener is set up
-            if (!logbookSnapshotUnsubscribe) {
-                setupLogbookSnapshotListener();
-                // Wait for snapshot listener to get initial data from Firestore
-                // Wait up to 2 seconds, checking every 100ms if data has arrived
-                for (let i = 0; i < 20; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (logbookEntriesCache !== undefined) {
-                        // Snapshot listener has responded (either with data or null)
-                        break;
-                    }
-                }
             }
             
             const firestoreData = await loadLogbookDataFromFirestore();
@@ -1100,15 +1020,7 @@
                 return;
             }
             
-            // 3. Wait for snapshot listener to have data (max 2 seconds extra)
-            if (logbookEntriesCache === undefined) {
-                for (let i = 0; i < 20; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (logbookEntriesCache !== undefined) break;
-                }
-            }
-            
-            // 4. Load data from Firestore
+            // 3. Load data from Firestore (one time)
             isLoadingData = true;
             try {
                 const entries = await getLogbookEntries();
@@ -1119,10 +1031,10 @@
                 isLoadingData = false;
             }
             
-            // 5. Wait for DOM to be fully rendered
+            // 4. Wait for DOM to be fully rendered
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // 6. NU FØRST: Mark initial load complete
+            // 5. Mark initial load complete
             isInitialLoad = false;
             console.log('[INIT] Initial load complete');
             
@@ -1630,21 +1542,24 @@
             auth = firebase.auth();
             db = firebase.firestore();
             
-            // Enable Firestore offline persistence
-            try {
-                firebase.firestore().enablePersistence({
-                    synchronizeTabs: true
-                });
-                console.log('Firestore offline persistence enabled');
-            } catch (err) {
+            // Enable offline persistence
+            db.enablePersistence({
+                synchronizeTabs: true  // CRITICAL: Sync cache across tabs
+            })
+            .then(() => {
+                console.log('✅ Firestore offline persistence enabled');
+            })
+            .catch((err) => {
                 if (err.code === 'failed-precondition') {
-                    console.warn('Persistence can only be enabled in one tab at a time');
+                    // Multiple tabs open, only first tab enables persistence
+                    console.warn('⚠️ Persistence already enabled in another tab');
                 } else if (err.code === 'unimplemented') {
-                    console.warn('Browser doesn\'t support persistence');
+                    // Browser doesn't support persistence (e.g. old Safari)
+                    console.warn('⚠️ Browser doesn\'t support offline persistence');
                 } else {
-                    console.error('Error enabling Firestore persistence:', err);
+                    console.error('❌ Persistence error:', err);
                 }
-            }
+            });
             
             console.log('Firebase initialized in checkin.html');
         } catch (error) {
@@ -1663,18 +1578,6 @@
             
             auth.onAuthStateChanged(user => {
                 currentUser = user;
-                
-                // Setup snapshot listener when user logs in
-                if (user) {
-                    setupLogbookSnapshotListener();
-                } else {
-                    // Clean up listener when user logs out
-                    if (logbookSnapshotUnsubscribe) {
-                        logbookSnapshotUnsubscribe();
-                        logbookSnapshotUnsubscribe = null;
-                    }
-                    logbookEntriesCache = [];
-                }
                 
                 // Mark auth as ready and resolve promise
                 if (!authStateReady) {

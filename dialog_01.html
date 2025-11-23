@@ -2144,8 +2144,21 @@
         
         // Flags for race condition protection
         let isInitialLoad = true;
-        let isLoadingData = false;
-        let isSavingData = false;
+        
+        // Auto-save timeout
+        let autoSaveTimeout = null;
+        
+        // Schedule auto-save after changes
+        function scheduleAutoSave() {
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+            
+            autoSaveTimeout = setTimeout(async () => {
+                await saveDialogDataToLocalStorage();
+                autoSaveTimeout = null;
+            }, 2000);
+        }
         
         // Initialize Firebase immediately (before DOM is ready) for faster auth state detection
         try {
@@ -2153,21 +2166,24 @@
             auth = firebase.auth();
             db = firebase.firestore();
             
-            // Enable Firestore offline persistence
-            try {
-                firebase.firestore().enablePersistence({
-                    synchronizeTabs: true
-                });
-                console.log('Firestore offline persistence enabled');
-            } catch (err) {
+            // Enable offline persistence
+            db.enablePersistence({
+                synchronizeTabs: true  // CRITICAL: Sync cache across tabs
+            })
+            .then(() => {
+                console.log('✅ Firestore offline persistence enabled');
+            })
+            .catch((err) => {
                 if (err.code === 'failed-precondition') {
-                    console.warn('Persistence can only be enabled in one tab at a time');
+                    // Multiple tabs open, only first tab enables persistence
+                    console.warn('⚠️ Persistence already enabled in another tab');
                 } else if (err.code === 'unimplemented') {
-                    console.warn('Browser doesn\'t support persistence');
+                    // Browser doesn't support persistence (e.g. old Safari)
+                    console.warn('⚠️ Browser doesn\'t support offline persistence');
                 } else {
-                    console.error('Error enabling Firestore persistence:', err);
+                    console.error('❌ Persistence error:', err);
                 }
-            }
+            });
         } catch (error) {
             console.error('Firebase initialization error:', error);
         }
@@ -2211,18 +2227,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             auth.onAuthStateChanged(user => {
                 currentUser = user;
                 
-                if (user) {
-                    // Setup snapshot listener for real-time updates
-                    setupDialogSnapshotListener();
-                } else {
-                    // Clean up listener when user logs out
-                    if (dialogSnapshotUnsubscribe) {
-                        dialogSnapshotUnsubscribe();
-                        dialogSnapshotUnsubscribe = null;
-                    }
-                    dialogDataCache = undefined;
-                }
-                
                 // Mark auth as ready and resolve promise immediately
                 if (!authStateReady) {
                     authStateReady = true;
@@ -2230,32 +2234,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                         authStateResolver();
                         authStateResolver = null;
                     }
-                }
-                
-                // When user logs in, reload data from Firestore
-                if (user) {
-                    (async () => {
-                        // IMPORTANT: Always reload, even if DialogData already exists, to ensure we get the correct source
-                        const data = await loadDialogData();
-                        
-                        // Only update DialogData if we got data from Firestore
-                        // If data is null, only create blank structure if we're sure there's no data (dialogDataCache === null)
-                        if (data !== null) {
-                            DialogData = data;
-                        } else if (dialogDataCache === null) {
-                            // Confirmed no data in Firestore - create default structure
-                            DialogData = null;
-                            ensureDefaultDialogData();
-                        }
-                        // If dialogDataCache is undefined, snapshot hasn't responded yet - don't create blank data
-                        
-                        // Reload active dialog if it exists
-                        const activeDialog = getActiveDialog();
-                        if (activeDialog) {
-                            loadSavedDialogFromNewStructure(activeDialog);
-                        }
-                        renderDialogHistory();
-                    })();
                 }
             });
         }
@@ -2340,113 +2318,39 @@ let dialogHistoryCollapsed = true; // Default to collapsed
 };
 		
         // Firestore functions
-        // Global cache for dialog data
-        // undefined = not yet loaded, null = confirmed no data, object = has data
-        let dialogDataCache = undefined;
-        let dialogSnapshotUnsubscribe = null;
-
-        // Setup real-time listener for dialog data from Firestore
-        function setupDialogSnapshotListener() {
-            // Clean up existing listener if any
-            if (dialogSnapshotUnsubscribe) {
-                dialogSnapshotUnsubscribe();
-                dialogSnapshotUnsubscribe = null;
-            }
-            
-            if (!currentUser || !db) {
-                dialogDataCache = null;
-                return;
-            }
+        // Load data from Firestore (simple, no cache)
+        async function loadDialogDataFromFirestore() {
+            if (!currentUser || !db) return null;
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
                 
-                // Set up real-time listener
-                dialogSnapshotUnsubscribe = userDocRef.onSnapshot(
-                    {
-                        includeMetadataChanges: true // Important for offline support
-                    },
-                    (doc) => {
-                        if (!doc.exists || !doc.data()?.dialogData) {
-                            dialogDataCache = null;
-                            return;
-                        }
-                        
-                        const newData = doc.data().dialogData;
-                        const source = doc.metadata.fromCache ? 'cache' : 'server';
-                        console.log('[SNAPSHOT] Dialog data from:', source);
-                        
-                        // GUARD 5: Don't reload during operations
-                        if (isInitialLoad || isLoadingData || isSavingData) {
-                            console.log('[SNAPSHOT] Ignored: operation in progress');
-                            dialogDataCache = newData; // Update cache but don't reload
-                            return;
-                        }
-                        
-                        // Check if data actually changed
-                        const currentCollectionsCount = DialogData?.collections?.length || 0;
-                        const newCollectionsCount = newData?.collections?.length || 0;
-                        
-                        if (currentCollectionsCount === newCollectionsCount) {
-                            // Do deep comparison if counts match
-                            const currentJson = JSON.stringify(DialogData?.collections || []);
-                            const newJson = JSON.stringify(newData?.collections || []);
-                            
-                            if (currentJson === newJson) {
-                                console.log('[SNAPSHOT] No changes detected');
-                                dialogDataCache = newData; // Silent update
-                                DialogData = newData; // Update DialogData silently
-                                return;
-                            }
-                        }
-                        
-                        // Data changed - reload
-                        console.log('[SNAPSHOT] Reloading:', currentCollectionsCount, '→', newCollectionsCount, 'collections');
-                        
-                        dialogDataCache = newData;
-                        DialogData = newData;
-                        
-                        // Reload active dialog if it exists
-                        if (document.readyState === 'complete' && typeof loadDialogDataFromNewStructure === 'function') {
-                            const activeDialog = getActiveDialog();
-                            if (activeDialog) {
-                                loadSavedDialogFromNewStructure(activeDialog);
-                            }
-                            renderDialogHistory();
-                        }
-                    },
-                    (error) => {
-                        console.error('[SNAPSHOT] Error:', error);
-                    }
-                );
+                if (!doc.exists) return null;
+                return doc.data()?.dialogData || null;
             } catch (error) {
-                console.error('Error setting up dialog snapshot listener:', error);
-                dialogDataCache = null;
+                console.error('[LOAD] Error:', error);
+                return null;
             }
-        }
-
-        async function loadDialogDataFromFirestore() {
-            // Return cached data from snapshot listener
-            // undefined means not loaded yet, null means confirmed no data
-            return dialogDataCache === undefined ? null : dialogDataCache;
         }
         
         async function saveDialogDataToFirestore() {
             if (!currentUser || !db) return false;
+            if (!DialogData) return false;
+            
+            DialogData.updated = new Date().toISOString();
             
             try {
-                if (!DialogData) return false;
-                DialogData.updated = new Date().toISOString();
-                
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 await userDocRef.set({
                     dialogData: DialogData,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
                 
+                console.log('[SAVE] Success');
                 return true;
             } catch (error) {
-                console.error('Error saving dialogData to Firestore:', error);
+                console.error('[SAVE] Error:', error);
                 return false;
             }
         }
@@ -2455,20 +2359,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             if (!currentUser || !db) {
                 console.error('[LOAD] User not logged in - cannot load data');
                 return null;
-            }
-            
-            // Ensure snapshot listener is set up
-            if (!dialogSnapshotUnsubscribe) {
-                setupDialogSnapshotListener();
-                // Wait for snapshot listener to get initial data from Firestore
-                // Wait up to 2 seconds, checking every 100ms if data has arrived
-                for (let i = 0; i < 20; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (dialogDataCache !== undefined) {
-                        // Snapshot listener has responded (either with data or null)
-                        break;
-                    }
-                }
             }
             
             const firestoreData = await loadDialogDataFromFirestore();
@@ -2517,14 +2407,9 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         }
         
         async function saveDialogDataToLocalStorage() {
-            // GUARD 2: Never save during initial load or loading
+            // Never save during initial load
             if (isInitialLoad) {
                 console.log('[SAVE] Blocked: initial load in progress');
-                return false;
-            }
-            
-            if (isLoadingData) {
-                console.log('[SAVE] Blocked: loading in progress');
                 return false;
             }
             
@@ -2535,38 +2420,8 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             
             try {
                 if (!DialogData) return false;
-                DialogData.updated = new Date().toISOString();
-                
-                // GUARD 3: Never save empty data if Firestore has data
-                const collectionsCount = Array.isArray(DialogData.collections) ? DialogData.collections.length : 0;
-                if (collectionsCount === 0) {
-                    // Check if Firestore actually has data
-                    try {
-                        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                        if (userDoc.exists) {
-                            const firestoreData = userDoc.data();
-                            const firestoreCollectionsCount = Array.isArray(firestoreData.dialogData?.collections) 
-                                ? firestoreData.dialogData.collections.length : 0;
-                            
-                            if (firestoreCollectionsCount > 0) {
-                                console.error('[SAVE] BLOCKED: Refusing to overwrite', 
-                                             firestoreCollectionsCount, 'collections with empty data');
-                                return false;
-                            }
-                        }
-                    } catch (error) {
-                        console.error('[SAVE] Error checking Firestore:', error);
-                    }
-                }
-                
-                // Safe to save now
-                isSavingData = true;
-                try {
-                    await saveDialogDataToFirestore();
-                    return true;
-                } finally {
-                    isSavingData = false;
-                }
+                await saveDialogDataToFirestore();
+                return true;
             } catch (error) {
                 console.error('[SAVE] Error saving to Firestore:', error);
                 return false;
@@ -6173,31 +6028,16 @@ if (rightPart.pose) {
                 return;
             }
             
-            // 3. Wait for snapshot listener to have data (max 2 seconds extra)
-            if (dialogDataCache === undefined) {
-                for (let i = 0; i < 20; i++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    if (dialogDataCache !== undefined) break;
-                }
+            // 3. Load data ÉN gang
+            const data = await loadDialogData();
+            if (data) {
+                DialogData = data;
+            } else {
+                // No data in Firestore, create defaults
+                DialogData = null;
+                ensureDefaultDialogData();
             }
-            
-            // 4. Load data from Firestore
-            isLoadingData = true;
-            try {
-                const data = await loadDialogData();
-                if (data !== null) {
-                    DialogData = data;
-                } else if (dialogDataCache === null) {
-                    // Confirmed no data in Firestore - create default structure
-                    DialogData = null;
-                    ensureDefaultDialogData();
-                }
-                console.log('[INIT] Loaded dialog data, collections:', DialogData?.collections?.length || 0);
-            } catch (error) {
-                console.error('[INIT] Error loading dialog data:', error);
-            } finally {
-                isLoadingData = false;
-            }
+            console.log('[INIT] Loaded dialog data, collections:', DialogData?.collections?.length || 0);
             
             // 5. Wait for DOM to be fully rendered
             await new Promise(resolve => setTimeout(resolve, 1000));
