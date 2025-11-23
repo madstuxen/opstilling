@@ -3686,8 +3686,7 @@
         }
         
         async function saveCharactersToShared() {
-            // Wrapper for queuedSave - kept for compatibility
-            // All saves now go through queuedSave which serializes saves
+            // Save current workspace state to Firestore
             await syncCurrentWorkspaceToActiveSetup();
             await saveOpstillingDataToFirestore();
             await renderHistory();
@@ -4967,9 +4966,7 @@ function closeKeywordsPopup() {
 						if (allParts.length === 0) {
 							return;
 						}
-						// Force save immediately - don't wait for debounce
-						// Wait for save to complete before continuing
-						await queuedSave();
+						// Save is already handled by saveCharactersToShared() above
 					}, 300);
 				});
                 
@@ -5344,9 +5341,7 @@ function closeKeywordsPopup() {
 							
 							// Save shared characters (updates x,y)
 							saveCharactersToShared();
-							
-							// Save parts to Firestore using queued save after animation is complete
-							queuedSave();
+							// Save is already handled by saveCharactersToShared() above
 						}
 					};
 					
@@ -5515,10 +5510,8 @@ function closeKeywordsPopup() {
                 // Reset color index
                 colorIndex = 0;
                 
-                // Update the active setup in opstillingData
-                queuedSave();
-                
-                // Data saved via syncCurrentWorkspaceToActiveSetup() to Firestore
+                // Update the active setup in opstillingData and save to Firestore
+                scheduleAutoSave();
 
             } catch (error) {
                 console.error('Fejl i clearAll:', error);
