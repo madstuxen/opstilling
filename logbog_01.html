@@ -2466,7 +2466,10 @@
                     if (combinedText) {
                         combinedText += '\n';
                     }
-                    combinedText += `Taknemmelighed : "${taknem.trim()}"`;
+                    // Capitalize first letter of taknem value
+                    const taknemValue = taknem.trim();
+                    const capitalizedTaknem = taknemValue.charAt(0).toUpperCase() + taknemValue.slice(1);
+                    combinedText += `Taknemmelighed : "${capitalizedTaknem}"`;
                 }
                 
                 tankerEntryEl.value = combinedText;
@@ -3178,7 +3181,10 @@
                         }
                         if (taknem && taknem.trim()) {
                             if (combinedText) combinedText += '\n';
-                            combinedText += `Taknemmelighed : "${taknem.trim()}"`;
+                            // Capitalize first letter of taknem value
+                            const taknemValue = taknem.trim();
+                            const capitalizedTaknem = taknemValue.charAt(0).toUpperCase() + taknemValue.slice(1);
+                            combinedText += `Taknemmelighed : "${capitalizedTaknem}"`;
                         }
                         tankerEntryEl.value = combinedText;
                         autoResizeTextarea(tankerEntryEl);
@@ -4127,7 +4133,10 @@
                             if (combinedText) {
                                 combinedText += '\n';
                             }
-                            combinedText += `Taknemmelighed : "${taknem.trim()}"`;
+                            // Capitalize first letter of taknem value
+                            const taknemValue = taknem.trim();
+                            const capitalizedTaknem = taknemValue.charAt(0).toUpperCase() + taknemValue.slice(1);
+                            combinedText += `Taknemmelighed : "${capitalizedTaknem}"`;
                         }
                         
                         tankerEntryEl.value = combinedText;
