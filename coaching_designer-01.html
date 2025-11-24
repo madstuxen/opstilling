@@ -1176,17 +1176,29 @@ Der startes på den node, som er angivet i start_node.
 				
 				const chat = document.getElementById('chatContainer');
 				chat.innerHTML = '';
-				const hasMMarker = (q) => !!(q && typeof q.text === 'string' && /<<\s*m\s*>>/i.test(q.text));
-				const mmmFlag = (q) => !!(q && q.mmm);
-				if (currentQuestion.type === 'choice') {
-					addMessage('coach', currentQuestion.text, currentQuestion.choices, currentQuestion.variableName, false, (hasMMarker(currentQuestion) || mmmFlag(currentQuestion)));
-				} else if (currentQuestion.type === 'slider') {
-					addMessage('coach', currentQuestion.text, currentQuestion, currentQuestion.variableName, true, (hasMMarker(currentQuestion) || mmmFlag(currentQuestion)));
-				} else {
-					addMessage('coach', currentQuestion.text, null, null, false, (hasMMarker(currentQuestion) || mmmFlag(currentQuestion)));
-				}
 				
-				document.getElementById('inputArea').classList.add('active');
+				// Don't show message if coaching is already done
+				if (currentQuestion.done) {
+					document.getElementById('inputArea').classList.remove('active');
+				} else {
+					const hasMMarker = (q) => !!(q && typeof q.text === 'string' && /<<\s*m\s*>>/i.test(q.text));
+					const mmmFlag = (q) => !!(q && q.mmm);
+					const hasMmm = hasMMarker(currentQuestion) || mmmFlag(currentQuestion);
+					const isLastInLastNode = engine.isLastQuestionInLastNode();
+					
+					if (currentQuestion.type === 'choice') {
+						addMessage('coach', currentQuestion.text, currentQuestion.choices, currentQuestion.variableName, false, hasMmm);
+					} else if (currentQuestion.type === 'slider') {
+						addMessage('coach', currentQuestion.text, currentQuestion, currentQuestion.variableName, true, hasMmm);
+					} else {
+						addMessage('coach', currentQuestion.text, null, null, false, hasMmm);
+					}
+					
+					// Only add active class if this is not the last question in the last node with <<m>> marker
+					if (!(hasMmm && isLastInLastNode)) {
+						document.getElementById('inputArea').classList.add('active');
+					}
+				}
 				document.getElementById('userInput').value = '';
 			} catch (e) {
 				alert('Fejl: ' + e.message);
@@ -1194,6 +1206,11 @@ Der startes på den node, som er angivet i start_node.
 		}
         
 		function addMessage(type, text, sliderOrChoices, variableName, isSlider, isMmm) {
+			// Don't create message if text is empty or undefined
+			if (!text || (typeof text === 'string' && text.trim() === '')) {
+				return;
+			}
+			
 			const chat = document.getElementById('chatContainer');
 			const msg = document.createElement('div');
 			msg.className = 'message ' + type;
@@ -1234,8 +1251,13 @@ Der startes på den node, som er angivet i start_node.
 			} else if (type === 'coach') {
 				// Detect <<m>> marker either via engine flag or directly in the question text
 				const hasMmm = !!isMmm || /<<\s*m\s*>>/i.test(text);
-				if (hasMmm) {
-					showMmmButton();
+				// Only show Mmm button if this is not the last question in the last node
+				// Check if this is the last question in the last node BEFORE showing the button
+				if (hasMmm && engine) {
+					const isLastInLastNode = engine.isLastQuestionInLastNode();
+					if (!isLastInLastNode) {
+						showMmmButton();
+					}
 				}
 			}
 		}
@@ -1367,7 +1389,6 @@ Der startes på den node, som er angivet i start_node.
 				currentQuestion = engine.answer(choiceValue);
 				
 				if (currentQuestion.done) {
-					addMessage('coach', currentQuestion.text);
 					document.getElementById('inputArea').classList.remove('active');
 				} else {
 					const isM = (!!currentQuestion.mmm) || /<<\s*m\s*>>/i.test(currentQuestion.text || '');
@@ -1430,15 +1451,20 @@ Der startes på den node, som er angivet i start_node.
 			currentQuestion = engine.answer(sliderValue);
 			
 			if (currentQuestion.done) {
-				addMessage('coach', currentQuestion.text);
 				document.getElementById('inputArea').classList.remove('active');
 			} else {
+				const isM = /<<\s*m\s*>>/i.test(currentQuestion.text || '');
+				const isLast = engine.isLastQuestion();
 				if (currentQuestion.type === 'choice') {
-					addMessage('coach', currentQuestion.text, currentQuestion.choices, currentQuestion.variableName, false, /<<\s*m\s*>>/i.test(currentQuestion.text || ''));
+					addMessage('coach', currentQuestion.text, currentQuestion.choices, currentQuestion.variableName, false, isM);
 				} else if (currentQuestion.type === 'slider') {
-					addMessage('coach', currentQuestion.text, currentQuestion, currentQuestion.variableName, true, /<<\s*m\s*>>/i.test(currentQuestion.text || ''));
+					addMessage('coach', currentQuestion.text, currentQuestion, currentQuestion.variableName, true, isM);
 				} else {
-					addMessage('coach', currentQuestion.text, null, null, false, /<<\s*m\s*>>/i.test(currentQuestion.text || ''));
+					addMessage('coach', currentQuestion.text, null, null, false, isM);
+				}
+				// Only add active class if this is not the last question with <<m>> marker
+				if (!(isM && isLast)) {
+					document.getElementById('inputArea').classList.add('active');
 				}
 			}
 		}
@@ -1498,23 +1524,32 @@ Der startes på den node, som er angivet i start_node.
 			// Clean up UI first
 			cleanupInputArea();
 			
-			// Add user message
-			addMessage('user', 'Mmmm');
+			// Check if current question is the last BEFORE advancing
+			const wasLastQuestion = engine.isLastQuestion();
 			
-			// Advance engine
+			// Advance engine first to check if next question is done
 			currentQuestion = engine.answer('Mmmm');
 			
+			// Only add user message if next question is not done
+			if (!currentQuestion.done) {
+				addMessage('user', 'Mmmm');
+			}
+			
 			if (currentQuestion.done) {
-				addMessage('coach', currentQuestion.text);
 				document.getElementById('inputArea').classList.remove('active');
 			} else {
 				const isM = (!!currentQuestion.mmm) || /<<\s*m\s*>>/i.test(currentQuestion.text || '');
+				const isLastInLastNode = engine.isLastQuestionInLastNode();
 				if (currentQuestion.type === 'choice') {
 					addMessage('coach', currentQuestion.text, currentQuestion.choices, currentQuestion.variableName, false, isM);
 				} else if (currentQuestion.type === 'slider') {
 					addMessage('coach', currentQuestion.text, currentQuestion, currentQuestion.variableName, true, isM);
 				} else {
 					addMessage('coach', currentQuestion.text, null, null, false, isM);
+				}
+				// Only add active class if this is not the last question in the last node with <<m>> marker
+				if (!(isM && isLastInLastNode)) {
+					document.getElementById('inputArea').classList.add('active');
 				}
 			}
 		}
@@ -1556,7 +1591,6 @@ Der startes på den node, som er angivet i start_node.
 			currentQuestion = engine.answer(input);
 			
 			if (currentQuestion.done) {
-				addMessage('coach', currentQuestion.text);
 				document.getElementById('inputArea').classList.remove('active');
 			} else {
 				if (currentQuestion.type === 'choice') {

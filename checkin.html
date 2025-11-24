@@ -837,23 +837,8 @@
             const now = new Date();
             const currentHour = now.getHours();
             const isNightTime = (currentHour >= 22 && currentHour <= 23) || (currentHour >= 0 && currentHour < 8);
-            if (!isNightTime) {
-                return false;
-            }
-
-            const state = loadOverlayState();
-        if (state.closedAt) {
-            const closedAt = new Date(state.closedAt);
-            if (!Number.isNaN(closedAt.getTime())) {
-                const timeSinceClosed = now.getTime() - closedAt.getTime();
-                if (timeSinceClosed < OVERLAY_SHOW_INTERVAL_MS) {
-                    return false;
-                }
-            }
+            return isNightTime;
         }
-
-        return true;
-    }
 
         function recordOverlayClosed() {
             const state = loadOverlayState();
@@ -1440,13 +1425,25 @@
                 const tekst = getAffirmationText();
                 
                 if (tekst) {
-                    const forsideData = {
-                        version: "1.0",
-                        lastUpdated: new Date().toISOString(),
-                        tekst: tekst
-                    };
+                    // Read existing indexuserData from localStorage
+                    const existingData = localStorage.getItem('indexuserData');
+                    let indexuserData = {};
                     
-                    localStorage.setItem(FORSIDE_DATA_KEY, JSON.stringify(forsideData));
+                    if (existingData) {
+                        try {
+                            indexuserData = JSON.parse(existingData);
+                        } catch (e) {
+                            console.warn('Could not parse existing indexuserData, creating new object');
+                            indexuserData = {};
+                        }
+                    }
+                    
+                    // Add tekst to indexuserData
+                    indexuserData.tekst = tekst;
+                    
+                    // Save back to localStorage
+                    localStorage.setItem('indexuserData', JSON.stringify(indexuserData));
+                    console.log('Tekst saved to indexuserData:', tekst);
                 }
             } catch (error) {
                 console.error('Fejl ved gemning til localStorage:', error);

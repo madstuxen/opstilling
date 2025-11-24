@@ -1353,10 +1353,10 @@
 
                     <section class="card checkins-card">
                         <div class="checkins-header">
-                            <div class="card-title" style="margin-right: auto;">
+                            <div class="card-title">
                                 <strong>CHECKINS</strong>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 10px; margin-left: 18px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
                             <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="Skift visning" title="Skift visning">
                                 <button class="checkin-add-btn" id="openCheckinModal" title="Tilføj check-in">+</button>
                                 <button class="checkin-days-btn" data-days="1" title="Vis 1 dag">1</button>
@@ -1519,6 +1519,20 @@
         }
         
         function getAffirmationTextForDate(dateKey) {
+            // Read tekst from indexuserData in localStorage
+            try {
+                const indexuserData = localStorage.getItem('indexuserData');
+                if (indexuserData) {
+                    const data = JSON.parse(indexuserData);
+                    if (data && data.tekst) {
+                        return data.tekst;
+                    }
+                }
+            } catch (error) {
+                console.error('Fejl ved læsning af tekst fra indexuserData:', error);
+            }
+            
+            // Fallback to old method if tekst not found in indexuserData
             if (affirmations.length === 0) {
                 return null;
             }

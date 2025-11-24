@@ -2142,7 +2142,7 @@
             <div class="participants-container" id="compareParticipants">
                
 			   <div class="participant">
-					<div class="participant-circle" id="leftCircle" style="display: flex;">
+					<div class="participant-circle" id="leftCircle" style="display: none;">
 						<button class="color-circle-btn" id="leftPoseBtn" title="Skift pose">P</button>
 						<button class="color-circle-btn" id="leftColorBtn" title="Skift farve">C</button>
 						<button class="note-circle-btn" id="leftNoteBtn" title="Rediger navn">N</button>
@@ -2202,7 +2202,7 @@
 				</div>
                 
                 <div class="participant">
-					<div class="participant-circle" id="rightCircle" style="display: flex;">
+					<div class="participant-circle" id="rightCircle" style="display: none;">
 						<button class="color-circle-btn" id="rightColorBtn" title="Skift farve">C</button>
 						<button class="color-circle-btn" id="rightPoseBtn" title="Skift pose">P</button>
 						<button class="note-circle-btn" id="rightNoteBtn" title="Rediger navn">N</button>
@@ -2782,7 +2782,7 @@
 				if (leftNameEl) leftNameEl.textContent = comparison.leftParticipant.name || 'Venstre';
 				leftColor = comparison.leftParticipant.color || '#3b82f6';
 				leftLightColor = lightenColor(leftColor, 0.6);
-				if (leftCircle) {
+				if (leftCircle && !isInitialLoad) {
 					leftCircle.style.display = 'flex';
 					const head = leftCircle.querySelector('.head');
 					if (head) {
@@ -2814,7 +2814,7 @@
 				if (leftNameEl) leftNameEl.textContent = 'Venstre';
 				leftColor = '#3b82f6';
 				leftLightColor = lightenColor(leftColor, 0.6);
-				if (leftCircle) {
+				if (leftCircle && !isInitialLoad) {
 					leftCircle.style.display = 'flex';
 					const head = leftCircle.querySelector('.head');
 					if (head) {
@@ -2829,7 +2829,7 @@
 				if (rightNameEl) rightNameEl.textContent = comparison.rightParticipant.name || 'Højre';
 				rightColor = comparison.rightParticipant.color || '#ef4444';
 				rightLightColor = lightenColor(rightColor, 0.6);
-				if (rightCircle) {
+				if (rightCircle && !isInitialLoad) {
 					rightCircle.style.display = 'flex';
 					const head = rightCircle.querySelector('.head');
 					if (head) {
@@ -2861,7 +2861,7 @@
 				if (rightNameEl) rightNameEl.textContent = 'Højre';
 				rightColor = '#ef4444';
 				rightLightColor = lightenColor(rightColor, 0.6);
-				if (rightCircle) {
+				if (rightCircle && !isInitialLoad) {
 					rightCircle.style.display = 'flex';
 					const head = rightCircle.querySelector('.head');
 					if (head) {
@@ -4178,6 +4178,9 @@ function closePosePicker() {
         }
 
         function updateParticipant(side) {
+            // Don't show participants during initial load
+            if (isInitialLoad) return;
+            
             const dropdown = document.getElementById(side + 'Dropdown');
             const circle = document.getElementById(side + 'Circle');
             const name = document.getElementById(side + 'Name');
@@ -4415,7 +4418,7 @@ function closePosePicker() {
                 // If selection was cleared, ensure default Venstre is shown
                 const leftCircle = document.getElementById('leftCircle');
                 const leftNameEl = document.getElementById('leftName');
-                if (leftCircle) {
+                if (leftCircle && !isInitialLoad) {
                     leftCircle.style.display = 'flex';
                     if (leftNameEl && !leftNameEl.hasAttribute('data-edited')) {
                         leftNameEl.textContent = 'Venstre';
@@ -4438,7 +4441,7 @@ function closePosePicker() {
                 // If selection was cleared, ensure default Højre is shown
                 const rightCircle = document.getElementById('rightCircle');
                 const rightNameEl = document.getElementById('rightName');
-                if (rightCircle) {
+                if (rightCircle && !isInitialLoad) {
                     rightCircle.style.display = 'flex';
                     if (rightNameEl && !rightNameEl.hasAttribute('data-edited')) {
                         rightNameEl.textContent = 'Højre';
@@ -5551,7 +5554,7 @@ function resetPose(side) {
 			// Show circles with default participants
             const leftCircle = document.getElementById('leftCircle');
             const rightCircle = document.getElementById('rightCircle');
-			if (leftCircle) {
+			if (leftCircle && !isInitialLoad) {
             leftCircle.style.display = 'flex';
 				const head = leftCircle.querySelector('.head');
 				if (head) {
@@ -5559,7 +5562,7 @@ function resetPose(side) {
 				}
 				updateBodyColors('left', leftColor);
 			}
-			if (rightCircle) {
+			if (rightCircle && !isInitialLoad) {
             rightCircle.style.display = 'flex';
 				const head = rightCircle.querySelector('.head');
 				if (head) {
@@ -5892,8 +5895,8 @@ function resetPose(side) {
                 leftLightColor = lightenColor(leftColor, 0.6);
                 rightLightColor = lightenColor(rightColor, 0.6);
                 
-                // Ensure circles are visible with default names
-                if (leftCircle) {
+                // Ensure circles are visible with default names (only after initial load)
+                if (leftCircle && !isInitialLoad) {
                     leftCircle.style.display = 'flex';
                     const head = leftCircle.querySelector('.head');
                     if (head) {
@@ -5901,7 +5904,7 @@ function resetPose(side) {
                     }
                     updateBodyColors('left', leftColor);
                 }
-                if (rightCircle) {
+                if (rightCircle && !isInitialLoad) {
                     rightCircle.style.display = 'flex';
                     const head = rightCircle.querySelector('.head');
                     if (head) {

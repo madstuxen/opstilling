@@ -480,12 +480,118 @@ class CoachEngine {
     
     moveToNext(nextId) {
         if (!nextId) {
-            return { text: 'Tak for samtalen!', done: true };
+            return { done: true };
         }
         this.currentNodeId = nextId;
         this.questionIndex = 0;
         this.preparedQuestions = [];
         return this.processCurrentNode();
+    }
+    
+    isLastQuestion() {
+        // Check if current question is the last one
+        // Simple logic: if next is empty (undefined, null, or empty string), it's the last question
+        // This works even with branching - if next is empty, there's nowhere to go
+        const node = this.nodes.find(n => n.id === this.currentNodeId);
+        if (!node) return true;
+        
+        // Helper to check if next is empty (matches moveToNext logic: !nextId)
+        // This checks for undefined, null, empty string, or any falsy value
+        const isNextEmpty = (next) => {
+            return !next;
+        };
+        
+        // Check if there are more questions in current node
+        if (node.type === 'all') {
+            if (node.items) {
+                const itemsList = Array.isArray(node.items) ? node.items : this.blackboard[node.items] || [];
+                if (itemsList.length > 0) {
+                    // Calculate total questions without modifying state
+                    const totalQuestions = itemsList.length * node.questions.length;
+                    // Use preparedQuestions if already calculated, otherwise use calculated total
+                    const currentTotal = this.preparedQuestions.length > 0 ? this.preparedQuestions.length : totalQuestions;
+                    // questionIndex is the index of the CURRENT question being shown
+                    // So if questionIndex is 6 and totalQuestions is 7, we're showing the last question (index 6)
+                    const hasMoreInNode = this.questionIndex < currentTotal - 1;
+                    // If there are more questions in this node, it's not the last
+                    if (hasMoreInNode) return false;
+                    // If no more questions in node, check if next is empty
+                    return isNextEmpty(node.next);
+                }
+            }
+            // Regular loop without items
+            // questionIndex is the index of the CURRENT question being shown
+            // So if questionIndex is 6 and length is 7, we're showing the last question (index 6)
+            const hasMoreInNode = this.questionIndex < node.questions.length - 1;
+            // If there are more questions in this node, it's not the last
+            if (hasMoreInNode) return false;
+            // If no more questions in node, check if next is empty
+            return isNextEmpty(node.next);
+        } else if (node.type === 'pick') {
+            // Pick type only shows one question, so check if next is empty
+            return isNextEmpty(node.next);
+        } else if (node.type === 'random') {
+            // Random type can have multiple questions in preparedQuestions
+            // If preparedQuestions is not initialized yet, we can't determine, so check next
+            if (this.preparedQuestions.length === 0) {
+                return isNextEmpty(node.next);
+            }
+            const hasMoreInNode = this.questionIndex < this.preparedQuestions.length - 1;
+            // If there are more questions in this node, it's not the last
+            if (hasMoreInNode) return false;
+            // If no more questions in node, check if next is empty
+            return isNextEmpty(node.next);
+        } else if (node.type === 'choice' || node.type === 'save') {
+            // These types only show one question, so check if next is empty
+            return isNextEmpty(node.next);
+        } else if (node.type === 'branch') {
+            // Branch nodes might have conditional next, so we can't easily determine
+            // But if next is empty, it's likely the last
+            return isNextEmpty(node.next);
+        }
+        
+        return isNextEmpty(node.next);
+    }
+    
+    isLastQuestionInLastNode() {
+        // Check if current question is the last question in the last node
+        // This is used to determine if we should hide the arrow for <<m>> questions
+        const node = this.nodes.find(n => n.id === this.currentNodeId);
+        if (!node) return true;
+        
+        // Helper to check if next is empty (matches moveToNext logic: !nextId)
+        const isNextEmpty = (next) => {
+            return !next;
+        };
+        
+        // First check if this is the last node (next is empty)
+        if (!isNextEmpty(node.next)) {
+            return false; // Not the last node
+        }
+        
+        // Now check if this is the last question in this node
+        if (node.type === 'all') {
+            if (node.items) {
+                const itemsList = Array.isArray(node.items) ? node.items : this.blackboard[node.items] || [];
+                if (itemsList.length > 0) {
+                    const totalQuestions = itemsList.length * node.questions.length;
+                    const currentTotal = this.preparedQuestions.length > 0 ? this.preparedQuestions.length : totalQuestions;
+                    // Check if this is the last question in the node
+                    return this.questionIndex === currentTotal - 1;
+                }
+            }
+            // Regular loop without items
+            // Check if this is the last question in the node
+            return this.questionIndex === node.questions.length - 1;
+        } else if (node.type === 'pick' || node.type === 'random' || node.type === 'choice' || node.type === 'save') {
+            // These types only show one question, so if we're here and next is empty, it's the last
+            return true;
+        } else if (node.type === 'branch') {
+            // Branch nodes might have conditional next, but if next is empty, it's the last
+            return true;
+        }
+        
+        return false;
     }
     
     answer(response) {

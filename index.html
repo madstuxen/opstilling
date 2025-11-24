@@ -362,6 +362,42 @@ const firebaseConfig = {
             console.error('ERROR: new-user-form element not found!');
                         }
 
+        // Function to load and save userData to localStorage
+        async function loadAndSaveUserData(user) {
+            if (!user || !db) return;
+            
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    const data = userDoc.data();
+                    const userData = data.userData || null;
+                    
+                    // Save to localStorage
+                    if (userData) {
+                        // Add "You" field with displayName value
+                        const dataToSave = {
+                            ...userData,
+                            You: userData.displayName || ''
+                        };
+                        localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
+                        console.log('UserData saved to localStorage:', dataToSave);
+                    } else {
+                        // If userData doesn't exist, create empty object
+                        localStorage.setItem('indexuserData', JSON.stringify({}));
+                        console.log('Empty userData created in localStorage');
+                    }
+                } else {
+                    // If document doesn't exist, create empty userData
+                    localStorage.setItem('indexuserData', JSON.stringify({}));
+                    console.log('User document not found, created empty userData in localStorage');
+                }
+            } catch (error) {
+                console.error('Error loading userData from Firestore:', error);
+                // Create empty userData on error
+                localStorage.setItem('indexuserData', JSON.stringify({}));
+            }
+        }
+
         // Check if user is already logged in
         auth.onAuthStateChanged(user => {
             console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
@@ -394,12 +430,14 @@ const firebaseConfig = {
             console.log('Attempting login for:', email);
 
             auth.signInWithEmailAndPassword(email, password)
-                .then(userCredential => {
+                .then(async userCredential => {
                     console.log('Login successful!', userCredential.user);
                     // Successful login - show logged in section
                     currentUser = userCredential.user;
                     // Set global_useFirestore to true on successful login
                     saveGlobalFirestoreToggle(true);
+                    // Load and save userData to localStorage
+                    await loadAndSaveUserData(currentUser);
                     showLoggedInSection(currentUser);
                     // Clear form
                     loginForm.reset();
@@ -560,6 +598,14 @@ const firebaseConfig = {
                     return db.collection('users').doc(currentUser.uid).set(userDoc, { merge: true })
                         .then(() => {
                             console.log('User data saved to Firestore');
+                            // Save userData to localStorage with "You" field
+                            const userData = userDoc.userData || {};
+                            const dataToSave = {
+                                ...userData,
+                                You: userData.displayName || ''
+                            };
+                            localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
+                            console.log('UserData saved to localStorage:', dataToSave);
                             // Set global_useFirestore to true when new user is created successfully
                             saveGlobalFirestoreToggle(true);
                             // Show logged in section after successful user creation and data save

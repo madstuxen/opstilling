@@ -173,9 +173,9 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
             /* Coaching Overlay Container */
             #coachingOverlay {
                 position: fixed;
-                top: 50%;
+                top: 20px;
                 left: 50%;
-                transform: translate(-50%, -50%);
+                transform: translateX(-50%);
                 width: 100%;
                 max-width: 600px;
                 height: auto;
@@ -193,11 +193,11 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
             @keyframes coachingSlideIn {
                 from {
                     opacity: 0;
-                    transform: translate(-50%, -60%);
+                    transform: translateX(-50%) translateY(-20px);
                 }
                 to {
                     opacity: 1;
-                    transform: translate(-50%, -50%);
+                    transform: translateX(-50%);
                 }
             }
             
@@ -245,12 +245,12 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
             
             /* Overlay Content */
             .overlay-content {
-                flex: 1;
-                padding: 20px;
+                flex: 1 1 auto;
+                padding: 0px;
                 position: relative;
                 z-index: 2;
                 background: white;
-                min-height: 400px;
+                min-height: auto;
                 overflow: visible;
             }
         `;
@@ -587,18 +587,7 @@ async function createCoachingContent(contentElement, dataSource) {
         
         // Note: Flags will be applied in startCoachingSession after they are loaded from project
 
-        // Constrain dialog popup height inside shadow root
-        const dialogMaxHeightStyle = document.createElement('style');
-        dialogMaxHeightStyle.textContent = `
-            .dialog-popup {
-                max-height: 100%;
-            }
-            #transcriptContent {
-                max-height: 371px;
-                overflow-y: auto;
-            }
-        `;
-        shadowRoot.appendChild(dialogMaxHeightStyle);
+        // Dialog popup can grow with content - no max-height constraint needed
         // Ensure client bubble grows like coach (no internal scroll)
         const bubbleGrowStyle = document.createElement('style');
         bubbleGrowStyle.textContent = `
@@ -615,35 +604,17 @@ async function createCoachingContent(contentElement, dataSource) {
             debugLog('Hidden client figure immediately');
         }
         
-        // Ensure consistent CSS variables across host pages (keeps positions identical)
-        const dialogPopup = shadowRoot.querySelector('.dialog-popup');
-        if (dialogPopup) {
-            dialogPopup.style.setProperty('--left-figure-offset-x', '-90px');
-            dialogPopup.style.setProperty('--left-figure-offset-y', '-20px');
-            dialogPopup.style.setProperty('--right-figure-offset-x', '90px');
-            dialogPopup.style.setProperty('--right-figure-offset-y', '-20px');
-            dialogPopup.style.setProperty('--left-bubble-left', '120px');
-            dialogPopup.style.setProperty('--left-bubble-offset-y', '-20px');
-            dialogPopup.style.setProperty('--right-bubble-right', '120px');
-            dialogPopup.style.setProperty('--right-bubble-offset-y', '-20px');
-            dialogPopup.style.setProperty('--controls-margin-top', '75px');
-        }
+        // CSS variables are now set in HTML, no need to set them dynamically
         
         // Ensure participants section can overlap header where needed
         const overlayParticipantsSection = shadowRoot.querySelector('.overlay-participants-section');
         if (overlayParticipantsSection) {
-            overlayParticipantsSection.style.zIndex = '10002';
-            overlayParticipantsSection.style.position = 'relative';
             // Position is controlled via CSS variables above
             overlayParticipantsSection.style.top = '';
         }
         
         // Ensure controls remain interactive above figures
-        const controlsBar = shadowRoot.querySelector('.controls');
-        if (controlsBar) {
-            controlsBar.style.zIndex = '10003';
-            controlsBar.style.position = 'relative';
-        }
+        // (z-index and position are now in HTML CSS)
         
         // Ensure placeholder participant divs do not block header drag
         const placeholderParticipants = shadowRoot.querySelectorAll('.overlay-participant');
@@ -885,11 +856,22 @@ async function startCoachingSession(contentElement, dataSource) {
                 if (content) {
                     content.style.background = 'transparent';
                 }
+                // Apply transparent background to participants and transcript sections
+                const overlayParticipantsSection = shadowRootForFlags.querySelector('.overlay-participants-section');
+                if (overlayParticipantsSection) {
+                    overlayParticipantsSection.style.background = 'transparent';
+                }
+                const transcriptSection = shadowRootForFlags.querySelector('.transcript-section');
+                if (transcriptSection) {
+                    transcriptSection.style.background = 'transparent';
+                }
                 // Add style to shadow DOM to override CSS
                 const transparentStyle = document.createElement('style');
                 transparentStyle.textContent = `
                     .dialog-popup { background: transparent !important; }
                     .content { background: transparent !important; }
+                    .overlay-participants-section { background: transparent !important; }
+                    .transcript-section { background: transparent !important; }
                 `;
                 shadowRootForFlags.appendChild(transparentStyle);
             }
@@ -964,10 +946,11 @@ async function startCoachingSession(contentElement, dataSource) {
                             });
                             debugLog('Merged external data into variables for engine:', variables);
                             
-                            // For UI: Use ONLY loaded data (not merged with project.variables)
-                            // project.variables is just metadata (Data key), not UI data
-                            // UI needs the actual participant data: You, You_pose, You_color, etc.
-                            const uiData = { ...loaded };
+                            // For UI: Merge project.variables with loaded data to preserve You_color, You_pose, etc. from coaching file
+                            // project.variables contains UI data like You_color, You_pose from coaching file
+                            // loaded contains data from localStorage (like You, displayName, email)
+                            // Merge them so coaching file values are preserved if not in localStorage
+                            const uiData = { ...project.variables, ...loaded };
                             
                             // Load external data for UI (colors, poses, names)
                             loadExternalDataForUI(contentElement, uiData);
@@ -1886,8 +1869,19 @@ function showCoachingQuestion(contentElement, question) {
     // Add to transcript
     addToTranscript(contentElement, 'coach', question.text.replace(/<<[^>]+>>/g, ''));
     
-    // Animate coach when speaking - transition from slapper to tænke
-    waitForPoseLibraryAndApplyCoachPose('tænke');
+    // Animate coach when speaking - use pendingCoachPose if set, otherwise default to tænke
+    // Only apply pose if it hasn't been set yet, or if pendingCoachPose is explicitly set
+    if (window.pendingCoachPose !== undefined && window.pendingCoachPose !== null) {
+        // Use the pose from Other_pose variable (can be number or pose name)
+        const poseToApply = typeof window.pendingCoachPose === 'number' 
+            ? window.pendingCoachPose 
+            : window.pendingCoachPose;
+        waitForPoseLibraryAndApplyCoachPose(poseToApply);
+        // Don't reset pendingCoachPose so it persists for all questions
+    } else {
+        // Default to tænke if no pose is set
+        waitForPoseLibraryAndApplyCoachPose('tænke');
+    }
     
     // Hide client bubble and show next arrow button if not done and session is active
     const rightBubble = contentElement.querySelector('#rightBubble');
@@ -1895,15 +1889,23 @@ function showCoachingQuestion(contentElement, question) {
         rightBubble.style.display = 'none';
     }
     
-    // Show next arrow button instead of client bubble if not done
-    if (!question.done && window.coachingActive !== false) {
-        debugLog('Question not done, showing next arrow button');
+    // Check if this is the last question in the last node with <<m>> marker
+    const hasMmm = question.mmm === true || (typeof question.text === 'string' && /<<\s*m\s*>>/i.test(question.text));
+    const isLastInLastNode = currentEngine ? currentEngine.isLastQuestionInLastNode() : false;
+    
+    // Show next arrow button only if:
+    // - Not done
+    // - Session is active
+    // - NOT (last question in last node with <<m>> marker)
+    if (!question.done && window.coachingActive !== false && !(hasMmm && isLastInLastNode)) {
+        debugLog('Question not done, showing next arrow button (hasMmm:', hasMmm, 'isLastInLastNode:', isLastInLastNode, ')');
         const nextArrowBtn = contentElement.querySelector('#nextArrowBtn');
         if (nextArrowBtn) {
             nextArrowBtn.classList.add('show');
         }
     } else {
-        // Hide next arrow button when session is done
+        // Hide next arrow button when session is done or it's the last <<m>> question
+        debugLog('Hiding next arrow button (done:', question.done, 'hasMmm:', hasMmm, 'isLastInLastNode:', isLastInLastNode, ')');
         const nextArrowBtn = contentElement.querySelector('#nextArrowBtn');
         if (nextArrowBtn) {
             nextArrowBtn.classList.remove('show');
@@ -2354,10 +2356,13 @@ function handleNextArrow(contentElement) {
         }
         
         if (currentQuestion.done) {
-            // Session finished
-            addToTranscript(contentElement, 'coach', currentQuestion.text);
+            // Session finished - no text to show
+            // Don't add to transcript if text is empty/undefined
+            if (currentQuestion.text) {
+                addToTranscript(contentElement, 'coach', currentQuestion.text);
+            }
             const coachMessage = contentElement.querySelector('#coachMessage');
-            if (coachMessage) {
+            if (coachMessage && currentQuestion.text) {
                 const cleanText = currentQuestion.text.replace(/<<[^>]+>>/g, '');
                 coachMessage.innerHTML = cleanText.replace(/\n/g, '<br>');
             }
@@ -2470,13 +2475,16 @@ function sendResponse(response) {
     }
     
     if (currentQuestion.done) {
-        // Session finished
+        // Session finished - no text to show
         const rootEl3 = (window.coachingOverlay && window.coachingOverlay.contentRoot) ? window.coachingOverlay.contentRoot : coachingOverlay.content;
-        addToTranscript(rootEl3, 'coach', currentQuestion.text);
+        // Don't add to transcript if text is empty/undefined
+        if (currentQuestion.text) {
+            addToTranscript(rootEl3, 'coach', currentQuestion.text);
+        }
         
         // Show coach's final message in speech bubble
         const coachMessage = rootEl3.querySelector('#coachMessage');
-        if (coachMessage) {
+        if (coachMessage && currentQuestion.text) {
             const cleanText = currentQuestion.text.replace(/<<[^>]+>>/g, '');
             coachMessage.innerHTML = cleanText.replace(/\n/g, '<br>');
         }

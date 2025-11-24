@@ -37,7 +37,8 @@
         
         .content {
             padding: 12px;
-            height: calc(100% - 60px);
+            min-height: auto;
+            height: auto;
             display: flex;
             flex-direction: column;
             width: 100%;
@@ -45,10 +46,7 @@
         
         .content.dialog-popup {
             width: 100%;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            position: relative;
         }
         
         /* Layout variables for popup positioning */
@@ -56,12 +54,12 @@
             --left-figure-offset-x: -90px;
             --left-figure-offset-y: -20px;
             --right-figure-offset-x: 90px;
-            --right-figure-offset-y: 0px;
-            --left-bubble-left: 140px;
-            --left-bubble-offset-y: 0px;
-            --right-bubble-right: 140px;
-            --right-bubble-offset-y: 0px;
-            --controls-margin-top: 100px;
+            --right-figure-offset-y: -20px;
+            --left-bubble-left: 120px;
+            --left-bubble-offset-y: -20px;
+            --right-bubble-right: 120px;
+            --right-bubble-offset-y: -20px;
+            --controls-margin-top: -35px;
         }
         
         /* Speech bubble tails */
@@ -122,11 +120,13 @@
         .overlay-participants-section {
             background: #f8fafc;
             padding: 0;
+            padding-top: 20px;
             border-bottom: 2px solid #e2e8f0;
             height: 250px;
             flex-shrink: 0;
             overflow: visible;
             position: relative;
+            z-index: 10002;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -221,6 +221,8 @@
             gap: 10px;
             margin-top: var(--controls-margin-top);
             justify-content: center;
+            position: relative;
+            z-index: 10003;
         }
         
         .btn {
@@ -250,8 +252,10 @@
             flex: 1;
             background: #f8f9fa;
             border-radius: 8px;
-            padding: 10px;
+            padding: 10px 10px 0px 10px;
             overflow-y: auto;
+            min-height: 180px;
+            max-height: 300px;
         }
         
         .transcript-header {
@@ -346,7 +350,7 @@
         
         .next-arrow-btn {
             position: absolute;
-            bottom: 20px;
+            bottom: 35px;
             left: 64%;
             transform: translateX(-50%);
             background: transparent;
@@ -458,12 +462,12 @@
         
         /* Overlay Content */
         .overlay-content {
-            flex: 1;
-            padding: 20px;
+            flex: 1 1 auto;
+            padding: 0px;
             position: relative;
             z-index: 2;
             background: white;
-            min-height: 400px;
+            min-height: auto;
             overflow: visible;
         }
     </style>
@@ -599,7 +603,7 @@
                 <button class="btn btn-secondary" id="saveBtn" disabled style="padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; background: #6c757d; color: white;">Gem Session</button>
             </div>
             
-            <div class="transcript-section" style="flex: 1; background: #f8f9fa; border-radius: 8px; padding: 10px; overflow-y: auto; min-height: 0; max-height: calc(80vh - 200px);">
+            <div class="transcript-section" style="flex: 1; background: #f8f9fa; border-radius: 8px; padding: 10px 10px 0px 10px; overflow-y: auto; min-height: 0;">
                 <div class="transcript-header" style="margin-bottom: 8px;">
                     <h3 style="color: #495057; font-size: 14px; margin: 0;">Samtale</h3>
                 </div>

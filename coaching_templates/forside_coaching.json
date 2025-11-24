@@ -42,12 +42,13 @@
       }
     ]
   },
-  "variables": {
+  "variables": { 
+    "Data": "indexuserData",
     "You": "Mig",
     "You_color": "#d97706",
     "You_pose": 0,
     "You_pose_flipped": "false",
-    "Other_pose": 18,
+    "Other_pose": 6,
     "Other_pose_flipped": "true"
   },
   "flags": {
