@@ -811,7 +811,7 @@
         }
 
         const OVERLAY_STATE_KEY = 'forside_overlay_data';
-        const OVERLAY_SHOW_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+        const OVERLAY_SHOW_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
         function loadOverlayState() {
             try {
@@ -837,6 +837,18 @@
             const now = new Date();
             const currentHour = now.getHours();
             const isNightTime = (currentHour >= 22 && currentHour <= 23) || (currentHour >= 0 && currentHour < 8);
+            
+            // Check if overlay was recently closed
+            const state = loadOverlayState();
+            if (state.closedAt) {
+                const closedAt = new Date(state.closedAt);
+                const timeSinceClosed = now - closedAt;
+                if (timeSinceClosed < OVERLAY_SHOW_INTERVAL_MS) {
+                    // Less than 5 minutes since closed, don't show
+                    return false;
+                }
+            }
+            
             return isNightTime;
         }
 
