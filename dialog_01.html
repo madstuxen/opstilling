@@ -2143,22 +2143,6 @@
         let currentUser = null;
         
         // Flags for race condition protection
-        let isInitialLoad = true;
-        
-        // Auto-save timeout
-        let autoSaveTimeout = null;
-        
-        // Schedule auto-save after changes
-        function scheduleAutoSave() {
-            if (autoSaveTimeout) {
-                clearTimeout(autoSaveTimeout);
-            }
-            
-            autoSaveTimeout = setTimeout(async () => {
-                await saveDialogDataToLocalStorage();
-                autoSaveTimeout = null;
-            }, 2000);
-        }
         
         // Initialize Firebase immediately (before DOM is ready) for faster auth state detection
         try {
@@ -2388,11 +2372,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         }
         
         async function saveDialogDataToLocalStorage() {
-            // Never save during initial load
-            if (isInitialLoad) {
-                console.log('[SAVE] Blocked: initial load in progress');
-                return false;
-            }
             
             if (!currentUser || !db) {
                 console.error('[SAVE] User not logged in - cannot save data');
@@ -2469,11 +2448,9 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     });
                 }
             });
-            // Only save if we actually created new data structure
+            // Only save if we actually created new data structure AND not during initial load
             // This prevents overwriting existing Firestore data with empty data on page load
-            if (dataWasCreated) {
-                saveDialogDataToLocalStorage();
-            }
+            // Don't save during data creation - it's a load operation
         }
         
         function getActiveCollection() {
@@ -2726,7 +2703,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     if (!isActive) {
                         DialogData.activeCollectionId = collection.id;
                         DialogData.activeDialogId = dialog.id;
-                        await saveDialogDataToLocalStorage();
                         loadSavedDialogFromNewStructure(dialog);
                         renderDialogHistory();
                     }
@@ -2878,7 +2854,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             } finally {
                 isLoadingDialog = false;
             }
-            persistActiveDialogToNewStructure(false);
         }
         
         async function promptCleanupEmptyDialogsOnLoad() {
@@ -2993,11 +2968,11 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 }
             }
             
-            await saveDialogDataToLocalStorage();
             const activeDialog = getActiveDialog();
             if (activeDialog) {
                 loadSavedDialogFromNewStructure(activeDialog);
             }
+            await saveDialogDataToLocalStorage();
             renderDialogHistory();
         }
         
@@ -3045,7 +3020,9 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             }, 80);
         }
         
-        function closeDialogSamlingManager() {
+        async function closeDialogSamlingManager() {
+            // Save all changes when overlay closes
+            await saveDialogDataToLocalStorage();
             if (dialogSamlingManagerOverlayEl) {
                 dialogSamlingManagerOverlayEl.classList.remove('show');
             }
@@ -3155,7 +3132,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     collection.name = newName;
                     renderDialogHistoryFilterOptions();
                     renderDialogHistory();
-                    saveDialogDataToLocalStorage();
                 }
                 renderDialogSamlingManagerList();
             };
@@ -3198,10 +3174,10 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             }
         }
         
-        async function handleDialogSamlingColorSelected(color) {
+        function handleDialogSamlingColorSelected(color) {
             if (!dialogSamlingColorPickerTarget) return;
             if (dialogSamlingColorPickerTarget.type === 'samling') {
-                await applyDialogSamlingColor(dialogSamlingColorPickerTarget.collectionId, color);
+                applyDialogSamlingColor(dialogSamlingColorPickerTarget.collectionId, color);
                 renderDialogHistory();
             } else if (dialogSamlingColorPickerTarget.type === 'new') {
                 newDialogSamlingDraftColor = color;
@@ -3211,14 +3187,13 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             closeDialogSamlingColorPicker();
         }
         
-        async function applyDialogSamlingColor(collectionId, color) {
+        function applyDialogSamlingColor(collectionId, color) {
             const collection = DialogData.collections.find(c => c.id === collectionId);
             if (!collection) return;
             collection.color = color;
             renderDialogHistory();
             renderDialogSamlingManagerList();
             renderDialogHistoryFilterOptions();
-            await saveDialogDataToLocalStorage();
         }
         
         async function confirmCreateDialogSamling() {
@@ -3229,9 +3204,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 return;
             }
             const color = newDialogSamlingDraftColor || DIALOG_COLLECTION_COLOR_PRESETS[0];
-            
-            // Save current dialog before switching
-            await persistActiveDialogToNewStructure();
             
             // Find highest collection ID
             let maxId = 0;
@@ -3266,8 +3238,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             DialogData.collections.push(newCollection);
             DialogData.activeCollectionId = newId;
             DialogData.activeDialogId = 1;
-            
-            await saveDialogDataToLocalStorage();
             
             // Load the new dialog
             loadSavedDialogFromNewStructure(newCollection.dialogs[0]);
@@ -3461,9 +3431,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             const newId = maxId + 1;
             const dialogName = `Dialog ${newId}`;
             
-            // Save current dialog before switching
-            await persistActiveDialogToNewStructure();
-            
             // Create new dialog with default participants (venstre and højre)
             const now = new Date().toISOString();
             const defaultLeft = {
@@ -3498,8 +3465,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             }
             collection.dialogs.push(newDialog);
             DialogData.activeDialogId = newId;
-            
-            await saveDialogDataToLocalStorage();
             
             // Clear UI without deleting anything
             if (autoTimeout) clearTimeout(autoTimeout);
@@ -3673,7 +3638,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             } finally {
                 isLoadingDialog = false;
             }
-            persistActiveDialog(false);
+            // Don't save - it's a load operation
         }
 		///// animations bibliotek
 		
@@ -3886,9 +3851,6 @@ function selectPose(poseIndex) {
     // Use the existing applyPose function from dialog system
     applyPose(side, poseIndex, mirror);
     
-    // Save to dialogData when pose changes
-    persistActiveDialogToNewStructure(false);
-    
     // Update active button
     populatePoseGrid();
 }
@@ -3914,13 +3876,12 @@ function togglePosePickerMirror() {
     const poseIndex = currentPoseAttr != null ? currentPoseAttr : '';
     applyPose(side, poseIndex, mirror);
     
-    // Save to dialogData when mirror changes
-    persistActiveDialogToNewStructure(false);
-    
     populatePoseGrid();
 }
 
-function closePosePicker() {
+async function closePosePicker() {
+    // Save pose and flipped state when overlay closes
+    await persistActiveDialogToNewStructure(false);
     document.getElementById('posePickerModal').classList.remove('show');
     currentPosePart = null;
 }
@@ -4241,10 +4202,7 @@ function applyDirectSlideData(side, slideData) {
         partsData[key].pose = poseName;
         partsData[key].mirror = mirrorActive;
     }
-    persistActiveDialog(false);
-	
-	
-	
+    // Don't save here - will be saved when pose picker overlay closes
 }
 
 
@@ -4266,7 +4224,14 @@ function toggleMirror(side) {
     
     applyPose(side, poseIndex, newMirror);
     
-    // Save to dialogData when mirror changes
+    // Check if pose picker is open - if so, don't save (will save when overlay closes)
+    const posePickerModal = document.getElementById('posePickerModal');
+    if (posePickerModal && posePickerModal.classList.contains('show')) {
+        // Pose picker is open - don't save, will save when overlay closes
+        return;
+    }
+    
+    // Pose picker is not open - this is a direct mirror toggle, save immediately
     persistActiveDialogToNewStructure(false);
 }
 
@@ -4459,7 +4424,9 @@ function resetPose(side) {
             }
         }
         
-        function closeColorPicker() {
+        async function closeColorPicker() {
+            // Save color when overlay closes
+            await persistActiveDialog(false);
             document.getElementById('colorPickerModal').classList.remove('show');
             currentColorTarget = null;
             currentColorSide = null;
@@ -4496,9 +4463,6 @@ function resetPose(side) {
 				if (leftBtn) leftBtn.style.background = leftColor || '#3b82f6';
 				if (rightBtn) rightBtn.style.background = rightColor || '#ef4444';
 			}
-			
-			setTimeout(() => closeColorPicker(), 100);
-            persistActiveDialog(false);
 		}
 
         let currentNotePart = null;
@@ -4951,7 +4915,6 @@ function resetPose(side) {
             showSpeechBubble(currentSpeaker);
             updateAllButtons();
             setStatus('Dialog fortsat - skriv nye beskeder');
-            persistActiveDialog();
         }
 
         function showSpeechBubble(side) {
@@ -5169,7 +5132,7 @@ function resetPose(side) {
                 timestamp: timestamp
             });
             updateAllButtons();
-            persistActiveDialog();
+            // Don't save here - will be saved on blur when user finishes editing or presses Enter
         }
 
 
@@ -6024,7 +5987,6 @@ if (rightPart.pose) {
             await new Promise(resolve => setTimeout(resolve, 1000));
             
             // 6. NU FØRST: Mark initial load complete
-            isInitialLoad = false;
             console.log('[INIT] Initial load complete');
             
             // Load pose library first

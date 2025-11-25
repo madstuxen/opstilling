@@ -1569,22 +1569,6 @@
         let currentUser = null;
         
         // Flags for race condition protection
-        let isInitialLoad = true;
-        
-        // Auto-save timeout
-        let autoSaveTimeout = null;
-        
-        // Schedule auto-save after changes
-        function scheduleAutoSave() {
-            if (autoSaveTimeout) {
-                clearTimeout(autoSaveTimeout);
-            }
-            
-            autoSaveTimeout = setTimeout(async () => {
-                await saveToLocalStorage();
-                autoSaveTimeout = null;
-            }, 2000);
-        }
         
         try {
             firebase.initializeApp(firebaseConfig);
@@ -1913,7 +1897,9 @@
             }, 80);
         }
 
-        function closeMapManager() {
+        async function closeMapManager() {
+            // Save all changes when overlay closes
+            await saveToLocalStorage();
             if (mapManagerOverlayEl) {
                 mapManagerOverlayEl.classList.remove('show');
             }
@@ -2025,7 +2011,6 @@
                     map.name = newName;
                     renderHistoryFilterOptions();
                     renderHistory();
-                    await saveToLocalStorage();
                 }
                 renderMapManagerList();
             };
@@ -2065,10 +2050,10 @@
             }
         }
 
-        async function handleMapColorSelected(color) {
+        function handleMapColorSelected(color) {
             if (!mapColorPickerTarget) return;
             if (mapColorPickerTarget.type === 'map') {
-                await applyMapColor(mapColorPickerTarget.mapId, color);
+                applyMapColor(mapColorPickerTarget.mapId, color);
                 renderHistory();
                 renderWorkspace();
             } else if (mapColorPickerTarget.type === 'new') {
@@ -2079,7 +2064,7 @@
             closeMapColorPicker();
         }
 
-        async function applyMapColor(mapId, color) {
+        function applyMapColor(mapId, color) {
             const map = getMapById(mapId);
             if (!map) return;
             map.color = color;
@@ -2087,7 +2072,6 @@
             renderWorkspace();
             renderMapManagerList();
             renderHistoryFilterOptions();
-            await saveToLocalStorage();
         }
 
         async function confirmCreateMap() {
@@ -2212,7 +2196,7 @@
             }
             renderHistory();
             renderWorkspace();
-            await saveToLocalStorage();
+            // Don't save - it's a load operation (filtering history view)
         }
         
         // Animations library - loaded from JSON files
@@ -2323,15 +2307,13 @@
                 if (firstIndex) {
                     firstIndex.title = 'Lag 1';
                 }
-                await saveToLocalStorage();
+                // Don't save - it's a load operation, will be saved when user edits
             }
             console.log('[INIT] Loaded bodymap data, maps:', maps.length, 'indexes:', dataIndexes.length);
             
             // 6. Wait for DOM to be fully rendered
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // 7. NU FØRST: Mark initial load complete
-            isInitialLoad = false;
             console.log('[INIT] Initial load complete');
             // Load history sidebar collapsed state
             // Default to collapsed (true) unless explicitly set to false in localStorage
@@ -2433,11 +2415,6 @@
         
         // Save to Firestore
         async function saveToLocalStorage() {
-            // Never save during initial load
-            if (isInitialLoad) {
-                console.log('[SAVE] Blocked: initial load in progress');
-                return false;
-            }
             
             if (!currentUser || !db) {
                 console.error('[SAVE] User not logged in - cannot save data');
@@ -2741,7 +2718,7 @@
         }
         
         // Toggle onion layers visibility
-        async function toggleOnionLayers(forceState) {
+        function toggleOnionLayers(forceState) {
             if (typeof forceState === 'boolean') {
                 showOnionLayers = forceState;
             } else {
@@ -2749,7 +2726,7 @@
             }
             updateLayerToggleUI();
             renderWorkspace();
-            await saveToLocalStorage();
+            // Don't save - it's just a UI toggle, not a data change
         }
         
         // Toggle history sidebar collapse/expand
@@ -2882,7 +2859,7 @@
                         activeIndexId = index.id;
                         renderHistory();
                         renderWorkspace();
-                        (async () => { await saveToLocalStorage(); })();
+                        // Don't save - it's a load operation (switching to existing history item)
                     }
                 });
 
@@ -3487,86 +3464,79 @@
             
             if (isActive) {
                 // Make editable and draggable if active
-                // Use a unique debounce timeout per label (stored on the label object)
-                if (!label._debounceTimeout) {
-                    label._debounceTimeout = null;
-                }
+                // Store original text when input gets focus
+                let originalText = label.text;
                 
-                inputEl.addEventListener('input', async () => {
-                    label.text = inputEl.value;
-                    
-                    // Clear previous timeout
-                    if (label._debounceTimeout) {
-                        clearTimeout(label._debounceTimeout);
-                    }
-                    
-                    // Debounce: wait 2 seconds after last input
-                    label._debounceTimeout = setTimeout(async () => {
-                        await saveToLocalStorage();
-                        label._debounceTimeout = null;
-                    }, 2000);
+                inputEl.addEventListener('focus', () => {
+                    originalText = inputEl.value.trim();
                 });
                 
-                inputEl.addEventListener('change', async () => {
+                inputEl.addEventListener('blur', async () => {
                     const newText = inputEl.value.trim();
-                    const oldText = label.text;
-                    label.text = newText;
+                    const oldText = originalText;
                     
-                    if (newText !== '' && oldText === '') {
-                        // This is a newly created label getting its text for the first time
-                        // Need to count how many times this label text appears
-                        let count = 0;
-                        relevantIndexes.forEach(idx => {
-                            idx.labels.forEach(lab => {
-                                if (lab.text === newText && lab.id !== label.id) {
-                                    count++;
-                                }
-                            });
-                        });
-                        label.labelNumber = count + 1;
-                        // Update the display of the number
-                        const numberSpan = container.querySelector('.label-number');
-                        if (numberSpan) {
-                            numberSpan.textContent = `${label.labelNumber}`;
-                        }
-                    } else if (newText !== '' && oldText !== '' && newText !== oldText) {
-                        // Text was changed - need to renumber both old and new text groups
-                        // First, renumber the old text group (excluding this label)
-                        const oldTextLabels = [];
-                        relevantIndexes.forEach(idx => {
-                            idx.labels.forEach(lab => {
-                                if (lab.text === oldText && lab.id !== label.id) {
-                                    oldTextLabels.push({ id: lab.id, index: idx });
-                                }
-                            });
-                        });
-                        let counter = 1;
-                        oldTextLabels.forEach(lab => {
-                            lab.index.labels.forEach(l => {
-                                if (l.id === lab.id) {
-                                    l.labelNumber = counter++;
-                                }
-                            });
-                        });
+                    // Only save if text actually changed
+                    if (newText !== oldText) {
+                        label.text = newText;
                         
-                        // Now assign new number to this label
-                        let count = 0;
-                        relevantIndexes.forEach(idx => {
-                            idx.labels.forEach(lab => {
-                                if (lab.text === newText && lab.id !== label.id) {
-                                    count++;
-                                }
+                        if (newText !== '' && oldText === '') {
+                            // This is a newly created label getting its text for the first time
+                            // Need to count how many times this label text appears
+                            let count = 0;
+                            relevantIndexes.forEach(idx => {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === newText && lab.id !== label.id) {
+                                        count++;
+                                    }
+                                });
                             });
-                        });
-                        label.labelNumber = count + 1;
-                        // Update the display of the number
-                        const numberSpan = container.querySelector('.label-number');
-                        if (numberSpan) {
-                            numberSpan.textContent = `${label.labelNumber}`;
+                            label.labelNumber = count + 1;
+                            // Update the display of the number
+                            const numberSpan = container.querySelector('.label-number');
+                            if (numberSpan) {
+                                numberSpan.textContent = `${label.labelNumber}`;
+                            }
+                        } else if (newText !== '' && oldText !== '' && newText !== oldText) {
+                            // Text was changed - need to renumber both old and new text groups
+                            // First, renumber the old text group (excluding this label)
+                            const oldTextLabels = [];
+                            relevantIndexes.forEach(idx => {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === oldText && lab.id !== label.id) {
+                                        oldTextLabels.push({ id: lab.id, index: idx });
+                                    }
+                                });
+                            });
+                            let counter = 1;
+                            oldTextLabels.forEach(lab => {
+                                lab.index.labels.forEach(l => {
+                                    if (l.id === lab.id) {
+                                        l.labelNumber = counter++;
+                                    }
+                                });
+                            });
+                            
+                            // Now assign new number to this label
+                            let count = 0;
+                            relevantIndexes.forEach(idx => {
+                                idx.labels.forEach(lab => {
+                                    if (lab.text === newText && lab.id !== label.id) {
+                                        count++;
+                                    }
+                                });
+                            });
+                            label.labelNumber = count + 1;
+                            // Update the display of the number
+                            const numberSpan = container.querySelector('.label-number');
+                            if (numberSpan) {
+                                numberSpan.textContent = `${label.labelNumber}`;
+                            }
+                            
+                            // Re-render to show updated numbers
+                            renderWorkspace();
                         }
                         
-                        // Re-render to show updated numbers
-                        renderWorkspace();
+                        // Save when field loses focus and text changed
                         await saveToLocalStorage();
                     }
                 });
@@ -3867,7 +3837,6 @@
             shouldScrollHistoryToBottom = false;
             renderHistory();
             renderWorkspace();
-            await saveToLocalStorage();
         }
         
         async function deleteIndex(indexId) {

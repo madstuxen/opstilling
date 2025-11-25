@@ -1641,11 +1641,7 @@
                         return nextEntry;
                     });
                     
-                    // If data was normalized, save it back
-                    if (mutated) {
-                        await saveLogbookDataToFirestore(normalizedEntries);
-                    }
-                    
+                    // Don't save during normalization - cleaned data will be saved on next user action
                     return normalizedEntries;
                 }
                 
@@ -1701,12 +1697,6 @@
         }
 
         async function saveLogbookData(entries) {
-            // Never save during initial load
-            if (isInitialLoad) {
-                console.log('[SAVE] Blocked: initial load in progress');
-                return;
-            }
-            
             if (!currentUser || !db) {
                 console.error('[SAVE] User not logged in - cannot save data');
                 // Still save to localStorage as backup
@@ -2450,7 +2440,7 @@
             if (!entry) {
                 entry = { date: activeLogDate, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
                 entries.push(entry);
-                await saveLogbookData(entries);
+                // Don't save - it's a load operation, entry will be saved when user edits
             }
 
             const logbookEntryEl = document.getElementById('logbookEntry');
@@ -2705,7 +2695,33 @@
             modal.classList.add('show');
         }
 
-        function closeLogHistoryColorPicker() {
+        async function closeLogHistoryColorPicker() {
+            // Save any pending color changes when picker closes
+            if (window._pendingLogHistoryColorChanges && window._pendingLogHistoryColorChanges.size > 0) {
+                const entries = await getLogbookData();
+                let hasChanges = false;
+                window._pendingLogHistoryColorChanges.forEach((color, dateKey) => {
+                    const entry = entries.find(e => e.date === dateKey);
+                    if (entry) {
+                        if (color === null) {
+                            delete entry.color;
+                        } else {
+                            entry.color = color;
+                        }
+                        hasChanges = true;
+                    }
+                });
+                if (hasChanges) {
+                    await saveLogbookData(entries);
+                    const sortedEntries = entries.slice().sort((a, b) => {
+                        const dateA = new Date(a.date || a.timestamp || 0);
+                        const dateB = new Date(b.date || b.timestamp || 0);
+                        return dateB - dateA;
+                    });
+                    await renderLogHistory(sortedEntries);
+                }
+                window._pendingLogHistoryColorChanges.clear();
+            }
             logHistoryColorPickerTarget = null;
             const modal = document.getElementById('logHistoryColorPickerModal');
             if (modal) {
@@ -2713,40 +2729,24 @@
             }
         }
 
-        async function handleLogHistoryColorSelected(color) {
+        function handleLogHistoryColorSelected(color) {
             if (!logHistoryColorPickerTarget) return;
-            const entries = await getLogbookData();
-            const entry = entries.find(e => e.date === logHistoryColorPickerTarget);
-            if (entry) {
-                entry.color = color;
-                await saveLogbookData(entries);
-                // Pass entries to renderLogHistory to avoid another getLogbookData() call
-                const sortedEntries = entries.slice().sort((a, b) => {
-                    const dateA = new Date(a.date || a.timestamp || 0);
-                    const dateB = new Date(b.date || b.timestamp || 0);
-                    return dateB - dateA; // Most recent first
-                });
-                await renderLogHistory(sortedEntries);
+            // Store color change - will be saved when picker closes
+            if (!window._pendingLogHistoryColorChanges) {
+                window._pendingLogHistoryColorChanges = new Map();
             }
-            closeLogHistoryColorPicker();
+            window._pendingLogHistoryColorChanges.set(logHistoryColorPickerTarget, color);
+            // Don't close overlay - only close when clicking outside or pressing Escape
         }
 
-        async function removeLogHistoryColor() {
+        function removeLogHistoryColor() {
             if (!logHistoryColorPickerTarget) return;
-            const entries = await getLogbookData();
-            const entry = entries.find(e => e.date === logHistoryColorPickerTarget);
-            if (entry) {
-                delete entry.color;
-                await saveLogbookData(entries);
-                // Pass entries to renderLogHistory to avoid another getLogbookData() call
-                const sortedEntries = entries.slice().sort((a, b) => {
-                    const dateA = new Date(a.date || a.timestamp || 0);
-                    const dateB = new Date(b.date || b.timestamp || 0);
-                    return dateB - dateA; // Most recent first
-                });
-                await renderLogHistory(sortedEntries);
+            // Store color removal - will be saved when picker closes
+            if (!window._pendingLogHistoryColorChanges) {
+                window._pendingLogHistoryColorChanges = new Map();
             }
-            closeLogHistoryColorPicker();
+            window._pendingLogHistoryColorChanges.set(logHistoryColorPickerTarget, null);
+            // Don't close overlay - only close when clicking outside or pressing Escape
         }
 
         // Store handlers to prevent listener accumulation
@@ -2791,9 +2791,9 @@
                 clearTimeout(dreamDebounceTimeout);
                 dreamDebounceTimeout = null;
             }
-
-            // Create new handlers with debounce
-            logbookInputHandler = async () => {
+            
+            // Create new handlers with debounce (2 seconds)
+            logbookInputHandler = () => {
                 autoResizeTextarea(logbookEntryEl);
                 
                 // Clear previous timeout
@@ -2808,7 +2808,7 @@
                 }, 2000);
             };
             
-            dreamInputHandler = async () => {
+            dreamInputHandler = () => {
                 autoResizeTextarea(dreamEntryEl);
                 
                 // Clear previous timeout
@@ -2946,6 +2946,9 @@
             });
 
             // Process activities sequentially to handle async data loading
+            // Collect all link updates and apply them all at once
+            const linkUpdates = new Map();
+            
             for (const activity of mockActivities) {
                 const styleConfig = activityStyles[activity.type] || activityStyles.default;
                 const accentColor = styleConfig.accent || '#475569';
@@ -2977,8 +2980,8 @@
                     linksByType[activity.type] = link; // Store for next iteration
                 }
 
-                // Update link href
-                link.href = styleConfig.url || '#';
+                // Store link href update to apply all at once later
+                linkUpdates.set(link, styleConfig.url || '#');
 
                 // Only clear tile content (never remove/recreate the tile element itself)
                 tile.innerHTML = '';
@@ -3100,6 +3103,12 @@
                     }
                 }
             }
+            
+            // Update all link hrefs at once after all activities are processed
+            linkUpdates.forEach((url, link) => {
+                link.href = url;
+            });
+            
             renderingActivities = false;
         }
 
@@ -3126,24 +3135,7 @@
         let currentUser = null;
         
         // Flags for race condition protection
-        let isInitialLoad = true;
         let initialActivityRenderDone = false;
-        
-        // Auto-save timeout
-        let autoSaveTimeout = null;
-        
-        // Schedule auto-save after changes
-        function scheduleAutoSave() {
-            if (autoSaveTimeout) {
-                clearTimeout(autoSaveTimeout);
-            }
-            
-            autoSaveTimeout = setTimeout(async () => {
-                const entries = await getLogbookData();
-                await saveLogbookData(entries);
-                autoSaveTimeout = null;
-            }, 2000);
-        }
         
         try {
             firebase.initializeApp(firebaseConfig);
@@ -4315,8 +4307,6 @@
             // 5. Wait for DOM to be fully rendered
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // 6. Mark initial load complete
-            isInitialLoad = false;
             console.log('[INIT] Initial load complete');
             
             // Always use today's date when page loads
@@ -4344,25 +4334,41 @@
             await renderLogHistory();
             await hydrateLogbookFields();
             
-            // Check date periodically and update if it changes (e.g., at midnight)
+            // Track the last checked date to detect actual date changes (e.g., at midnight)
+            let lastCheckedDateKey = getTodayDateKey();
+            
+            // Check date periodically and update ONLY if date actually changed (e.g., at midnight)
+            // Don't change if user has manually selected a different date
             setInterval(() => {
                 const currentTodayKey = getTodayDateKey();
-                if (activeLogDate !== currentTodayKey) {
-                    // Date has changed - update to today
+                
+                // Only update if the date actually changed (lastCheckedDateKey != currentTodayKey)
+                // AND the active date is the old date (meaning user hasn't manually selected a different date)
+                if (lastCheckedDateKey !== currentTodayKey && activeLogDate === lastCheckedDateKey) {
+                    // Date actually changed (e.g., midnight passed) - update to today
                     activeLogDate = currentTodayKey;
                     setActiveLogDate(currentTodayKey);
                 }
-            }, 60000); // Check every minute
+                
+                // Update last checked date
+                lastCheckedDateKey = currentTodayKey;
+            }, 300000); // Check every 5 minutes (date only changes at midnight, so frequent checks not needed)
             
             // Also check when page becomes visible again (user comes back to tab)
             document.addEventListener('visibilitychange', () => {
                 if (!document.hidden) {
                     const currentTodayKey = getTodayDateKey();
-                    if (activeLogDate !== currentTodayKey) {
-                        // Date has changed - update to today
+                    
+                    // Only update if the date actually changed (lastCheckedDateKey != currentTodayKey)
+                    // AND the active date is the old date (meaning user hasn't manually selected a different date)
+                    if (lastCheckedDateKey !== currentTodayKey && activeLogDate === lastCheckedDateKey) {
+                        // Date actually changed (e.g., user came back after midnight) - update to today
                         activeLogDate = currentTodayKey;
                         setActiveLogDate(currentTodayKey);
                     }
+                    
+                    // Update last checked date
+                    lastCheckedDateKey = currentTodayKey;
                 }
             });
 

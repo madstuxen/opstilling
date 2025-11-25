@@ -2320,13 +2320,9 @@
         let currentPart = null;
 
         let isLoadingSetup = false;
-        let isInitialLoad = true; // Track if page is still doing initial load
         
         // New persistent data model for Opstilling
         let OpstillingData = null; // { version, updated, activeCollectionId, activeSetupId, collections: [...] }
-        
-        // Auto-save timeout
-        let autoSaveTimeout = null;
 
         // Load data from Firestore (simple, no cache)
         async function loadOpstillingDataFromFirestore() {
@@ -2392,8 +2388,7 @@
                 const hadDuplicates = deduplicateOpstillingData();
                 if (hadDuplicates) {
                     console.warn('[LOAD] Found duplicates in loaded data, cleaning up...');
-                    // Save cleaned data back to Firestore
-                    await saveOpstillingDataToFirestore();
+                    // Don't save during initial load - cleaned data will be saved on next user action
                 }
                 return OpstillingData;
             }
@@ -2401,7 +2396,6 @@
             return null;
         }
         
-        // Save to Firestore only
         async function saveOpstillingDataToLocalStorage() {
             if (!currentUser || !db) {
                 console.error('[SAVE] User not logged in - cannot save data');
@@ -2477,36 +2471,19 @@
                     });
                 }
             });
-            // Only save if we actually created new data structure
-            // This prevents overwriting existing Firestore data with empty data on page load
-            // BUT: Before saving, check if Firestore already has data - if so, don't overwrite
+            // Never save during ensureDefaultOpstillingData - this is a load operation
+            // If Firestore has data, load it instead of creating defaults
             if (dataWasCreated) {
-                // Check if Firestore has data before saving empty defaults
                 if (await hasDataInFirestore()) {
-                    // Firestore has data, load it instead of creating defaults
                     const loadedData = await loadOpstillingData();
                     if (loadedData) {
                         OpstillingData = loadedData;
-                        return; // Don't save empty defaults
+                        return;
                     }
                 }
-                console.log('[ENSURE_DEFAULT] No data in Firestore, saving default structure');
-                await saveOpstillingDataToLocalStorage();
             }
         }
         
-        // Schedule auto-save after changes
-        function scheduleAutoSave() {
-            if (autoSaveTimeout) {
-                clearTimeout(autoSaveTimeout);
-            }
-            
-            autoSaveTimeout = setTimeout(async () => {
-                await syncCurrentWorkspaceToActiveSetup();
-                await saveOpstillingDataToFirestore();
-                autoSaveTimeout = null;
-            }, 2000);
-        }
         
         function getActiveCollection() {
             if (!OpstillingData || !Array.isArray(OpstillingData.collections)) return null;
@@ -2675,67 +2652,21 @@
         }
         
         async function syncCurrentWorkspaceToActiveSetup() {
-            // NEVER save during initial load
-            if (isInitialLoad) {
-                console.log('[SYNC] Blocked: initial load in progress');
-                return;
-            }
-            
-            // NEVER save if loading a setup
-            if (isLoadingSetup) {
-                console.log('[SYNC] Blocked: loading setup in progress');
-                return;
-            }
-            
             if (!OpstillingData) {
-                console.log('[SYNC] Skipping sync - OpstillingData is null');
                 return;
             }
             const setup = getActiveSetup();
             if (!setup) {
-                console.log('[SYNC] Skipping sync - no active setup');
                 return;
             }
             
-            // Check if parts are actually loaded in DOM before saving
-            const partsInDOM = document.querySelectorAll('.part').length;
             const exportedParts = exportCurrentPartsToModel();
-            
-            // CRITICAL: Never save with 0 parts if we're in initial load or if setup has parts in data
-            // This prevents overwriting existing data with empty data during page load/refresh
-            const partsInData = Array.isArray(setup.parts) ? setup.parts.length : 0;
-            
-            // CRITICAL: Never save 0 parts if Firestore has >0 parts
-            if (exportedParts.length === 0) {
-                const activeSetup = getActiveSetup();
-                const partsInData = Array.isArray(activeSetup?.parts) ? activeSetup.parts.length : 0;
-                if (partsInData > 0) {
-                    console.log('[SYNC] Skipping save - setup has parts in data but 0 in DOM (still loading)');
-                    return;
-                }
-            }
-            
-            // If setup has parts in data but we have 0 in DOM, we're probably still loading
-            // Don't overwrite with empty data
-            if (partsInData > 0 && partsInDOM === 0 && exportedParts.length === 0) {
-                console.log(`[SYNC] Skipping sync - setup has ${partsInData} parts in data but 0 in DOM (still loading)`);
-                return;
-            }
-            
             setup.notes = generalNotes || '';
             setup.parts = exportedParts;
             const now = new Date().toISOString();
             setup.updated = now;
             if (!setup.timestamp) {
                 setup.timestamp = now;
-            }
-            
-            console.log(`[SYNC] Syncing workspace: ${exportedParts.length} parts, ${partsInDOM} parts in DOM, partsInData: ${partsInData}, isInitialLoad: ${isInitialLoad}`);
-            
-            // Force save - ensure it completes before returning
-            const saved = await saveOpstillingDataToLocalStorage();
-            if (!saved) {
-                console.error('[SYNC] Failed to save opstilling data');
             }
         }
         
@@ -2785,9 +2716,7 @@
             OpstillingData.activeCollectionId = newId;
             OpstillingData.activeSetupId = 1;
             
-            await saveOpstillingDataToLocalStorage();
-            
-            // Load the new empty setup
+            // Load the new empty setup (no save - it's a load operation)
             await loadSetupFromOpstillingData(newCollection.setups[0]);
         }
         
@@ -2834,10 +2763,6 @@
             
             const setupName = `Opstilling ${newId}`;
             
-            // Save current workspace BEFORE switching
-            await syncCurrentWorkspaceToActiveSetup();
-            await saveOpstillingDataToFirestore();
-            
             // Create new setup
             const now = new Date().toISOString();
             const newSetup = {
@@ -2859,9 +2784,6 @@
             console.log('[CREATE_SETUP] Created new setup:', newId, setupName,
                         'in collection:', collection.name,
                         'Total setups:', collection.setups.length);
-            
-            // Save ONCE to Firestore
-            await saveOpstillingDataToLocalStorage();
             
             // Load the new empty setup
             await loadSetupFromOpstillingData(newSetup);
@@ -2890,10 +2812,7 @@
             const hadDuplicates = deduplicateOpstillingData();
             if (hadDuplicates) {
                 console.error('[HISTORY] Found duplicates in OpstillingData! This should not happen.');
-                // Save cleaned data
-                saveOpstillingDataToLocalStorage().catch(err => {
-                    console.error('[HISTORY] Failed to save after deduplication:', err);
-                });
+                // Don't save - cleaned data will be saved on next user action
             }
             
             const allSetups = [];
@@ -2967,13 +2886,9 @@
             if (!list) return;
             list.innerHTML = '';
             
-            // Don't create default data in renderHistory - it should already exist
-            // Only ensure it exists if we're in initial load
             if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
-                if (isInitialLoad) {
-                    await ensureDefaultOpstillingData();
-                } else {
-                    console.warn('[RENDER_HISTORY] OpstillingData is missing but not in initial load');
+                await ensureDefaultOpstillingData();
+                if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
                     return;
                 }
             }
@@ -3038,7 +2953,6 @@
                         OpstillingData.activeCollectionId = collection.id;
                         OpstillingData.activeSetupId = setup.id;
                         (async () => {
-                            await saveOpstillingDataToLocalStorage();
                             await loadSetupFromOpstillingData(setup);
                             updateNotesTitle();
                             await renderHistory();
@@ -3123,7 +3037,6 @@
             const targetEntry = sortedEntries[currentPos];
             OpstillingData.activeCollectionId = targetEntry.collection.id;
             OpstillingData.activeSetupId = targetEntry.setup.id;
-            await saveOpstillingDataToLocalStorage();
             await loadSetupFromOpstillingData(targetEntry.setup);
             updateNotesTitle();
             renderHistory();
@@ -3222,7 +3135,9 @@
             }, 80);
         }
         
-        function closeSamlingManager() {
+        async function closeSamlingManager() {
+            // Save all changes when overlay closes
+            await saveOpstillingDataToLocalStorage();
             if (samlingManagerOverlayEl) {
                 samlingManagerOverlayEl.classList.remove('show');
             }
@@ -3333,7 +3248,6 @@
                     renderHistoryFilterOptions();
                     (async () => {
                         await renderHistory();
-                        await saveOpstillingDataToLocalStorage();
                         await renderSamlingManagerList();
                     })();
                 } else {
@@ -3382,9 +3296,7 @@
         function handleSamlingColorSelected(color) {
             if (!samlingColorPickerTarget) return;
             if (samlingColorPickerTarget.type === 'samling') {
-                (async () => {
-                    await applySamlingColor(samlingColorPickerTarget.collectionId, color);
-                })();
+                applySamlingColor(samlingColorPickerTarget.collectionId, color);
             } else if (samlingColorPickerTarget.type === 'new') {
                 newSamlingDraftColor = color;
                 newSamlingColorDirty = true;
@@ -3393,14 +3305,13 @@
             closeSamlingColorPicker();
         }
         
-        async function applySamlingColor(collectionId, color) {
+        function applySamlingColor(collectionId, color) {
             const collection = OpstillingData.collections.find(c => c.id === collectionId);
             if (!collection) return;
             collection.color = color;
-            await renderHistory();
-            await renderSamlingManagerList();
+            renderHistory();
+            renderSamlingManagerList();
             renderHistoryFilterOptions();
-            await saveOpstillingDataToLocalStorage();
         }
         
         async function confirmCreateSamling() {
@@ -3411,10 +3322,6 @@
                 return;
             }
             const color = newSamlingDraftColor || SAMLING_COLOR_PRESETS[0];
-            
-            // Save current workspace before switching
-            await syncCurrentWorkspaceToActiveSetup();
-            await saveOpstillingDataToFirestore();
             
             // DON'T reload - work with existing OpstillingData
             await ensureDefaultOpstillingData();
@@ -3476,10 +3383,7 @@
             console.log('[CREATE_SAMLING] Created new collection:', newId, name, 
                         'Total collections:', OpstillingData.collections.length);
             
-            // Save ONCE to Firestore
-            await saveOpstillingDataToLocalStorage();
-            
-            // Load the new empty setup
+            // Load the new empty setup (no save - it's a load operation)
             await loadSetupFromOpstillingData(newCollection.setups[0]);
             
             // Update UI
@@ -3685,12 +3589,6 @@
             return false;
         }
         
-        async function saveCharactersToShared() {
-            // Save current workspace state to Firestore
-            await syncCurrentWorkspaceToActiveSetup();
-            await saveOpstillingDataToFirestore();
-            await renderHistory();
-        }
         
         const partColors = [
             '#f59e0b',  // orange/gul
@@ -4002,8 +3900,6 @@ async function loadPoseLibrary() {
 			// Apply the pose (convert to number for applyPose function)
 			const numericPoseIndex = poseIndex === '' ? '' : parseInt(poseIndex);
 			applyPose(selectedPart, numericPoseIndex, mirror);
-			// Auto-save after pose change
-			(async () => { await saveCharactersToShared(); })();
 		}
 
 		function togglePartMirror() {
@@ -4018,8 +3914,6 @@ async function loadPoseLibrary() {
 			// Reapply current pose with new mirror setting (convert to number)
 			const numericPoseIndex = poseIndex === '' ? '' : parseInt(poseIndex);
 			applyPose(selectedPart, numericPoseIndex, mirror);
-			// Auto-save after mirror change
-			(async () => { await saveCharactersToShared(); })();
 		}		
 		
 		function openPosePicker(btn) {
@@ -4167,8 +4061,6 @@ function selectPose(poseIndex) {
     
     // Update active button
     populatePoseGrid();
-    // Auto-save after pose change (picker)
-    (async () => { await saveCharactersToShared(); })();
 }
 
 function togglePosePickerMirror() {
@@ -4188,8 +4080,6 @@ function togglePosePickerMirror() {
         }
     }
     applyPose(currentPosePart, poseIndex, mirror);
-    // Auto-save after mirror change (picker)
-    (async () => { await saveCharactersToShared(); })();
 }
 
 function closePosePicker() {
@@ -4248,7 +4138,7 @@ function closePosePicker() {
     }, 100);
 }
 
-function closeKeywordsPopup() {
+async function closeKeywordsPopup() {
     if (!currentKeywordsPart) return;
     
     // Save keywords to part
@@ -4259,8 +4149,10 @@ function closeKeywordsPopup() {
     
     // Update keywords display
     updatePartKeywords(currentKeywordsPart);
-    // Auto-save after keywords popup close
-    (async () => { await saveCharactersToShared(); })();
+    
+    // Save when popup closes
+    await syncCurrentWorkspaceToActiveSetup();
+    await saveOpstillingDataToFirestore();
     
     // If this part is selected, update the bottom inputs too
     if (selectedPart === currentKeywordsPart) {
@@ -4467,7 +4359,7 @@ function closeKeywordsPopup() {
             }, 50);
         }
         
-        function closeNoteOverlay() {
+        async function closeNoteOverlay() {
             const overlay = document.getElementById('noteOverlay');
             const textarea = document.getElementById('noteTextarea');
             
@@ -4479,12 +4371,9 @@ function closeKeywordsPopup() {
                     nameElement.textContent = nameText;
                 }
                 
-                // Save to shared storage
-                try {
-                    (async () => { await saveCharactersToShared(); })();
-                } catch (e) {
-                    console.warn('Kunne ikke gemme navn:', e);
-                }
+                // Save when overlay closes
+                await syncCurrentWorkspaceToActiveSetup();
+                await saveOpstillingDataToFirestore();
             }
             
             overlay.classList.remove('show');
@@ -4536,17 +4425,11 @@ function closeKeywordsPopup() {
 			
             currentPart.setAttribute('data-custom-color', hex);
             currentPart.setAttribute('data-custom-border', borderColor);
-
-            // Persist new color to shared storage
-            try { (async () => { await saveCharactersToShared(); })(); } catch(_) {}
 		} else if (currentGroupBtn) {
 			currentGroupBtn.style.backgroundColor = hex;
 			currentGroupBtn.setAttribute('data-custom-color', hex);
 			const groupNumber = currentGroupBtn.id.match(/\d+/)[0];
 			refreshPartsForGroup(groupNumber);
-			if (!isLoadingSetup) {
-				(async () => { await saveCharactersToShared(); })();
-			}
 		}
 	}
 
@@ -4659,9 +4542,6 @@ function closeKeywordsPopup() {
             openColorPicker(colorBtn);
             refreshPartsForGroup(String(groupNumber));
             updateGroupDropdown();
-            if (!isLoadingSetup) {
-                saveCharactersToShared();
-            }
          }
         
        function handleGroupSelection(selectElement) {
@@ -4679,9 +4559,6 @@ function closeKeywordsPopup() {
 			}
 		}
 
-		if (!isLoadingSetup) {
-			saveCharactersToShared();
-		}
 	}
         
         function updateGroupDropdown() {
@@ -4945,30 +4822,13 @@ function closeKeywordsPopup() {
 				
 				// Name editing is only available via the "N" button
 				
-				// Update shared data
-				(async () => { await saveCharactersToShared(); })();
-				
-				// Save parts to Firestore immediately when part is created (no debounce)
-				// This ensures parts are saved even if page is reloaded quickly
-				// Use requestAnimationFrame + setTimeout to ensure part is fully in DOM and rendered
-				requestAnimationFrame(() => {
-					setTimeout(async () => {
-						// Ensure OpstillingData exists and has active setup
-						if (!OpstillingData) {
-							await ensureDefaultOpstillingData();
-						}
-						const setup = getActiveSetup();
-						if (!setup) {
-							return;
-						}
-						// Verify part is in DOM before exporting
-						const allParts = document.querySelectorAll('.part');
-						if (allParts.length === 0) {
-							return;
-						}
-						// Save is already handled by saveCharactersToShared() above
-					}, 300);
-				});
+				// Save when user adds part (not when loading from storage)
+				if (!disableAnimations) {
+					(async () => {
+						await syncCurrentWorkspaceToActiveSetup();
+						await saveOpstillingDataToFirestore();
+					})();
+				}
                 
                 document.getElementById('partName').value = '';
                 document.getElementById('partName').placeholder = "Navn på del (f.eks. Beskytteren, Den Kritiske, Det Sårede Barn...)";
@@ -5006,10 +4866,10 @@ function closeKeywordsPopup() {
                 });
                 // Ensure layers are unique and compact after delete
                 normalizeLayers();
-                // Auto-save after delete
-                saveCharactersToShared();
-                // Schedule auto-save
-                scheduleAutoSave();
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+                    await saveOpstillingDataToFirestore();
+                })();
                 
             } catch (error) {
                 console.error('Fejl i deletePart:', error);
@@ -5050,10 +4910,10 @@ function closeKeywordsPopup() {
                     targetPart.setAttribute('data-layer', currentLayer.toString());
                     targetPart.style.zIndex = currentLayer + 10;
                 }
-                // Auto-save after layer change (front)
-                saveCharactersToShared();
-                // Schedule auto-save
-                scheduleAutoSave();
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+                    await saveOpstillingDataToFirestore();
+                })();
             } catch (error) {
                 console.error('Fejl i moveToFront:', error);
             }
@@ -5092,10 +4952,10 @@ function closeKeywordsPopup() {
                     targetPart.setAttribute('data-layer', currentLayer.toString());
                     targetPart.style.zIndex = currentLayer + 10;
                 }
-                // Auto-save after layer change (back)
-                saveCharactersToShared();
-                // Schedule auto-save
-                scheduleAutoSave();
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+                    await saveOpstillingDataToFirestore();
+                })();
             } catch (error) {
                 console.error('Fejl i moveToBack:', error);
             }
@@ -5130,12 +4990,10 @@ function closeKeywordsPopup() {
 				const newScale = Math.min(3, Math.round((currentScale + increment) * 10) / 10);
 				part.style.transform = `scale(${newScale})`;
 				part.setAttribute('data-part-scale', newScale.toString());
-				
-                    saveCharactersToShared();
-					
-					// Schedule auto-save
-					scheduleAutoSave();
-				
+				(async () => {
+					await syncCurrentWorkspaceToActiveSetup();
+					await saveOpstillingDataToFirestore();
+				})();
 			} catch (error) {
 				console.error('Fejl i increaseSize:', error);
 			}
@@ -5152,16 +5010,14 @@ function closeKeywordsPopup() {
 				const newScale = Math.max(0.45, Math.round((currentScale - decrement) * 10) / 10);
 				part.style.transform = `scale(${newScale})`;
 				part.setAttribute('data-part-scale', newScale.toString());
-				
-                    saveCharactersToShared();
-					
-					// Schedule auto-save
-					scheduleAutoSave();
-				
-				} catch (error) {
-					console.error('Fejl i decreaseSize:', error);
-				}
+				(async () => {
+					await syncCurrentWorkspaceToActiveSetup();
+					await saveOpstillingDataToFirestore();
+				})();
+			} catch (error) {
+				console.error('Fejl i decreaseSize:', error);
 			}
+		}
 				
         
         
@@ -5169,10 +5025,10 @@ function closeKeywordsPopup() {
 		part.style.transform = `scale(${sizeMultiplier})`;
 		part.setAttribute('data-part-scale', sizeMultiplier.toString());
 		if (!isLoadingSetup) {
-			saveCharactersToShared();
-			
-			// Schedule auto-save
-			scheduleAutoSave();
+			(async () => {
+				await syncCurrentWorkspaceToActiveSetup();
+				await saveOpstillingDataToFirestore();
+			})();
 		}
 		}
         
@@ -5339,9 +5195,11 @@ function closeKeywordsPopup() {
 								body.style.transform = `translateX(-50%) rotate(0deg)`;
 							}
 							
-							// Save shared characters (updates x,y)
-							saveCharactersToShared();
-							// Save is already handled by saveCharactersToShared() above
+							// Save when drag ends
+							(async () => {
+								await syncCurrentWorkspaceToActiveSetup();
+								await saveOpstillingDataToFirestore();
+							})();
 						}
 					};
 					
@@ -5510,8 +5368,11 @@ function closeKeywordsPopup() {
                 // Reset color index
                 colorIndex = 0;
                 
-                // Update the active setup in opstillingData and save to Firestore
-                scheduleAutoSave();
+                // Save after clearing all
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+                    await saveOpstillingDataToFirestore();
+                })();
 
             } catch (error) {
                 console.error('Fejl i clearAll:', error);
@@ -5557,9 +5418,7 @@ function closeKeywordsPopup() {
 					}
 					// Sync dataset and persist immediately
 					part.setAttribute('data-name', newName);
-					if (!isLoadingSetup) {
-						saveCharactersToShared();
-					}
+					// Save will happen when note overlay closes
 				}
                 
                 input.addEventListener('blur', finishEdit);
@@ -5882,34 +5741,6 @@ function closeKeywordsPopup() {
             // Load active opstilling (from opstillingData or legacy storage)
             await loadActiveOpstilling();
             
-            // Wait for parts to be loaded in DOM
-            async function waitForPartsToLoad() {
-                const activeSetup = getActiveSetup();
-                if (!activeSetup || !Array.isArray(activeSetup.parts)) {
-                    return; // No setup or no parts expected
-                }
-                
-                const expectedPartsCount = activeSetup.parts.length;
-                const maxIterations = 50; // 50 × 100ms = 5 seconds max
-                
-                for (let i = 0; i < maxIterations; i++) {
-                    const partsInDOM = document.querySelectorAll('.part').length;
-                    if (partsInDOM === expectedPartsCount) {
-                        console.log(`[INIT] Parts loaded: ${partsInDOM}/${expectedPartsCount} (iteration ${i + 1})`);
-                        return;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
-                
-                const finalPartsCount = document.querySelectorAll('.part').length;
-                console.warn(`[INIT] Parts load timeout: ${finalPartsCount}/${expectedPartsCount} parts after ${maxIterations} iterations`);
-            }
-            
-            await waitForPartsToLoad();
-            
-            // Mark initial load as complete
-            isInitialLoad = false;
-            
             // Initialize history sidebar
             await renderHistory();
             // Default to collapsed (true) unless explicitly set to false in localStorage
@@ -6030,20 +5861,13 @@ function closeKeywordsPopup() {
                 });
                 
                 const partNotesTextarea = document.getElementById('partNotes');
-                let partNotesDebounceTimeout = null;
 				partNotesTextarea.addEventListener('input', function() {
 					generalNotes = this.value;
-					
-					// Clear previous timeout
-					if (partNotesDebounceTimeout) {
-						clearTimeout(partNotesDebounceTimeout);
-					}
-					
-					// Debounce: wait 2 seconds after last input
-					partNotesDebounceTimeout = setTimeout(() => {
-						saveCurrentOpstillingToStorage();
-						partNotesDebounceTimeout = null;
-					}, 2000);
+				});
+				partNotesTextarea.addEventListener('blur', async function() {
+					// Save when notes field loses focus
+					await syncCurrentWorkspaceToActiveSetup();
+					await saveOpstillingDataToFirestore();
 				});
                 
                 // Removed keyword inputs (#keyword1..#keyword6) – no listeners needed
@@ -6068,9 +5892,7 @@ function closeKeywordsPopup() {
                                 const loadSuccess = importOpstillingFromLines(lines, 'none');
 
                                 isLoadingSetup = false;
-                                if (loadSuccess) {
-                                    try { saveCharactersToShared(); } catch (_) {}
-                                } else {
+                                if (!loadSuccess) {
                                     alert('Der opstod en fejl ved indlæsning af filen. Kontroller at det er en gyldig CSV-fil.');
                                 }
                             } catch (error) {
@@ -6099,13 +5921,6 @@ function closeKeywordsPopup() {
                 console.error('Fejl ved initialisering:', error);
             }
             
-            // Initial sync to persistent opstilling model
-            try { 
-                (async () => {
-                    await syncCurrentWorkspaceToActiveSetup();
-            await saveOpstillingDataToFirestore();
-                })();
-            } catch(_) {}
         });
         
         // Firestore-only mode - no initialization needed beyond what's in DOMContentLoaded

@@ -2372,23 +2372,8 @@
         // Initialize Firebase
         let auth, db, currentUser;
         
-        // Flags for race condition protection
+        // Flag for UI updates during initial load (not for blocking saves)
         let isInitialLoad = true;
-        
-        // Auto-save timeout
-        let autoSaveTimeout = null;
-        
-        // Schedule auto-save after changes
-        function scheduleAutoSave() {
-            if (autoSaveTimeout) {
-                clearTimeout(autoSaveTimeout);
-            }
-            
-            autoSaveTimeout = setTimeout(async () => {
-                await saveCompareDataToFirestore();
-                autoSaveTimeout = null;
-            }, 2000);
-        }
 
         try {
             firebase.initializeApp(firebaseConfig);
@@ -2556,11 +2541,6 @@
 		}
 		
 		async function saveCompareDataToLocalStorage() {
-			// Never save during initial load
-			if (isInitialLoad) {
-				console.log('[SAVE] Blocked: initial load in progress');
-				return false;
-			}
 			
 			if (!currentUser || !db) {
 				console.error('[SAVE] User not logged in - cannot save data');
@@ -2648,11 +2628,9 @@
 					});
 				}
 			});
-			// Only save if we actually created new data structure
+			// Only save if we actually created new data structure AND not during initial load
 			// This prevents overwriting existing Firestore data with empty data on page load
-			if (dataWasCreated) {
-				await saveCompareDataToLocalStorage();
-			}
+			// Don't save during data creation - it's a load operation
 		}
 		
 		function getActiveCollection() {
@@ -2685,11 +2663,6 @@
 		}
 		
 		async function syncCurrentWorkspaceToActiveComparison() {
-			// GUARD 2: Never save during initial load or loading
-			if (isInitialLoad) {
-				console.log('[SYNC] Blocked: initial load in progress');
-				return;
-			}
 			
 			
 			if (!CompareData) return;
@@ -3404,10 +3377,8 @@
 				item.appendChild(deleteBtn);
 				
 				item.onclick = async () => {
-					await syncCurrentWorkspaceToActiveComparison();
 					CompareData.activeCollectionId = collection.id;
 					CompareData.activeComparisonId = comparison.id;
-					await saveCompareDataToLocalStorage();
 					loadComparisonFromCompareData(comparison);
 					await renderHistory();
 					updateHistoryNavState();
@@ -3446,10 +3417,8 @@
 			if (newIndex < 0 || newIndex >= filtered.length) return;
 			
 			const { comparison, collection } = filtered[newIndex];
-			await syncCurrentWorkspaceToActiveComparison();
 			CompareData.activeCollectionId = collection.id;
 			CompareData.activeComparisonId = comparison.id;
-			await saveCompareDataToLocalStorage();
 			loadComparisonFromCompareData(comparison);
 			await renderHistory();
 			updateHistoryNavState();
@@ -4053,9 +4022,6 @@ function selectPose(poseIndex) {
     // Use the existing applyPose function with mirror parameter
     applyPose(side, poseIndex, mirror);
     
-    // Save to compareData when pose changes
-    syncCurrentWorkspaceToActiveComparison();
-    
     // Update active button
     populatePoseGrid();
 }
@@ -4080,12 +4046,11 @@ function togglePosePickerMirror() {
     const poseIndex = currentPoseAttr != null ? currentPoseAttr : '';
     const mirror = posePickerMirrorCheckbox ? posePickerMirrorCheckbox.checked : false;
     applyPose(side, poseIndex, mirror);
-    
-    // Save to compareData when mirror changes
-    syncCurrentWorkspaceToActiveComparison();
 }
 
-function closePosePicker() {
+async function closePosePicker() {
+    // Save pose and flipped state when overlay closes
+    await syncCurrentWorkspaceToActiveComparison();
     document.getElementById('posePickerModal').classList.remove('show');
     currentPosePart = null;
 }
@@ -4878,7 +4843,9 @@ function resetPose(side) {
             }
         }
         
-        function closeColorPicker() {
+        async function closeColorPicker() {
+            // Save color when overlay closes
+            await syncCurrentWorkspaceToActiveComparison();
             document.getElementById('colorPickerModal').classList.remove('show');
             currentColorTarget = null;
             currentColorSide = null;
@@ -4955,7 +4922,7 @@ function resetPose(side) {
             }, 50);
         }
         
-        function closeNoteOverlay() {
+        async function closeNoteOverlay() {
             const overlay = document.getElementById('noteOverlay');
             const textarea = document.getElementById('noteTextarea');
             
@@ -4965,8 +4932,8 @@ function resetPose(side) {
                 if (nameElement) {
                     nameElement.textContent = nameText;
                     
-                    // Save
-                    syncCurrentWorkspaceToActiveComparison();
+                    // Save name when overlay closes
+                    await syncCurrentWorkspaceToActiveComparison();
                 }
             }
             
@@ -4974,7 +4941,7 @@ function resetPose(side) {
             currentNotePart = null;
         }
         
-        function selectColor(hex) {
+        async function selectColor(hex) {
             if (currentColorSide) {
                 if (currentColorSide === 'left') {
                     leftColor = hex;
@@ -5000,8 +4967,6 @@ function resetPose(side) {
                 
                 updateSliderColors();
             }
-            
-            setTimeout(() => closeColorPicker(), 100);
         }
 
         function updateComparisonView() {
@@ -5107,7 +5072,9 @@ function resetPose(side) {
 							   class="single-slider ${side}-color" 
 							   data-trait-id="${index}" 
 							   data-side="${side}"
-							   oninput="setSingleTraitScore(${index}, '${side}', this.value)">
+							   oninput="setSingleTraitScore(${index}, '${side}', this.value)"
+							   onmouseup="saveSliderScoreOnRelease(${index}, '${side}')"
+							   ontouchend="saveSliderScoreOnRelease(${index}, '${side}')">
 					</div>
 				</div>
 			`;
@@ -5349,9 +5316,6 @@ function resetPose(side) {
         }
 
 
-        // Debounce timeout for saving slider scores
-        let sliderScoreDebounceTimeout = null;
-        
         function setSingleTraitScore(traitId, side, value) {
             if (side === 'left') {
                 leftScores[traitId] = parseInt(value);
@@ -5359,21 +5323,15 @@ function resetPose(side) {
                 rightScores[traitId] = parseInt(value);
             }
             
-            // Clear previous debounce timeout
-            if (sliderScoreDebounceTimeout) {
-                clearTimeout(sliderScoreDebounceTimeout);
-            }
-            
-            // Save scores to Firestore with debounce (2 seconds)
-            sliderScoreDebounceTimeout = setTimeout(async () => {
-                await syncCurrentWorkspaceToActiveComparison();
-                sliderScoreDebounceTimeout = null;
-            }, 2000);
-            
             if (currentStep === 3) {
                 updateComparisonResults();
                 calculateAndDisplayScores();
             }
+        }
+        
+        // Save slider score when slider is released (mouseup/touchend)
+        async function saveSliderScoreOnRelease(traitId, side) {
+            await syncCurrentWorkspaceToActiveComparison();
         }
 
         function switchToStep(step) {
@@ -5675,7 +5633,7 @@ function resetPose(side) {
             // 5. Wait for DOM to be fully rendered
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // 6. NU FØRST: Mark initial load complete
+            // 6. Mark initial load complete (for UI updates only, not for blocking saves)
             isInitialLoad = false;
             console.log('[INIT] Initial load complete');
             

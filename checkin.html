@@ -729,18 +729,7 @@
                 return false;
             }
             
-            // GUARD 2: Never save during initial load or loading
-            if (isInitialLoad) {
-                console.log('[SAVE] Blocked: initial load in progress');
-                return false;
-            }
-            
-            if (isLoadingData) {
-                console.log('[SAVE] Blocked: loading in progress');
-                return false;
-            }
-            
-            // GUARD 3: Never save empty data if Firestore has data
+            // Never save empty data if Firestore has data
             if (!Array.isArray(entries) || entries.length === 0) {
                 // Check if Firestore actually has data
                 try {
@@ -760,7 +749,6 @@
                 }
             }
             
-            // Safe to save now
             isSavingData = true;
             try {
                 await saveLogbookDataToFirestore(entries);
@@ -805,7 +793,7 @@
                     dreams: ''
                 };
                 entries.push(entry);
-                await saveLogbookEntries(entries);
+                // Don't save - it's a load operation, entry will be saved when user edits
             }
             return entry;
         }
@@ -865,17 +853,6 @@
 
         // Funktion til at gemme dreams data (bruges både ved input og ved luk)
         async function saveDreamsData() {
-            // GUARD 2: Never save during initial load or loading
-            if (isInitialLoad) {
-                console.log('[SAVE_DREAMS] Blocked: initial load in progress');
-                return;
-            }
-            
-            if (isLoadingData) {
-                console.log('[SAVE_DREAMS] Blocked: loading in progress');
-                return;
-            }
-            
             const textarea = document.getElementById('nightDreamEntry');
             if (!textarea) return;
             
@@ -1018,21 +995,16 @@
             }
             
             // 3. Load data from Firestore (one time)
-            isLoadingData = true;
             try {
                 const entries = await getLogbookEntries();
                 console.log('[INIT] Loaded', entries.length, 'logbook entries');
             } catch (error) {
                 console.error('[INIT] Error loading logbook entries:', error);
-            } finally {
-                isLoadingData = false;
             }
             
             // 4. Wait for DOM to be fully rendered
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // 5. Mark initial load complete
-            isInitialLoad = false;
             console.log('[INIT] Initial load complete');
             
             // Now safe to hydrate and setup
@@ -1541,9 +1513,7 @@
         let db = null;
         let currentUser = null;
         
-        // Flags for race condition protection
-        let isInitialLoad = true;
-        let isLoadingData = false;
+        // Flag for save operation tracking
         let isSavingData = false;
         
         try {
@@ -1651,17 +1621,6 @@
         // Main save function - always saves to Firestore if user is logged in
         async function saveCheckinData(engine) {
             if (!engine || !engine.blackboard) {
-                return;
-            }
-            
-            // GUARD 2: Never save during initial load or loading
-            if (isInitialLoad) {
-                console.log('[SAVE_CHECKIN] Blocked: initial load in progress');
-                return;
-            }
-            
-            if (isLoadingData) {
-                console.log('[SAVE_CHECKIN] Blocked: loading in progress');
                 return;
             }
             
