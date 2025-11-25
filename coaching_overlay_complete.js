@@ -173,9 +173,9 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
             /* Coaching Overlay Container */
             #coachingOverlay {
                 position: fixed;
-                top: 20px;
+                top: 61%;
                 left: 50%;
-                transform: translateX(-50%);
+                transform: translate(-50%, -50%);
                 width: 100%;
                 max-width: 600px;
                 height: auto;
@@ -193,11 +193,11 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
             @keyframes coachingSlideIn {
                 from {
                     opacity: 0;
-                    transform: translateX(-50%) translateY(-20px);
+                    transform: translate(-50%, -50%) translateY(-20px);
                 }
                 to {
                     opacity: 1;
-                    transform: translateX(-50%);
+                    transform: translate(-50%, -50%);
                 }
             }
             

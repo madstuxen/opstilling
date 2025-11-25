@@ -399,13 +399,15 @@ const firebaseConfig = {
         }
 
         // Check if user is already logged in
-        auth.onAuthStateChanged(user => {
+        auth.onAuthStateChanged(async user => {
             console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
             if (user) {
                 console.log('User is logged in:', user.email);
                 currentUser = user;
                 // Set global_useFirestore to true when user logs in
                 saveGlobalFirestoreToggle(true);
+                // Load and save userData to localStorage to ensure displayName and You are set
+                await loadAndSaveUserData(user);
                 showLoggedInSection(user);
             } else {
                 console.log('User is not logged in, showing login form');

@@ -2572,13 +2572,6 @@
         }
 
         async function updateActiveLogEntry(field, value) {
-            // Check if date has changed and update activeLogDate if needed
-            const todayKey = getTodayDateKey();
-            if (activeLogDate !== todayKey) {
-                // Date has changed - switch to today's date
-                activeLogDate = todayKey;
-            }
-            
             const entries = await getLogbookData();
             let entry = entries.find(item => item.date === activeLogDate);
             if (!entry) {
