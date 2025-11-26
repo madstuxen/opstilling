@@ -673,23 +673,6 @@
         function getTodayDateKey() {
             return new Date().toISOString().split('T')[0];
         }
-
-        // Load logbook data from Firestore (simple, no cache)
-        async function loadLogbookDataFromFirestore() {
-            if (!currentUser || !db) return null;
-            
-            try {
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                const doc = await userDocRef.get();
-                
-                if (!doc.exists) return null;
-                const data = doc.data()?.logbogData;
-                return Array.isArray(data) ? data : null;
-            } catch (error) {
-                console.error('[LOAD] Error:', error);
-                return null;
-            }
-        }
         
         // Save logbook data to Firestore
         async function saveLogbookDataToFirestore(entries) {
@@ -715,7 +698,8 @@
                 return [];
             }
             
-            const firestoreData = await loadLogbookDataFromFirestore();
+            const allData = await loadAllUserData();
+            const firestoreData = allData && Array.isArray(allData.logbogData) ? allData.logbogData : null;
             if (firestoreData !== null && Array.isArray(firestoreData)) {
                 return firestoreData;
             }
@@ -731,18 +715,13 @@
             
             // Never save empty data if Firestore has data
             if (!Array.isArray(entries) || entries.length === 0) {
-                // Check if Firestore actually has data
                 try {
-                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                    if (userDoc.exists) {
-                        const firestoreData = userDoc.data();
-                        const firestoreEntryCount = Array.isArray(firestoreData.logbogData) ? firestoreData.logbogData.length : 0;
-                        
-                        if (firestoreEntryCount > 0) {
-                            console.error('[SAVE] BLOCKED: Refusing to overwrite', 
-                                         firestoreEntryCount, 'entries with empty data');
-                            return false;
-                        }
+                    const allData = await loadAllUserData();
+                    const firestoreEntryCount = allData && Array.isArray(allData.logbogData) ? allData.logbogData.length : 0;
+                    if (firestoreEntryCount > 0) {
+                        console.error('[SAVE] BLOCKED: Refusing to overwrite', 
+                                      firestoreEntryCount, 'entries with empty data');
+                        return false;
                     }
                 } catch (error) {
                     console.error('[SAVE] Error checking Firestore:', error);
@@ -752,6 +731,8 @@
             isSavingData = true;
             try {
                 await saveLogbookDataToFirestore(entries);
+                // Refresh global cache after successful save
+                await loadAllUserData(true);
                 return true;
             } catch (error) {
                 console.error('[SAVE] Error saving to Firestore:', error);
@@ -1513,6 +1494,18 @@
         let db = null;
         let currentUser = null;
         
+        // Global cache of all user-related Firestore data (shared via window)
+        // {
+        //   bodymapData,
+        //   dialogData,
+        //   opstillingData,
+        //   compareData,
+        //   logbogData,
+        //   forside_checkin_data
+        // }
+        window.allUserData = window.allUserData || null;
+        window.allDataLoadingPromise = window.allDataLoadingPromise || null;
+        
         // Flag for save operation tracking
         let isSavingData = false;
         
@@ -1555,7 +1548,46 @@
             });
         }
         
-        // Save check-in data to Firestore
+        // Load all user data (cached across the page, shared via window)
+        async function loadAllUserData(forceRefresh = false) {
+            if (!currentUser || !db) return null;
+            
+            if (!forceRefresh && window.allUserData) {
+                return window.allUserData;
+            }
+            
+            if (!forceRefresh && window.allDataLoadingPromise) {
+                return window.allDataLoadingPromise;
+            }
+            
+            window.allDataLoadingPromise = (async () => {
+                try {
+                    const userDocRef = db.collection('users').doc(currentUser.uid);
+                    const doc = await userDocRef.get();
+                    const raw = doc.exists ? (doc.data() || {}) : {};
+                    const data = {
+                        bodymapData: raw.bodymapData || null,
+                        dialogData: raw.dialogData || null,
+                        opstillingData: raw.opstillingData || null,
+                        compareData: raw.compareData || null,
+                        logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
+                        forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
+                    };
+                    window.allUserData = data;
+                    return data;
+                } catch (error) {
+                    console.error('[LOAD] Error loading all user data in checkin.html:', error);
+                    window.allUserData = null;
+                    return null;
+                } finally {
+                    window.allDataLoadingPromise = null;
+                }
+            })();
+            
+            return window.allDataLoadingPromise;
+        }
+        
+        // Save check-in data to Firestore using cached data
         async function saveCheckinDataToFirestore(engine) {
             if (!currentUser || !db) return;
             
@@ -1567,19 +1599,11 @@
             }
             
             try {
-                // Get existing data from Firestore
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                const userDoc = await userDocRef.get();
+                const allData = await loadAllUserData();
+                let checkinData = allData && Array.isArray(allData.forside_checkin_data)
+                    ? [...allData.forside_checkin_data]
+                    : [];
                 
-                let checkinData = [];
-                if (userDoc.exists && userDoc.data().forside_checkin_data) {
-                    checkinData = userDoc.data().forside_checkin_data;
-                    if (!Array.isArray(checkinData)) {
-                        checkinData = [];
-                    }
-                }
-                
-                // Create new entry
                 const newEntry = {
                     date: new Date().toISOString(),
                     status: Number(status),
@@ -1588,11 +1612,14 @@
                 
                 checkinData.push(newEntry);
                 
-                // Save to Firestore
+                const userDocRef = db.collection('users').doc(currentUser.uid);
                 await userDocRef.set({
                     forside_checkin_data: checkinData,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
+                
+                // Refresh cache after write
+                await loadAllUserData(true);
                 
                 console.log('Check-in data saved to Firestore');
             } catch (error) {
@@ -1600,18 +1627,15 @@
             }
         }
         
-        // Load check-in data from Firestore
+        // Load check-in data from Firestore via cached user document
         async function loadCheckinDataFromFirestore() {
             if (!currentUser || !db) return null;
             
             try {
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                if (userDoc.exists && userDoc.data().forside_checkin_data) {
-                    const data = userDoc.data().forside_checkin_data;
-                    console.log('Check-in data loaded from Firestore');
-                    return Array.isArray(data) ? data : [];
-                }
-                return [];
+                const allData = await loadAllUserData();
+                const data = allData && Array.isArray(allData.forside_checkin_data) ? allData.forside_checkin_data : [];
+                console.log('Check-in data loaded from cache/Firestore');
+                return data;
             } catch (error) {
                 console.error('Error loading check-in data from Firestore:', error);
                 return null;

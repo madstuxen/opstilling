@@ -1568,6 +1568,18 @@
         let db = null;
         let currentUser = null;
         
+        // Global cache of all user-related Firestore data (shared via window)
+        // {
+        //   bodymapData,
+        //   dialogData,
+        //   opstillingData,
+        //   compareData,
+        //   logbogData,
+        //   forside_checkin_data
+        // }
+        window.allUserData = window.allUserData || null;
+        window.allDataLoadingPromise = window.allDataLoadingPromise || null;
+        
         // Flags for race condition protection
         
         try {
@@ -2302,12 +2314,12 @@
                 showOnionLayers = true;
                 updateLayerToggleUI();
                 ensureDefaultMap();
-                const firstIndex = createNewIndex({ autoScroll: true });
+                const firstIndex = await createNewIndex({ autoScroll: true, skipSave: true });
                 // Force explicit title "Lag 1" for the very first layer
                 if (firstIndex) {
                     firstIndex.title = 'Lag 1';
                 }
-                // Don't save - it's a load operation, will be saved when user edits
+                // Don't save - det er en load-operation, vil først blive gemt når brugeren laver en eksplicit ændring
             }
             console.log('[INIT] Loaded bodymap data, maps:', maps.length, 'indexes:', dataIndexes.length);
             
@@ -2336,6 +2348,11 @@
         }
         
         // Update BodyMapData structure with current state
+        function roundTo2Decimals(value) {
+            if (typeof value !== 'number' || !Number.isFinite(value)) return value;
+            return Math.round(value * 100) / 100;
+        }
+        
         function updateBodyMapData() {
             const now = new Date().toISOString();
             
@@ -2358,22 +2375,72 @@
                 date: index.date,
                 time: index.time,
                 timestamp: ensureIndexTimestamp(index),
-                Timestamp: ensureIndexTimestamp(index), // explicit duplicate for external visibility
                 title: index.title || '',
-                labels: index.labels.map(label => ({
-                    id: label.id,
-                    text: label.text,
-                    x: label.x,
-                    y: label.y,
-                    offsetX: label.offsetX ?? (label.x - 450),
-                    offsetY: label.offsetY ?? (label.y - 140),
-                    pointerX: label.pointerX,
-                    pointerY: label.pointerY,
-                    pointerOffsetX: label.pointerOffsetX ?? ((label.pointerX ?? label.x) - 450),
-                    pointerOffsetY: label.pointerOffsetY ?? ((label.pointerY ?? label.y) - 140),
-                    labelNumber: label.labelNumber
-                }))
+                labels: index.labels.map(label => {
+                    const baseX = typeof label.x === 'number' ? label.x : 0;
+                    const baseY = typeof label.y === 'number' ? label.y : 0;
+                    const rawOffsetX = label.offsetX ?? (baseX - 450);
+                    const rawOffsetY = label.offsetY ?? (baseY - 140);
+                    
+                    const basePointerX = typeof label.pointerX === 'number' ? label.pointerX : baseX;
+                    const basePointerY = typeof label.pointerY === 'number' ? label.pointerY : baseY;
+                    const rawPointerOffsetX = label.pointerOffsetX ?? (basePointerX - 450);
+                    const rawPointerOffsetY = label.pointerOffsetY ?? (basePointerY - 140);
+                    
+                    return {
+                        id: label.id,
+                        text: label.text,
+                        x: roundTo2Decimals(baseX),
+                        y: roundTo2Decimals(baseY),
+                        offsetX: roundTo2Decimals(rawOffsetX),
+                        offsetY: roundTo2Decimals(rawOffsetY),
+                        pointerX: roundTo2Decimals(basePointerX),
+                        pointerY: roundTo2Decimals(basePointerY),
+                        pointerOffsetX: roundTo2Decimals(rawPointerOffsetX),
+                        pointerOffsetY: roundTo2Decimals(rawPointerOffsetY),
+                        labelNumber: label.labelNumber
+                    };
+                })
             }));
+        }
+        
+        // Load all user data (cached) for this page, shared via window
+        async function loadAllUserData(forceRefresh = false) {
+            if (!currentUser || !db) return null;
+            
+            if (!forceRefresh && window.allUserData) {
+                return window.allUserData;
+            }
+            
+            if (!forceRefresh && window.allDataLoadingPromise) {
+                return window.allDataLoadingPromise;
+            }
+            
+            window.allDataLoadingPromise = (async () => {
+                try {
+                    const userDocRef = db.collection('users').doc(currentUser.uid);
+                    const doc = await userDocRef.get();
+                    const raw = doc.exists ? (doc.data() || {}) : {};
+                    const data = {
+                        bodymapData: raw.bodymapData || null,
+                        dialogData: raw.dialogData || null,
+                        opstillingData: raw.opstillingData || null,
+                        compareData: raw.compareData || null,
+                        logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
+                        forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
+                    };
+                    window.allUserData = data;
+                    return data;
+                } catch (error) {
+                    console.error('[LOAD] Error loading all user data in bodymap_01.html:', error);
+                    window.allUserData = null;
+                    return null;
+                } finally {
+                    window.allDataLoadingPromise = null;
+                }
+            })();
+            
+            return window.allDataLoadingPromise;
         }
         
         // Save bodymap data to Firestore
@@ -2389,6 +2456,9 @@
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
                 
+                // Refresh cache after successful save so other pages can reuse updated data
+                await loadAllUserData(true);
+                
                 console.log('[SAVE] Success');
                 return true;
             } catch (error) {
@@ -2397,16 +2467,13 @@
             }
         }
         
-        // Load data from Firestore (simple, no cache)
+        // Load data from Firestore via cached user document
         async function loadBodymapDataFromFirestore() {
             if (!currentUser || !db) return null;
             
             try {
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                const doc = await userDocRef.get();
-                
-                if (!doc.exists) return null;
-                return doc.data()?.bodymapData || null;
+                const data = await loadAllUserData();
+                return data ? data.bodymapData || null : null;
             } catch (error) {
                 console.error('[LOAD] Error:', error);
                 return null;
@@ -2746,7 +2813,7 @@
         }
         
         async function createNewIndex(options = {}) {
-            const { mapId = null, skipRender = false, autoScroll = false } = options;
+            const { mapId = null, skipRender = false, autoScroll = false, skipSave = false } = options;
             ensureDefaultMap();
             const targetMapId = mapId || activeMapId;
             const now = new Date();
@@ -2782,7 +2849,9 @@
                 }
                 renderHistory();
                 renderWorkspace();
-                await saveToLocalStorage();
+                if (!skipSave) {
+                    await saveToLocalStorage();
+                }
             }
             
             return index;
@@ -3837,6 +3906,7 @@
             shouldScrollHistoryToBottom = false;
             renderHistory();
             renderWorkspace();
+            await saveToLocalStorage();
         }
         
         async function deleteIndex(indexId) {
@@ -4331,9 +4401,9 @@
                 activeMapId = targetEntry.map.id;
             }
             
+            // Only update UI when navigating history – no save here
             renderHistory();
             renderWorkspace();
-            await saveToLocalStorage();
         }
         
         // Track last workspace size to avoid renders on scroll-only changes

@@ -2373,6 +2373,18 @@
         // Initialize Firebase
         let auth, db, currentUser;
         
+        // Global cache of all user-related Firestore data (shared via window)
+        // {
+        //   bodymapData,
+        //   dialogData,
+        //   opstillingData,
+        //   compareData,
+        //   logbogData,
+        //   forside_checkin_data
+        // }
+        window.allUserData = window.allUserData || null;
+        window.allDataLoadingPromise = window.allDataLoadingPromise || null;
+        
         // Flag for UI updates during initial load (not for blocking saves)
         let isInitialLoad = true;
 
@@ -2397,17 +2409,52 @@
             authStateResolver = resolve;
         });
 
-        // Load compareData from Firestore
-        // Load data from Firestore (simple, no cache)
+        // Load all user data (cached) for this page, shared via window
+        async function loadAllUserData(forceRefresh = false) {
+            if (!currentUser || !db) return null;
+            
+            if (!forceRefresh && window.allUserData) {
+                return window.allUserData;
+            }
+            
+            if (!forceRefresh && window.allDataLoadingPromise) {
+                return window.allDataLoadingPromise;
+            }
+            
+            window.allDataLoadingPromise = (async () => {
+                try {
+                    const userDocRef = db.collection('users').doc(currentUser.uid);
+                    const doc = await userDocRef.get();
+                    const raw = doc.exists ? (doc.data() || {}) : {};
+                    const data = {
+                        bodymapData: raw.bodymapData || null,
+                        dialogData: raw.dialogData || null,
+                        opstillingData: raw.opstillingData || null,
+                        compareData: raw.compareData || null,
+                        logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
+                        forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
+                    };
+                    window.allUserData = data;
+                    return data;
+                } catch (error) {
+                    console.error('[LOAD] Error loading all user data in compare_01.html:', error);
+                    window.allUserData = null;
+                    return null;
+                } finally {
+                    window.allDataLoadingPromise = null;
+                }
+            })();
+            
+            return window.allDataLoadingPromise;
+        }
+        
+        // Load compareData from Firestore via cached user document
         async function loadCompareDataFromFirestore() {
             if (!currentUser || !db) return null;
             
             try {
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                const doc = await userDocRef.get();
-                
-                if (!doc.exists) return null;
-                return doc.data()?.compareData || null;
+                const data = await loadAllUserData();
+                return data ? data.compareData || null : null;
             } catch (error) {
                 console.error('[LOAD] Error:', error);
                 return null;
@@ -2426,6 +2473,9 @@
                     compareData: CompareData,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
+                
+                // Refresh cache after successful save so other pages can reuse updated data
+                await loadAllUserData(true);
                 
                 console.log('[SAVE] Success');
                 return true;

@@ -1574,21 +1574,49 @@
             return parsed.toISOString().split('T')[0];
         }
 
-        // Load data from Firestore (simple, no cache)
-        async function loadLogbookDataFromFirestore() {
+        async function loadAllUserData(forceRefresh = false) {
             if (!currentUser || !db) return null;
             
-            try {
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                const doc = await userDocRef.get();
-                
-                if (!doc.exists) return null;
-                const data = doc.data()?.logbogData;
-                return Array.isArray(data) ? data : null;
-            } catch (error) {
-                console.error('[LOAD] Error:', error);
-                return null;
+            if (!forceRefresh && window.allUserData) {
+                return window.allUserData;
             }
+            
+            if (!forceRefresh && window.allDataLoadingPromise) {
+                return window.allDataLoadingPromise;
+            }
+            
+            window.allDataLoadingPromise = (async () => {
+                try {
+                    const userDocRef = db.collection('users').doc(currentUser.uid);
+                    const doc = await userDocRef.get();
+                    const raw = doc.exists ? (doc.data() || {}) : {};
+                    const data = {
+                        bodymapData: raw.bodymapData || null,
+                        dialogData: raw.dialogData || null,
+                        opstillingData: raw.opstillingData || null,
+                        compareData: raw.compareData || null,
+                        logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
+                        forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
+                    };
+                    window.allUserData = data;
+                    return data;
+                } catch (error) {
+                    console.error('[LOAD] Error loading all user data:', error);
+                    window.allUserData = null;
+                    return null;
+                } finally {
+                    window.allDataLoadingPromise = null;
+                }
+            })();
+            
+            return window.allDataLoadingPromise;
+        }
+        
+        // Load logbook data from Firestore via cached user document
+        async function loadLogbookDataFromFirestore() {
+            const data = await loadAllUserData();
+            if (!data) return null;
+            return data.logbogData;
         }
         
         // Save logbook data to Firestore
@@ -1711,6 +1739,8 @@
             
             try {
                 await saveLogbookDataToFirestore(entries);
+                // Refresh cache after successful save so other views can use updated data
+                await loadAllUserData(true);
                 // Also save to localStorage as backup
                 try {
                     localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
@@ -1723,11 +1753,11 @@
         }
 
         async function getBodymapData() {
-            // Always try Firestore first if user is logged in
+            // Use cached Firestore data when logged in
             if (currentUser && db) {
-                const firestoreData = await loadBodymapDataFromFirestore();
-                if (firestoreData !== null) {
-                    return firestoreData;
+                const data = await loadAllUserData();
+                if (data && data.bodymapData) {
+                    return data.bodymapData;
                 }
             }
             
@@ -1742,13 +1772,13 @@
                 return null;
             }
         }
-
+        
         async function getDialogData() {
-            // Always try Firestore first if user is logged in
+            // Use cached Firestore data when logged in
             if (currentUser && db) {
-                const firestoreData = await loadDialogDataFromFirestore();
-                if (firestoreData !== null) {
-                    return firestoreData;
+                const data = await loadAllUserData();
+                if (data && data.dialogData) {
+                    return data.dialogData;
                 }
             }
             
@@ -1772,13 +1802,13 @@
                 return null;
             }
         }
-
+        
         async function getOpstillingData() {
-            // Always try Firestore first if user is logged in
+            // Use cached Firestore data when logged in
             if (currentUser && db) {
-                const firestoreData = await loadOpstillingDataFromFirestore();
-                if (firestoreData !== null) {
-                    return firestoreData;
+                const data = await loadAllUserData();
+                if (data && data.opstillingData) {
+                    return data.opstillingData;
                 }
             }
             
@@ -1793,13 +1823,13 @@
                 return null;
             }
         }
-
+        
         async function getCompareData() {
-            // Always try Firestore first if user is logged in
+            // Use cached Firestore data when logged in
             if (currentUser && db) {
-                const firestoreData = await loadCompareDataFromFirestore();
-                if (firestoreData !== null) {
-                    return firestoreData;
+                const data = await loadAllUserData();
+                if (data && data.compareData) {
+                    return data.compareData;
                 }
             }
             
@@ -1959,12 +1989,12 @@
             return '';
         }
 
-        async function getBodymapActivityInfo(dateKey) {
+        async function getBodymapActivityInfo(dateKey, allData) {
             if (!dateKey) {
                 return { hasEntries: false };
             }
 
-            const bodymapData = await getBodymapData();
+            const bodymapData = allData && allData.bodymapData ? allData.bodymapData : await getBodymapData();
             if (!bodymapData || !Array.isArray(bodymapData.dataIndexes)) {
                 return { hasEntries: false };
             }
@@ -2016,12 +2046,12 @@
             };
         }
 
-        async function getDialogActivityInfo(dateKey) {
+        async function getDialogActivityInfo(dateKey, allData) {
             if (!dateKey) {
                 return { hasEntries: false };
             }
 
-            const dialogData = await getDialogData();
+            const dialogData = allData && allData.dialogData ? allData.dialogData : await getDialogData();
             if (!dialogData) {
                 return { hasEntries: false };
             }
@@ -2116,12 +2146,12 @@
             };
         }
 
-        async function getOpstillingActivityInfo(dateKey) {
+        async function getOpstillingActivityInfo(dateKey, allData) {
             if (!dateKey) {
                 return { hasEntries: false };
             }
 
-            const opstillingData = await getOpstillingData();
+            const opstillingData = allData && allData.opstillingData ? allData.opstillingData : await getOpstillingData();
             if (!opstillingData || !Array.isArray(opstillingData.collections)) {
                 return { hasEntries: false };
             }
@@ -2165,12 +2195,12 @@
             };
         }
 
-        async function getCompareActivityInfo(dateKey) {
+        async function getCompareActivityInfo(dateKey, allData) {
             if (!dateKey) {
                 return { hasEntries: false };
             }
 
-            const compareData = await getCompareData();
+            const compareData = allData && allData.compareData ? allData.compareData : await getCompareData();
             if (!compareData || !Array.isArray(compareData.collections)) {
                 return { hasEntries: false };
             }
@@ -2280,6 +2310,10 @@
             entries.forEach(entry => {
                 const item = document.createElement('div');
                 item.className = 'log-history-item';
+                // Mark item with its date so color picker can live-update styling without saving
+                if (entry.date) {
+                    item.dataset.date = entry.date;
+                }
                 const isActive = entry.date === activeLogDate;
                 if (isActive) {
                     item.classList.add('active');
@@ -2308,6 +2342,9 @@
                 colorBtn.className = 'log-history-color-btn';
                 colorBtn.textContent = 'C';
                 colorBtn.title = 'Vælg farve';
+                if (entry.date) {
+                    colorBtn.dataset.date = entry.date;
+                }
                 if (entry.color) {
                     colorBtn.style.background = entry.color;
                     colorBtn.style.color = '#ffffff';
@@ -2737,6 +2774,23 @@
                 window._pendingLogHistoryColorChanges = new Map();
             }
             window._pendingLogHistoryColorChanges.set(logHistoryColorPickerTarget, color);
+            
+            // Live-update UI for the selected history item without saving to Firestore yet
+            const item = document.querySelector(`.log-history-item[data-date="${logHistoryColorPickerTarget}"]`);
+            if (item) {
+                const isActive = item.classList.contains('active');
+                if (isActive) {
+                    item.style.background = `linear-gradient(135deg, ${color} 0%, ${darkenHex(color, 0.1)} 100%)`;
+                } else {
+                    item.style.background = lightenHex(color, 0.7);
+                }
+                item.style.borderColor = color;
+            }
+            const colorBtn = document.querySelector(`.log-history-color-btn[data-date="${logHistoryColorPickerTarget}"]`);
+            if (colorBtn) {
+                colorBtn.style.background = color;
+                colorBtn.style.color = '#ffffff';
+            }
             // Don't close overlay - only close when clicking outside or pressing Escape
         }
 
@@ -2747,6 +2801,18 @@
                 window._pendingLogHistoryColorChanges = new Map();
             }
             window._pendingLogHistoryColorChanges.set(logHistoryColorPickerTarget, null);
+            
+            // Live-update UI for the selected history item (remove color) without saving endnu
+            const item = document.querySelector(`.log-history-item[data-date="${logHistoryColorPickerTarget}"]`);
+            if (item) {
+                item.style.background = '';
+                item.style.borderColor = '';
+            }
+            const colorBtn = document.querySelector(`.log-history-color-btn[data-date="${logHistoryColorPickerTarget}"]`);
+            if (colorBtn) {
+                colorBtn.style.background = '';
+                colorBtn.style.color = '';
+            }
             // Don't close overlay - only close when clicking outside or pressing Escape
         }
 
@@ -3010,7 +3076,7 @@
                 let badgeText = '';
 
                 if (activity.type === 'bodymap') {
-                    const info = await getBodymapActivityInfo(normalizedKey);
+                    const info = await getBodymapActivityInfo(normalizedKey, window.allUserData || null);
                     if (info.hasEntries) {
                         displayTime = info.latestTime || displayTime;
                         displayText = info.displayText || displayText;
@@ -3021,7 +3087,7 @@
                         emptyTextLabel = 'Lav et map';
                     }
                 } else if (activity.type === 'dialog') {
-                    const info = await getDialogActivityInfo(normalizedKey);
+                    const info = await getDialogActivityInfo(normalizedKey, window.allUserData || null);
                     if (info.hasEntries) {
                         displayTime = info.latestTime || displayTime;
                         // Use displayText from info, don't append messageSuffix if it's already there
@@ -3037,7 +3103,7 @@
                         emptyTextLabel = 'Lav en dialog';
                     }
                 } else if (activity.type === 'opstilling') {
-                    const info = await getOpstillingActivityInfo(normalizedKey);
+                    const info = await getOpstillingActivityInfo(normalizedKey, window.allUserData || null);
                     if (info.hasEntries) {
                         displayTime = info.latestTime || displayTime;
                         // Use displayText from info, don't append partsSuffix if it's already there
@@ -3053,7 +3119,7 @@
                         emptyTextLabel = 'Lav en opstilling';
                     }
                 } else if (activity.type === 'relationer') {
-                    const info = await getCompareActivityInfo(normalizedKey);
+                    const info = await getCompareActivityInfo(normalizedKey, window.allUserData || null);
                     if (info.hasEntries) {
                         displayTime = info.latestTime || displayTime;
                         displayText = info.displayText || displayText;
@@ -3135,6 +3201,18 @@
         let db = null;
         let currentUser = null;
         
+        // Global cache of all user-related Firestore data (shared via window)
+        // {
+        //   bodymapData,
+        //   dialogData,
+        //   opstillingData,
+        //   compareData,
+        //   logbogData,
+        //   forside_checkin_data
+        // }
+        window.allUserData = window.allUserData || null;
+        window.allDataLoadingPromise = window.allDataLoadingPromise || null;
+        
         // Flags for race condition protection
         let initialActivityRenderDone = false;
         
@@ -3213,81 +3291,66 @@
             }
         }
         
-        // Load check-in data from Firestore
+        // Load check-in data from Firestore via cached user document
         async function loadCheckinDataFromFirestore() {
             if (!currentUser || !db) return null;
             
             try {
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                if (userDoc.exists && userDoc.data().forside_checkin_data) {
-                    const data = userDoc.data().forside_checkin_data;
-                    return Array.isArray(data) ? data : [];
-                }
-                return [];
+                const data = await loadAllUserData();
+                const raw = data && Array.isArray(data.forside_checkin_data) ? data.forside_checkin_data : [];
+                return raw;
             } catch (error) {
                 console.error('Error loading check-in data from Firestore:', error);
                 return null;
             }
         }
         
-        // Load bodymap data from Firestore
+        // Load bodymap data from Firestore via cached user document
         async function loadBodymapDataFromFirestore() {
             if (!currentUser || !db) return null;
             
             try {
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                if (userDoc.exists && userDoc.data().bodymapData) {
-                    return userDoc.data().bodymapData;
-                }
-                return null;
+                const data = await loadAllUserData();
+                return data ? data.bodymapData || null : null;
             } catch (error) {
                 console.error('Error loading bodymapData from Firestore:', error);
                 return null;
             }
         }
         
-        // Load opstilling data from Firestore
+        // Load opstilling data from Firestore via cached user document
         async function loadOpstillingDataFromFirestore() {
             if (!currentUser || !db) return null;
             
             try {
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                if (userDoc.exists && userDoc.data().opstillingData) {
-                    return userDoc.data().opstillingData;
-                }
-                return null;
+                const data = await loadAllUserData();
+                return data ? data.opstillingData || null : null;
             } catch (error) {
                 console.error('Error loading opstillingData from Firestore:', error);
                 return null;
             }
         }
         
-        // Load dialog data from Firestore
+        // Load dialog data from Firestore via cached user document
         async function loadDialogDataFromFirestore() {
             if (!currentUser || !db) return null;
             
             try {
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                if (userDoc.exists && userDoc.data().dialogData) {
-                    return userDoc.data().dialogData;
-                }
-                return null;
+                const data = await loadAllUserData();
+                return data ? data.dialogData || null : null;
             } catch (error) {
                 console.error('Error loading dialogData from Firestore:', error);
                 return null;
             }
         }
         
-        // Load compare data from Firestore
+        // Load compare data from Firestore via cached user document
         async function loadCompareDataFromFirestore() {
             if (!currentUser || !db) return null;
             
             try {
-                const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                if (userDoc.exists && userDoc.data().compareData) {
-                    return userDoc.data().compareData;
-                }
-                return null;
+                const data = await loadAllUserData();
+                return data ? data.compareData || null : null;
             } catch (error) {
                 console.error('Error loading compareData from Firestore:', error);
                 return null;

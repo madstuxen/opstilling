@@ -2143,6 +2143,18 @@
         let db = null;
         let currentUser = null;
         
+        // Global cache of all user-related Firestore data (shared via window)
+        // {
+        //   bodymapData,
+        //   dialogData,
+        //   opstillingData,
+        //   compareData,
+        //   logbogData,
+        //   forside_checkin_data
+        // }
+        window.allUserData = window.allUserData || null;
+        window.allDataLoadingPromise = window.allDataLoadingPromise || null;
+        
         // Flags for race condition protection
         
         // Initialize Firebase immediately (before DOM is ready) for faster auth state detection
@@ -2284,16 +2296,52 @@ let dialogHistoryCollapsed = true; // Default to collapsed
 };
 		
         // Firestore functions
-        // Load data from Firestore (simple, no cache)
+        // Load all user data (cached) for this page, shared via window
+        async function loadAllUserData(forceRefresh = false) {
+            if (!currentUser || !db) return null;
+            
+            if (!forceRefresh && window.allUserData) {
+                return window.allUserData;
+            }
+            
+            if (!forceRefresh && window.allDataLoadingPromise) {
+                return window.allDataLoadingPromise;
+            }
+            
+            window.allDataLoadingPromise = (async () => {
+                try {
+                    const userDocRef = db.collection('users').doc(currentUser.uid);
+                    const doc = await userDocRef.get();
+                    const raw = doc.exists ? (doc.data() || {}) : {};
+                    const data = {
+                        bodymapData: raw.bodymapData || null,
+                        dialogData: raw.dialogData || null,
+                        opstillingData: raw.opstillingData || null,
+                        compareData: raw.compareData || null,
+                        logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
+                        forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
+                    };
+                    window.allUserData = data;
+                    return data;
+                } catch (error) {
+                    console.error('[LOAD] Error loading all user data in dialog_01.html:', error);
+                    window.allUserData = null;
+                    return null;
+                } finally {
+                    window.allDataLoadingPromise = null;
+                }
+            })();
+            
+            return window.allDataLoadingPromise;
+        }
+        
+        // Load data from Firestore via cached user document
         async function loadDialogDataFromFirestore() {
             if (!currentUser || !db) return null;
             
             try {
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                const doc = await userDocRef.get();
-                
-                if (!doc.exists) return null;
-                return doc.data()?.dialogData || null;
+                const data = await loadAllUserData();
+                return data ? data.dialogData || null : null;
             } catch (error) {
                 console.error('[LOAD] Error:', error);
                 return null;
@@ -2312,6 +2360,9 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     dialogData: DialogData,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
+                
+                // Refresh cache after successful save so other pages can reuse updated data
+                await loadAllUserData(true);
                 
                 console.log('[SAVE] Success');
                 return true;
@@ -2818,7 +2869,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 const targetEntry = sortedEntries[nextIndex];
                 DialogData.activeCollectionId = targetEntry.collection.id;
                 DialogData.activeDialogId = targetEntry.dialog.id;
-                await saveDialogDataToLocalStorage();
+                // Only switch active dialog/collection – don't save when navigating history
                 loadSavedDialogFromNewStructure(targetEntry.dialog);
                 renderDialogHistory();
             }
