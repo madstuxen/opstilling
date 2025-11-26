@@ -2919,31 +2919,72 @@
                 deleteBtn.textContent = '×';
                 item.appendChild(deleteBtn);
 
-                item.addEventListener('click', (e) => {
+                // Shared handler function for both touch and click
+                const handleItemActivation = (e) => {
                     // Don't handle clicks on delete button
                     if (e.target.classList.contains('history-item-delete')) return;
                     
+                    // Check current active state (not the initial isActive value)
+                    const currentlyActive = index.id === activeIndexId;
+                    
                     // If clicking directly on input field of active item, allow normal editing
-                    if (e.target.classList.contains('history-item-date') && isActive) {
+                    if (e.target.classList.contains('history-item-date') && currentlyActive) {
                         // Let the input handle focus normally
                         return;
                     }
                     
-                    // First click: If item is not active, activate it
-                    if (!isActive) {
+                    // First click/touch: If item is not active, activate it
+                    if (!currentlyActive) {
+                        e.preventDefault();
+                        e.stopPropagation();
                         activeMapId = map ? map.id : index.mapId;
                         activeIndexId = index.id;
                         renderHistory();
                         renderWorkspace();
                         // Don't save - it's a load operation (switching to existing history item)
                     } else {
-                        // Second click: Item is already active, focus the input field
+                        // Second click/touch: Item is already active, focus the input field
+                        e.preventDefault();
+                        e.stopPropagation();
                         const titleInput = item.querySelector('.history-item-date');
                         if (titleInput) {
-                            titleInput.focus();
-                            titleInput.select(); // Select all text for easy editing
+                            // Use setTimeout to ensure focus happens after any re-renders
+                            setTimeout(() => {
+                                titleInput.focus();
+                                titleInput.select(); // Select all text for easy editing
+                            }, 0);
                         }
                     }
+                };
+                
+                // Handle touch events for mobile (fires immediately, no delay)
+                let touchStartTime = 0;
+                item.addEventListener('touchstart', (e) => {
+                    touchStartTime = Date.now();
+                    // Mark that we're handling touch (stored on item to persist across handlers)
+                    item.dataset.touchHandled = 'false';
+                }, { passive: true });
+                
+                item.addEventListener('touchend', (e) => {
+                    // Only handle if it was a quick tap (not a scroll)
+                    const touchDuration = Date.now() - touchStartTime;
+                    if (touchDuration < 300) { // Quick tap, not a scroll
+                        handleItemActivation(e);
+                        // Mark that touch was handled to prevent click event
+                        item.dataset.touchHandled = 'true';
+                        // Prevent click event from firing after touch
+                        e.preventDefault();
+                    }
+                });
+                
+                // Handle click events for desktop (only if touch wasn't handled)
+                item.addEventListener('click', (e) => {
+                    // Check if touch was already handled (on mobile)
+                    if (item.dataset.touchHandled !== 'true') {
+                        handleItemActivation(e);
+                    }
+                    // Reset for next interaction
+                    item.dataset.touchHandled = 'false';
                 });
 
                 // Title edit handler: only update title, never date/time/timestamp
@@ -2957,8 +2998,10 @@
                     titleInput.tabIndex = 0;
                 }
                 titleInput.addEventListener('focus', (e) => {
+                    // Check current active state
+                    const currentlyActive = index.id === activeIndexId;
                     // If not active, prevent focus and activate item instead
-                    if (!isActive) {
+                    if (!currentlyActive) {
                         e.preventDefault();
                         e.stopPropagation();
                         // Activate the item (first click behavior)
