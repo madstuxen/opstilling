@@ -188,6 +188,7 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
                 animation: coachingSlideIn 0.3s ease;
                 overflow: visible;
                 will-change: transform;
+                transition: opacity 0.35s ease, visibility 0.35s ease;
             }
             
             @keyframes coachingSlideIn {
@@ -260,6 +261,9 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
     // Create overlay container (styles are now in CSS)
     const overlay = document.createElement('div');
     overlay.id = 'coachingOverlay';
+    // Hide overlay initially until flags are applied
+    overlay.style.opacity = '0';
+    overlay.style.visibility = 'hidden';
     
     // Create header (styles are now in CSS)
     const header = document.createElement('div');
@@ -722,6 +726,11 @@ function waitForCoachEngine(contentElement, dataSource) {
                     </div>
                 `;
             }
+            // Show overlay even if CoachEngine fails to load (to show error message)
+            if (coachingOverlay && coachingOverlay.overlay) {
+                coachingOverlay.overlay.style.opacity = '1';
+                coachingOverlay.overlay.style.visibility = 'visible';
+            }
         } else {
             setTimeout(checkCoachEngine, 100);
         }
@@ -810,6 +819,11 @@ async function startCoachingSession(contentElement, dataSource) {
                         <p>Prøv at gemme en session først</p>
                     </div>
                 `;
+            }
+            // Show overlay even if no project data (to show error message)
+            if (coachingOverlay && coachingOverlay.overlay) {
+                coachingOverlay.overlay.style.opacity = '1';
+                coachingOverlay.overlay.style.visibility = 'visible';
             }
             return;
         }
@@ -921,7 +935,18 @@ async function startCoachingSession(contentElement, dataSource) {
             // Use a small delay to ensure DOM is fully rendered
             setTimeout(() => {
                 applyFlagsToShadowDOM(shadowRootForFlags, flags);
+                // Show overlay after flags are applied
+                if (coachingOverlay && coachingOverlay.overlay) {
+                    coachingOverlay.overlay.style.opacity = '1';
+                    coachingOverlay.overlay.style.visibility = 'visible';
+                }
             }, 100);
+        } else {
+            // No flags to apply, show overlay immediately
+            if (coachingOverlay && coachingOverlay.overlay) {
+                coachingOverlay.overlay.style.opacity = '1';
+                coachingOverlay.overlay.style.visibility = 'visible';
+            }
         }
         
         // Prepare variables like the original system
