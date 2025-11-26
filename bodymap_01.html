@@ -838,6 +838,7 @@
             transition: transform 0.15s ease, box-shadow 0.15s ease;
             border: 2px solid transparent;
             position: relative;
+            touch-action: manipulation; /* Remove 300ms click delay on mobile */
         }
         
         .history-item:hover {
@@ -2919,16 +2920,29 @@
                 item.appendChild(deleteBtn);
 
                 item.addEventListener('click', (e) => {
-                    // If clicking title on active item, allow editing (no activation toggle)
-                    if (e.target.classList.contains('history-item-date') && isActive) return;
+                    // Don't handle clicks on delete button
                     if (e.target.classList.contains('history-item-delete')) return;
-                    // For non-active items (including clicking their title), activate this item
+                    
+                    // If clicking directly on input field of active item, allow normal editing
+                    if (e.target.classList.contains('history-item-date') && isActive) {
+                        // Let the input handle focus normally
+                        return;
+                    }
+                    
+                    // First click: If item is not active, activate it
                     if (!isActive) {
                         activeMapId = map ? map.id : index.mapId;
                         activeIndexId = index.id;
                         renderHistory();
                         renderWorkspace();
                         // Don't save - it's a load operation (switching to existing history item)
+                    } else {
+                        // Second click: Item is already active, focus the input field
+                        const titleInput = item.querySelector('.history-item-date');
+                        if (titleInput) {
+                            titleInput.focus();
+                            titleInput.select(); // Select all text for easy editing
+                        }
                     }
                 });
 
@@ -2943,12 +2957,18 @@
                     titleInput.tabIndex = 0;
                 }
                 titleInput.addEventListener('focus', (e) => {
-                    // If not active, redirect focus to activation
+                    // If not active, prevent focus and activate item instead
                     if (!isActive) {
                         e.preventDefault();
-                        item.click();
+                        e.stopPropagation();
+                        // Activate the item (first click behavior)
+                        activeMapId = map ? map.id : index.mapId;
+                        activeIndexId = index.id;
+                        renderHistory();
+                        renderWorkspace();
                         return;
                     }
+                    // If active, allow normal focus for editing
                 });
                 titleInput.addEventListener('change', async (e) => {
                     const indexId = parseFloat(e.target.dataset.id);
