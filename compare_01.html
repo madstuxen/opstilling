@@ -3366,6 +3366,24 @@
 				dateInput.value = comparison.name || 'Sammenligning';
 				dateInput.readOnly = !isActive;
 				dateInput.setAttribute('data-comparison-id', comparison.id);
+				dateInput.addEventListener('focus', (e) => {
+					// Check current active state
+					const currentlyActive = comparison.id === CompareData.activeComparisonId && 
+					                       collection.id === CompareData.activeCollectionId;
+					// If not active, prevent focus and activate item instead
+					if (!currentlyActive) {
+						e.preventDefault();
+						e.stopPropagation();
+						// Activate the item (first click behavior)
+						CompareData.activeCollectionId = collection.id;
+						CompareData.activeComparisonId = comparison.id;
+						loadComparisonFromCompareData(comparison);
+						renderHistory();
+						updateHistoryNavState();
+						return;
+					}
+					// If active, allow normal focus for editing
+				});
 				if (isActive) {
 					dateInput.addEventListener('blur', async () => {
 						const newName = dateInput.value.trim();
@@ -3427,13 +3445,74 @@
 				item.appendChild(metaDiv);
 				item.appendChild(deleteBtn);
 				
-				item.onclick = async () => {
-					CompareData.activeCollectionId = collection.id;
-					CompareData.activeComparisonId = comparison.id;
-					loadComparisonFromCompareData(comparison);
-					await renderHistory();
-					updateHistoryNavState();
+				// Shared handler function for both touch and click
+				const handleItemActivation = async (e) => {
+					// Don't handle clicks on delete button
+					if (e.target.classList.contains('history-item-delete')) return;
+					
+					// Check current active state
+					const currentlyActive = comparison.id === CompareData.activeComparisonId && 
+					                       collection.id === CompareData.activeCollectionId;
+					
+					// If clicking directly on input field of active item, allow normal editing
+					if (e.target.classList.contains('history-item-date') && currentlyActive) {
+						// Let the input handle focus normally
+						return;
+					}
+					
+					// First click/touch: If item is not active, activate it
+					if (!currentlyActive) {
+						e.preventDefault();
+						e.stopPropagation();
+						CompareData.activeCollectionId = collection.id;
+						CompareData.activeComparisonId = comparison.id;
+						loadComparisonFromCompareData(comparison);
+						await renderHistory();
+						updateHistoryNavState();
+					} else {
+						// Second click/touch: Item is already active, focus the input field
+						e.preventDefault();
+						e.stopPropagation();
+						const titleInput = item.querySelector('.history-item-date');
+						if (titleInput) {
+							// Use setTimeout to ensure focus happens after any re-renders
+							setTimeout(() => {
+								titleInput.focus();
+								titleInput.select(); // Select all text for easy editing
+							}, 0);
+						}
+					}
 				};
+				
+				// Handle touch events for mobile (fires immediately, no delay)
+				let touchStartTime = 0;
+				item.addEventListener('touchstart', (e) => {
+					touchStartTime = Date.now();
+					// Mark that we're handling touch (stored on item to persist across handlers)
+					item.dataset.touchHandled = 'false';
+				}, { passive: true });
+				
+				item.addEventListener('touchend', (e) => {
+					// Only handle if it was a quick tap (not a scroll)
+					const touchDuration = Date.now() - touchStartTime;
+					if (touchDuration < 300) { // Quick tap, not a scroll
+						handleItemActivation(e);
+						// Mark that touch was handled to prevent click event
+						item.dataset.touchHandled = 'true';
+						// Prevent click event from firing after touch
+						e.preventDefault();
+					}
+				});
+				
+				// Handle click events for desktop (only if touch wasn't handled)
+				item.addEventListener('click', (e) => {
+					// Check if touch was already handled (on mobile)
+					if (item.dataset.touchHandled !== 'true') {
+						handleItemActivation(e);
+					}
+					// Reset for next interaction
+					item.dataset.touchHandled = 'false';
+				});
 				
 				listEl.appendChild(item);
 			});

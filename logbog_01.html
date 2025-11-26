@@ -2394,8 +2394,48 @@
 
                 item.append(headerEl, weekDayEl, snippetEl, metaEl);
 
-                item.addEventListener('click', async () => {
-                    await setActiveLogDate(entry.date);
+                // Shared handler function for both touch and click
+                const handleItemActivation = async (e) => {
+                    // Check current active state
+                    const currentlyActive = entry.date === activeLogDate;
+                    
+                    // First click/touch: If item is not active, activate it
+                    if (!currentlyActive) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        await setActiveLogDate(entry.date);
+                    }
+                    // No second click behavior needed - logbog has no editable text field
+                };
+                
+                // Handle touch events for mobile (fires immediately, no delay)
+                let touchStartTime = 0;
+                item.addEventListener('touchstart', (e) => {
+                    touchStartTime = Date.now();
+                    // Mark that we're handling touch (stored on item to persist across handlers)
+                    item.dataset.touchHandled = 'false';
+                }, { passive: true });
+                
+                item.addEventListener('touchend', (e) => {
+                    // Only handle if it was a quick tap (not a scroll)
+                    const touchDuration = Date.now() - touchStartTime;
+                    if (touchDuration < 300) { // Quick tap, not a scroll
+                        handleItemActivation(e);
+                        // Mark that touch was handled to prevent click event
+                        item.dataset.touchHandled = 'true';
+                        // Prevent click event from firing after touch
+                        e.preventDefault();
+                    }
+                });
+                
+                // Handle click events for desktop (only if touch wasn't handled)
+                item.addEventListener('click', (e) => {
+                    // Check if touch was already handled (on mobile)
+                    if (item.dataset.touchHandled !== 'true') {
+                        handleItemActivation(e);
+                    }
+                    // Reset for next interaction
+                    item.dataset.touchHandled = 'false';
                 });
 
                 listEl.appendChild(item);
