@@ -386,26 +386,28 @@
 
         .log-history-item {
             padding: 12px;
+            margin-bottom: 6px;
             border-radius: 14px;
-            background: white;
+            background: #e0e7ff;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             gap: 6px;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
-            border: 1px solid rgba(148, 163, 184, 0.3);
+            border: 2px solid transparent;
+            position: relative;
             touch-action: manipulation;
         }
 
         .log-history-item:hover {
-            transform: translateX(-2px);
-            box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
         }
 
         .log-history-item.active {
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-            color: white;
-            border-color: transparent;
+            background: #c7d2fe;
+            color: #1f2937;
+            border-color: #6366f1;
             box-shadow: 0 12px 22px rgba(79, 70, 229, 0.25);
         }
 
@@ -438,9 +440,13 @@
             justify-content: space-between;
             align-items: center;
             gap: 8px;
+            position: relative;
         }
 
         .log-history-color-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
             width: 24px;
             height: 24px;
             border-radius: 50%;
@@ -450,15 +456,16 @@
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            display: none;
+            opacity: 0;
+            display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
             flex-shrink: 0;
         }
 
         .log-history-item:hover .log-history-color-btn {
-            display: flex;
+            opacity: 1;
         }
 
         .log-history-color-btn:hover {
@@ -2320,14 +2327,17 @@
                     activeItemEl = item;
                 }
 
-                // Apply color if exists
+                // Apply color if exists (matching bodymap logic)
+                const defaultColor = '#6366f1';
                 if (entry.color) {
-                    if (isActive) {
-                        item.style.background = `linear-gradient(135deg, ${entry.color} 0%, ${darkenHex(entry.color, 0.1)} 100%)`;
-                    } else {
-                        item.style.background = lightenHex(entry.color, 0.7);
-                    }
-                    item.style.borderColor = entry.color;
+                    const baseBackground = lightenHex(entry.color, isActive ? 0.35 : 0.7);
+                    item.style.backgroundColor = baseBackground;
+                    item.style.borderColor = isActive ? entry.color : 'transparent';
+                } else {
+                    // No custom color - use default
+                    const baseBackground = lightenHex(defaultColor, isActive ? 0.35 : 0.7);
+                    item.style.backgroundColor = baseBackground;
+                    item.style.borderColor = isActive ? defaultColor : 'transparent';
                 }
 
                 const headerEl = document.createElement('div');
@@ -2819,12 +2829,9 @@
             const item = document.querySelector(`.log-history-item[data-date="${logHistoryColorPickerTarget}"]`);
             if (item) {
                 const isActive = item.classList.contains('active');
-                if (isActive) {
-                    item.style.background = `linear-gradient(135deg, ${color} 0%, ${darkenHex(color, 0.1)} 100%)`;
-                } else {
-                    item.style.background = lightenHex(color, 0.7);
-                }
-                item.style.borderColor = color;
+                const baseBackground = lightenHex(color, isActive ? 0.35 : 0.7);
+                item.style.backgroundColor = baseBackground;
+                item.style.borderColor = isActive ? color : 'transparent';
             }
             const colorBtn = document.querySelector(`.log-history-color-btn[data-date="${logHistoryColorPickerTarget}"]`);
             if (colorBtn) {
@@ -2845,8 +2852,11 @@
             // Live-update UI for the selected history item (remove color) without saving endnu
             const item = document.querySelector(`.log-history-item[data-date="${logHistoryColorPickerTarget}"]`);
             if (item) {
-                item.style.background = '';
-                item.style.borderColor = '';
+                const isActive = item.classList.contains('active');
+                const defaultColor = '#6366f1';
+                const baseBackground = lightenHex(defaultColor, isActive ? 0.35 : 0.7);
+                item.style.backgroundColor = baseBackground;
+                item.style.borderColor = isActive ? defaultColor : 'transparent';
             }
             const colorBtn = document.querySelector(`.log-history-color-btn[data-date="${logHistoryColorPickerTarget}"]`);
             if (colorBtn) {
