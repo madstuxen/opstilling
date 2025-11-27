@@ -934,9 +934,12 @@
             justify-content: center;
             padding: 0;
             line-height: 1;
+            z-index: 10;
+            pointer-events: auto;
         }
         
-        .history-item:hover .history-item-delete {
+        .history-item:hover .history-item-delete,
+        .history-item.active .history-item-delete {
             opacity: 1;
         }
         
@@ -3031,6 +3034,12 @@
                 }, { passive: true });
                 
                 item.addEventListener('touchend', (e) => {
+                    // Don't handle touches on delete button or textarea - they have their own handlers
+                    if (e.target.classList.contains('history-item-delete') || 
+                        e.target.classList.contains('history-item-date')) {
+                        return;
+                    }
+                    
                     // Only handle if it was a quick tap (not a scroll)
                     const touchDuration = Date.now() - touchStartTime;
                     if (touchDuration < 300) { // Quick tap, not a scroll
@@ -3089,11 +3098,47 @@
                         renderHistory();
                     }
                 });
-                deleteBtn.addEventListener('click', (e) => {
+                
+                // Delete button handlers - both touch and click for mobile compatibility
+                const handleDelete = (e) => {
                     e.stopPropagation();
-                    const indexId = parseFloat(e.target.dataset.id);
+                    e.preventDefault();
+                    const indexId = parseFloat(deleteBtn.dataset.id);
                     deleteIndex(indexId);
-                });
+                };
+                
+                deleteBtn.addEventListener('click', handleDelete);
+                deleteBtn.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleDelete(e);
+                }, { passive: false });
+                
+                // Textarea touch handler for mobile - allow direct focus on touch
+                titleInput.addEventListener('touchend', (e) => {
+                    // Check current active state
+                    const currentlyActive = index.id === activeIndexId;
+                    
+                    if (!currentlyActive) {
+                        // If not active, activate first, then focus
+                        e.stopPropagation();
+                        e.preventDefault();
+                        activeMapId = map ? map.id : index.mapId;
+                        activeIndexId = index.id;
+                        renderHistory();
+                        renderWorkspace();
+                        // After re-render, focus the input
+                        setTimeout(() => {
+                            const newInput = document.querySelector(`.history-item-date[data-id="${index.id}"]`);
+                            if (newInput) {
+                                newInput.focus();
+                            }
+                        }, 100);
+                    } else {
+                        // If already active, just allow normal focus
+                        // Don't prevent default - let the input handle it
+                    }
+                }, { passive: false });
 
                 // Append in order (already newest-first)
                 list.appendChild(item);

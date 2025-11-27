@@ -1172,9 +1172,12 @@
             justify-content: center;
             line-height: 1;
             padding: 0;
+            z-index: 10;
+            pointer-events: auto;
         }
 
-        .dialog-history-item:hover .dialog-history-item-delete {
+        .dialog-history-item:hover .dialog-history-item-delete,
+        .dialog-history-item.active .dialog-history-item-delete {
             opacity: 1;
         }
 
@@ -2868,6 +2871,12 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 }, { passive: true });
                 
                 item.addEventListener('touchend', (e) => {
+                    // Don't handle touches on delete button or textarea - they have their own handlers
+                    if (e.target.classList.contains('dialog-history-item-delete') || 
+                        e.target.classList.contains('dialog-history-item-title-input')) {
+                        return;
+                    }
+                    
                     // Only handle if it was a quick tap (not a scroll)
                     const touchDuration = Date.now() - touchStartTime;
                     if (touchDuration < 300) { // Quick tap, not a scroll
@@ -2928,12 +2937,48 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     }
                 });
                 
-                deleteBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                    const collectionId = parseFloat(e.target.dataset.collectionId);
-                    const dialogId = parseFloat(e.target.dataset.dialogId);
+                // Delete button handlers - both touch and click for mobile compatibility
+                const handleDelete = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const collectionId = parseFloat(deleteBtn.dataset.collectionId);
+                    const dialogId = parseFloat(deleteBtn.dataset.dialogId);
                     deleteDialogFromNewStructure(collectionId, dialogId);
-                });
+                };
+                
+                deleteBtn.addEventListener('click', handleDelete);
+                deleteBtn.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleDelete(e);
+                }, { passive: false });
+                
+                // Textarea touch handler for mobile - allow direct focus on touch
+                titleInput.addEventListener('touchend', (e) => {
+                    // Check current active state
+                    const currentlyActive = dialog.id === DialogData.activeDialogId && 
+                                          collection.id === DialogData.activeCollectionId;
+                    
+                    if (!currentlyActive) {
+                        // If not active, activate first, then focus
+                        e.stopPropagation();
+                        e.preventDefault();
+                        DialogData.activeCollectionId = collection.id;
+                        DialogData.activeDialogId = dialog.id;
+                        loadSavedDialogFromNewStructure(dialog);
+                        renderDialogHistory();
+                        // After re-render, focus the input
+                        setTimeout(() => {
+                            const newInput = document.querySelector(`.dialog-history-item-title-input[data-collection-id="${collection.id}"][data-dialog-id="${dialog.id}"]`);
+                            if (newInput) {
+                                newInput.focus();
+                            }
+                        }, 100);
+                    } else {
+                        // If already active, just allow normal focus
+                        // Don't prevent default - let the input handle it
+                    }
+                }, { passive: false });
                 
                 listEl.appendChild(item);
             });
