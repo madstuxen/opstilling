@@ -1861,6 +1861,78 @@
         let newMapColorDirty = false;
         let mapManagerNewRowEl = null;
 
+        /**
+         * Læser brugerens timezone fra userData (indexuserData i localStorage)
+         * Fallback hierarki:
+         * 1. userData.timezone
+         * 2. Browser's timezone (Intl API)
+         * 3. 'Europe/Copenhagen' (default)
+         */
+        function getUserTimezone() {
+            try {
+                // 1. Prøv at læse fra userData
+                const userDataStr = localStorage.getItem('indexuserData');
+                if (userDataStr) {
+                    const userData = JSON.parse(userDataStr);
+                    if (userData.timezone && isValidTimezone(userData.timezone)) {
+                        return userData.timezone;
+                    }
+                }
+            } catch (e) {
+                console.warn('Kunne ikke læse timezone fra userData:', e);
+            }
+            
+            // 2. Fallback til browser's timezone
+            try {
+                const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (browserTimezone && isValidTimezone(browserTimezone)) {
+                    return browserTimezone;
+                }
+            } catch (e) {
+                console.warn('Kunne ikke læse browser timezone:', e);
+            }
+            
+            // 3. Ultimate fallback
+            return 'Europe/Copenhagen';
+        }
+
+        /**
+         * Validerer om en timezone string er gyldig
+         */
+        function isValidTimezone(tz) {
+            if (!tz || typeof tz !== 'string') return false;
+            try {
+                Intl.DateTimeFormat(undefined, { timeZone: tz });
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        /**
+         * Konverterer Date eller ISO string til lokal dato (YYYY-MM-DD) i brugerens timezone
+         * @param {Date|string|null} date - Dato at konvertere (default: nu)
+         * @returns {string|null} - Dato i YYYY-MM-DD format eller null ved fejl
+         */
+        function getLocalDateKey(date = null) {
+            const d = date ? new Date(date) : new Date();
+            if (isNaN(d.getTime())) return null;
+            
+            const timezone = getUserTimezone();
+            
+            // Konverter til lokal tid ved at formatere med da-DK locale og brugerens timezone
+            const localDateStr = d.toLocaleDateString('da-DK', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            
+            // Format er "DD.MM.YYYY" - konverter til "YYYY-MM-DD"
+            const [day, month, year] = localDateStr.split('.');
+            return `${year}-${month}-${day}`;
+        }
+
         function formatDkDate(dateStr) {
             // Convert YYYY-MM-DD -> DD-MM-YYYY for display
             if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
@@ -2818,23 +2890,16 @@
             ensureDefaultMap();
             const targetMapId = mapId || activeMapId;
             const now = new Date();
-            const formatIsoDate = (dateObj) => {
-                const year = dateObj.getFullYear();
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const day = String(dateObj.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
-
             const hh = String(now.getHours()).padStart(2, '0');
             const mm = String(now.getMinutes()).padStart(2, '0');
             const index = {
                 id: indexCounter++,
                 mapId: targetMapId,
-                date: formatIsoDate(now),
+                date: getLocalDateKey(now),  // Brug lokal dato
                 time: `${hh}:${mm}`,
                 title: generateDefaultLayerTitle(targetMapId),
                 labels: [],
-                timestamp: now.toISOString()
+                timestamp: now.toISOString()  // Behold UTC timestamp
             };
             
             dataIndexes.push(index);

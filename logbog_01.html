@@ -211,6 +211,7 @@
         .content {
             padding: 10px;
             padding-right: 24px;
+            padding-left: 5px;
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -220,7 +221,7 @@
         .card {
             background: #f5f5f8;
             border-radius: 18px;
-            padding: 10px 15px;
+            padding: 7px 5px;
             box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
         }
 
@@ -711,7 +712,7 @@
         .journal-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 20px;
+            gap: 10px;
         }
 
         .journal-entry,
@@ -728,7 +729,7 @@
         }
 
         .dreams-entry {
-            padding: 18px;
+            padding: 7px;
             background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(124, 58, 237, 0.12) 100%);
             border: 1px solid rgba(124, 58, 237, 0.2);
         }
@@ -801,7 +802,7 @@
         }
 
         .dreams-title img {
-            width: 28px;
+            width: 56px;
             height: auto;
         }
 
@@ -837,7 +838,7 @@
         .dreams-entry textarea {
             width: 100%;
             min-height: 200px;
-            padding: 16px;
+            padding: 9px;
             border-radius: 12px;
             border: none;
             background: rgba(255, 255, 255, 0.92);
@@ -922,7 +923,7 @@
 
         .dreams-entry textarea {
             min-height: 160px;
-            padding: 18px;
+            padding: 9px;
             background: rgba(139, 92, 246, 0.08);
             border: 1px solid rgba(124, 58, 237, 0.25);
             color: #312e81;
@@ -991,6 +992,14 @@
             align-items: center;
             justify-content: center;
             padding: 0;
+            overflow: visible;
+            position: relative;
+        }
+        
+        .checkin-add-btn span {
+            display: inline-block;
+            transform: scale(2);
+            transform-origin: center center;
         }
 
         .checkin-add-btn:hover {
@@ -1093,6 +1102,7 @@
 
         .chart-canvas {
             display: block;
+            width: 100%;
             height: 240px;
             border-radius: 16px;
             background: white;
@@ -1182,7 +1192,7 @@
         .checkin-modal-close {
             background: none;
             border: none;
-            font-size: 32px;
+            font-size: 64px;
             color: #6b7280;
             cursor: pointer;
             padding: 0;
@@ -1193,6 +1203,7 @@
             justify-content: center;
             line-height: 1;
             transition: color 0.2s ease;
+            overflow: visible;
         }
 
         .checkin-modal-close:hover {
@@ -1366,7 +1377,7 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
                             <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="Skift visning" title="Skift visning">
-                                <button class="checkin-add-btn" id="openCheckinModal" title="Tilføj check-in">+</button>
+                                <button class="checkin-add-btn" id="openCheckinModal" title="Tilføj check-in"><span>+</span></button>
                                 <button class="checkin-days-btn" data-days="1" title="Vis 1 dag">1</button>
                                 <button class="checkin-days-btn" data-days="5" title="Vis 5 dage">5</button>
                                 <button class="checkin-days-btn" data-days="10" title="Vis 10 dage">10</button>
@@ -1526,21 +1537,18 @@
             }
         }
         
-        function getAffirmationTextForDate(dateKey) {
-            // Read tekst from indexuserData in localStorage
+        async function getAffirmationTextForDate(dateKey) {
+            // Get affirm from forside_checkin_data (same logic as taknem)
             try {
-                const indexuserData = localStorage.getItem('indexuserData');
-                if (indexuserData) {
-                    const data = JSON.parse(indexuserData);
-                    if (data && data.tekst) {
-                        return data.tekst;
-                    }
+                const affirm = await getAffirmForDate(dateKey);
+                if (affirm && affirm.trim()) {
+                    return affirm.trim();
                 }
             } catch (error) {
-                console.error('Fejl ved læsning af tekst fra indexuserData:', error);
+                console.warn('Kunne ikke hente affirm fra forside_checkin_data:', error);
             }
             
-            // Fallback to old method if tekst not found in indexuserData
+            // Fallback to old method if affirm not found in forside_checkin_data
             if (affirmations.length === 0) {
                 return null;
             }
@@ -1570,15 +1578,87 @@
             return affirmationText;
         }
 
+        /**
+         * Læser brugerens timezone fra userData (indexuserData i localStorage)
+         * Fallback hierarki:
+         * 1. userData.timezone
+         * 2. Browser's timezone (Intl API)
+         * 3. 'Europe/Copenhagen' (default)
+         */
+        function getUserTimezone() {
+            try {
+                // 1. Prøv at læse fra userData
+                const userDataStr = localStorage.getItem('indexuserData');
+                if (userDataStr) {
+                    const userData = JSON.parse(userDataStr);
+                    if (userData.timezone && isValidTimezone(userData.timezone)) {
+                        return userData.timezone;
+                    }
+                }
+            } catch (e) {
+                console.warn('Kunne ikke læse timezone fra userData:', e);
+            }
+            
+            // 2. Fallback til browser's timezone
+            try {
+                const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (browserTimezone && isValidTimezone(browserTimezone)) {
+                    return browserTimezone;
+                }
+            } catch (e) {
+                console.warn('Kunne ikke læse browser timezone:', e);
+            }
+            
+            // 3. Ultimate fallback
+            return 'Europe/Copenhagen';
+        }
+
+        /**
+         * Validerer om en timezone string er gyldig
+         */
+        function isValidTimezone(tz) {
+            if (!tz || typeof tz !== 'string') return false;
+            try {
+                Intl.DateTimeFormat(undefined, { timeZone: tz });
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        /**
+         * Konverterer Date eller ISO string til lokal dato (YYYY-MM-DD) i brugerens timezone
+         * @param {Date|string|null} date - Dato at konvertere (default: nu)
+         * @returns {string|null} - Dato i YYYY-MM-DD format eller null ved fejl
+         */
+        function getLocalDateKey(date = null) {
+            const d = date ? new Date(date) : new Date();
+            if (isNaN(d.getTime())) return null;
+            
+            const timezone = getUserTimezone();
+            
+            // Konverter til lokal tid ved at formatere med da-DK locale og brugerens timezone
+            const localDateStr = d.toLocaleDateString('da-DK', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            
+            // Format er "DD.MM.YYYY" - konverter til "YYYY-MM-DD"
+            const [day, month, year] = localDateStr.split('.');
+            return `${year}-${month}-${day}`;
+        }
+
         function getTodayDateKey() {
-            return new Date().toISOString().split('T')[0];
+            return getLocalDateKey();
         }
 
         function normalizeDateKey(dateStr) {
             if (!dateStr) return null;
             const parsed = parseDanishDateTime(dateStr) || new Date(dateStr);
             if (!parsed || Number.isNaN(parsed.getTime())) return null;
-            return parsed.toISOString().split('T')[0];
+            return getLocalDateKey(parsed);
         }
 
         async function loadAllUserData(forceRefresh = false) {
@@ -1946,10 +2026,7 @@
 
         function formatDateKey(date) {
             if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+            return getLocalDateKey(date);
         }
 
         function lightenHex(hex, amount = 0.5) {
@@ -2277,6 +2354,28 @@
 
         async function getSortedLogEntries() {
             const entries = await getLogbookData();
+
+            // Ensure there is always an entry for "i dag" (kun i memory, ingen auto-save)
+            try {
+                const todayKey = getTodayDateKey();
+                const hasToday = entries.some(entry => {
+                    if (!entry || typeof entry !== 'object') return false;
+                    const normalized = normalizeDateKey(entry.date);
+                    return normalized === todayKey;
+                });
+
+                if (!hasToday && todayKey) {
+                    entries.push({
+                        date: todayKey,
+                        dagbog: '',
+                        dreams: '',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            } catch (e) {
+                console.warn('Kunne ikke sikre dagens logbog entry:', e);
+            }
+
             // Ensure all entries have valid dates and filter out any invalid entries
             const validEntries = entries.filter(entry => {
                 if (!entry || typeof entry !== 'object') return false;
@@ -2520,13 +2619,69 @@
             }
         }
 
+        async function getAffirmForDate(dateKey) {
+            try {
+                let parsed = [];
+                
+                // Always load from Firestore if user is logged in
+                if (currentUser && db) {
+                    const firestoreData = await loadCheckinDataFromFirestore();
+                    if (firestoreData !== null) {
+                        parsed = firestoreData;
+                    } else {
+                        // If Firestore fails, return empty
+                        return '';
+                    }
+                } else {
+                    // User not logged in - return empty
+                    return '';
+                }
+                
+                // Calculate date in same format as checkin.html - convert dateKey to YYYY-MM-DD
+                // dateKey should already be in YYYY-MM-DD format, but ensure it is
+                const dateStr = dateKey || getTodayDateKey();
+                
+                // Find all entries for this date and filter for non-empty affirm
+                const entriesForDate = parsed.filter(item => {
+                    if (!item.date) return false;
+                    
+                    // Extract date part from ISO string (same way as checkin.html)
+                    let itemDateStr = '';
+                    if (item.date instanceof Date) {
+                        itemDateStr = item.date.toISOString().split('T')[0];
+                    } else if (typeof item.date === 'string') {
+                        // Handle ISO date strings like "2025-11-19T08:30:00.000Z"
+                        // Extract just the date part (YYYY-MM-DD)
+                        if (item.date.includes('T')) {
+                            itemDateStr = item.date.split('T')[0];
+                        } else {
+                            // Already in YYYY-MM-DD format
+                            itemDateStr = item.date;
+                        }
+                    }
+                    
+                    return itemDateStr === dateStr;
+                });
+                
+                // Find first entry with non-empty affirm
+                const entryWithAffirm = entriesForDate.find(item => {
+                    return item.affirm && item.affirm !== '' && item.affirm !== null && item.affirm !== undefined;
+                });
+                
+                return entryWithAffirm && entryWithAffirm.affirm ? entryWithAffirm.affirm : '';
+            } catch (error) {
+                console.warn('Kunne ikke læse affirm-værdi:', error);
+                return '';
+            }
+        }
+
         async function setActiveLogDate(dateKey) {
             const normalizedKey = normalizeDateKey(dateKey) || getTodayDateKey();
             activeLogDate = normalizedKey;
             const entries = await getLogbookData();
             let entry = entries.find(item => item.date === activeLogDate);
             if (!entry) {
-                entry = { date: activeLogDate, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
+                entry = { date: getLocalDateKey(), dagbog: '', dreams: '', timestamp: new Date().toISOString() };
                 entries.push(entry);
                 // Don't save - it's a load operation, entry will be saved when user edits
             }
@@ -2544,8 +2699,8 @@
                 autoResizeTextarea(dreamEntryEl);
             }
             if (tankerEntryEl) {
-                // Get affirmation text for the selected date
-                const affirmationText = getAffirmationTextForDate(activeLogDate);
+                // Get affirmation text for the selected date (now async)
+                const affirmationText = await getAffirmationTextForDate(activeLogDate);
                 // Get taknem value for the selected date (now async)
                 const taknem = await getTaknemForDate(activeLogDate);
                 
@@ -2653,7 +2808,7 @@
             const entries = await getLogbookData();
             let entry = entries.find(item => item.date === activeLogDate);
             if (!entry) {
-                entry = { date: activeLogDate, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
+                entry = { date: getLocalDateKey(), dagbog: '', dreams: '', timestamp: new Date().toISOString() };
                 entries.push(entry);
             }
             entry[field] = value;
@@ -3301,7 +3456,7 @@
                     // Update tanker field
                     const tankerEntryEl = document.getElementById('tankerEntry');
                     if (tankerEntryEl) {
-                        const affirmationText = getAffirmationTextForDate(activeLogDate);
+                        const affirmationText = await getAffirmationTextForDate(activeLogDate);
                         const taknem = await getTaknemForDate(activeLogDate);
                         let combinedText = '';
                         if (affirmationText) {
@@ -3562,8 +3717,10 @@
             const parent = canvas.parentElement;
 
             const dpr = window.devicePixelRatio || 1;
-            const baseWidth = parent.clientWidth;
             const height = 240;
+            
+            // Get parent width (chart-wrapper) - canvas should fill it completely
+            const baseWidth = parent.clientWidth || parent.offsetWidth;
             
             // Calculate canvas width: if we have more than checkinDaysView days, make it wider for scrolling
             // Use totalDays (all available data) instead of labels.length (filtered data) for width calculation
@@ -4232,8 +4389,8 @@
                     // Update tanker field if viewing today's date
                     const tankerEntryEl = document.getElementById('tankerEntry');
                     if (tankerEntryEl) {
-                        // Get affirmation text for the selected date
-                        const affirmationText = getAffirmationTextForDate(activeLogDate);
+                        // Get affirmation text for the selected date (now async)
+                        const affirmationText = await getAffirmationTextForDate(activeLogDate);
                         // Get taknem value for the selected date (now async)
                         const taknem = await getTaknemForDate(activeLogDate);
                         

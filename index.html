@@ -362,6 +362,22 @@ const firebaseConfig = {
             console.error('ERROR: new-user-form element not found!');
                         }
 
+        /**
+         * Auto-detecter brugerens timezone fra browser
+         * Fallback til 'Europe/Copenhagen' hvis detection fejler
+         */
+        function detectUserTimezone() {
+            try {
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (timezone && typeof timezone === 'string') {
+                    return timezone;
+                }
+            } catch (e) {
+                console.warn('Kunne ikke auto-detecte timezone:', e);
+            }
+            return 'Europe/Copenhagen'; // Default fallback
+        }
+
         // Function to load and save userData to localStorage
         async function loadAndSaveUserData(user) {
             if (!user || !db) return;
@@ -374,22 +390,29 @@ const firebaseConfig = {
                     
                     // Save to localStorage
                     if (userData) {
-                        // Add "You" field with displayName value
+                        // Add "You" field and ensure timezone exists
                         const dataToSave = {
                             ...userData,
-                            You: userData.displayName || ''
+                            You: userData.displayName || '',
+                            timezone: userData.timezone || detectUserTimezone() // Tilføj timezone
                         };
                         localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
                         console.log('UserData saved to localStorage:', dataToSave);
                     } else {
-                        // If userData doesn't exist, create empty object
-                        localStorage.setItem('indexuserData', JSON.stringify({}));
-                        console.log('Empty userData created in localStorage');
+                        // If userData doesn't exist, create empty object with timezone
+                        const dataToSave = {
+                            timezone: detectUserTimezone()
+                        };
+                        localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
+                        console.log('Empty userData created in localStorage with timezone');
                     }
                 } else {
-                    // If document doesn't exist, create empty userData
-                    localStorage.setItem('indexuserData', JSON.stringify({}));
-                    console.log('User document not found, created empty userData in localStorage');
+                    // If document doesn't exist, create empty userData with timezone
+                    const dataToSave = {
+                        timezone: detectUserTimezone()
+                    };
+                    localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
+                    console.log('User document not found, created empty userData in localStorage with timezone');
                 }
             } catch (error) {
                 console.error('Error loading userData from Firestore:', error);
@@ -591,7 +614,8 @@ const firebaseConfig = {
                     const userDoc = {
                         userData: {
                             displayName: displayName,
-                            email: email
+                            email: email,
+                            timezone: detectUserTimezone() // Tilføj auto-detected timezone
                         },
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -600,11 +624,12 @@ const firebaseConfig = {
                     return db.collection('users').doc(currentUser.uid).set(userDoc, { merge: true })
                         .then(() => {
                             console.log('User data saved to Firestore');
-                            // Save userData to localStorage with "You" field
+                            // Save userData to localStorage with "You" field and timezone
                             const userData = userDoc.userData || {};
                             const dataToSave = {
                                 ...userData,
-                                You: userData.displayName || ''
+                                You: userData.displayName || '',
+                                timezone: userData.timezone || detectUserTimezone() // Tilføj timezone
                             };
                             localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
                             console.log('UserData saved to localStorage:', dataToSave);

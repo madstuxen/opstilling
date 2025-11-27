@@ -9,7 +9,7 @@
         "type": "all",
         "questions": [
           "Hej {{You}}, dejligt at se dig :).  <<m>>",
-          "Her er din daglige bekræftelse: <<m>>",
+          "Her er en daglig bekræftelse til dig: <<m>>",
           "-\n\"{{tekst}}\" <<m>>\n-"
         ],
         "next": "svar_mig"
