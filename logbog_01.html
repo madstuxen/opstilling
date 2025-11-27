@@ -463,9 +463,12 @@
             justify-content: center;
             transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
             flex-shrink: 0;
+            z-index: 10;
+            pointer-events: auto;
         }
 
-        .log-history-item:hover .log-history-color-btn {
+        .log-history-item:hover .log-history-color-btn,
+        .log-history-item.active .log-history-color-btn {
             opacity: 1;
         }
 
@@ -2458,10 +2461,19 @@
                     colorBtn.style.background = entry.color;
                     colorBtn.style.color = '#ffffff';
                 }
-                colorBtn.addEventListener('click', (e) => {
+                // Color button handlers - both touch and click for mobile compatibility
+                const handleColorClick = (e) => {
                     e.stopPropagation();
+                    e.preventDefault();
                     openLogHistoryColorPicker(entry.date);
-                });
+                };
+                
+                colorBtn.addEventListener('click', handleColorClick);
+                colorBtn.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleColorClick(e);
+                }, { passive: false });
                 headerEl.appendChild(colorBtn);
 
                 const weekDayEl = document.createElement('div');
@@ -2526,6 +2538,11 @@
                 }, { passive: true });
                 
                 item.addEventListener('touchend', (e) => {
+                    // Don't handle touches on color button - it has its own handler
+                    if (e.target.classList.contains('log-history-color-btn')) {
+                        return;
+                    }
+                    
                     // Only handle if it was a quick tap (not a scroll)
                     const touchDuration = Date.now() - touchStartTime;
                     if (touchDuration < 300) { // Quick tap, not a scroll
