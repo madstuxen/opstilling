@@ -635,7 +635,8 @@
             padding: 0;
         }
 
-        .history-item:hover .history-item-color-btn {
+        .history-item:hover .history-item-color-btn,
+        .history-item.active .history-item-color-btn {
             opacity: 1;
         }
 
@@ -2280,14 +2281,10 @@
                 colorBtn.textContent = 'C';
                 colorBtn.title = 'Vælg farve';
                 colorBtn.dataset.id = index.id;
-                // Set button color to show current color
-                if (index.color) {
-                    colorBtn.style.background = index.color;
-                    colorBtn.style.color = '#ffffff';
-                } else {
-                    colorBtn.style.background = DEFAULT_HISTORY_COLOR;
-                    colorBtn.style.color = '#ffffff';
-                }
+                // Set button color to show current color (lighter version)
+                const btnColor = index.color || DEFAULT_HISTORY_COLOR;
+                colorBtn.style.background = lightenHex(btnColor, 0.3);
+                colorBtn.style.color = '#ffffff';
                 // Color button handlers - both touch and click for mobile compatibility
                 const handleColorClick = (e) => {
                     e.stopPropagation();
@@ -4189,7 +4186,7 @@
                 }
                 const colorBtn = document.querySelector(`.history-item-color-btn[data-id="${historyColorPickerTarget}"]`);
                 if (colorBtn) {
-                    colorBtn.style.background = color;
+                    colorBtn.style.background = lightenHex(color, 0.3);
                     colorBtn.style.color = '#ffffff';
                 }
             } else if (colorPickerMode === 'label') {
@@ -4261,8 +4258,8 @@
                 }
                 const colorBtn = document.querySelector(`.history-item-color-btn[data-id="${historyColorPickerTarget}"]`);
                 if (colorBtn) {
-                    // Use default color (warm orange) when removing color
-                    colorBtn.style.background = DEFAULT_HISTORY_COLOR;
+                    // Use default color (lighter version)
+                    colorBtn.style.background = lightenHex(DEFAULT_HISTORY_COLOR, 0.3);
                     colorBtn.style.color = '#ffffff';
                 }
             } else if (colorPickerMode === 'label') {
