@@ -611,7 +611,7 @@
             </h2>
             <button class="night-overlay-close" id="nightOverlayClose" title="Luk">×</button>
         </div>
-        <textarea id="nightDreamEntry" placeholder="Nedskriv dine drømme, fantasier og indskydelser ..."></textarea>
+        <textarea id="nightDreamEntry" placeholder="Skriv dine drømme ned her. De gemmes til logbog når du lukker dette vindue."></textarea>
     </div>
 </div>
     
@@ -855,27 +855,45 @@
         }
 
         // Global variabler til at gemme event listener referencer
-        let dreamInputListener = null;
-        let dreamDebounceTimeout = null;
         let dreamCloseListener = null;
 
-        // Funktion til at gemme dreams data (bruges både ved input og ved luk)
-        async function saveDreamsData() {
+        // Funktion til at gemme dreams data når overlayet lukkes
+        // Appender tekst til eksisterende dreams for datoen
+        async function saveDreamsDataOnClose() {
             const textarea = document.getElementById('nightDreamEntry');
             if (!textarea) return;
             
-            const value = textarea.value.trim();
-            
-            // Clear pending debounce timeout
-            if (dreamDebounceTimeout) {
-                clearTimeout(dreamDebounceTimeout);
-                dreamDebounceTimeout = null;
-            }
+            const newText = textarea.value.trim();
             
             // Gem kun hvis der faktisk er tekst
-            if (value) {
-                await upsertLogEntry(getTodayDateKey(), { dreams: textarea.value });
+            if (!newText) return;
+            
+            // Hent datoen når overlayet lukkes (ikke når det åbnes)
+            const dateKey = getTodayDateKey();
+            
+            // Læs eksisterende entries
+            const entries = await getLogbookEntries();
+            let entry = entries.find(item => item.date === dateKey);
+            
+            // Hvis entry ikke findes, opret en ny
+            if (!entry) {
+                entry = {
+                    date: dateKey,
+                    dagbog: '',
+                    dreams: ''
+                };
+                entries.push(entry);
             }
+            
+            // Appender ny tekst til eksisterende dreams (hvis der allerede er noget)
+            if (entry.dreams && entry.dreams.trim()) {
+                entry.dreams = entry.dreams.trim() + '\n\n' + newText;
+            } else {
+                entry.dreams = newText;
+            }
+            
+            // Gem alle entries
+            await saveLogbookEntries(entries);
         }
 
         async function hydrateNightOverlay() {
@@ -885,63 +903,28 @@
 
             if (!overlay || !textarea || !closeBtn) return;
 
-            const entry = await ensureTodayLogEntry();
-            
-            // KUN sæt værdi hvis textarea er tom (brugeren har måske skrevet noget)
-            if (!textarea.value.trim()) {
-                textarea.value = entry.dreams || '';
-            }
+            // Start altid med tom textarea - loader IKKE eksisterende data
+            textarea.value = '';
 
-            // Fjern gammel input listener hvis den findes
-            if (dreamInputListener) {
-                textarea.removeEventListener('input', dreamInputListener);
-                dreamInputListener = null;
-            }
-            
             // Fjern gammel close listener hvis den findes
             if (dreamCloseListener) {
                 closeBtn.removeEventListener('click', dreamCloseListener);
                 dreamCloseListener = null;
             }
-            
-            // Clear tidligere debounce timeout
-            if (dreamDebounceTimeout) {
-                clearTimeout(dreamDebounceTimeout);
-                dreamDebounceTimeout = null;
-            }
-
-            // Opret ny input listener med debouncing og gem referencen
-            dreamInputListener = async () => {
-                const value = textarea.value.trim();
-                
-                // Clear tidligere timeout
-                if (dreamDebounceTimeout) {
-                    clearTimeout(dreamDebounceTimeout);
-                }
-                
-                // Gem kun hvis der faktisk er tekst, og vent 2 sekunder efter sidste taste
-                if (value) {
-                    dreamDebounceTimeout = setTimeout(async () => {
-                        await saveDreamsData();
-                    }, 2000);
-                }
-            };
-            
-            textarea.addEventListener('input', dreamInputListener);
 
             // Opret close listener der gemmer data før overlay lukkes
             dreamCloseListener = async () => {
-                // Gem data med det samme når overlay lukkes
-                await saveDreamsData();
+                // Gem data når overlay lukkes (appender til eksisterende dreams for datoen)
+                await saveDreamsDataOnClose();
                 overlay.classList.remove('show');
                 recordOverlayClosed();
             };
             
             closeBtn.addEventListener('click', dreamCloseListener);
 
-        if (shouldShowOverlay()) {
-            overlay.classList.add('show');
-        }
+            if (shouldShowOverlay()) {
+                overlay.classList.add('show');
+            }
         }
 
         let overlayActivityTimeoutId = null;
