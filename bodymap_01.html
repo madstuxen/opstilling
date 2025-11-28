@@ -534,6 +534,8 @@
             font-weight: 600;
             color: #ffffff;
             margin-bottom: 6px;
+            max-width: 100%;
+            overflow: hidden;
         }
         
         .history-item-date {
@@ -543,9 +545,13 @@
             background: transparent;
             outline: none;
             width: auto;
+            max-width: 100%;
             padding: 0;
             margin: 0;
             color: #ffffff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         /* Make it clear when title is editable on active item */
@@ -556,6 +562,7 @@
             margin: -2px -12px;
             cursor: text;
             transition: background 0.15s ease, box-shadow 0.15s ease;
+            white-space: normal;
         }
         .history-item.active .history-item-date:hover,
         .history-item.active .history-item-date:focus {
