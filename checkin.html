@@ -909,18 +909,26 @@
             // Fjern gammel close listener hvis den findes
             if (dreamCloseListener) {
                 closeBtn.removeEventListener('click', dreamCloseListener);
+                closeBtn.removeEventListener('touchend', dreamCloseListener);
                 dreamCloseListener = null;
             }
 
             // Opret close listener der gemmer data før overlay lukkes
-            dreamCloseListener = async () => {
+            dreamCloseListener = async (e) => {
+                // Prevent default for touch events
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
                 // Gem data når overlay lukkes (appender til eksisterende dreams for datoen)
                 await saveDreamsDataOnClose();
                 overlay.classList.remove('show');
                 recordOverlayClosed();
             };
             
+            // Add both click and touch events for mobile compatibility
             closeBtn.addEventListener('click', dreamCloseListener);
+            closeBtn.addEventListener('touchend', dreamCloseListener);
 
             if (shouldShowOverlay()) {
                 overlay.classList.add('show');

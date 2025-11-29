@@ -386,9 +386,9 @@
         }
 
         .log-history-item {
-            padding: 12px;
+            padding: 10px;
             margin-bottom: 6px;
-            border-radius: 14px;
+            border-radius: 10px;
             background: #e0e7ff;
             cursor: pointer;
             display: flex;
@@ -442,39 +442,48 @@
             align-items: center;
             gap: 8px;
             position: relative;
+            padding: 2px 12px;
+            border-radius: 999px;
+            margin-bottom: 6px;
         }
 
+        .log-history-item-date {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
         .log-history-color-btn {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 24px;
-            height: 24px;
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             border: none;
-            background: #e5e7eb;
-            color: #374151;
-            font-size: 12px;
             font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
-            opacity: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-            flex-shrink: 0;
+            opacity: 0;
+            pointer-events: none;
             z-index: 10;
-            pointer-events: auto;
         }
 
         .log-history-item:hover .log-history-color-btn,
         .log-history-item.active .log-history-color-btn {
             opacity: 1;
+            pointer-events: auto;
         }
 
         .log-history-color-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .log-history-color-picker-modal {
@@ -1514,6 +1523,9 @@
         const COMPARE_STORAGE_KEY = 'compareData';
 
         // Color presets for log history items (same as dialog collections)
+        // Standard farve for alle history items
+        const DEFAULT_HISTORY_COLOR = '#b8735e'; // Varm rødlig brun som standard
+        
         const LOG_HISTORY_COLOR_PRESETS = [
             '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
             '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
@@ -2429,21 +2441,17 @@
                     activeItemEl = item;
                 }
 
-                // Apply color if exists (matching bodymap logic)
-                const defaultColor = '#6366f1';
-                if (entry.color) {
-                    const baseBackground = lightenHex(entry.color, isActive ? 0.35 : 0.7);
-                    item.style.backgroundColor = baseBackground;
-                    item.style.borderColor = isActive ? entry.color : 'transparent';
-                } else {
-                    // No custom color - use default
-                    const baseBackground = lightenHex(defaultColor, isActive ? 0.35 : 0.7);
-                    item.style.backgroundColor = baseBackground;
-                    item.style.borderColor = isActive ? defaultColor : 'transparent';
-                }
+                // Apply color if exists (matching other pages logic)
+                const entryColor = entry.color || DEFAULT_HISTORY_COLOR;
+                const baseBackground = lightenHex(entryColor, isActive ? 0.35 : 0.7);
+                item.style.backgroundColor = baseBackground;
+                item.style.borderColor = isActive ? entryColor : 'transparent';
 
                 const headerEl = document.createElement('div');
                 headerEl.className = 'log-history-item-header';
+                // Set header background to entry color (pill-shape styling)
+                headerEl.style.backgroundColor = entryColor;
+                headerEl.style.color = '#ffffff';
 
                 const dateLabelEl = document.createElement('div');
                 dateLabelEl.className = 'log-history-item-date';
@@ -2457,10 +2465,9 @@
                 if (entry.date) {
                     colorBtn.dataset.date = entry.date;
                 }
-                if (entry.color) {
-                    colorBtn.style.background = entry.color;
-                    colorBtn.style.color = '#ffffff';
-                }
+                // Make color button lighter version of entry color
+                colorBtn.style.background = lightenHex(entryColor, 0.3);
+                colorBtn.style.color = '#ffffff';
                 // Color button handlers - both touch and click for mobile compatibility
                 const handleColorClick = (e) => {
                     e.stopPropagation();
@@ -2479,9 +2486,16 @@
                 const weekDayEl = document.createElement('div');
                 weekDayEl.className = 'log-history-item-weekday';
                 const parsedWeekdayDate = parseDanishDateTime(entry.date) || new Date(`${entry.date}T00:00:00`);
-                weekDayEl.textContent = !parsedWeekdayDate || Number.isNaN(parsedWeekdayDate.getTime())
+                let weekdayText = !parsedWeekdayDate || Number.isNaN(parsedWeekdayDate.getTime())
                     ? formatLogHistoryDate(entry.date, { weekday: 'long' })
                     : parsedWeekdayDate.toLocaleDateString('da-DK', { weekday: 'long' });
+                
+                // Capitalize first letter of weekday
+                weekdayText = weekdayText.charAt(0).toUpperCase() + weekdayText.slice(1);
+                
+                // Add character count to weekday line
+                const totalChars = (entry.dagbog || '').length + (entry.dreams || '').length;
+                weekDayEl.textContent = `${weekdayText} • ${totalChars} tegn`;
 
                 const snippetEl = document.createElement('div');
                 snippetEl.className = 'log-history-item-snippet';
@@ -2493,27 +2507,8 @@
                     snippetEl.textContent = shortened;
                 }
 
-                const metaEl = document.createElement('div');
-                metaEl.className = 'log-history-item-meta';
-                const dateMeta = document.createElement('span');
-                // Show date as DD-MM-YYYY
-                (function() {
-                    const d = entry.date;
-                    if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
-                        const [y, m, day] = d.split('-');
-                        dateMeta.textContent = `${day}-${m}-${y}`;
-                    } else {
-                        // Fallback to locale
-                        const parsed = new Date(`${entry.date}T00:00:00`);
-                        dateMeta.textContent = Number.isNaN(parsed.getTime()) ? entry.date : parsed.toLocaleDateString('da-DK');
-                    }
-                })();
-                const charCount = document.createElement('span');
-                const totalChars = (entry.dagbog || '').length + (entry.dreams || '').length;
-                charCount.textContent = `${totalChars} tegn`;
-                metaEl.append(dateMeta, charCount);
-
-                item.append(headerEl, weekDayEl, snippetEl, metaEl);
+                // Removed bottom meta line with date - no longer needed
+                item.append(headerEl, weekDayEl, snippetEl);
 
                 // Shared handler function for both touch and click
                 const handleItemActivation = async (e) => {
@@ -3004,10 +2999,17 @@
                 const baseBackground = lightenHex(color, isActive ? 0.35 : 0.7);
                 item.style.backgroundColor = baseBackground;
                 item.style.borderColor = isActive ? color : 'transparent';
+                
+                // Update header background color
+                const headerEl = item.querySelector('.log-history-item-header');
+                if (headerEl) {
+                    headerEl.style.backgroundColor = color;
+                    headerEl.style.color = '#ffffff';
+                }
             }
             const colorBtn = document.querySelector(`.log-history-color-btn[data-date="${logHistoryColorPickerTarget}"]`);
             if (colorBtn) {
-                colorBtn.style.background = color;
+                colorBtn.style.background = lightenHex(color, 0.3);
                 colorBtn.style.color = '#ffffff';
             }
             // Don't close overlay - only close when clicking outside or pressing Escape
@@ -3025,15 +3027,21 @@
             const item = document.querySelector(`.log-history-item[data-date="${logHistoryColorPickerTarget}"]`);
             if (item) {
                 const isActive = item.classList.contains('active');
-                const defaultColor = '#6366f1';
-                const baseBackground = lightenHex(defaultColor, isActive ? 0.35 : 0.7);
+                const baseBackground = lightenHex(DEFAULT_HISTORY_COLOR, isActive ? 0.35 : 0.7);
                 item.style.backgroundColor = baseBackground;
-                item.style.borderColor = isActive ? defaultColor : 'transparent';
+                item.style.borderColor = isActive ? DEFAULT_HISTORY_COLOR : 'transparent';
+                
+                // Update header background color to default
+                const headerEl = item.querySelector('.log-history-item-header');
+                if (headerEl) {
+                    headerEl.style.backgroundColor = DEFAULT_HISTORY_COLOR;
+                    headerEl.style.color = '#ffffff';
+                }
             }
             const colorBtn = document.querySelector(`.log-history-color-btn[data-date="${logHistoryColorPickerTarget}"]`);
             if (colorBtn) {
-                colorBtn.style.background = '';
-                colorBtn.style.color = '';
+                colorBtn.style.background = lightenHex(DEFAULT_HISTORY_COLOR, 0.3);
+                colorBtn.style.color = '#ffffff';
             }
             // Don't close overlay - only close when clicking outside or pressing Escape
         }

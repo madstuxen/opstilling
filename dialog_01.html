@@ -283,7 +283,6 @@
         .play-btn { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
         .pause-btn { background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); color: white; }
         .step-btn { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; }
-        .save-btn { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
         .clear-btn { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
         .back-btn { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
         
@@ -1079,51 +1078,55 @@
             box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
         }
         
-        .dialog-history-item-collection {
-            display: inline-flex;
+        .dialog-history-item-title {
+            display: flex;
             align-items: center;
-            padding: 2px 10px;
+            padding: 2px 12px;
             border-radius: 999px;
             font-size: 16px;
             font-weight: 600;
             color: #ffffff;
             margin-bottom: 6px;
-        }
-        
-        .dialog-history-item-title {
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 4px;
-            font-size: 16px;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         .dialog-history-item-title-input {
             width: 100%;
-            border: 1px solid transparent;
+            flex: 1;
+            border: none;
             background: transparent;
+            outline: none;
             font: inherit;
             font-weight: 600;
-            color: inherit;
-            padding: 2px 4px;
-            border-radius: 6px;
-            transition: border-color 0.2s ease, background-color 0.2s ease;
+            color: #ffffff;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        /* Only show edit affordance on active item */
-        .dialog-history-item.active .dialog-history-item-title-input:hover {
-            border-color: rgba(99, 102, 241, 0.25);
-            background: rgba(99, 102, 241, 0.06);
+        /* Make it clear when title is editable on active item */
+        .dialog-history-item.active .dialog-history-item-title-input {
+            padding: 2px 12px;
+            margin: -2px -12px;
             cursor: text;
+            transition: background 0.15s ease, box-shadow 0.15s ease;
+            white-space: normal;
+            border-radius: 999px;
         }
-
+        
+        .dialog-history-item.active .dialog-history-item-title-input:hover,
         .dialog-history-item.active .dialog-history-item-title-input:focus {
-            outline: none;
-            border-color: #6366f1;
-            background: rgba(99, 102, 241, 0.12);
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
         }
+        
+        /* Non-active items look read-only */
         .dialog-history-item .dialog-history-item-title-input[readonly] {
             cursor: default;
-            opacity: 0.98;
+            opacity: 0.95;
         }
         
         .dialog-history-item-meta {
@@ -1173,17 +1176,52 @@
             line-height: 1;
             padding: 0;
             z-index: 10;
-            pointer-events: auto;
+            pointer-events: none;
         }
 
         .dialog-history-item:hover .dialog-history-item-delete,
         .dialog-history-item.active .dialog-history-item-delete {
             opacity: 1;
+            pointer-events: auto;
         }
 
         .dialog-history-item-delete:hover {
             background: #dc2626;
             transform: scale(1.05);
+        }
+
+        .dialog-history-item-color-btn {
+            position: absolute;
+            top: 6px;
+            right: 32px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: #e5e7eb;
+            color: #374151;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .dialog-history-item:hover .dialog-history-item-color-btn,
+        .dialog-history-item.active .dialog-history-item-color-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .dialog-history-item-color-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.2);
         }
         
         /* Samling Manager Overlay (from opstilling_01.html) */
@@ -1468,6 +1506,84 @@
         .samling-color-swatch:hover {
             transform: scale(1.08);
             box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+        }
+        
+        /* History Item Color Picker */
+        .history-color-picker-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.35);
+            z-index: 5001;
+        }
+
+        .history-color-picker-modal.show {
+            display: flex;
+        }
+
+        .history-color-picker {
+            width: calc(32px * 6 + 8px * 5 + 16px * 2);
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-color-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-color-picker-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .history-color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 32px);
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .history-color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .history-color-swatch:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+        }
+
+        .history-remove-color-btn {
+            padding: 8px 16px;
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-remove-color-btn:hover {
+            background: #e5e7eb;
+            color: #374151;
         }
         
         .sr-only {
@@ -1870,16 +1986,13 @@
             
             <div class="controls-divider"></div>
             
-            <button class="btn" id="newCollectionBtn" onclick="openDialogSamlingManager()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;">Ny Samling</button>
             <button class="btn new-dialog-btn" id="newDialogBtn">Ny Dialog</button>
             <button class="btn start-btn" id="startBtn" disabled>Start Dialog</button>
-            <button class="btn" id="loadBtn" disabled style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white;">Indlæs</button>
             <button class="btn continue-btn" id="continueBtn" disabled>Fortsæt</button>
             <button class="btn play-btn" id="playBtn" disabled>Afspil</button>
             <button class="btn pause-btn" id="pauseBtn" disabled style="display: none;">Pause</button>
             <button class="btn step-btn" id="nextBtn" disabled>Næste</button>
             <button class="btn" id="copyBtn" disabled style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white;">Kopier</button>
-            <button class="btn save-btn" id="saveBtn" disabled>Gem</button>
             <button class="btn clear-btn" id="clearBtn">Ryd Alt</button>
         </div>
         
@@ -2092,36 +2205,14 @@
 		<textarea id="noteTextarea" placeholder="Navn..." maxlength="24"></textarea>
 	</div>
 	
-	<!-- Dialog Samling Manager Overlay -->
-	<div class="samling-manager-overlay" id="dialogSamlingManagerOverlay">
-		<div class="samling-manager-backdrop" onclick="closeDialogSamlingManager()"></div>
-		<div class="samling-manager-panel">
-			<div class="samling-manager-header">
-				<h2>Samlinger</h2>
-				<button class="samling-manager-close" onclick="closeDialogSamlingManager()" title="Luk">×</button>
-			</div>
-			<div class="samling-manager-list" id="dialogSamlingManagerList"></div>
-			<div class="samling-manager-divider"></div>
-			<div class="samling-manager-new" id="dialogSamlingManagerNewRow">
-				<input type="text" id="newDialogSamlingName" placeholder="Ny samling-navn" autocomplete="off">
-				<div class="samling-manager-actions">
-					<button class="samling-color-select" id="newDialogSamlingColorBtn" onclick="openDialogSamlingColorPicker({ type: 'new' })" title="Vælg farve">
-						<span class="sr-only">Vælg farve</span>
-						<span aria-hidden="true">C</span>
-					</button>
-					<button class="samling-create-btn" onclick="confirmCreateDialogSamling()" title="Opret samling">✓</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Dialog Samling Color Picker Modal -->
-	<div class="samling-color-picker-modal" id="dialogSamlingColorPickerModal" onclick="backdropCloseDialogSamlingHandler(event)">
-		<div class="samling-color-picker" onclick="event.stopPropagation()">
-			<div class="samling-color-picker-header">
+	<!-- History Item Color Picker Modal -->
+	<div class="history-color-picker-modal" id="historyColorPickerModal">
+		<div class="history-color-picker">
+			<div class="history-color-picker-header">
 				<h3>Vælg farve</h3>
 			</div>
-			<div class="samling-color-grid" id="dialogSamlingColorGrid"></div>
+			<div class="history-color-grid" id="historyColorGrid"></div>
+			<button class="history-remove-color-btn" id="historyRemoveColorBtn">Fjern farve</button>
 		</div>
 	</div>
 	
@@ -2195,6 +2286,19 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
             '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
         ];
+        
+        // Standard farve for alle history items (dialogs)
+        const DEFAULT_HISTORY_COLOR = '#b8735e'; // Varm rødlig brun som standard
+        
+        // Color presets for history items
+        const HISTORY_COLOR_PRESETS = [
+            '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
+            '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
+        ];
+        
+        let historyColorPickerTarget = null; // { collectionId, dialogId } for the target dialog
+        let historyColorPickerModal = null;
+        let historyColorPickerGrid = null;
         
         // Check auth state - this should run before DOMContentLoaded loads data
         let authStateReady = false;
@@ -2581,6 +2685,22 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             const newB = Math.round(b + (255 - b) * clampAmount);
             return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
         }
+
+        function darkenHex(hex, amount = 0.5) {
+            if (!hex) return '#000000';
+            const normalized = hex.replace('#', '');
+            const expand = normalized.length === 3
+                ? normalized.split('').map(ch => ch + ch).join('')
+                : normalized.padEnd(6, '0');
+            const r = parseInt(expand.substring(0, 2), 16);
+            const g = parseInt(expand.substring(2, 4), 16);
+            const b = parseInt(expand.substring(4, 6), 16);
+            const clampAmount = Math.max(0, Math.min(1, amount));
+            const newR = Math.round(r * (1 - clampAmount));
+            const newG = Math.round(g * (1 - clampAmount));
+            const newB = Math.round(b * (1 - clampAmount));
+            return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+        }
         
         /**
          * Læser brugerens timezone fra userData (indexuserData i localStorage)
@@ -2759,24 +2879,19 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                                 collection.id === DialogData.activeCollectionId;
                 item.className = `dialog-history-item ${isActive ? 'active' : ''}`;
                 
-                const collectionColor = collection.color || DIALOG_COLLECTION_COLOR_PRESETS[0];
-                const collectionName = collection.name || 'Samling';
-                
-                const baseBackground = lightenHex(collectionColor, isActive ? 0.25 : 0.7);
+                // Set simple background color (not based on collection)
+                const dialogColor = dialog.color || DEFAULT_HISTORY_COLOR;
+                const baseBackground = lightenHex(dialogColor, isActive ? 0.35 : 0.7);
                 item.style.backgroundColor = baseBackground;
                 item.style.color = '#1f2937';
-                item.style.borderColor = isActive ? collectionColor : 'transparent';
-                
-                const collectionBadge = document.createElement('div');
-                collectionBadge.className = 'dialog-history-item-collection';
-                collectionBadge.textContent = collectionName;
-                collectionBadge.style.backgroundColor = collectionColor;
-                collectionBadge.style.color = '#ffffff';
-                item.appendChild(collectionBadge);
+                item.style.borderColor = isActive ? dialogColor : 'transparent';
                 
                 const titleDisplay = dialog.name || 'Dialog';
-                    const titleWrapper = document.createElement('div');
-                    titleWrapper.className = 'dialog-history-item-title';
+                const titleWrapper = document.createElement('div');
+                titleWrapper.className = 'dialog-history-item-title';
+                // Set background color to dialog's custom color or default
+                titleWrapper.style.backgroundColor = dialogColor;
+                titleWrapper.style.color = '#ffffff';
                 titleWrapper.innerHTML = `<input type="text" class="dialog-history-item-title-input" value="${titleDisplay}" data-collection-id="${collection.id}" data-dialog-id="${dialog.id}" title="Rediger titel">`;
                 item.appendChild(titleWrapper);
                 
@@ -2817,17 +2932,45 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 metaWrapper.appendChild(secondLine);
                 item.appendChild(metaWrapper);
 
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'dialog-history-item-delete';
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'dialog-history-item-delete';
                 deleteBtn.dataset.collectionId = collection.id;
                 deleteBtn.dataset.dialogId = dialog.id;
-                    deleteBtn.textContent = '×';
-                    item.appendChild(deleteBtn);
+                deleteBtn.textContent = '×';
+                item.appendChild(deleteBtn);
+                
+                // Color button
+                const colorBtn = document.createElement('button');
+                colorBtn.className = 'dialog-history-item-color-btn';
+                colorBtn.textContent = 'C';
+                colorBtn.title = 'Vælg farve';
+                colorBtn.dataset.collectionId = collection.id;
+                colorBtn.dataset.dialogId = dialog.id;
+                // Set button color to show current color (lighter version)
+                const btnColor = dialog.color || DEFAULT_HISTORY_COLOR;
+                colorBtn.style.background = lightenHex(btnColor, 0.3);
+                colorBtn.style.color = '#ffffff';
+                
+                // Color button handlers - both touch and click for mobile compatibility
+                const handleColorClick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    openHistoryColorPicker(collection.id, dialog.id);
+                };
+                colorBtn.addEventListener('click', handleColorClick);
+                colorBtn.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleColorClick(e);
+                }, { passive: false });
+                
+                item.appendChild(colorBtn);
                 
                 // Shared handler function for both touch and click
                 const handleItemActivation = async (e) => {
-                    // Don't handle clicks on delete button
+                    // Don't handle clicks on delete button or color button
                     if (e.target.classList.contains('dialog-history-item-delete')) return;
+                    if (e.target.classList.contains('dialog-history-item-color-btn')) return;
                     
                     // Check current active state
                     const currentlyActive = dialog.id === DialogData.activeDialogId && 
@@ -3212,344 +3355,115 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             renderDialogHistory();
         }
         
-        // ===== DIALOG SAMLING MANAGER FUNCTIONS (from opstilling_01.html) =====
+        // ===== HISTORY COLOR PICKER FUNCTIONS =====
         
-        // Dialog samling manager state
-        let dialogSamlingManagerOverlayEl = null;
-        let dialogSamlingManagerListEl = null;
-        let newDialogSamlingNameInputEl = null;
-        let newDialogSamlingColorBtnEl = null;
-        let dialogSamlingColorPickerModalEl = null;
-        let dialogSamlingColorGridEl = null;
-        let dialogSamlingColorPickerTarget = null;
-        let newDialogSamlingDraftColor = DIALOG_COLLECTION_COLOR_PRESETS[0];
-        let newDialogSamlingDraftName = '';
-        let newDialogSamlingColorDirty = false;
-        
-        function openDialogSamlingManager() {
-            if (!dialogSamlingManagerOverlayEl) {
-                dialogSamlingManagerOverlayEl = document.getElementById('dialogSamlingManagerOverlay');
-                dialogSamlingManagerListEl = document.getElementById('dialogSamlingManagerList');
-                newDialogSamlingNameInputEl = document.getElementById('newDialogSamlingName');
-                newDialogSamlingColorBtnEl = document.getElementById('newDialogSamlingColorBtn');
+        function openHistoryColorPicker(collectionId, dialogId) {
+            if (!historyColorPickerModal) {
+                historyColorPickerModal = document.getElementById('historyColorPickerModal');
+                historyColorPickerGrid = document.getElementById('historyColorGrid');
             }
-            if (!dialogSamlingColorPickerModalEl) {
-                dialogSamlingColorPickerModalEl = document.getElementById('dialogSamlingColorPickerModal');
-            }
-            if (!dialogSamlingColorGridEl) {
-                dialogSamlingColorGridEl = document.getElementById('dialogSamlingColorGrid');
-            }
-            if (newDialogSamlingNameInputEl) {
-                newDialogSamlingDraftName = newDialogSamlingNameInputEl.value;
-            }
-            if (dialogSamlingColorGridEl && dialogSamlingColorGridEl.childElementCount === 0) {
-                buildDialogSamlingColorGrid();
-            }
-            if (!dialogSamlingManagerOverlayEl) return;
-            resetNewDialogSamlingDraft();
-            renderDialogSamlingManagerList();
-            dialogSamlingManagerOverlayEl.classList.add('show');
-            setTimeout(() => {
-                if (newDialogSamlingNameInputEl) {
-                    newDialogSamlingNameInputEl.focus();
-                }
-            }, 80);
+            if (!historyColorPickerModal || !historyColorPickerGrid) return;
+            
+            historyColorPickerTarget = { collectionId, dialogId };
+            buildHistoryColorGrid();
+            historyColorPickerModal.classList.add('show');
         }
         
-        async function closeDialogSamlingManager() {
-            // Save all changes when overlay closes
-            await saveDialogDataToLocalStorage();
-            if (dialogSamlingManagerOverlayEl) {
-                dialogSamlingManagerOverlayEl.classList.remove('show');
-            }
-            closeDialogSamlingColorPicker();
-        }
-        
-        function resetNewDialogSamlingDraft() {
-            newDialogSamlingDraftColor = DIALOG_COLLECTION_COLOR_PRESETS[0];
-            newDialogSamlingDraftName = '';
-            newDialogSamlingColorDirty = false;
-            if (newDialogSamlingNameInputEl) {
-                newDialogSamlingNameInputEl.value = '';
-            }
-            updateNewDialogSamlingColorButton();
-        }
-        
-        function updateNewDialogSamlingColorButton() {
-            if (!newDialogSamlingColorBtnEl) return;
-            if (newDialogSamlingColorDirty) {
-                const baseColor = newDialogSamlingDraftColor || DIALOG_COLLECTION_COLOR_PRESETS[0];
-                newDialogSamlingColorBtnEl.style.background = baseColor;
-                newDialogSamlingColorBtnEl.style.color = '#ffffff';
-                if (newDialogSamlingNameInputEl) {
-                    newDialogSamlingNameInputEl.style.background = lightenHex(baseColor, 0.85);
-                    newDialogSamlingNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
-                }
-            } else {
-                const baseColor = DIALOG_COLLECTION_COLOR_PRESETS[0] || '#ef4444';
-                newDialogSamlingColorBtnEl.style.background = baseColor;
-                newDialogSamlingColorBtnEl.style.color = '#ffffff';
-                if (newDialogSamlingNameInputEl) {
-                    newDialogSamlingNameInputEl.style.background = lightenHex(baseColor, 0.85);
-                    newDialogSamlingNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
-                }
+        function closeHistoryColorPicker() {
+            historyColorPickerTarget = null;
+            if (historyColorPickerModal) {
+                historyColorPickerModal.classList.remove('show');
             }
         }
         
-        function renderDialogSamlingManagerList() {
-            if (!dialogSamlingManagerListEl) return;
-            dialogSamlingManagerListEl.innerHTML = '';
-            
-            if (!DialogData || !Array.isArray(DialogData.collections)) {
-                ensureDefaultDialogData();
-            }
-            
-            DialogData.collections.forEach(collection => {
-                const item = document.createElement('div');
-                item.className = 'samling-manager-item';
-                
-                const nameBtn = document.createElement('button');
-                nameBtn.className = 'samling-name-btn';
-                nameBtn.textContent = collection.name || 'Samling';
-                const baseColor = collection.color || DIALOG_COLLECTION_COLOR_PRESETS[0];
-                nameBtn.style.background = lightenHex(baseColor, 0.7);
-                nameBtn.style.border = `1px solid ${baseColor}`;
-                nameBtn.addEventListener('click', () => beginDialogSamlingNameInlineEdit(collection, nameBtn));
-                
-                const actions = document.createElement('div');
-                actions.className = 'samling-item-actions';
-                
-                const colorBtn = document.createElement('button');
-                colorBtn.className = 'samling-action-btn color';
-                colorBtn.textContent = 'C';
-                colorBtn.style.background = collection.color || DIALOG_COLLECTION_COLOR_PRESETS[0];
-                colorBtn.onclick = () => openDialogSamlingColorPicker({ type: 'samling', collectionId: collection.id });
-                
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'samling-action-btn delete';
-                deleteBtn.textContent = '✕';
-                deleteBtn.onclick = () => deleteDialogSamling(collection.id);
-                
-                actions.appendChild(colorBtn);
-                actions.appendChild(deleteBtn);
-                
-                item.appendChild(nameBtn);
-                item.appendChild(actions);
-                dialogSamlingManagerListEl.appendChild(item);
-            });
-            
-            newDialogSamlingNameInputEl = document.getElementById('newDialogSamlingName');
-            newDialogSamlingColorBtnEl = document.getElementById('newDialogSamlingColorBtn');
-            if (newDialogSamlingNameInputEl) {
-                newDialogSamlingNameInputEl.value = newDialogSamlingDraftName;
-                newDialogSamlingNameInputEl.addEventListener('input', (e) => {
-                    newDialogSamlingDraftName = e.target.value;
-                });
-            }
-            updateNewDialogSamlingColorButton();
-        }
-        
-        function beginDialogSamlingNameInlineEdit(collection, buttonEl) {
-            if (!collection || !buttonEl) return;
-            const baseColor = collection.color || DIALOG_COLLECTION_COLOR_PRESETS[0];
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'samling-name-input';
-            input.value = collection.name || 'Samling';
-            input.style.background = lightenHex(baseColor, 0.7);
-            input.style.borderColor = baseColor;
-            
-            let finished = false;
-            const commit = (shouldSave) => {
-                if (finished) return;
-                finished = true;
-                const newName = input.value.trim();
-                if (shouldSave && newName && newName !== collection.name) {
-                    collection.name = newName;
-                    renderDialogHistoryFilterOptions();
-                    renderDialogHistory();
-                }
-                renderDialogSamlingManagerList();
-            };
-            
-            input.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    commit(true);
-                } else if (event.key === 'Escape') {
-                    commit(false);
-                }
-            });
-            
-            input.addEventListener('blur', () => commit(true));
-            
-            buttonEl.replaceWith(input);
-            input.focus();
-            input.select();
-        }
-        
-        function openDialogSamlingColorPicker(target) {
-            if (!dialogSamlingColorPickerModalEl) {
-                dialogSamlingColorPickerModalEl = document.getElementById('dialogSamlingColorPickerModal');
-                dialogSamlingColorGridEl = document.getElementById('dialogSamlingColorGrid');
-            }
-            if (!dialogSamlingColorPickerModalEl || !dialogSamlingColorGridEl) return;
-            dialogSamlingColorPickerTarget = target;
-            dialogSamlingColorPickerModalEl.classList.add('show');
-        }
-        
-        function closeDialogSamlingColorPicker() {
-            dialogSamlingColorPickerTarget = null;
-            if (dialogSamlingColorPickerModalEl) {
-                dialogSamlingColorPickerModalEl.classList.remove('show');
-            }
-        }
-        
-        function backdropCloseDialogSamlingHandler(event) {
-            if (event.target === dialogSamlingColorPickerModalEl) {
-                closeDialogSamlingColorPicker();
-            }
-        }
-        
-        function handleDialogSamlingColorSelected(color) {
-            if (!dialogSamlingColorPickerTarget) return;
-            if (dialogSamlingColorPickerTarget.type === 'samling') {
-                applyDialogSamlingColor(dialogSamlingColorPickerTarget.collectionId, color);
-                renderDialogHistory();
-            } else if (dialogSamlingColorPickerTarget.type === 'new') {
-                newDialogSamlingDraftColor = color;
-                newDialogSamlingColorDirty = true;
-                updateNewDialogSamlingColorButton();
-            }
-            closeDialogSamlingColorPicker();
-        }
-        
-        function applyDialogSamlingColor(collectionId, color) {
-            const collection = DialogData.collections.find(c => c.id === collectionId);
-            if (!collection) return;
-            collection.color = color;
-            renderDialogHistory();
-            renderDialogSamlingManagerList();
-            renderDialogHistoryFilterOptions();
-        }
-        
-        async function confirmCreateDialogSamling() {
-            if (!newDialogSamlingNameInputEl) return;
-            const name = newDialogSamlingNameInputEl.value.trim();
-            if (!name) {
-                newDialogSamlingNameInputEl.focus();
-                return;
-            }
-            const color = newDialogSamlingDraftColor || DIALOG_COLLECTION_COLOR_PRESETS[0];
-            
-            // Find highest collection ID
-            let maxId = 0;
-            if (Array.isArray(DialogData.collections)) {
-                DialogData.collections.forEach(c => {
-                    if (c.id > maxId) maxId = c.id;
-                });
-            }
-            const newId = maxId + 1;
-            
-            const now = new Date().toISOString();
-            const newCollection = {
-                id: newId,
-                name,
-                color,
-                dialogs: [{
-                    id: 1,
-                    name: 'Dialog 1',
-                    timestamp: now,
-                    updated: now,
-                    participants: {
-                        left: { name: 'Venstre', color: '#3b82f6', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] },
-                        right: { name: 'Højre', color: '#ef4444', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] }
-                    },
-                    messages: []
-                }]
-            };
-            
-            if (!Array.isArray(DialogData.collections)) {
-                DialogData.collections = [];
-            }
-            DialogData.collections.push(newCollection);
-            DialogData.activeCollectionId = newId;
-            DialogData.activeDialogId = 1;
-            
-            // Load the new dialog
-            loadSavedDialogFromNewStructure(newCollection.dialogs[0]);
-            
-            // Ensure workspace is ready and history is updated
-            renderDialogHistory();
-            renderDialogSamlingManagerList();
-            
-            // Use requestAnimationFrame to ensure DOM is fully updated
-            requestAnimationFrame(() => {
-                // Verify active dialog is set correctly
-                const activeDialog = getActiveDialog();
-                if (activeDialog && activeDialog.id === 1 && DialogData.activeCollectionId === newId) {
-                    // Everything is ready - workspace should be functional now
-                    // Force a re-render of history to ensure active state is correct
-                    renderDialogHistory();
-                }
-            });
-            
-            if (newDialogSamlingNameInputEl) {
-                newDialogSamlingNameInputEl.value = '';
-            }
-            resetNewDialogSamlingDraft();
-            closeDialogSamlingManager();
-        }
-        
-        async function deleteDialogSamling(collectionId) {
-            if (!DialogData || !Array.isArray(DialogData.collections)) return;
-            
-            // Prevent deleting the last remaining collection
-            if (DialogData.collections.length <= 1) {
-                alert('Du kan ikke slette den sidste samling.');
-                return;
-            }
-            
-            const collection = DialogData.collections.find(c => c.id === collectionId);
-            if (!collection) return;
-            
-            if (!confirm(`Vil du slette alle dialoger i "${collection.name}"?`)) {
-                return;
-            }
-            
-            closeDialogSamlingColorPicker();
-            DialogData.collections = DialogData.collections.filter(c => c.id !== collectionId);
-            
-            if (DialogData.activeCollectionId === collectionId) {
-                const otherCollection = DialogData.collections.find(c => 
-                    Array.isArray(c.dialogs) && c.dialogs.length > 0
-                );
-                if (otherCollection) {
-                    DialogData.activeCollectionId = otherCollection.id;
-                    DialogData.activeDialogId = otherCollection.dialogs[otherCollection.dialogs.length - 1].id;
-                } else {
-                    ensureDefaultDialogData();
-                }
-            }
-            
-            await saveDialogDataToLocalStorage();
-            const activeDialog = getActiveDialog();
-            if (activeDialog) {
-                loadSavedDialogFromNewStructure(activeDialog);
-            }
-            renderDialogHistory();
-            renderDialogSamlingManagerList();
-        }
-        
-        function buildDialogSamlingColorGrid() {
-            if (!dialogSamlingColorGridEl) return;
-            dialogSamlingColorGridEl.innerHTML = '';
-            DIALOG_COLLECTION_COLOR_PRESETS.forEach(color => {
+        function buildHistoryColorGrid() {
+            if (!historyColorPickerGrid) return;
+            historyColorPickerGrid.innerHTML = '';
+            HISTORY_COLOR_PRESETS.forEach(color => {
                 const swatch = document.createElement('button');
-                swatch.className = 'samling-color-swatch';
+                swatch.className = 'history-color-swatch';
                 swatch.style.background = color;
-                swatch.onclick = () => handleDialogSamlingColorSelected(color);
-                dialogSamlingColorGridEl.appendChild(swatch);
+                swatch.onclick = () => handleHistoryColorSelected(color);
+                historyColorPickerGrid.appendChild(swatch);
             });
+        }
+        
+        async function handleHistoryColorSelected(color) {
+            if (!historyColorPickerTarget) return;
+            const { collectionId, dialogId } = historyColorPickerTarget;
+            
+            // Find and update the dialog
+            const collection = DialogData.collections.find(c => c.id === collectionId);
+            if (!collection) return;
+            
+            const dialog = collection.dialogs.find(d => d.id === dialogId);
+            if (!dialog) return;
+            
+            dialog.color = color;
+            
+            // Live-update the UI
+            const item = document.querySelector(`.dialog-history-item button[data-collection-id="${collectionId}"][data-dialog-id="${dialogId}"]`)?.closest('.dialog-history-item');
+            if (item) {
+                // Update item background color
+                const isActive = item.classList.contains('active');
+                item.style.backgroundColor = lightenHex(color, isActive ? 0.35 : 0.7);
+                item.style.borderColor = isActive ? color : 'transparent';
+                
+                // Update title wrapper
+                const titleWrapper = item.querySelector('.dialog-history-item-title');
+                if (titleWrapper) {
+                    titleWrapper.style.backgroundColor = color;
+                }
+                
+                // Update color button
+                const colorBtn = item.querySelector('.dialog-history-item-color-btn');
+                if (colorBtn) {
+                    colorBtn.style.background = lightenHex(color, 0.3);
+                    colorBtn.style.color = '#ffffff';
+                }
+            }
+            
+            await saveDialogDataToLocalStorage();
+            // Don't close picker - let user select multiple colors or click outside to close
+        }
+        
+        async function removeHistoryColor() {
+            if (!historyColorPickerTarget) return;
+            const { collectionId, dialogId } = historyColorPickerTarget;
+            
+            // Find and update the dialog
+            const collection = DialogData.collections.find(c => c.id === collectionId);
+            if (!collection) return;
+            
+            const dialog = collection.dialogs.find(d => d.id === dialogId);
+            if (!dialog) return;
+            
+            delete dialog.color;
+            
+            // Live-update the UI
+            const item = document.querySelector(`.dialog-history-item button[data-collection-id="${collectionId}"][data-dialog-id="${dialogId}"]`)?.closest('.dialog-history-item');
+            if (item) {
+                // Update item background color to default
+                const isActive = item.classList.contains('active');
+                item.style.backgroundColor = lightenHex(DEFAULT_HISTORY_COLOR, isActive ? 0.35 : 0.7);
+                item.style.borderColor = isActive ? DEFAULT_HISTORY_COLOR : 'transparent';
+                
+                // Update title wrapper
+                const titleWrapper = item.querySelector('.dialog-history-item-title');
+                if (titleWrapper) {
+                    titleWrapper.style.backgroundColor = DEFAULT_HISTORY_COLOR;
+                }
+                
+                // Update color button
+                const colorBtn = item.querySelector('.dialog-history-item-color-btn');
+                if (colorBtn) {
+                    colorBtn.style.background = lightenHex(DEFAULT_HISTORY_COLOR, 0.3);
+                    colorBtn.style.color = '#ffffff';
+                }
+            }
+            
+            await saveDialogDataToLocalStorage();
+            // Don't close picker - let user click outside to close
         }
         
         function getParticipantSnapshot(side) {
@@ -5403,13 +5317,11 @@ function resetPose(side) {
             document.getElementById('playBtn').disabled = participantsNotVisible || !hasTranscriptContent;
             document.getElementById('nextBtn').disabled = participantsNotVisible || !hasTranscriptContent;
 			document.getElementById('copyBtn').disabled = participantsNotVisible || !hasTranscriptContent;
-            document.getElementById('saveBtn').disabled = participantsNotVisible || !hasTranscriptContent;
             
             // "Ryd Alt" is enabled when there's transcript content
             document.getElementById('clearBtn').disabled = participantsNotVisible || !hasTranscriptContent;
             
-            // "Load" and "Ny Dialog" are always enabled (unless participants not visible)
-            document.getElementById('loadBtn').disabled = participantsNotVisible;
+            // "Ny Dialog" is always enabled (unless participants not visible)
             document.getElementById('newDialogBtn').disabled = participantsNotVisible;
             
             document.getElementById('pauseBtn').disabled = false;
@@ -5634,298 +5546,7 @@ function resetPose(side) {
 	
 }
 
-        function saveDialog() {
-            (window.__APP_DEBUG__ && console.log('saveDialog kaldt, transcript length:', transcript.length));
-            
-            if (transcript.length === 0) {
-                alert('Ingen dialog at gemme! Start en dialog først.');
-                return;
-            }
-
-            const leftSnapshot = getParticipantSnapshot('left') || getDefaultParticipant('left');
-            const rightSnapshot = getParticipantSnapshot('right') || getDefaultParticipant('right');
-
-            const leftName = (leftSnapshot && leftSnapshot.name) ? leftSnapshot.name : 'Venstre del';
-            const rightName = (rightSnapshot && rightSnapshot.name) ? rightSnapshot.name : 'Højre del';
-            
-            (window.__APP_DEBUG__ && console.log('Deltagere:', leftName, rightName));
-            
-            const leftStikord = leftSnapshot && Array.isArray(leftSnapshot.keywords)
-                ? leftSnapshot.keywords.slice(0, 6)
-                : ['', '', '', '', '', ''];
-            const rightStikord = rightSnapshot && Array.isArray(rightSnapshot.keywords)
-                ? rightSnapshot.keywords.slice(0, 6)
-                : ['', '', '', '', '', ''];
-
-            const leftExportColor = (leftSnapshot && leftSnapshot.color) || leftColor || '#10b981';
-            const rightExportColor = (rightSnapshot && rightSnapshot.color) || rightColor || '#3b82f6';
-            
-            const now = new Date();
-            const timestamp = now.toISOString();
-            const defaultFileName = 'Dialog_' + now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0');
-            
-            (window.__APP_DEBUG__ && console.log('Forbereder CSV data...'));
-            
-            const csvData = [];
-            csvData.push(['#metadata']);
-            csvData.push(['timestamp', timestamp]);
-            csvData.push(['']);
-            
-            	// Hent pose-data
-			const leftPoseDropdown = document.getElementById('leftPose');
-			const rightPoseDropdown = document.getElementById('rightPose');
-			const leftMirror = document.getElementById('leftMirror');
-			const rightMirror = document.getElementById('rightMirror');
-
-			// Hent pose-navne i stedet for indeks
-			const leftPose = leftPoseDropdown && leftPoseDropdown.value ? (poseLibrary[leftPoseDropdown.value]?.name || '') : '';
-			const rightPose = rightPoseDropdown && rightPoseDropdown.value ? (poseLibrary[rightPoseDropdown.value]?.name || '') : '';
-			const leftSpejl = leftMirror ? leftMirror.checked : false;
-			const rightSpejl = rightMirror ? rightMirror.checked : false;
-
-			csvData.push(['#cirkler']);
-			csvData.push(['navn', 'farve', 'pose', 'spejl', 'stikord1', 'stikord2', 'stikord3', 'stikord4', 'stikord5', 'stikord6']);
-			csvData.push([leftName, leftExportColor, leftPose, leftSpejl, ...leftStikord]);
-			csvData.push([rightName, rightExportColor, rightPose, rightSpejl, ...rightStikord]);
-            csvData.push(['']);
-            
-            csvData.push(['#dialog']);
-            csvData.push(['speaker', 'message', 'side', 'timestamp']);
-            
-            transcript.forEach(function(entry) {
-                csvData.push([entry.speaker, entry.message, entry.side, entry.timestamp || '']);
-            });
-            
-            const csvContent = csvData.map(function(row) {
-                return row.map(function(field) {
-                    const fieldStr = (field == null) ? '' : String(field);
-                    if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n') || fieldStr.includes('\r')) {
-                        return '"' + fieldStr.replace(/"/g, '""') + '"';
-                    }
-                    return fieldStr;
-                }).join(',');
-            }).join('\r\n');
-            
-            (window.__APP_DEBUG__ && console.log('CSV content genereret, længde:', csvContent.length));
-            
-            try {
-                // Test om prompt virker
-                let fileName;
-                try {
-                    fileName = prompt('Indtast filnavn (uden .csv):', defaultFileName);
-                    (window.__APP_DEBUG__ && console.log('Prompt result:', fileName));
-                } catch (promptError) {
-                    (window.__APP_DEBUG__ && console.log('Prompt fejl, bruger default:', promptError));
-                    fileName = defaultFileName;
-                }
-                
-                if (fileName === null) {
-                    (window.__APP_DEBUG__ && console.log('Bruger annullerede'));
-                    return;
-                }
-                
-                if (!fileName || fileName.trim() === '') {
-                    fileName = defaultFileName;
-                }
-                
-                (window.__APP_DEBUG__ && console.log('Filnavn:', fileName));
-                
-                const BOM = '\uFEFF';
-                const csvWithBOM = BOM + csvContent;
-                
-                const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
-                (window.__APP_DEBUG__ && console.log('Blob oprettet:', blob.size, 'bytes'));
-                
-                // Test forskellige download metoder
-                if (window.navigator && window.navigator.msSaveOrOpenBlob) {
-                    // IE/Edge
-                    (window.__APP_DEBUG__ && console.log('Bruger IE/Edge download'));
-                    window.navigator.msSaveOrOpenBlob(blob, fileName + '.csv');
-                    setStatus('Dialog gemt som ' + fileName + '.csv');
-                } else {
-                    // Moderne browsere
-                    (window.__APP_DEBUG__ && console.log('Bruger moderne browser download'));
-                    const link = document.createElement('a');
-                    
-                    if (typeof link.download === 'undefined') {
-                        (window.__APP_DEBUG__ && console.log('Download attribute ikke understøttet'));
-                        // Fallback: åbn i nyt vindue
-                        const url = URL.createObjectURL(blob);
-                        window.open(url, '_blank');
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
-                        setStatus('Dialog åbnet i nyt vindue - gem med Ctrl+S');
-                        return;
-                    }
-                    
-                    const url = URL.createObjectURL(blob);
-                    (window.__APP_DEBUG__ && console.log('URL oprettet:', url));
-                    
-                    link.href = url;
-                    link.download = fileName + '.csv';
-                    link.style.display = 'none';
-                    
-                    // Sikr at link er i DOM
-                    document.body.appendChild(link);
-                    (window.__APP_DEBUG__ && console.log('Link tilføjet til DOM'));
-                    
-                    // Trigger download
-                    if (link.click) {
-                        link.click();
-                        (window.__APP_DEBUG__ && console.log('Link.click() kaldt'));
-                    } else {
-                        // Fallback for ældre browsere
-                        const event = document.createEvent('MouseEvents');
-                        event.initEvent('click', true, true);
-                        link.dispatchEvent(event);
-                        (window.__APP_DEBUG__ && console.log('Event dispatch brugt'));
-                    }
-                    
-                    // Cleanup
-                    setTimeout(() => {
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                        (window.__APP_DEBUG__ && console.log('Cleanup udført'));
-                    }, 100);
-                    
-                    setStatus('Dialog gemt som ' + fileName + '.csv');
-                }
-                
-            } catch (error) {
-                console.error('Fejl ved download:', error);
-                alert('Fejl ved download: ' + error.message + '\n\nPrøv en anden browser eller kontakt support.');
-            }
-        }
-
-        function loadDialog() {
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = '.csv';
-            fileInput.style.display = 'none';
-            
-            fileInput.onchange = function(event) {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(e) {
-                        try {
-                            let content = e.target.result;
-                            if (content.charCodeAt(0) === 0xFEFF) {
-                                content = content.slice(1);
-                            }
-                            content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-                            
-                            parseDialogCSV(content);
-                        } catch (error) {
-                            alert('Fejl ved indlæsning: ' + error.message);
-                        }
-                    };
-                    
-                    reader.readAsText(file, 'UTF-8');
-                }
-            };
-            
-            document.body.appendChild(fileInput);
-            fileInput.click();
-            setTimeout(() => {
-                if (fileInput.parentNode) {
-                    document.body.removeChild(fileInput);
-                }
-            }, 1000);
-        }
-
-        function parseDialogCSV(csvContent) {
-            const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line !== '');
-            
-            let currentSection = null;
-            let cirkelData = [];
-            let dialogData = [];
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                
-                if (line === '#metadata') {
-                    currentSection = 'metadata';
-                    continue;
-                } else if (line === '#cirkler') {
-                    currentSection = 'cirkler';
-                    continue;
-                } else if (line === '#dialog') {
-                    currentSection = 'dialog';
-                    continue;
-                }
-                
-               if (currentSection === 'cirkler') {
-					const parts = parseCSVLine(line);
-					if (parts[0] === 'navn') continue;
-					
-					if (parts.length >= 2) {  // ← TILFØJ DENNE LINJE
-						const cirkel = {
-							name: parts[0] || '',
-							color: parts[1] || '#10b981',
-							pose: parts[2] || '',
-							spejl: parts[3] === 'true',
-							keywords: []
-						};
-						for (let j = 4; j < Math.min(parts.length, 10); j++) {
-							cirkel.keywords.push(parts[j] || '');
-						}
-						while (cirkel.keywords.length < 6) {
-							cirkel.keywords.push('');
-						}
-						
-						cirkelData.push(cirkel);
-					}  // ← DENNE } MATCHER DEN NYE if
-				} else if (currentSection === 'dialog') {
-                    const parts = parseCSVLine(line);
-                    if (parts[0] === 'speaker') continue;
-                    
-                    if (parts.length >= 3) {
-                        dialogData.push({
-                            speaker: parts[0] || '',
-                            message: parts[1] || '',
-                            side: parts[2] || '',
-                            timestamp: parts[3] || '' // Include timestamp if available
-                        });
-                    }
-                }
-            }
-            
-            if (cirkelData.length < 2) {
-                throw new Error('Ikke nok cirkel-data fundet');
-            }
-            
-            applyLoadedDialog(cirkelData[0], cirkelData[1], dialogData);
-            activeDialogId = null;
-            renderDialogHistory();
-        }
-
-        function parseCSVLine(line) {
-            const result = [];
-            let current = '';
-            let inQuotes = false;
-            
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                
-                if (char === '"') {
-                    if (inQuotes && line[i + 1] === '"') {
-                        current += '"';
-                        i++;
-                    } else {
-                        inQuotes = !inQuotes;
-                    }
-                } else if (char === ',' && !inQuotes) {
-                    result.push(current.trim());
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            
-            result.push(current.trim());
-            return result;
-        }
+        // CSV Import/Export functions removed - Firestore sync is used instead
 		
 		// funktioner til copy til klipboard
 				function copyDialog() {
@@ -6390,13 +6011,27 @@ if (rightPart.pose) {
             // Initialize samling manager color grid
             buildDialogSamlingColorGrid();
             
+            // Setup history color picker event listeners
+            const historyRemoveColorBtn = document.getElementById('historyRemoveColorBtn');
+            if (historyRemoveColorBtn) {
+                historyRemoveColorBtn.addEventListener('click', removeHistoryColor);
+            }
+            
+            // Modal backdrop click to close history color picker
+            const historyColorPickerModalEl = document.getElementById('historyColorPickerModal');
+            if (historyColorPickerModalEl) {
+                historyColorPickerModalEl.addEventListener('click', (e) => {
+                    if (e.target === historyColorPickerModalEl) {
+                        closeHistoryColorPicker();
+                    }
+                });
+            }
+            
             // Setup Escape key and backdrop click handlers for overlays
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
-                    if (dialogSamlingColorPickerModalEl && dialogSamlingColorPickerModalEl.classList.contains('show')) {
-                        closeDialogSamlingColorPicker();
-                    } else if (dialogSamlingManagerOverlayEl && dialogSamlingManagerOverlayEl.classList.contains('show')) {
-                        closeDialogSamlingManager();
+                    if (historyColorPickerModalEl && historyColorPickerModalEl.classList.contains('show')) {
+                        closeHistoryColorPicker();
                     }
                 }
             });
@@ -6407,14 +6042,12 @@ if (rightPart.pose) {
             if (leftMini) leftMini.addEventListener('click', function() { writeDialogData('left'); });
             if (rightMini) rightMini.addEventListener('click', function() { writeDialogData('right'); });
 						
-            document.getElementById('startBtn').addEventListener('click', startDialog);			
-            document.getElementById('loadBtn').addEventListener('click', loadDialog);
+            document.getElementById('startBtn').addEventListener('click', startDialog);
             document.getElementById('continueBtn').addEventListener('click', continueDialog);
             document.getElementById('playBtn').addEventListener('click', playDialog);
             document.getElementById('pauseBtn').addEventListener('click', pauseDialog);
             document.getElementById('nextBtn').addEventListener('click', nextDialog);
             document.getElementById('copyBtn').addEventListener('click', copyDialog);
-			document.getElementById('saveBtn').addEventListener('click', saveDialog);
             document.querySelector('.clear-btn').addEventListener('click', clearAll);
             
             document.getElementById('leftTextarea').addEventListener('keypress', (event) => handleInput(event, 'left'));

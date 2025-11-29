@@ -1723,46 +1723,49 @@
         .history-item.active {
             box-shadow: 0 10px 24px rgba(15, 23, 42, 0.25);
         }
-        
-        .history-item-collection {
-            display: inline-flex;
+
+        .history-item-title {
+            display: flex;
             align-items: center;
-            padding: 2px 10px;
+            padding: 2px 12px;
             border-radius: 999px;
             font-size: 16px;
             font-weight: 600;
             color: #ffffff;
             margin-bottom: 6px;
-        }
-        
-        .history-item-title {
-            margin-bottom: 6px;
+            max-width: 100%;
+            overflow: hidden;
         }
         
         .history-item-date {
-            font-weight: bold;
-            font-size: 16px;
+            width: 100%;
+            flex: 1;
             border: none;
             background: transparent;
             outline: none;
-            width: 100%;
+            font-weight: 600;
+            font-size: 16px;
+            color: #ffffff;
             padding: 0;
             margin: 0;
-            color: inherit;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         .history-item.active .history-item-date {
-            background: rgba(255, 255, 255, 0.35);
-            border-radius: 6px;
-            padding: 2px 6px;
+            padding: 2px 12px;
+            margin: -2px -12px;
             cursor: text;
             transition: background 0.15s ease, box-shadow 0.15s ease;
+            white-space: normal;
+            border-radius: 999px;
         }
         
         .history-item.active .history-item-date:hover,
         .history-item.active .history-item-date:focus {
-            background: rgba(255, 255, 255, 0.6);
-            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
         }
         
         .history-item .history-item-date[readonly] {
@@ -1810,17 +1813,130 @@
             padding: 0;
             line-height: 1;
             z-index: 10;
-            pointer-events: auto;
+            pointer-events: none;
         }
         
         .history-item:hover .history-item-delete,
         .history-item.active .history-item-delete {
             opacity: 1;
+            pointer-events: auto;
         }
         
         .history-item-delete:hover {
             background: #dc2626;
             transform: scale(1.1);
+        }
+
+        .history-item-color-btn {
+            position: absolute;
+            top: 2px;
+            right: 28px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            background: #e5e7eb;
+            color: #374151;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .history-item:hover .history-item-color-btn,
+        .history-item.active .history-item-color-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .history-item-color-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.2);
+        }
+        
+        /* History Item Color Picker */
+        .history-color-picker-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.35);
+            z-index: 5001;
+        }
+
+        .history-color-picker-modal.show {
+            display: flex;
+        }
+
+        .history-color-picker {
+            width: calc(32px * 6 + 8px * 5 + 16px * 2);
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.25);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .history-color-picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-color-picker-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .history-color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 32px);
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .history-color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .history-color-swatch:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+        }
+
+        .history-remove-color-btn {
+            padding: 8px 16px;
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .history-remove-color-btn:hover {
+            background: #e5e7eb;
+            color: #374151;
         }
         
         .nav-btn-group {
@@ -2134,7 +2250,6 @@
             
             <div class="controls-divider"></div>
             
-            <button class="btn" onclick="openSamlingManager()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;">Ny Samling</button>
             <button class="btn" onclick="createNewComparison()" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white;">Ny Sammenligning</button>
             <button class="btn random-btn" id="randomBtn" disabled>Random</button>
             <button class="btn clear-btn">Ryd Alt</button>
@@ -2333,6 +2448,17 @@
 	<!-- Note Overlay -->
 	<div class="note-overlay" id="noteOverlay">
 		<textarea id="noteTextarea" placeholder="Navn..." maxlength="24"></textarea>
+	</div>
+	
+	<!-- History Item Color Picker Modal -->
+	<div class="history-color-picker-modal" id="historyColorPickerModal">
+		<div class="history-color-picker">
+			<div class="history-color-picker-header">
+				<h3>Vælg farve</h3>
+			</div>
+			<div class="history-color-grid" id="historyColorGrid"></div>
+			<button class="history-remove-color-btn" id="historyRemoveColorBtn">Fjern farve</button>
+		</div>
 	</div>
 
     <script src="coaching_engine.js"></script>
@@ -2564,6 +2690,35 @@
 			const newB = Math.round(b + (255 - b) * clampAmount);
 			return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
 		}
+
+		function darkenHex(hex, amount = 0.5) {
+			if (!hex) return '#000000';
+			const normalized = hex.replace('#', '');
+			const expand = normalized.length === 3
+				? normalized.split('').map(ch => ch + ch).join('')
+				: normalized.padEnd(6, '0');
+			const r = parseInt(expand.substring(0, 2), 16);
+			const g = parseInt(expand.substring(2, 4), 16);
+			const b = parseInt(expand.substring(4, 6), 16);
+			const clampAmount = Math.max(0, Math.min(1, amount));
+			const newR = Math.round(r * (1 - clampAmount));
+			const newG = Math.round(g * (1 - clampAmount));
+			const newB = Math.round(b * (1 - clampAmount));
+			return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+		}
+		
+		// Standard farve for alle history items (comparisons)
+		const DEFAULT_HISTORY_COLOR = '#b8735e'; // Varm rødlig brun som standard
+		
+		// Color presets for history items
+		const HISTORY_COLOR_PRESETS = [
+			'#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
+			'#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
+		];
+		
+		let historyColorPickerTarget = null; // { comparisonId } for the target comparison
+		let historyColorPickerModal = null;
+		let historyColorPickerGrid = null;
 		
 		/**
 		 * Læser brugerens timezone fra userData (indexuserData i localStorage)
@@ -3009,341 +3164,6 @@
 		}
 	}
 		
-		// ===== SAMLING MANAGER FUNCTIONS =====
-		
-		async function openSamlingManager() {
-			if (!samlingManagerOverlayEl) {
-				samlingManagerOverlayEl = document.getElementById('samlingManagerOverlay');
-				samlingManagerListEl = document.getElementById('samlingManagerList');
-				newSamlingNameInputEl = document.getElementById('newSamlingName');
-				newSamlingColorBtnEl = document.getElementById('newSamlingColorBtn');
-			}
-			if (!samlingColorPickerModalEl) {
-				samlingColorPickerModalEl = document.getElementById('samlingColorPickerModal');
-			}
-			if (!samlingColorGridEl) {
-				samlingColorGridEl = document.getElementById('samlingColorGrid');
-			}
-			if (newSamlingNameInputEl) {
-				newSamlingDraftName = newSamlingNameInputEl.value;
-			}
-			if (samlingColorGridEl && samlingColorGridEl.childElementCount === 0) {
-				buildSamlingColorGrid();
-			}
-			if (!samlingManagerOverlayEl) return;
-			resetNewSamlingDraft();
-			renderSamlingManagerList();
-			samlingManagerOverlayEl.classList.add('show');
-			setTimeout(() => {
-				if (newSamlingNameInputEl) {
-					newSamlingNameInputEl.focus();
-				}
-			}, 80);
-		}
-		
-		function closeSamlingManager() {
-			if (samlingManagerOverlayEl) {
-				samlingManagerOverlayEl.classList.remove('show');
-			}
-			closeSamlingColorPicker();
-		}
-		
-		function resetNewSamlingDraft() {
-			newSamlingDraftColor = COMPARE_COLLECTION_COLOR_PRESETS[0];
-			newSamlingDraftName = '';
-			newSamlingColorDirty = false;
-			if (newSamlingNameInputEl) {
-				newSamlingNameInputEl.value = '';
-			}
-			updateNewSamlingColorButton();
-		}
-		
-		function updateNewSamlingColorButton() {
-			if (!newSamlingColorBtnEl) return;
-			if (newSamlingColorDirty) {
-				const baseColor = newSamlingDraftColor || COMPARE_COLLECTION_COLOR_PRESETS[0];
-				newSamlingColorBtnEl.style.background = baseColor;
-				newSamlingColorBtnEl.style.color = '#ffffff';
-				if (newSamlingNameInputEl) {
-					newSamlingNameInputEl.style.background = lightenHex(baseColor, 0.85);
-					newSamlingNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
-				}
-			} else {
-				const baseColor = COMPARE_COLLECTION_COLOR_PRESETS[0] || '#ef4444';
-				newSamlingColorBtnEl.style.background = baseColor;
-				newSamlingColorBtnEl.style.color = '#ffffff';
-				if (newSamlingNameInputEl) {
-					newSamlingNameInputEl.style.background = lightenHex(baseColor, 0.85);
-					newSamlingNameInputEl.style.boxShadow = `0 0 0 2px ${hexToRgba(baseColor, 0.35)}`;
-				}
-			}
-		}
-		
-		async function renderSamlingManagerList() {
-			if (!samlingManagerListEl) return;
-			samlingManagerListEl.innerHTML = '';
-			
-			if (!CompareData || !Array.isArray(CompareData.collections)) {
-				await ensureDefaultCompareData();
-			}
-			
-			CompareData.collections.forEach(collection => {
-				const item = document.createElement('div');
-				item.className = 'samling-manager-item';
-				
-				const nameBtn = document.createElement('button');
-				nameBtn.className = 'samling-name-btn';
-				nameBtn.textContent = collection.name || 'Samling';
-				const baseColor = collection.color || COMPARE_COLLECTION_COLOR_PRESETS[0];
-				nameBtn.style.background = lightenHex(baseColor, 0.7);
-				nameBtn.style.border = `1px solid ${baseColor}`;
-				nameBtn.addEventListener('click', () => beginSamlingNameInlineEdit(collection, nameBtn));
-				
-				const actions = document.createElement('div');
-				actions.className = 'samling-manager-actions';
-				
-				const colorBtn = document.createElement('button');
-				colorBtn.className = 'samling-color-select';
-				colorBtn.textContent = 'C';
-				colorBtn.style.background = collection.color || COMPARE_COLLECTION_COLOR_PRESETS[0];
-				colorBtn.onclick = () => openSamlingColorPicker({ type: 'samling', collectionId: collection.id });
-				
-				const deleteBtn = document.createElement('button');
-				deleteBtn.className = 'samling-delete-btn';
-				deleteBtn.textContent = '✕';
-				deleteBtn.onclick = () => deleteSamling(collection.id);
-				
-				actions.appendChild(colorBtn);
-				actions.appendChild(deleteBtn);
-				
-				item.appendChild(nameBtn);
-				item.appendChild(actions);
-				samlingManagerListEl.appendChild(item);
-			});
-			
-			newSamlingNameInputEl = document.getElementById('newSamlingName');
-			newSamlingColorBtnEl = document.getElementById('newSamlingColorBtn');
-			if (newSamlingNameInputEl) {
-				newSamlingNameInputEl.value = newSamlingDraftName;
-				newSamlingNameInputEl.addEventListener('input', (e) => {
-					newSamlingDraftName = e.target.value;
-				});
-			}
-			updateNewSamlingColorButton();
-		}
-		
-		async function beginSamlingNameInlineEdit(collection, buttonEl) {
-			if (!collection || !buttonEl) return;
-			const baseColor = collection.color || COMPARE_COLLECTION_COLOR_PRESETS[0];
-			const input = document.createElement('input');
-			input.type = 'text';
-			input.className = 'samling-name-input';
-			input.value = collection.name || 'Samling';
-			input.style.background = lightenHex(baseColor, 0.7);
-			input.style.borderColor = baseColor;
-			
-			let finished = false;
-			const commit = async (shouldSave) => {
-				if (finished) return;
-				finished = true;
-				const newName = input.value.trim();
-				if (shouldSave && newName && newName !== collection.name) {
-					collection.name = newName;
-					renderHistoryFilterOptions();
-					await renderHistory();
-					await saveCompareDataToLocalStorage();
-				}
-				await renderSamlingManagerList();
-			};
-			
-			input.addEventListener('keydown', (event) => {
-				if (event.key === 'Enter') {
-					commit(true);
-				} else if (event.key === 'Escape') {
-					commit(false);
-				}
-			});
-			
-			input.addEventListener('blur', () => commit(true));
-			
-			buttonEl.replaceWith(input);
-			input.focus();
-			input.select();
-		}
-		
-		function openSamlingColorPicker(target) {
-			if (!samlingColorPickerModalEl) {
-				samlingColorPickerModalEl = document.getElementById('samlingColorPickerModal');
-				samlingColorGridEl = document.getElementById('samlingColorGrid');
-			}
-			if (!samlingColorPickerModalEl || !samlingColorGridEl) return;
-			samlingColorPickerTarget = target;
-			samlingColorPickerModalEl.classList.add('show');
-		}
-		
-		function closeSamlingColorPicker() {
-			samlingColorPickerTarget = null;
-			if (samlingColorPickerModalEl) {
-				samlingColorPickerModalEl.classList.remove('show');
-			}
-		}
-		
-		function backdropCloseSamlingHandler(event) {
-			if (event.target === samlingColorPickerModalEl) {
-				closeSamlingColorPicker();
-			}
-		}
-		
-		async function handleSamlingColorSelected(color) {
-			if (!samlingColorPickerTarget) return;
-			if (samlingColorPickerTarget.type === 'samling') {
-				await applySamlingColor(samlingColorPickerTarget.collectionId, color);
-				await renderHistory();
-				await saveCompareDataToLocalStorage();
-			} else if (samlingColorPickerTarget.type === 'new') {
-				newSamlingDraftColor = color;
-				newSamlingColorDirty = true;
-				updateNewSamlingColorButton();
-			}
-			closeSamlingColorPicker();
-		}
-		
-		async function applySamlingColor(collectionId, color) {
-			const collection = CompareData.collections.find(c => c.id === collectionId);
-			if (!collection) return;
-			collection.color = color;
-			renderHistory();
-			renderSamlingManagerList();
-			renderHistoryFilterOptions();
-			await saveCompareDataToLocalStorage();
-		}
-		
-		async function confirmCreateSamling() {
-			if (!newSamlingNameInputEl) return;
-			const name = newSamlingNameInputEl.value.trim();
-			if (!name) {
-				newSamlingNameInputEl.focus();
-				return;
-			}
-			const color = newSamlingDraftColor || COMPARE_COLLECTION_COLOR_PRESETS[0];
-			
-			// Save current workspace before switching
-			await syncCurrentWorkspaceToActiveComparison();
-			
-			// Find highest collection ID
-			let maxId = 0;
-			if (Array.isArray(CompareData.collections)) {
-				CompareData.collections.forEach(c => {
-					if (c.id > maxId) maxId = c.id;
-				});
-			}
-			const newId = maxId + 1;
-			
-			const now = new Date().toISOString();
-			const newCollection = {
-				id: newId,
-				name,
-				color,
-				comparisons: [{
-					id: 1,
-					name: 'Sammenligning 1',
-					timestamp: now,
-					updated: now,
-					leftParticipant: {
-						name: 'Venstre',
-						color: '#3b82f6',
-						pose: '',
-						flipped: false
-					},
-					rightParticipant: {
-						name: 'Højre',
-						color: '#ef4444',
-						pose: '',
-						flipped: false
-					},
-					traitNames: [],
-					leftScores: {},
-					rightScores: {},
-					notes: ''
-				}]
-			};
-			
-			if (!Array.isArray(CompareData.collections)) {
-				CompareData.collections = [];
-			}
-			CompareData.collections.push(newCollection);
-			CompareData.activeCollectionId = newId;
-			CompareData.activeComparisonId = 1;
-			
-			await saveCompareDataToLocalStorage();
-			
-			// Load the new empty comparison
-			loadComparisonFromCompareData(newCollection.comparisons[0]);
-			renderHistory();
-			closeSamlingManager();
-			
-			// Make the new history item's name editable
-			requestAnimationFrame(() => {
-				const newHistoryItem = document.querySelector(`.history-item.active input[data-comparison-id="1"]`);
-				if (newHistoryItem) {
-					newHistoryItem.readOnly = false;
-					newHistoryItem.focus();
-					newHistoryItem.select();
-				}
-			});
-		}
-		
-		async function deleteSamling(collectionId) {
-			if (!CompareData || !Array.isArray(CompareData.collections)) return;
-			
-			if (CompareData.collections.length <= 1) {
-				alert('Du kan ikke slette den sidste samling.');
-				return;
-			}
-			
-			if (!confirm('Er du sikker på du vil slette denne samling og alle dens sammenligninger?')) {
-				return;
-			}
-			
-			CompareData.collections = CompareData.collections.filter(c => c.id !== collectionId);
-			
-			if (CompareData.activeCollectionId === collectionId) {
-				const otherCollection = CompareData.collections.find(c => 
-					c.id !== collectionId && Array.isArray(c.comparisons) && c.comparisons.length > 0
-				);
-				if (otherCollection) {
-					CompareData.activeCollectionId = otherCollection.id;
-					CompareData.activeComparisonId = otherCollection.comparisons[0].id;
-				} else if (CompareData.collections.length > 0) {
-					CompareData.activeCollectionId = CompareData.collections[0].id;
-					if (CompareData.collections[0].comparisons && CompareData.collections[0].comparisons.length > 0) {
-						CompareData.activeComparisonId = CompareData.collections[0].comparisons[0].id;
-					}
-				}
-			}
-			
-			await saveCompareDataToLocalStorage();
-			const activeComparison = getActiveComparison();
-			if (activeComparison) {
-				loadComparisonFromCompareData(activeComparison);
-			}
-			renderHistory();
-			renderHistoryFilterOptions();
-			renderSamlingManagerList();
-		}
-		
-		function buildSamlingColorGrid() {
-			if (!samlingColorGridEl) return;
-			samlingColorGridEl.innerHTML = '';
-			COMPARE_COLLECTION_COLOR_PRESETS.forEach(color => {
-				const swatch = document.createElement('div');
-				swatch.className = 'samling-color-swatch';
-				swatch.style.background = color;
-				swatch.onclick = () => handleSamlingColorSelected(color);
-				samlingColorGridEl.appendChild(swatch);
-			});
-		}
-		
 		// ===== HISTORY SIDEBAR FUNCTIONS =====
 		
 		function getAllComparisonsSorted() {
@@ -3421,19 +3241,18 @@
 				               collection.id === CompareData.activeCollectionId;
 				item.className = `history-item ${isActive ? 'active' : ''}`;
 				
-				const collectionColor = collection.color || COMPARE_COLLECTION_COLOR_PRESETS[0];
-				item.style.background = isActive 
-					? `linear-gradient(135deg, ${lightenHex(collectionColor, 0.25)} 0%, ${collectionColor} 100%)`
-					: `linear-gradient(135deg, ${lightenHex(collectionColor, 0.7)} 0%, ${lightenHex(collectionColor, 0.5)} 100%)`;
-				item.style.borderColor = collectionColor;
-				
-				const collectionBadge = document.createElement('div');
-				collectionBadge.className = 'history-item-collection';
-				collectionBadge.textContent = collection.name || 'Samling';
-				collectionBadge.style.background = collectionColor;
+				// Set simple background color (not based on collection)
+				const comparisonColor = comparison.color || DEFAULT_HISTORY_COLOR;
+				const baseBackground = lightenHex(comparisonColor, isActive ? 0.35 : 0.7);
+				item.style.backgroundColor = baseBackground;
+				item.style.color = '#1f2937';
+				item.style.borderColor = isActive ? comparisonColor : 'transparent';
 				
 				const titleDiv = document.createElement('div');
 				titleDiv.className = 'history-item-title';
+				// Set background color to comparison's custom color or default
+				titleDiv.style.backgroundColor = comparisonColor;
+				titleDiv.style.color = '#ffffff';
 				
 				const dateInput = document.createElement('input');
 				dateInput.type = 'text';
@@ -3547,21 +3366,46 @@
 				};
 				
 				deleteBtn.addEventListener('click', handleDelete);
+				
+				// Color button
+				const colorBtn = document.createElement('button');
+				colorBtn.className = 'history-item-color-btn';
+				colorBtn.textContent = 'C';
+				colorBtn.title = 'Vælg farve';
+				colorBtn.setAttribute('data-comparison-id', comparison.id);
+				// Set button color to show current color (lighter version)
+				const btnColor = comparison.color || DEFAULT_HISTORY_COLOR;
+				colorBtn.style.background = lightenHex(btnColor, 0.3);
+				colorBtn.style.color = '#ffffff';
+				
+				// Color button handlers - both touch and click for mobile compatibility
+				const handleColorClick = (e) => {
+					e.stopPropagation();
+					e.preventDefault();
+					openHistoryColorPicker(comparison.id);
+				};
+				colorBtn.addEventListener('click', handleColorClick);
+				colorBtn.addEventListener('touchend', (e) => {
+					e.stopPropagation();
+					e.preventDefault();
+					handleColorClick(e);
+				}, { passive: false });
 				deleteBtn.addEventListener('touchend', (e) => {
 					e.stopPropagation();
 					e.preventDefault();
 					handleDelete(e);
 				}, { passive: false });
 				
-				item.appendChild(collectionBadge);
 				item.appendChild(titleDiv);
 				item.appendChild(metaDiv);
 				item.appendChild(deleteBtn);
+				item.appendChild(colorBtn);
 				
 				// Shared handler function for both touch and click
 				const handleItemActivation = async (e) => {
-					// Don't handle clicks on delete button
+					// Don't handle clicks on delete button or color button
 					if (e.target.classList.contains('history-item-delete')) return;
+					if (e.target.classList.contains('history-item-color-btn')) return;
 					
 					// Check current active state
 					const currentlyActive = comparison.id === CompareData.activeComparisonId && 
@@ -3721,6 +3565,123 @@
 				loadComparisonFromCompareData(activeComparison);
 			}
 			renderHistory();
+		}
+		
+		// ===== HISTORY COLOR PICKER FUNCTIONS =====
+		
+		function openHistoryColorPicker(comparisonId) {
+			if (!historyColorPickerModal) {
+				historyColorPickerModal = document.getElementById('historyColorPickerModal');
+				historyColorPickerGrid = document.getElementById('historyColorGrid');
+			}
+			if (!historyColorPickerModal || !historyColorPickerGrid) return;
+			
+			historyColorPickerTarget = comparisonId;
+			buildHistoryColorGrid();
+			historyColorPickerModal.classList.add('show');
+		}
+		
+		function closeHistoryColorPicker() {
+			historyColorPickerTarget = null;
+			if (historyColorPickerModal) {
+				historyColorPickerModal.classList.remove('show');
+			}
+		}
+		
+		function buildHistoryColorGrid() {
+			if (!historyColorPickerGrid) return;
+			historyColorPickerGrid.innerHTML = '';
+			HISTORY_COLOR_PRESETS.forEach(color => {
+				const swatch = document.createElement('button');
+				swatch.className = 'history-color-swatch';
+				swatch.style.background = color;
+				swatch.onclick = () => handleHistoryColorSelected(color);
+				historyColorPickerGrid.appendChild(swatch);
+			});
+		}
+		
+		async function handleHistoryColorSelected(color) {
+			if (!historyColorPickerTarget) return;
+			const comparisonId = historyColorPickerTarget;
+			
+			// Find and update the comparison
+			let comparison = null;
+			for (const collection of CompareData.collections) {
+				if (Array.isArray(collection.comparisons)) {
+					comparison = collection.comparisons.find(c => c.id === comparisonId);
+					if (comparison) break;
+				}
+			}
+			if (!comparison) return;
+			
+			comparison.color = color;
+			
+			// Live-update the UI
+			const item = document.querySelector(`.history-item button[data-comparison-id="${comparisonId}"]`)?.closest('.history-item');
+			if (item) {
+				// Update item background color
+				const isActive = item.classList.contains('active');
+				item.style.backgroundColor = lightenHex(color, isActive ? 0.35 : 0.7);
+				item.style.borderColor = isActive ? color : 'transparent';
+				
+				// Update title div
+				const titleDiv = item.querySelector('.history-item-title');
+				if (titleDiv) {
+					titleDiv.style.backgroundColor = color;
+				}
+				
+				// Update color button
+				const colorBtn = item.querySelector('.history-item-color-btn');
+				if (colorBtn) {
+					colorBtn.style.background = lightenHex(color, 0.3);
+					colorBtn.style.color = '#ffffff';
+				}
+			}
+			
+			await saveCompareDataToLocalStorage();
+			// Don't close picker - let user select multiple colors or click outside to close
+		}
+		
+		async function removeHistoryColor() {
+			if (!historyColorPickerTarget) return;
+			const comparisonId = historyColorPickerTarget;
+			
+			// Find and update the comparison
+			let comparison = null;
+			for (const collection of CompareData.collections) {
+				if (Array.isArray(collection.comparisons)) {
+					comparison = collection.comparisons.find(c => c.id === comparisonId);
+					if (comparison) break;
+				}
+			}
+			if (!comparison) return;
+			
+			delete comparison.color;
+			
+			// Live-update the UI
+			const item = document.querySelector(`.history-item button[data-comparison-id="${comparisonId}"]`)?.closest('.history-item');
+			if (item) {
+				// Update item background color to default
+				const isActive = item.classList.contains('active');
+				item.style.backgroundColor = lightenHex(DEFAULT_HISTORY_COLOR, isActive ? 0.35 : 0.7);
+				item.style.borderColor = isActive ? DEFAULT_HISTORY_COLOR : 'transparent';
+				
+				// Update title div
+				const titleDiv = item.querySelector('.history-item-title');
+				if (titleDiv) {
+					titleDiv.style.backgroundColor = DEFAULT_HISTORY_COLOR;
+				}
+				
+				// Update color button
+				const colorBtn = item.querySelector('.history-item-color-btn');
+				if (colorBtn) {
+					colorBtn.style.background = lightenHex(DEFAULT_HISTORY_COLOR, 0.3);
+					colorBtn.style.color = '#ffffff';
+				}
+			}
+			
+			await saveCompareDataToLocalStorage();
+			// Don't close picker - let user click outside to close
 		}
 		
 		async function createNewComparison() {
@@ -6135,14 +6096,27 @@ function resetPose(side) {
             renderHistory();
             renderHistoryFilterOptions();
             
+            // Setup history color picker event listeners
+            const historyRemoveColorBtn = document.getElementById('historyRemoveColorBtn');
+            if (historyRemoveColorBtn) {
+                historyRemoveColorBtn.addEventListener('click', removeHistoryColor);
+            }
+            
+            // Modal backdrop click to close history color picker
+            const historyColorPickerModalEl = document.getElementById('historyColorPickerModal');
+            if (historyColorPickerModalEl) {
+                historyColorPickerModalEl.addEventListener('click', (e) => {
+                    if (e.target === historyColorPickerModalEl) {
+                        closeHistoryColorPicker();
+                    }
+                });
+            }
+            
             // Setup event listeners
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
-                    if (samlingManagerOverlayEl && samlingManagerOverlayEl.classList.contains('show')) {
-                        closeSamlingManager();
-                    }
-                    if (samlingColorPickerModalEl && samlingColorPickerModalEl.classList.contains('show')) {
-                        closeSamlingColorPicker();
+                    if (historyColorPickerModalEl && historyColorPickerModalEl.classList.contains('show')) {
+                        closeHistoryColorPicker();
                     }
                 }
             });
@@ -6206,36 +6180,6 @@ function resetPose(side) {
             }
         }
     </script>
-    
-    <!-- Samling Manager Overlay -->
-    <div class="samling-manager-overlay" id="samlingManagerOverlay">
-        <div class="samling-manager-backdrop" onclick="closeSamlingManager()"></div>
-        <div class="samling-manager-panel">
-            <div class="samling-manager-header">
-                <h2>Samlinger</h2>
-                <button class="samling-manager-close" onclick="closeSamlingManager()" title="Luk">×</button>
-            </div>
-            <div class="samling-manager-list" id="samlingManagerList"></div>
-            <div class="samling-manager-divider"></div>
-            <div class="samling-manager-new" id="samlingManagerNewRow">
-                <input type="text" id="newSamlingName" placeholder="Ny samling-navn" autocomplete="off">
-                <div class="samling-manager-actions">
-                    <button class="samling-color-select" id="newSamlingColorBtn" onclick="openSamlingColorPicker({ type: 'new' })" title="Vælg farve">C</button>
-                    <button class="samling-create-btn" onclick="confirmCreateSamling()" title="Opret samling">✓</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Samling Color Picker Modal -->
-    <div class="samling-color-picker-modal" id="samlingColorPickerModal" onclick="backdropCloseSamlingHandler(event)">
-        <div class="samling-color-picker" onclick="event.stopPropagation()">
-            <div class="samling-color-picker-header">
-                <h3>Vælg farve</h3>
-            </div>
-            <div class="samling-color-grid" id="samlingColorGrid"></div>
-        </div>
-    </div>
     
     <!-- Navigation overlay -->
     <div class="nav-overlay" id="navOverlay"></div>
