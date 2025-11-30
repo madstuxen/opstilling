@@ -1607,9 +1607,9 @@
         //   dialogData,
         //   opstillingData,
         //   compareData,
-        //   logbogData,
-        //   forside_checkin_data
+        //   logbogData
         // }
+        // NOTE: forside_checkin_data is deprecated - now using logbogData.checkins
         window.allUserData = window.allUserData || null;
         window.allDataLoadingPromise = window.allDataLoadingPromise || null;
         
@@ -1679,6 +1679,7 @@
                         opstillingData: raw.opstillingData || null,
                         compareData: raw.compareData || null,
                         // logbogData removed - only loaded when needed for night overlay
+                        // forside_checkin_data is deprecated - now using logbogData.checkins
                         forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
                     };
                     window.allUserData = data;
@@ -1695,7 +1696,7 @@
             return window.allDataLoadingPromise;
         }
         
-        // Save check-in data to Firestore using cached data
+        // Save check-in data to logbogData using cached data
         async function saveCheckinDataToFirestore(engine) {
             if (!currentUser || !db) return;
             
@@ -1715,46 +1716,76 @@
                 // Get affirmation text for today
                 const affirmText = getAffirmationText();
                 
-                const allData = await loadAllUserData();
-                let checkinData = allData && Array.isArray(allData.forside_checkin_data)
-                    ? [...allData.forside_checkin_data]
-                    : [];
+                // Get current time in HH:MM format
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const timeStr = `${hours}:${minutes}`;
                 
-                const newEntry = {
-                    date: new Date().toISOString(),
-                    status: Number(status),
-                    taknem: String(taknem),
-                    affirm: affirmText || ''
-                };
+                // Get today's date key
+                const dateKey = getTodayDateKey();
                 
-                checkinData.push(newEntry);
+                // Load existing logbogData
+                const logbogData = await getLogbookEntries();
                 
+                // Find or create entry for today
+                let entry = logbogData.find(item => item.date === dateKey);
+                if (!entry) {
+                    entry = {
+                        date: dateKey,
+                        dagbog: '',
+                        dreams: '',
+                        checkins: [],
+                        timestamp: now.toISOString(),
+                        color: '#b8735e'
+                    };
+                    logbogData.push(entry);
+                }
+                
+                // Initialize checkins array if it doesn't exist
+                if (!Array.isArray(entry.checkins)) {
+                    entry.checkins = [];
+                }
+                
+                // Add new check-in to the array
+                entry.checkins.push({
+                    time: timeStr,
+                    status: Number(status)
+                });
+                
+                // Update taknem and affirm (latest values win)
+                entry.taknem = String(taknem);
+                entry.affirm = affirmText || '';
+                
+                // Update timestamp
+                entry.timestamp = now.toISOString();
+                
+                // Save to Firestore
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 await userDocRef.set({
-                    forside_checkin_data: checkinData,
+                    logbogData: logbogData,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
                 
                 // Refresh cache after write
                 await loadAllUserData(true);
                 
-                console.log('Check-in data saved to Firestore');
+                console.log(`[SAVE] Check-in saved to logbogData for ${dateKey} at ${timeStr}`);
             } catch (error) {
-                console.error('Error saving check-in data to Firestore:', error);
+                console.error('[SAVE] Error saving check-in data to logbogData:', error);
             }
         }
         
-        // Load check-in data from Firestore via cached user document
+        // Load check-in data from logbogData via Firestore
         async function loadCheckinDataFromFirestore() {
             if (!currentUser || !db) return null;
             
             try {
-                const allData = await loadAllUserData();
-                const data = allData && Array.isArray(allData.forside_checkin_data) ? allData.forside_checkin_data : [];
-                console.log('Check-in data loaded from cache/Firestore');
-                return data;
+                const logbogData = await getLogbookEntries();
+                console.log('[LOAD] Check-in data loaded from logbogData');
+                return logbogData;
             } catch (error) {
-                console.error('Error loading check-in data from Firestore:', error);
+                console.error('[LOAD] Error loading check-in data from logbogData:', error);
                 return null;
             }
         }
@@ -1762,35 +1793,24 @@
         // Check if user has already checked in today
         async function hasCheckedInToday() {
             try {
-                const checkinData = await loadCheckinDataFromFirestore();
-                if (!checkinData || !Array.isArray(checkinData) || checkinData.length === 0) {
+                const logbogData = await loadCheckinDataFromFirestore();
+                if (!logbogData || !Array.isArray(logbogData) || logbogData.length === 0) {
                     return false;
                 }
                 
                 const todayKey = getTodayDateKey();
                 
-                // Check if there's an entry for today
-                const hasTodayEntry = checkinData.some(item => {
-                    if (!item.date) return false;
-                    
-                    // Extract date part from ISO string
-                    let itemDateStr = '';
-                    if (item.date instanceof Date) {
-                        itemDateStr = item.date.toISOString().split('T')[0];
-                    } else if (typeof item.date === 'string') {
-                        if (item.date.includes('T')) {
-                            itemDateStr = item.date.split('T')[0];
-                        } else {
-                            itemDateStr = item.date;
-                        }
-                    }
-                    
-                    return itemDateStr === todayKey;
-                });
+                // Check if there's an entry for today with checkins
+                const todayEntry = logbogData.find(item => item.date === todayKey);
                 
-                return hasTodayEntry;
+                // User has checked in if entry exists and has at least one check-in
+                const hasCheckin = todayEntry && 
+                                  Array.isArray(todayEntry.checkins) && 
+                                  todayEntry.checkins.length > 0;
+                
+                return hasCheckin;
             } catch (error) {
-                console.error('Error checking if user has checked in today:', error);
+                console.error('[CHECK] Error checking if user has checked in today:', error);
                 return false;
             }
         }

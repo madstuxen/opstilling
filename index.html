@@ -315,6 +315,8 @@
         
             <button type="button" class="start-button" id="goToCheckinBtn" style="margin-top: 20px;">Lad os starte!</button>
             <button type="button" class="debug-button" id="debugDownloadBtn">📦 Download al data (DEBUG)</button>
+            <button type="button" class="debug-button" id="migrateCheckinBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">🔄 MIGRER: Flyt check-ins til logbog</button>
+            <button type="button" class="debug-button" id="removeKeywordsBtn" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">🗑️ MIGRER: Fjern keywords</button>
             <button type="button" class="debug-button" id="migrateCollectionsBtn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">🔧 MIGRER: Fjern Collections</button>
             <button type="button" class="logout-button" id="logoutButton" style="margin-top: 10px;">Log ud</button>
     </div>
@@ -374,6 +376,8 @@ const firebaseConfig = {
         const goToCheckinBtn = document.getElementById('goToCheckinBtn');
         const logoutButton = document.getElementById('logoutButton');
         const debugDownloadBtn = document.getElementById('debugDownloadBtn');
+        const migrateCheckinBtn = document.getElementById('migrateCheckinBtn');
+        const removeKeywordsBtn = document.getElementById('removeKeywordsBtn');
         const migrateCollectionsBtn = document.getElementById('migrateCollectionsBtn');
         let currentUser = null;
         
@@ -714,6 +718,367 @@ const firebaseConfig = {
                         errorMessage.textContent = 'Fejl ved logout: ' + error.message;
                         errorMessage.classList.add('show');
                     });
+            });
+        }
+        
+        // Migration: Move check-ins from forside_checkin_data to logbogData
+        if (migrateCheckinBtn) {
+            migrateCheckinBtn.addEventListener('click', async function() {
+                if (!currentUser) {
+                    alert('Du skal være logget ind for at køre migration');
+                    return;
+                }
+                
+                const confirm1 = confirm('⚠️ ADVARSEL: Dette vil flytte alle check-ins fra forside_checkin_data til logbogData!\n\nEn backup vil blive downloadet først.\n\nVil du fortsætte?');
+                if (!confirm1) return;
+                
+                migrateCheckinBtn.disabled = true;
+                migrateCheckinBtn.textContent = '⏳ Downloader backup...';
+                
+                try {
+                    // Step 1: Download backup first
+                    const backupData = {
+                        timestamp: new Date().toISOString(),
+                        userEmail: currentUser.email,
+                        userId: currentUser.uid,
+                        data: {}
+                    };
+                    
+                    const userDocRef = db.collection('users').doc(currentUser.uid);
+                    const userDoc = await userDocRef.get();
+                    
+                    if (!userDoc.exists) {
+                        throw new Error('Ingen brugerdata fundet');
+                    }
+                    
+                    const data = userDoc.data();
+                    backupData.data = data;
+                    
+                    // Create backup file
+                    const backupJson = JSON.stringify(backupData, null, 2);
+                    const backupBlob = new Blob([backupJson], { type: 'application/json' });
+                    const backupUrl = URL.createObjectURL(backupBlob);
+                    const backupLink = document.createElement('a');
+                    backupLink.href = backupUrl;
+                    backupLink.download = `backup-before-checkin-migration-${currentUser.uid}-${Date.now()}.json`;
+                    document.body.appendChild(backupLink);
+                    backupLink.click();
+                    document.body.removeChild(backupLink);
+                    URL.revokeObjectURL(backupUrl);
+                    
+                    console.log('✅ Backup downloaded');
+                    
+                    // Step 2: Wait a bit to ensure download started
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    migrateCheckinBtn.textContent = '⏳ Migrerer data...';
+                    
+                    // Step 3: Migrate data
+                    let migrationLog = ['🔄 MIGRATION START\n'];
+                    
+                    const forsideCheckinData = Array.isArray(data.forside_checkin_data) ? data.forside_checkin_data : [];
+                    const logbogData = Array.isArray(data.logbogData) ? data.logbogData : [];
+                    
+                    if (forsideCheckinData.length === 0) {
+                        migrationLog.push('ℹ️ Ingen check-in data fundet i forside_checkin_data');
+                        alert(migrationLog.join('\n'));
+                        migrateCheckinBtn.textContent = '✅ Ingen data at migrere';
+                        setTimeout(() => {
+                            migrateCheckinBtn.textContent = '🔄 MIGRER: Flyt check-ins til logbog';
+                            migrateCheckinBtn.disabled = false;
+                        }, 3000);
+                        return;
+                    }
+                    
+                    migrationLog.push(`📊 Fandt ${forsideCheckinData.length} check-ins at migrere\n`);
+                    
+                    // Group check-ins by date
+                    const checkinsByDate = {};
+                    forsideCheckinData.forEach(checkin => {
+                        if (!checkin.date || typeof checkin.status !== 'number') {
+                            return;
+                        }
+                        
+                        // Extract date key from ISO string
+                        let dateKey;
+                        const dateObj = new Date(checkin.date);
+                        if (!isNaN(dateObj.getTime())) {
+                            dateKey = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+                            
+                            // Extract time
+                            const hours = String(dateObj.getHours()).padStart(2, '0');
+                            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                            const timeStr = `${hours}:${minutes}`;
+                            
+                            if (!checkinsByDate[dateKey]) {
+                                checkinsByDate[dateKey] = {
+                                    checkins: [],
+                                    taknem: null,
+                                    affirm: null
+                                };
+                            }
+                            
+                            checkinsByDate[dateKey].checkins.push({
+                                time: timeStr,
+                                status: checkin.status
+                            });
+                            
+                            // Keep latest taknem and affirm
+                            if (checkin.taknem) {
+                                checkinsByDate[dateKey].taknem = checkin.taknem;
+                            }
+                            if (checkin.affirm) {
+                                checkinsByDate[dateKey].affirm = checkin.affirm;
+                            }
+                        }
+                    });
+                    
+                    migrationLog.push(`📅 Grupperet i ${Object.keys(checkinsByDate).length} datoer\n`);
+                    
+                    // Merge into logbogData
+                    let entriesCreated = 0;
+                    let entriesUpdated = 0;
+                    
+                    Object.keys(checkinsByDate).forEach(dateKey => {
+                        const checkinInfo = checkinsByDate[dateKey];
+                        let entry = logbogData.find(item => item.date === dateKey);
+                        
+                        if (!entry) {
+                            entry = {
+                                date: dateKey,
+                                dagbog: '',
+                                dreams: '',
+                                checkins: [],
+                                timestamp: new Date().toISOString(),
+                                color: '#b8735e'
+                            };
+                            logbogData.push(entry);
+                            entriesCreated++;
+                        } else {
+                            entriesUpdated++;
+                        }
+                        
+                        // Initialize checkins array if needed
+                        if (!Array.isArray(entry.checkins)) {
+                            entry.checkins = [];
+                        }
+                        
+                        // Add check-ins
+                        checkinInfo.checkins.forEach(checkin => {
+                            entry.checkins.push(checkin);
+                        });
+                        
+                        // Update taknem and affirm if present
+                        if (checkinInfo.taknem && (!entry.taknem || entry.taknem === '')) {
+                            entry.taknem = checkinInfo.taknem;
+                        }
+                        if (checkinInfo.affirm && (!entry.affirm || entry.affirm === '')) {
+                            entry.affirm = checkinInfo.affirm;
+                        }
+                    });
+                    
+                    migrationLog.push(`✅ ${entriesCreated} nye entries oprettet`);
+                    migrationLog.push(`✅ ${entriesUpdated} eksisterende entries opdateret\n`);
+                    
+                    // Step 4: Save updated logbogData and remove forside_checkin_data
+                    await userDocRef.set({
+                        logbogData: logbogData,
+                        forside_checkin_data: firebase.firestore.FieldValue.delete(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    
+                    migrationLog.push('✅ logbogData gemt til Firestore');
+                    migrationLog.push('🗑️ forside_checkin_data slettet fra Firestore\n');
+                    migrationLog.push('🎉 MIGRATION FULDFØRT!');
+                    
+                    console.log('Migration log:', migrationLog.join('\n'));
+                    alert(migrationLog.join('\n'));
+                    
+                    migrateCheckinBtn.textContent = '✅ Migration fuldført!';
+                    setTimeout(() => {
+                        migrateCheckinBtn.textContent = '🔄 MIGRER: Flyt check-ins til logbog';
+                        migrateCheckinBtn.disabled = false;
+                    }, 5000);
+                    
+                } catch (error) {
+                    console.error('Migration error:', error);
+                    alert('❌ Fejl ved migration: ' + error.message);
+                    migrateCheckinBtn.textContent = '❌ Migration fejlede';
+                    setTimeout(() => {
+                        migrateCheckinBtn.textContent = '🔄 MIGRER: Flyt check-ins til logbog';
+                        migrateCheckinBtn.disabled = false;
+                    }, 3000);
+                }
+            });
+        }
+        
+        // Migration: Remove keywords from dialogData and compareData
+        if (removeKeywordsBtn) {
+            removeKeywordsBtn.addEventListener('click', async function() {
+                if (!currentUser) {
+                    alert('Du skal være logget ind for at køre migration');
+                    return;
+                }
+                
+                const confirm1 = confirm('⚠️ ADVARSEL: Dette vil fjerne alle keywords fra dialogData og compareData!\n\nEn backup vil blive downloadet først.\n\nVil du fortsætte?');
+                if (!confirm1) return;
+                
+                removeKeywordsBtn.disabled = true;
+                removeKeywordsBtn.textContent = '⏳ Downloader backup...';
+                
+                try {
+                    // Step 1: Download backup first
+                    const backupData = {
+                        timestamp: new Date().toISOString(),
+                        userEmail: currentUser.email,
+                        userId: currentUser.uid,
+                        data: {}
+                    };
+                    
+                    const userDocRef = db.collection('users').doc(currentUser.uid);
+                    const userDoc = await userDocRef.get();
+                    
+                    if (!userDoc.exists) {
+                        throw new Error('Ingen brugerdata fundet');
+                    }
+                    
+                    const data = userDoc.data();
+                    backupData.data = data;
+                    
+                    // Create backup file
+                    const backupJson = JSON.stringify(backupData, null, 2);
+                    const backupBlob = new Blob([backupJson], { type: 'application/json' });
+                    const backupUrl = URL.createObjectURL(backupBlob);
+                    const backupLink = document.createElement('a');
+                    backupLink.href = backupUrl;
+                    backupLink.download = `backup-before-keywords-removal-${currentUser.uid}-${Date.now()}.json`;
+                    document.body.appendChild(backupLink);
+                    backupLink.click();
+                    document.body.removeChild(backupLink);
+                    URL.revokeObjectURL(backupUrl);
+                    
+                    console.log('✅ Backup downloaded');
+                    
+                    // Step 2: Wait a bit to ensure download started
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    removeKeywordsBtn.textContent = '⏳ Fjerner keywords...';
+                    
+                    // Step 3: Remove keywords from data
+                    let migrationLog = ['🗑️ KEYWORDS REMOVAL START\n'];
+                    let changesFound = false;
+                    
+                    // Remove keywords from dialogData
+                    if (data.dialogData && data.dialogData.dialogs && Array.isArray(data.dialogData.dialogs)) {
+                        migrationLog.push(`📝 Tjekker dialogData (${data.dialogData.dialogs.length} dialoger)...`);
+                        let dialogsChanged = 0;
+                        
+                        data.dialogData.dialogs.forEach(dialog => {
+                            if (dialog.participants) {
+                                let dialogChanged = false;
+                                
+                                // Remove keywords from left participant
+                                if (dialog.participants.left && dialog.participants.left.keywords) {
+                                    delete dialog.participants.left.keywords;
+                                    dialogChanged = true;
+                                }
+                                
+                                // Remove keywords from right participant
+                                if (dialog.participants.right && dialog.participants.right.keywords) {
+                                    delete dialog.participants.right.keywords;
+                                    dialogChanged = true;
+                                }
+                                
+                                if (dialogChanged) {
+                                    dialogsChanged++;
+                                    changesFound = true;
+                                }
+                            }
+                        });
+                        
+                        if (dialogsChanged > 0) {
+                            migrationLog.push(`✅ Fjernede keywords fra ${dialogsChanged} dialoger`);
+                        } else {
+                            migrationLog.push(`ℹ️ Ingen keywords fundet i dialogData`);
+                        }
+                    } else {
+                        migrationLog.push('ℹ️ Ingen dialogData fundet');
+                    }
+                    
+                    migrationLog.push('');
+                    
+                    // Remove keywords from compareData
+                    if (data.compareData && data.compareData.comparisons && Array.isArray(data.compareData.comparisons)) {
+                        migrationLog.push(`📊 Tjekker compareData (${data.compareData.comparisons.length} sammenligninger)...`);
+                        let comparisonsChanged = 0;
+                        
+                        data.compareData.comparisons.forEach(comparison => {
+                            let comparisonChanged = false;
+                            
+                            // Remove keywords from left participant
+                            if (comparison.leftParticipant && comparison.leftParticipant.keywords) {
+                                delete comparison.leftParticipant.keywords;
+                                comparisonChanged = true;
+                            }
+                            
+                            // Remove keywords from right participant
+                            if (comparison.rightParticipant && comparison.rightParticipant.keywords) {
+                                delete comparison.rightParticipant.keywords;
+                                comparisonChanged = true;
+                            }
+                            
+                            if (comparisonChanged) {
+                                comparisonsChanged++;
+                                changesFound = true;
+                            }
+                        });
+                        
+                        if (comparisonsChanged > 0) {
+                            migrationLog.push(`✅ Fjernede keywords fra ${comparisonsChanged} sammenligninger`);
+                        } else {
+                            migrationLog.push(`ℹ️ Ingen keywords fundet i compareData`);
+                        }
+                    } else {
+                        migrationLog.push('ℹ️ Ingen compareData fundet');
+                    }
+                    
+                    migrationLog.push('');
+                    
+                    if (!changesFound) {
+                        migrationLog.push('ℹ️ Ingen keywords fundet - ingen ændringer nødvendige');
+                        alert(migrationLog.join('\n'));
+                        removeKeywordsBtn.textContent = '✅ Ingen keywords at fjerne';
+                        setTimeout(() => {
+                            removeKeywordsBtn.textContent = '🗑️ MIGRER: Fjern keywords';
+                            removeKeywordsBtn.disabled = false;
+                        }, 3000);
+                        return;
+                    }
+                    
+                    // Step 4: Save updated data to Firestore
+                    await userDocRef.set(data);
+                    
+                    migrationLog.push('✅ Opdateret data gemt til Firestore');
+                    migrationLog.push('🎉 KEYWORDS REMOVAL FULDFØRT!');
+                    
+                    console.log('Migration log:', migrationLog.join('\n'));
+                    alert(migrationLog.join('\n'));
+                    
+                    removeKeywordsBtn.textContent = '✅ Keywords fjernet!';
+                    setTimeout(() => {
+                        removeKeywordsBtn.textContent = '🗑️ MIGRER: Fjern keywords';
+                        removeKeywordsBtn.disabled = false;
+                    }, 5000);
+                    
+                } catch (error) {
+                    console.error('Keywords removal error:', error);
+                    alert('❌ Fejl ved fjernelse af keywords: ' + error.message);
+                    removeKeywordsBtn.textContent = '❌ Fjernelse fejlede';
+                    setTimeout(() => {
+                        removeKeywordsBtn.textContent = '🗑️ MIGRER: Fjern keywords';
+                        removeKeywordsBtn.disabled = false;
+                    }, 3000);
+                }
             });
         }
         

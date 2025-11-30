@@ -2302,70 +2302,60 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         const partsData = {
     lav_ny_left: { 
         name: "Lav Ny Del", 
-        keywords: ["", "", "", "", "", ""], 
         color: "#10b981",
         pose: "",
         mirror: false
     },
     lav_ny_right: { 
         name: "Lav Ny Del", 
-        keywords: ["", "", "", "", "", ""], 
         color: "#3b82f6",
         pose: "",
         mirror: false
     },
     beskytter: { 
         name: "Beskytteren", 
-        keywords: ["Sikkerhed", "Kontrol", "Forsigtig", "Ansvarlig", "", ""], 
         color: "#fbbf24",
         pose: "stærk",
         mirror: false
     },
     kritiker: { 
         name: "Den Kritiske", 
-        keywords: ["Perfektionisme", "Standards", "Aldrig godt nok", "Selvkritik", "", ""], 
         color: "#ef4444",
         pose: "vred",
         mirror: false
     },
     manager: { 
         name: "Manager-delen", 
-        keywords: ["Produktivitet", "Mål", "Effektivitet", "Præstation", "", ""], 
         color: "#3b82f6",
         pose: "tænke",
         mirror: false
     },
     perfektionist: { 
         name: "Den Perfektionistiske", 
-        keywords: ["Fejlfri", "Detaljer", "Aldrig færdig", "Høje krav", "", ""], 
         color: "#8b5cf6",
         pose: "lukket",
         mirror: false
     },
     barn: { 
         name: "Det Indre Barn", 
-        keywords: ["Leg", "Spontanitet", "Nysgerrig", "Kreativ", "", ""], 
         color: "#10b981",
         pose: "Leg",
         mirror: false
     },
     saaret: { 
         name: "Det Sårede Barn", 
-        keywords: ["Sorg", "Ensomhed", "Har brug for trøst", "Bange", "", ""], 
         color: "#06b6d4",
         pose: "trist",
         mirror: false
     },
     kreativ: { 
         name: "Den Kreative", 
-        keywords: ["Fantasi", "Inspiration", "Fri udtryk", "Innovation", "", ""], 
         color: "#f97316",
         pose: "flyver",
         mirror: false
     },
     glade: { 
         name: "Den Glade", 
-        keywords: ["Optimisme", "Humor", "Positivitet", "Smil", "", ""], 
         color: "#84cc16",
         pose: "hej",
         mirror: false
@@ -2473,8 +2463,8 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                         timestamp: session.createdAt || session.updatedAt || new Date().toISOString(),
                         updated: session.updatedAt || session.createdAt || new Date().toISOString(),
                         participants: session.participants || {
-                            left: { name: 'Venstre del', color: '#3b82f6', pose: '', flipped: false, keywords: ['', '', '', '', '', ''] },
-                            right: { name: 'Højre del', color: '#ef4444', pose: '', flipped: false, keywords: ['', '', '', '', '', ''] }
+                            left: { name: 'Venstre del', color: '#3b82f6', pose: '', flipped: false },
+                            right: { name: 'Højre del', color: '#ef4444', pose: '', flipped: false }
                         },
                         messages: Array.isArray(session.messages) ? session.messages : []
                     };
@@ -2528,8 +2518,8 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     timestamp: now,
                     updated: now,
                     participants: {
-                        left: { name: 'Venstre', color: '#3b82f6', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] },
-                        right: { name: 'Højre', color: '#ef4444', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] }
+                        left: { name: 'Venstre', color: '#3b82f6', pose: 'standard', flipped: false },
+                        right: { name: 'Højre', color: '#ef4444', pose: 'standard', flipped: false }
                     },
                     messages: []
                 };
@@ -3101,8 +3091,8 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 updateAllButtons();
                 
                 const participants = dialog.participants || {};
-                const leftParticipant = participants.left || { name: 'Venstre', color: '#3b82f6', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] };
-                const rightParticipant = participants.right || { name: 'Højre', color: '#ef4444', pose: 'standard', flipped: false, keywords: ['', '', '', '', '', ''] };
+                const leftParticipant = participants.left || { name: 'Venstre', color: '#3b82f6', pose: 'standard', flipped: false };
+                const rightParticipant = participants.right || { name: 'Højre', color: '#ef4444', pose: 'standard', flipped: false };
                 
                 applyLoadedDialog(leftParticipant, rightParticipant, dialog.messages || []);
                 
@@ -3336,17 +3326,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 ? (leftColor || partColor || defaultColor)
                 : (rightColor || partColor || defaultColor);
             
-            // Get keywords from partInfo or fallback
-            let keywords = ['', '', '', '', '', ''];
-            if (partInfo && Array.isArray(partInfo.keywords)) {
-                keywords = partInfo.keywords.slice(0, 6);
-            } else {
-                const fallbackKey = side === 'left' ? 'lav_ny_left' : 'lav_ny_right';
-                if (partsData[fallbackKey] && Array.isArray(partsData[fallbackKey].keywords)) {
-                    keywords = partsData[fallbackKey].keywords.slice(0, 6);
-                }
-            }
-            
             const participantNode = circle ? circle.parentElement : null;
             const poseDropdown = document.getElementById(side + 'Pose');
             let poseName = '';
@@ -3369,8 +3348,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 name,
                 color,
                 pose: poseName,
-                spejl,
-                keywords
+                spejl
             };
         }
         
@@ -3379,8 +3357,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 name: side === 'left' ? 'Venstre del' : 'Højre del',
                 color: side === 'left' ? '#3b82f6' : '#ef4444',
                 pose: '',
-                spejl: false,
-                keywords: ['', '', '', '', '', '']
+                spejl: false
             };
         }
 
@@ -3412,15 +3389,13 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 name: 'Venstre',
                 color: '#3b82f6',
                 pose: 'standard',
-                flipped: false,
-                keywords: ['', '', '', '', '', '']
+                flipped: false
             };
             const defaultRight = {
                 name: 'Højre',
                 color: '#ef4444',
                 pose: 'standard',
-                flipped: false,
-                keywords: ['', '', '', '', '', '']
+                flipped: false
             };
             
             const newDialog = {
@@ -3513,27 +3488,23 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     name: leftSnapshot.name,
                     color: leftSnapshot.color,
                     pose: leftSnapshot.pose || 'standard',
-                    flipped: leftSnapshot.spejl || false,
-                    keywords: Array.isArray(leftSnapshot.keywords) ? leftSnapshot.keywords.slice(0, 6) : ['', '', '', '', '', '']
+                    flipped: leftSnapshot.spejl || false
                 } : {
                     name: 'Venstre',
                     color: '#3b82f6',
                     pose: 'standard',
-                    flipped: false,
-                    keywords: ['', '', '', '', '', '']
+                    flipped: false
                 },
                 right: rightSnapshot ? {
                     name: rightSnapshot.name,
                     color: rightSnapshot.color,
                     pose: rightSnapshot.pose || 'standard',
-                    flipped: rightSnapshot.spejl || false,
-                    keywords: Array.isArray(rightSnapshot.keywords) ? rightSnapshot.keywords.slice(0, 6) : ['', '', '', '', '', '']
+                    flipped: rightSnapshot.spejl || false
                 } : {
                     name: 'Højre',
                     color: '#ef4444',
                     pose: 'standard',
-                    flipped: false,
-                    keywords: ['', '', '', '', '', '']
+                    flipped: false
                 }
             };
             
@@ -3589,8 +3560,8 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             try {
                 clearAll();
                 const participants = session.participants || {};
-                const leftParticipant = participants.left || { name: 'Venstre del', color: '#3b82f6', pose: '', spejl: false, keywords: ['', '', '', '', '', ''] };
-                const rightParticipant = participants.right || { name: 'Højre del', color: '#ef4444', pose: '', spejl: false, keywords: ['', '', '', '', '', ''] };
+                const leftParticipant = participants.left || { name: 'Venstre del', color: '#3b82f6', pose: '', spejl: false };
+                const rightParticipant = participants.right || { name: 'Højre del', color: '#ef4444', pose: '', spejl: false };
                 
                 applyLoadedDialog(
                     leftParticipant,
@@ -4539,7 +4510,6 @@ function resetPose(side) {
                             if (!c || !c.name) return;
                             sharedParts['shared_' + idx] = {
                                 name: c.name,
-                                keywords: Array.isArray(c.keywords) ? c.keywords.slice(0,6) : ["","","","","",""],
                                 color: c.color || '#10b981',
                                 pose: c.pose || '',
                                 mirror: !!c.mirror
@@ -4711,10 +4681,6 @@ function resetPose(side) {
             name.removeAttribute('data-edited');
         }
         
-        if (partData.keywords && Array.isArray(partData.keywords)) {
-            partsData[selectedValue].keywords = partData.keywords.slice(0, 6);
-        }
-        
         enableParticipantNameEditing(side);
         
         const head = circle.querySelector('.head');
@@ -4757,11 +4723,6 @@ function resetPose(side) {
         } else {
             rightColor = null;
             rightLightColor = null;
-        }
-        
-        const customKey = 'lav_ny_' + side;
-        if (partsData[customKey] && Array.isArray(partsData[customKey].keywords)) {
-            partsData[customKey].keywords = ['', '', '', '', '', ''];
         }
         
         colorBtn.style.display = 'none';
@@ -5445,14 +5406,12 @@ function resetPose(side) {
             // Initialize partsData with all participant data
             partsData.lav_ny_left = {
                 name: leftPart.name || 'Venstre del',
-                keywords: Array.isArray(leftPart.keywords) ? leftPart.keywords.slice(0, 6) : ['', '', '', '', '', ''],
                 color: leftPart.color || '#3b82f6',
                 pose: leftPart.pose || '',
                 mirror: leftFlipped
             };
             partsData.lav_ny_right = {
                 name: rightPart.name || 'Højre del',
-                keywords: Array.isArray(rightPart.keywords) ? rightPart.keywords.slice(0, 6) : ['', '', '', '', '', ''],
                 color: rightPart.color || '#ef4444',
                 pose: rightPart.pose || '',
                 mirror: rightFlipped

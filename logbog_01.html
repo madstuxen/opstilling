@@ -1553,17 +1553,17 @@
         }
         
         async function getAffirmationTextForDate(dateKey) {
-            // Get affirm from forside_checkin_data (same logic as taknem)
+            // Get affirm from logbogData (new structure)
             try {
                 const affirm = await getAffirmForDate(dateKey);
                 if (affirm && affirm.trim()) {
                     return affirm.trim();
                 }
             } catch (error) {
-                console.warn('Kunne ikke hente affirm fra forside_checkin_data:', error);
+                console.warn('[AFFIRM] Kunne ikke hente affirm fra logbogData:', error);
             }
             
-            // Fallback to old method if affirm not found in forside_checkin_data
+            // Fallback to old method if affirm not found in logbogData
             if (affirmations.length === 0) {
                 return null;
             }
@@ -1698,6 +1698,7 @@
                         opstillingData: raw.opstillingData || null,
                         compareData: raw.compareData || null,
                         logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
+                        // forside_checkin_data is deprecated - kept for migration compatibility only
                         forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
                     };
                     window.allUserData = data;
@@ -1719,6 +1720,81 @@
             const data = await loadAllUserData();
             if (!data) return null;
             return data.logbogData;
+        }
+        
+        // Load logbook entries directly from Firestore (used by check-in functions)
+        async function getLogbookEntries() {
+            if (!currentUser || !db) {
+                console.error('[LOAD] User not logged in - cannot load data');
+                return [];
+            }
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
+                if (doc.exists) {
+                    const raw = doc.data() || {};
+                    const firestoreData = Array.isArray(raw.logbogData) ? raw.logbogData : null;
+                    if (firestoreData !== null && Array.isArray(firestoreData)) {
+                        return firestoreData;
+                    }
+                }
+            } catch (error) {
+                console.error('[LOAD] Error loading logbogData:', error);
+            }
+            
+            return [];
+        }
+        
+        // Helper: Get or create a logbog entry for a specific date
+        async function getOrCreateLogbogEntry(dateKey) {
+            const entries = await getLogbookEntries();
+            let entry = entries.find(item => item.date === dateKey);
+            
+            if (!entry) {
+                entry = {
+                    date: dateKey,
+                    dagbog: '',
+                    dreams: '',
+                    checkins: [],
+                    timestamp: new Date().toISOString(),
+                    color: '#b8735e'
+                };
+                entries.push(entry);
+                await saveLogbookDataToFirestore(entries);
+            }
+            
+            return entry;
+        }
+        
+        // Helper: Add a check-in to a specific date
+        async function addCheckinToDate(dateKey, time, status) {
+            const entries = await getLogbookEntries();
+            let entry = entries.find(item => item.date === dateKey);
+            
+            if (!entry) {
+                entry = {
+                    date: dateKey,
+                    dagbog: '',
+                    dreams: '',
+                    checkins: [],
+                    timestamp: new Date().toISOString(),
+                    color: '#b8735e'
+                };
+                entries.push(entry);
+            }
+            
+            // Initialize checkins array if needed
+            if (!Array.isArray(entry.checkins)) {
+                entry.checkins = [];
+            }
+            
+            // Add check-in
+            entry.checkins.push({ time, status });
+            entry.timestamp = new Date().toISOString();
+            
+            await saveLogbookDataToFirestore(entries);
+            return entry;
         }
         
         // Save logbook data to Firestore
@@ -2355,9 +2431,19 @@
             return validEntries
                 .slice()
                 .sort((a, b) => {
+                    // Use date as primary sort key (YYYY-MM-DD format sorts correctly)
+                    const dateA = a.date || '';
+                    const dateB = b.date || '';
+                    
+                    // Compare dates as strings (YYYY-MM-DD sorts correctly lexicographically)
+                    if (dateB !== dateA) {
+                        return dateB.localeCompare(dateA); // newer first
+                    }
+                    
+                    // If dates are equal, use timestamp as tiebreaker
                     const tb = new Date(b.timestamp || `${b.date}T00:00:00`).getTime();
                     const ta = new Date(a.timestamp || `${a.date}T00:00:00`).getTime();
-                    return tb - ta; // newer first
+                    return tb - ta;
                 });
         }
 
@@ -2525,112 +2611,60 @@
 
         async function getTaknemForDate(dateKey) {
             try {
-                let parsed = [];
-                
-                // Always load from Firestore if user is logged in
-                if (currentUser && db) {
-                    const firestoreData = await loadCheckinDataFromFirestore();
-                    if (firestoreData !== null) {
-                        parsed = firestoreData;
-                    } else {
-                        // If Firestore fails, return empty
-                        return '';
-                    }
-                } else {
-                    // User not logged in - return empty
+                // Load logbogData from Firestore
+                if (!currentUser || !db) {
                     return '';
                 }
                 
-                // Calculate date in same format as checkin.html - convert dateKey to YYYY-MM-DD
-                // dateKey should already be in YYYY-MM-DD format, but ensure it is
+                const logbogData = await getLogbookEntries();
+                if (!logbogData || !Array.isArray(logbogData)) {
+                    return '';
+                }
+                
+                // dateKey should be in YYYY-MM-DD format
                 const dateStr = dateKey || getTodayDateKey();
                 
-                // Find all entries for this date and filter for non-empty taknem
-                const entriesForDate = parsed.filter(item => {
-                    if (!item.date) return false;
-                    
-                    // Extract date part from ISO string (same way as checkin.html)
-                    let itemDateStr = '';
-                    if (item.date instanceof Date) {
-                        itemDateStr = item.date.toISOString().split('T')[0];
-                    } else if (typeof item.date === 'string') {
-                        // Handle ISO date strings like "2025-11-19T08:30:00.000Z"
-                        // Extract just the date part (YYYY-MM-DD)
-                        if (item.date.includes('T')) {
-                            itemDateStr = item.date.split('T')[0];
-                        } else {
-                            // Already in YYYY-MM-DD format
-                            itemDateStr = item.date;
-                        }
-                    }
-                    
-                    return itemDateStr === dateStr;
-                });
+                // Find entry for this date
+                const entry = logbogData.find(item => item.date === dateStr);
                 
-                // Find first entry with non-empty taknem
-                const entryWithTaknem = entriesForDate.find(item => {
-                    return item.taknem && item.taknem !== '' && item.taknem !== null && item.taknem !== undefined;
-                });
+                // Return taknem if it exists and is not empty
+                if (entry && entry.taknem && entry.taknem !== '' && entry.taknem !== null && entry.taknem !== undefined) {
+                    return entry.taknem;
+                }
                 
-                return entryWithTaknem && entryWithTaknem.taknem ? entryWithTaknem.taknem : '';
+                return '';
             } catch (error) {
-                console.warn('Kunne ikke læse taknem-værdi:', error);
+                console.warn('[TAKNEM] Kunne ikke læse taknem-værdi:', error);
                 return '';
             }
         }
 
         async function getAffirmForDate(dateKey) {
             try {
-                let parsed = [];
-                
-                // Always load from Firestore if user is logged in
-                if (currentUser && db) {
-                    const firestoreData = await loadCheckinDataFromFirestore();
-                    if (firestoreData !== null) {
-                        parsed = firestoreData;
-                    } else {
-                        // If Firestore fails, return empty
-                        return '';
-                    }
-                } else {
-                    // User not logged in - return empty
+                // Load logbogData from Firestore
+                if (!currentUser || !db) {
                     return '';
                 }
                 
-                // Calculate date in same format as checkin.html - convert dateKey to YYYY-MM-DD
-                // dateKey should already be in YYYY-MM-DD format, but ensure it is
+                const logbogData = await getLogbookEntries();
+                if (!logbogData || !Array.isArray(logbogData)) {
+                    return '';
+                }
+                
+                // dateKey should be in YYYY-MM-DD format
                 const dateStr = dateKey || getTodayDateKey();
                 
-                // Find all entries for this date and filter for non-empty affirm
-                const entriesForDate = parsed.filter(item => {
-                    if (!item.date) return false;
-                    
-                    // Extract date part from ISO string (same way as checkin.html)
-                    let itemDateStr = '';
-                    if (item.date instanceof Date) {
-                        itemDateStr = item.date.toISOString().split('T')[0];
-                    } else if (typeof item.date === 'string') {
-                        // Handle ISO date strings like "2025-11-19T08:30:00.000Z"
-                        // Extract just the date part (YYYY-MM-DD)
-                        if (item.date.includes('T')) {
-                            itemDateStr = item.date.split('T')[0];
-                        } else {
-                            // Already in YYYY-MM-DD format
-                            itemDateStr = item.date;
-                        }
-                    }
-                    
-                    return itemDateStr === dateStr;
-                });
+                // Find entry for this date
+                const entry = logbogData.find(item => item.date === dateStr);
                 
-                // Find first entry with non-empty affirm
-                const entryWithAffirm = entriesForDate.find(item => {
-                    return item.affirm && item.affirm !== '' && item.affirm !== null && item.affirm !== undefined;
-                });
+                // Return affirm if it exists and is not empty
+                if (entry && entry.affirm && entry.affirm !== '' && entry.affirm !== null && entry.affirm !== undefined) {
+                    return entry.affirm;
+                }
                 
-                return entryWithAffirm && entryWithAffirm.affirm ? entryWithAffirm.affirm : '';
+                return '';
             } catch (error) {
-                console.warn('Kunne ikke læse affirm-værdi:', error);
+                console.warn('[AFFIRM] Kunne ikke læse affirm-værdi:', error);
                 return '';
             }
         }
@@ -2775,9 +2809,19 @@
             await saveLogbookData(entries);
             // Pass entries to renderLogHistory to avoid another getLogbookData() call
             const sortedEntries = entries.slice().sort((a, b) => {
-                const dateA = new Date(a.date || a.timestamp || 0);
-                const dateB = new Date(b.date || b.timestamp || 0);
-                return dateB - dateA; // Most recent first
+                // Use date as primary sort key (YYYY-MM-DD format)
+                const dateA = a.date || '';
+                const dateB = b.date || '';
+                
+                // Compare dates as strings (YYYY-MM-DD sorts correctly)
+                if (dateB !== dateA) {
+                    return dateB.localeCompare(dateA); // newer first
+                }
+                
+                // If dates are equal, use timestamp as tiebreaker
+                const tb = new Date(b.timestamp || `${b.date}T00:00:00`).getTime();
+                const ta = new Date(a.timestamp || `${a.date}T00:00:00`).getTime();
+                return tb - ta;
             });
             await renderLogHistory(sortedEntries);
         }
@@ -2917,9 +2961,19 @@
                 if (hasChanges) {
                     await saveLogbookData(entries);
                     const sortedEntries = entries.slice().sort((a, b) => {
-                        const dateA = new Date(a.date || a.timestamp || 0);
-                        const dateB = new Date(b.date || b.timestamp || 0);
-                        return dateB - dateA;
+                        // Use date as primary sort key (YYYY-MM-DD format)
+                        const dateA = a.date || '';
+                        const dateB = b.date || '';
+                        
+                        // Compare dates as strings (YYYY-MM-DD sorts correctly)
+                        if (dateB !== dateA) {
+                            return dateB.localeCompare(dateA); // newer first
+                        }
+                        
+                        // If dates are equal, use timestamp as tiebreaker
+                        const tb = new Date(b.timestamp || `${b.date}T00:00:00`).getTime();
+                        const ta = new Date(a.timestamp || `${a.date}T00:00:00`).getTime();
+                        return tb - ta;
                     });
                     await renderLogHistory(sortedEntries);
                 }
@@ -3385,9 +3439,9 @@
         //   dialogData,
         //   opstillingData,
         //   compareData,
-        //   logbogData,
-        //   forside_checkin_data
+        //   logbogData
         // }
+        // NOTE: forside_checkin_data is deprecated - now using logbogData.checkins
         window.allUserData = window.allUserData || null;
         window.allDataLoadingPromise = window.allDataLoadingPromise || null;
         
@@ -3454,34 +3508,9 @@
             });
         }
         
-        // Save check-in data to Firestore
-        async function saveCheckinDataToFirestore(checkinData) {
-            if (!currentUser || !db) return;
-            
-            try {
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                await userDocRef.set({
-                    forside_checkin_data: checkinData
-                }, { merge: true });
-                console.log('Check-in data saved to Firestore from logbog_01.html');
-            } catch (error) {
-                console.error('Error saving check-in data to Firestore:', error);
-            }
-        }
-        
-        // Load check-in data from Firestore via cached user document
-        async function loadCheckinDataFromFirestore() {
-            if (!currentUser || !db) return null;
-            
-            try {
-                const data = await loadAllUserData();
-                const raw = data && Array.isArray(data.forside_checkin_data) ? data.forside_checkin_data : [];
-                return raw;
-            } catch (error) {
-                console.error('Error loading check-in data from Firestore:', error);
-                return null;
-            }
-        }
+        // DEPRECATED: Old functions kept for reference but no longer used
+        // Check-in data is now stored in logbogData.checkins arrays
+        // Use saveLogbookDataToFirestore and getLogbookEntries instead
         
         // Load bodymap data from Firestore via cached user document
         async function loadBodymapDataFromFirestore() {
@@ -3544,9 +3573,9 @@
 
                 // Always load from Firestore if user is logged in
                 if (currentUser && db) {
-                    const rawData = await loadCheckinDataFromFirestore();
-                    if (rawData !== null) {
-                        return processCheckinDataForDisplay(rawData);
+                    const logbogData = await getLogbookEntries();
+                    if (logbogData !== null && Array.isArray(logbogData)) {
+                        return processLogbogDataForCheckins(logbogData);
                     }
                     // If Firestore fails, return empty array
                     return [];
@@ -3555,12 +3584,61 @@
                 // User not logged in - return empty array
                 return [];
             } catch (error) {
-                console.error('Fejl ved indlæsning af check-in data:', error);
+                console.error('[CHECKIN] Fejl ved indlæsning af check-in data:', error);
                 return [];
             }
         }
         
-        // Helper function to process check-in data for display
+        // Helper function to extract check-ins from logbogData for display
+        function processLogbogDataForCheckins(logbogData) {
+            if (!Array.isArray(logbogData)) {
+                return [];
+            }
+            
+            const allCheckins = [];
+            
+            // Extract all check-ins from all entries
+            logbogData.forEach(entry => {
+                if (!entry.date || !Array.isArray(entry.checkins)) {
+                    return;
+                }
+                
+                entry.checkins.forEach(checkin => {
+                    if (typeof checkin.status !== 'number') {
+                        return;
+                    }
+                    
+                    // Create a Date object from the date key and time
+                    // dateKey is YYYY-MM-DD, time is HH:MM
+                    let dateObj;
+                    if (checkin.time && typeof checkin.time === 'string') {
+                        // Parse time string (HH:MM)
+                        const [hours, minutes] = checkin.time.split(':').map(s => parseInt(s, 10));
+                        if (!isNaN(hours) && !isNaN(minutes)) {
+                            dateObj = new Date(entry.date + 'T' + checkin.time + ':00');
+                        } else {
+                            // Fallback if time parsing fails
+                            dateObj = new Date(entry.date + 'T12:00:00');
+                        }
+                    } else {
+                        // No time available, default to noon
+                        dateObj = new Date(entry.date + 'T12:00:00');
+                    }
+                    
+                    allCheckins.push({
+                        date: dateObj,
+                        status: Math.max(0, Math.min(100, Number(checkin.status))),
+                        dateKey: entry.date,
+                        time: checkin.time || '12:00'
+                    });
+                });
+            });
+            
+            // Sort by date (oldest first)
+            return allCheckins.sort((a, b) => a.date - b.date);
+        }
+        
+        // Helper function to process check-in data for display (LEGACY - for debug data)
         function processCheckinDataForDisplay(parsed) {
                 if (!Array.isArray(parsed)) {
                     return [];
@@ -4008,7 +4086,12 @@
                 }
                 localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(normalizedEntries));
 
-                const sorted = normalizedEntries.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+                const sorted = normalizedEntries.slice().sort((a, b) => {
+                    // Use date as primary sort key (YYYY-MM-DD format)
+                    const dateA = a.date || '';
+                    const dateB = b.date || '';
+                    return dateB.localeCompare(dateA); // newer first
+                });
                 const latestDate = sorted.length ? sorted[0].date : getTodayDateKey();
                 await setActiveLogDate(latestDate);
                 console.info(`Loaded ${normalizedEntries.length} entries into logbogData from debug_logbog.json`);
@@ -4256,33 +4339,33 @@
                 }
                 
                 const now = new Date();
-                let existingData = [];
                 
-                // Always load from Firestore
+                // Load logbogData from Firestore
                 try {
-                    const firestoreData = await loadCheckinDataFromFirestore();
-                    if (firestoreData !== null) {
-                        existingData = firestoreData;
+                    const logbogData = await getLogbookEntries();
+                    if (!logbogData || !Array.isArray(logbogData)) {
+                        return true; // No data, allow check-in
                     }
-                } catch (error) {
-                    console.warn('Kunne ikke læse check-in data fra Firestore:', error);
-                }
-
-                // Check if there's a recent check-in (within last 30 minutes)
-                if (existingData.length > 0) {
-                    // Sort by date (newest first)
-                    const sortedData = existingData
-                        .filter(entry => entry && entry.date)
-                        .sort((a, b) => {
-                            const dateA = new Date(a.date).getTime();
-                            const dateB = new Date(b.date).getTime();
-                            return dateB - dateA;
-                        });
-
-                    if (sortedData.length > 0) {
-                        const lastEntry = sortedData[0];
-                        const lastDate = new Date(lastEntry.date);
-                        const timeDiff = now.getTime() - lastDate.getTime();
+                    
+                    // Find all check-ins from all dates and get the most recent one
+                    let allCheckins = [];
+                    logbogData.forEach(entry => {
+                        if (Array.isArray(entry.checkins) && entry.date) {
+                            entry.checkins.forEach(checkin => {
+                                if (checkin.time) {
+                                    // Create Date from date + time
+                                    const dateTimeStr = `${entry.date}T${checkin.time}:00`;
+                                    allCheckins.push(new Date(dateTimeStr));
+                                }
+                            });
+                        }
+                    });
+                    
+                    if (allCheckins.length > 0) {
+                        // Sort by date (newest first)
+                        allCheckins.sort((a, b) => b.getTime() - a.getTime());
+                        const lastCheckInDate = allCheckins[0];
+                        const timeDiff = now.getTime() - lastCheckInDate.getTime();
                         const thirtyMinutes = 30 * 60 * 1000; // milliseconds in 30 minutes
 
                         if (timeDiff < thirtyMinutes) {
@@ -4291,7 +4374,10 @@
                             return false;
                         }
                     }
+                } catch (error) {
+                    console.warn('[CHECKIN] Kunne ikke læse check-in data fra logbogData:', error);
                 }
+                
                 return true;
             };
 
@@ -4331,34 +4417,55 @@
                 
                 const status = parseInt(slider.value, 10);
                 const now = new Date();
-                const date = now.toISOString();
+                
+                // Get current time in HH:MM format
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const timeStr = `${hours}:${minutes}`;
+                
+                // Get today's date key
+                const dateKey = getTodayDateKey();
 
-                // Load existing data from Firestore
-                let existingData = [];
                 try {
-                    const firestoreData = await loadCheckinDataFromFirestore();
-                    if (firestoreData !== null) {
-                        existingData = firestoreData;
+                    // Load existing logbogData
+                    const logbogData = await getLogbookEntries();
+                    
+                    // Find or create entry for today
+                    let entry = logbogData.find(item => item.date === dateKey);
+                    if (!entry) {
+                        entry = {
+                            date: dateKey,
+                            dagbog: '',
+                            dreams: '',
+                            checkins: [],
+                            timestamp: now.toISOString(),
+                            color: '#b8735e'
+                        };
+                        logbogData.push(entry);
                     }
-                } catch (error) {
-                    console.warn('Kunne ikke læse check-in data fra Firestore:', error);
-                }
-
-                // Add new entry
-                const newEntry = {
-                    date: date,
-                    status: status,
-                    taknem: ""
-                };
-
-                existingData.push(newEntry);
-
-                // Save to Firestore
-                try {
-                    await saveCheckinDataToFirestore(existingData);
+                    
+                    // Initialize checkins array if it doesn't exist
+                    if (!Array.isArray(entry.checkins)) {
+                        entry.checkins = [];
+                    }
+                    
+                    // Add new check-in to the array
+                    entry.checkins.push({
+                        time: timeStr,
+                        status: status
+                    });
+                    
+                    // Update timestamp
+                    entry.timestamp = now.toISOString();
+                    
+                    // Save to Firestore
+                    await saveLogbookDataToFirestore(logbogData);
+                    
+                    console.log(`[CHECKIN] Manual check-in saved for ${dateKey} at ${timeStr}`);
                     
                     closeModal();
                     renderCheckinChart();
+                    
                     // Update tanker field if viewing today's date
                     const tankerEntryEl = document.getElementById('tankerEntry');
                     if (tankerEntryEl) {
@@ -4386,7 +4493,7 @@
                         autoResizeTextarea(tankerEntryEl);
                     }
                 } catch (error) {
-                    console.error('Kunne ikke gemme check-in data:', error);
+                    console.error('[CHECKIN] Kunne ikke gemme check-in data:', error);
                     alert('Kunne ikke gemme check-in. Prøv igen.');
                 }
             });

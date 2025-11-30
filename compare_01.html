@@ -3580,8 +3580,8 @@
 		const newId = maxId + 1;
 		const comparisonName = `Sammenligning ${newId}`;
 		
-		// Save current workspace before switching
-		await syncCurrentWorkspaceToActiveComparison();
+		// DON'T save current or new comparison - wait until user changes a slider
+		// There's nothing to save yet!
 		
 		// Create new comparison with color
 		const now = new Date().toISOString();
@@ -3615,7 +3615,8 @@
 		CompareData.comparisons.push(newComparison);
 		CompareData.activeComparisonId = newId;
 		
-		await saveCompareDataToLocalStorage();
+		// DON'T save yet - wait until user changes a slider
+		// await saveCompareDataToLocalStorage();
 			
 			// Load the new empty comparison
 			loadComparisonFromCompareData(newComparison);
@@ -3636,70 +3637,60 @@
 const partsData = {
     lav_ny_left: { 
         name: "Lav Ny Del", 
-        keywords: ["", "", "", "", "", ""], 
         color: "#10b981",
         pose: "",
         mirror: false
     },
     lav_ny_right: { 
         name: "Lav Ny Del", 
-        keywords: ["", "", "", "", "", ""], 
         color: "#3b82f6",
         pose: "",
         mirror: false
     },
     beskytter: { 
         name: "Beskytteren", 
-        keywords: ["Sikkerhed", "Kontrol", "Forsigtig", "Ansvarlig", "", ""], 
         color: "#fbbf24",
         pose: "stærk",
         mirror: false
     },
     kritiker: { 
         name: "Den Kritiske", 
-        keywords: ["Perfektionisme", "Standards", "Aldrig godt nok", "Selvkritik", "", ""], 
         color: "#ef4444",
         pose: "vred",
         mirror: false
     },
     manager: { 
         name: "Manager-delen", 
-        keywords: ["Produktivitet", "Mål", "Effektivitet", "Præstation", "", ""], 
         color: "#3b82f6",
         pose: "tænke",
         mirror: false
     },
     perfektionist: { 
         name: "Den Perfektionistiske", 
-        keywords: ["Fejlfri", "Detaljer", "Aldrig færdig", "Høje krav", "", ""], 
         color: "#8b5cf6",
         pose: "lukket",
         mirror: false
     },
     barn: { 
         name: "Det Indre Barn", 
-        keywords: ["Leg", "Spontanitet", "Nysgerrig", "Kreativ", "", ""], 
         color: "#10b981",
         pose: "Leg",
         mirror: false
     },
     saaret: { 
         name: "Det Sårede Barn", 
-        keywords: ["Sorg", "Ensomhed", "Har brug for trøst", "Bange", "", ""], 
         color: "#06b6d4",
         pose: "trist",
         mirror: false
     },
     kreativ: { 
         name: "Den Kreative", 
-        keywords: ["Fantasi", "Inspiration", "Fri udtryk", "Innovation", "", ""], 
         color: "#f97316",
         pose: "flyver",
         mirror: false
     },
     glade: { 
         name: "Den Glade", 
-        keywords: ["Optimisme", "Humor", "Positivitet", "Smil", "", ""], 
         color: "#84cc16",
         pose: "hej",
         mirror: false
@@ -4280,15 +4271,6 @@ async function closePosePicker() {
                 updateBodyColors(side, partData.color);
 				updateSliderColors();
 				
-				// Populate stikord from parts data (if fields exist)
-				if (partData.keywords && Array.isArray(partData.keywords)) {
-					for (let i = 1; i <= 6; i++) {
-						const stikordField = document.getElementById(side + 'Stikord' + i);
-						if (stikordField) {
-							stikordField.value = partData.keywords[i-1] || '';
-						}
-					}
-				}
 
 				// Play welcome animation first, then reset to default pose
 				// Play welcome animation first, then apply saved pose or reset to default
@@ -4428,7 +4410,6 @@ async function closePosePicker() {
                             if (!c || !c.name) return;
                             sharedParts['shared_' + idx] = {
                                 name: c.name,
-                                keywords: Array.isArray(c.keywords) ? c.keywords.slice(0,6) : ["","","","","",""],
                                 color: c.color || '#10b981',
                                 pose: c.pose || '',
                                 mirror: !!c.mirror
