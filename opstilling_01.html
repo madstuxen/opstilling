@@ -434,30 +434,6 @@
             position: relative;
         }
         
-        .history-filter {
-            flex: 1;
-            min-width: 180px;
-            padding: 6px 14px 6px 16px;
-            border-radius: 8px;
-            border: 1px solid #cbd5f5;
-            background: #ffffff;
-            color: #1f2937;
-            font-size: 16px;
-            font-weight: 600;
-            outline: none;
-            appearance: none;
-            margin: 0 8px 0 0;
-            position: relative;
-            background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%);
-            background-position: calc(100% - 16px) 50%, calc(100% - 9px) 50%;
-            background-size: 7px 7px, 7px 7px;
-            background-repeat: no-repeat;
-        }
-        
-        .history-filter:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-        }
         
         .collapse-toggle {
             position: absolute;
@@ -1947,7 +1923,6 @@
                 <div class="history-sidebar" id="historySidebar">
                     <div class="history-header">
                         <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
-                        <select id="historyFilter" class="history-filter" onchange="setHistoryFilter(this.value)"></select>
                     </div>
                     <div class="history-content">
                         <div class="history-navigation">
@@ -2118,8 +2093,8 @@
 
         let isLoadingSetup = false;
         
-        // New persistent data model for Opstilling
-        let OpstillingData = null; // { version, updated, activeCollectionId, activeSetupId, collections: [...] }
+        // New persistent data model for Opstilling (flat structure, no collections)
+        let OpstillingData = null; // { version, updated, activeSetupId, setups: [...] }
 
         // Load all user data (cached) for this page, shared via window
         async function loadAllUserData(forceRefresh = false) {
@@ -2253,58 +2228,40 @@
         async function ensureDefaultOpstillingData() {
             let dataWasCreated = false;
             
-            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
+            if (!OpstillingData || !Array.isArray(OpstillingData.setups)) {
                 OpstillingData = {
-                    version: '1.0',
+                    version: '2.0',
                     updated: new Date().toISOString(),
-                    activeCollectionId: 1,
                     activeSetupId: 1,
-                    collections: []
+                    setups: []
                 };
                 dataWasCreated = true;
             }
-            if (!Array.isArray(OpstillingData.collections) || OpstillingData.collections.length === 0) {
-                OpstillingData.collections = [{
-                    id: 1,
-                    name: 'Kollektion 1',
-                    color: COLLECTION_COLOR_PRESETS[0],
-                    setups: []
-                }];
-                OpstillingData.activeCollectionId = 1;
-                dataWasCreated = true;
-            }
-            // Ensure all collections have colors
-            OpstillingData.collections.forEach((collection, idx) => {
-                if (!collection.color) {
-                    collection.color = COLLECTION_COLOR_PRESETS[idx % COLLECTION_COLOR_PRESETS.length];
-                }
-            });
-            const collection = OpstillingData.collections.find(c => c.id === OpstillingData.activeCollectionId) || OpstillingData.collections[0];
-            if (!collection.setups || collection.setups.length === 0) {
+            if (!Array.isArray(OpstillingData.setups) || OpstillingData.setups.length === 0) {
                 const now = new Date().toISOString();
                 const initialSetup = {
                     id: 1,
                     name: 'Opstilling 1',
+                    color: DEFAULT_HISTORY_COLOR,
                     notes: '',
                     parts: [],
                     timestamp: now,
                     updated: now
                 };
-                collection.setups = [initialSetup];
+                OpstillingData.setups = [initialSetup];
                 OpstillingData.activeSetupId = 1;
                 dataWasCreated = true;
             }
-            // Ensure all setups have timestamps
-            OpstillingData.collections.forEach(collection => {
-                if (Array.isArray(collection.setups)) {
-                    collection.setups.forEach(setup => {
-                        if (!setup.timestamp) {
-                            setup.timestamp = setup.updated || new Date().toISOString();
-                        }
-                        if (!setup.updated) {
-                            setup.updated = setup.timestamp || new Date().toISOString();
-                        }
-                    });
+            // Ensure all setups have timestamps and colors
+            OpstillingData.setups.forEach((setup, idx) => {
+                if (!setup.timestamp) {
+                    setup.timestamp = setup.updated || new Date().toISOString();
+                }
+                if (!setup.updated) {
+                    setup.updated = setup.timestamp || new Date().toISOString();
+                }
+                if (!setup.color) {
+                    setup.color = COLLECTION_COLOR_PRESETS[idx % COLLECTION_COLOR_PRESETS.length];
                 }
             });
             // Never save during ensureDefaultOpstillingData - this is a load operation
@@ -2321,68 +2278,39 @@
         }
         
         
-        function getActiveCollection() {
-            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) return null;
-            return OpstillingData.collections.find(c => c.id === OpstillingData.activeCollectionId) || OpstillingData.collections[0] || null;
-        }
-        
         function getActiveSetup() {
-            const col = getActiveCollection();
-            if (!col || !Array.isArray(col.setups)) return null;
-            return col.setups.find(s => s.id === OpstillingData.activeSetupId) || col.setups[0] || null;
+            if (!OpstillingData || !Array.isArray(OpstillingData.setups)) return null;
+            return OpstillingData.setups.find(s => s.id === OpstillingData.activeSetupId) || OpstillingData.setups[0] || null;
         }
         
         /**
-         * Deduplicates collections and setups in OpstillingData in-place.
+         * Deduplicates setups in OpstillingData in-place.
          * Returns true if any duplicates were found and removed.
          */
         function deduplicateOpstillingData() {
-            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
+            if (!OpstillingData || !Array.isArray(OpstillingData.setups)) {
                 return false;
             }
             
             let foundDuplicates = false;
             
-            // Deduplicate collections by ID (keep first occurrence)
-            const seenCollectionIds = new Map(); // Map<id, collection>
-            const uniqueCollections = [];
+            // Deduplicate setups by ID (keep first occurrence)
+            const seenSetupIds = new Map(); // Map<id, setup>
+            const uniqueSetups = [];
             
-            OpstillingData.collections.forEach(collection => {
-                if (seenCollectionIds.has(collection.id)) {
-                    console.warn('[DEDUPE] Removing duplicate collection ID:', collection.id, 
-                                'Name:', collection.name, 
-                                'Original:', seenCollectionIds.get(collection.id).name);
+            OpstillingData.setups.forEach(setup => {
+                if (seenSetupIds.has(setup.id)) {
+                    console.warn('[DEDUPE] Removing duplicate setup ID:', setup.id, 
+                                'Name:', setup.name, 
+                                'Original:', seenSetupIds.get(setup.id).name);
                     foundDuplicates = true;
                 } else {
-                    seenCollectionIds.set(collection.id, collection);
-                    uniqueCollections.push(collection);
+                    seenSetupIds.set(setup.id, setup);
+                    uniqueSetups.push(setup);
                 }
             });
             
-            OpstillingData.collections = uniqueCollections;
-            
-            // Deduplicate setups within each collection
-            OpstillingData.collections.forEach(collection => {
-                if (!Array.isArray(collection.setups)) return;
-                
-                const seenSetupIds = new Map(); // Map<id, setup>
-                const uniqueSetups = [];
-                
-                collection.setups.forEach(setup => {
-                    if (seenSetupIds.has(setup.id)) {
-                        console.warn('[DEDUPE] Removing duplicate setup ID:', setup.id,
-                                    'in collection:', collection.name,
-                                    'Name:', setup.name,
-                                    'Original:', seenSetupIds.get(setup.id).name);
-                        foundDuplicates = true;
-                    } else {
-                        seenSetupIds.set(setup.id, setup);
-                        uniqueSetups.push(setup);
-                    }
-                });
-                
-                collection.setups = uniqueSetups;
-            });
+            OpstillingData.setups = uniqueSetups;
             
             return foundDuplicates;
         }
@@ -2402,7 +2330,7 @@
             '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
         ];
         
-        let historyColorPickerTarget = null; // { collectionId, setupId } for the target setup
+        let historyColorPickerTarget = null; // { setupId } for the target setup
         let historyColorPickerModal = null;
         let historyColorPickerGrid = null;
         
@@ -2541,8 +2469,6 @@
             return dateStr || '';
         }
         
-        // History sidebar state
-        let historyFilterCollectionId = 'all';
         
         function exportCurrentPartsToModel() {
             const parts = document.querySelectorAll('.part');
@@ -2595,75 +2521,17 @@
             }
         }
         
-        async function createNewCollection() {
-            if (!OpstillingData) {
-                OpstillingData = {
-                    version: '1.0',
-                    updated: new Date().toISOString(),
-                    activeCollectionId: null,
-                    activeSetupId: null,
-                    collections: []
-                };
-            }
-            
-            // Find highest collection ID
-            let maxId = 0;
-            if (Array.isArray(OpstillingData.collections)) {
-                OpstillingData.collections.forEach(c => {
-                    if (c.id > maxId) maxId = c.id;
-                });
-            }
-            
-            const newId = maxId + 1;
-            const collectionName = prompt('Navn på ny opstilling:', `Opstilling ${newId}`);
-            if (!collectionName || collectionName.trim() === '') return;
-            
-            // Save current workspace before switching
-            await syncCurrentWorkspaceToActiveSetup();
-            await saveOpstillingDataToFirestore();
-            
-            // Create new collection with default setup
-            const newCollection = {
-                id: newId,
-                name: collectionName.trim(),
-                setups: [{
-                    id: 1,
-                    name: 'Opstilling 1',
-                    notes: '',
-                    parts: []
-                }]
-            };
-            
-            if (!Array.isArray(OpstillingData.collections)) {
-                OpstillingData.collections = [];
-            }
-            OpstillingData.collections.push(newCollection);
-            OpstillingData.activeCollectionId = newId;
-            OpstillingData.activeSetupId = 1;
-            
-            // Load the new empty setup (no save - it's a load operation)
-            await loadSetupFromOpstillingData(newCollection.setups[0]);
-        }
+        // Removed createNewCollection - no longer needed with flat structure
         
         async function createNewSetup() {
             if (!OpstillingData) {
                 await ensureDefaultOpstillingData();
             }
             
-            let collection = getActiveCollection();
-            if (!collection) {
-                await ensureDefaultOpstillingData();
-                collection = getActiveCollection();
-                if (!collection) {
-                    console.error('[CREATE_SETUP] No collection available after ensure');
-                    return;
-                }
-            }
-            
-            // Find highest setup ID in CURRENT collection only
+            // Find highest setup ID across ALL setups
             let maxId = 0;
-            if (Array.isArray(collection.setups)) {
-                collection.setups.forEach(s => {
+            if (Array.isArray(OpstillingData.setups)) {
+                OpstillingData.setups.forEach(s => {
                     if (s.id > maxId) maxId = s.id;
                 });
             }
@@ -2671,13 +2539,12 @@
             let newId = maxId + 1;
             
             // CRITICAL: Check if setup with this ID already exists
-            const existingSetup = collection.setups?.find(s => s.id === newId);
+            const existingSetup = OpstillingData.setups?.find(s => s.id === newId);
             if (existingSetup) {
-                console.error('[CREATE_SETUP] Duplicate setup ID detected!', newId, 
-                             'in collection:', collection.name);
+                console.error('[CREATE_SETUP] Duplicate setup ID detected!', newId);
                 // Force new ID
                 const newIdRetry = maxId + 2;
-                const retryCheck = collection.setups?.find(s => s.id === newIdRetry);
+                const retryCheck = OpstillingData.setups?.find(s => s.id === newIdRetry);
                 if (retryCheck) {
                     console.error('[CREATE_SETUP] Even retry ID exists! Data corruption.');
                     alert('Fejl: Kunne ikke oprette opstilling (ID konflikt). Reload siden og prøv igen.');
@@ -2688,27 +2555,27 @@
             
             const setupName = `Opstilling ${newId}`;
             
-            // Create new setup
+            // Create new setup with default color
             const now = new Date().toISOString();
             const newSetup = {
                 id: newId,
                 name: setupName,
+                color: DEFAULT_HISTORY_COLOR,
                 notes: '',
                 parts: [],
                 timestamp: now,
                 updated: now
             };
             
-            // Add to collection
-            if (!Array.isArray(collection.setups)) {
-                collection.setups = [];
+            // Add to flat setups array
+            if (!Array.isArray(OpstillingData.setups)) {
+                OpstillingData.setups = [];
             }
-            collection.setups.push(newSetup);
+            OpstillingData.setups.push(newSetup);
             OpstillingData.activeSetupId = newId;
             
             console.log('[CREATE_SETUP] Created new setup:', newId, setupName,
-                        'in collection:', collection.name,
-                        'Total setups:', collection.setups.length);
+                        'Total setups:', OpstillingData.setups.length);
             
             // Load the new empty setup
             await loadSetupFromOpstillingData(newSetup);
@@ -2731,7 +2598,7 @@
         // ===== HISTORY SIDEBAR FUNCTIONS =====
         
         function getAllSetupsSorted() {
-            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) return [];
+            if (!OpstillingData || !Array.isArray(OpstillingData.setups)) return [];
             
             // CRITICAL: Deduplicate data first
             const hadDuplicates = deduplicateOpstillingData();
@@ -2742,25 +2609,18 @@
             
             const allSetups = [];
             
-            OpstillingData.collections.forEach(collection => {
-                if (Array.isArray(collection.setups)) {
-                    collection.setups.forEach(setup => {
-                        // No need for seenSetups check anymore - data is deduplicated
-                        
-                        // Ensure setup has timestamp
-                        if (!setup.timestamp && setup.updated) {
-                            setup.timestamp = setup.updated;
-                        } else if (!setup.timestamp) {
-                            setup.timestamp = new Date().toISOString();
-                        }
-                        
-                        allSetups.push({
-                            setup,
-                            collection,
-                            timestamp: new Date(setup.timestamp)
-                        });
-                    });
+            OpstillingData.setups.forEach(setup => {
+                // Ensure setup has timestamp
+                if (!setup.timestamp && setup.updated) {
+                    setup.timestamp = setup.updated;
+                } else if (!setup.timestamp) {
+                    setup.timestamp = new Date().toISOString();
                 }
+                
+                allSetups.push({
+                    setup,
+                    timestamp: new Date(setup.timestamp)
+                });
             });
             
             // Sort by timestamp descending (newest first)
@@ -2770,64 +2630,28 @@
         }
         
         function getFilteredSortedSetups() {
-            const all = getAllSetupsSorted();
-            if (historyFilterCollectionId === 'all') {
-                return all;
-            }
-            const filterId = parseFloat(historyFilterCollectionId);
-            return all.filter(entry => entry.collection && entry.collection.id === filterId);
+            return getAllSetupsSorted();
         }
         
-        function renderHistoryFilterOptions() {
-            const filterEl = document.getElementById('historyFilter');
-            if (!filterEl) return;
-            
-            const desiredValue = historyFilterCollectionId === 'all' ? 'all' : String(historyFilterCollectionId);
-            const options = ['<option value="all">Vis alle</option>'];
-            
-            if (OpstillingData && Array.isArray(OpstillingData.collections)) {
-                const sortedCollections = [...OpstillingData.collections].sort((a, b) => 
-                    (a.name || '').localeCompare(b.name || '', 'da', { sensitivity: 'base' })
-                );
-                sortedCollections.forEach(collection => {
-                    options.push(`<option value="${collection.id}">${collection.name || 'Kollektion'}</option>`);
-                });
-            }
-            
-            filterEl.innerHTML = options.join('');
-            const allowedValues = ['all', ...(OpstillingData?.collections || []).map(c => String(c.id))];
-            const nextValue = allowedValues.includes(desiredValue) ? desiredValue : 'all';
-            filterEl.value = nextValue;
-            historyFilterCollectionId = nextValue === 'all' ? 'all' : parseFloat(nextValue);
-        }
-        
-        function setHistoryFilter(value) {
-            historyFilterCollectionId = value === 'all' ? 'all' : parseFloat(value);
-            renderHistory();
-        }
         
         async function renderHistory() {
             const list = document.getElementById('historyList');
             if (!list) return;
             list.innerHTML = '';
             
-            if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
+            if (!OpstillingData || !Array.isArray(OpstillingData.setups)) {
                 await ensureDefaultOpstillingData();
-                if (!OpstillingData || !Array.isArray(OpstillingData.collections)) {
+                if (!OpstillingData || !Array.isArray(OpstillingData.setups)) {
                     return;
                 }
             }
             
-            renderHistoryFilterOptions();
-            
             const sortedEntries = getFilteredSortedSetups();
             const activeSetup = getActiveSetup();
-            const activeCollection = getActiveCollection();
             
-            sortedEntries.forEach(({ setup, collection }) => {
+            sortedEntries.forEach(({ setup }) => {
                 const item = document.createElement('div');
-                const isActive = setup.id === OpstillingData.activeSetupId && 
-                                collection.id === OpstillingData.activeCollectionId;
+                const isActive = setup.id === OpstillingData.activeSetupId;
                 item.className = `history-item ${isActive ? 'active' : ''}`;
                 
                 // Set simple background color (not based on collection)
@@ -2843,7 +2667,7 @@
                 // Set background color to setup's custom color or default
                 titleWrapper.style.backgroundColor = setupColor;
                 titleWrapper.style.color = '#ffffff';
-                titleWrapper.innerHTML = `<input type="text" class="history-item-date" value="${titleDisplay}" data-collection-id="${collection.id}" data-setup-id="${setup.id}" title="Rediger titel">`;
+                titleWrapper.innerHTML = `<input type="text" class="history-item-date" value="${titleDisplay}" data-setup-id="${setup.id}" title="Rediger titel">`;
                 item.appendChild(titleWrapper);
                 
                 const metaWrapper = document.createElement('div');
@@ -2861,7 +2685,6 @@
                 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'history-item-delete';
-                deleteBtn.dataset.collectionId = collection.id;
                 deleteBtn.dataset.setupId = setup.id;
                 deleteBtn.textContent = '×';
                 item.appendChild(deleteBtn);
@@ -2871,7 +2694,6 @@
                 colorBtn.className = 'history-item-color-btn';
                 colorBtn.textContent = 'C';
                 colorBtn.title = 'Vælg farve';
-                colorBtn.dataset.collectionId = collection.id;
                 colorBtn.dataset.setupId = setup.id;
                 // Set button color to show current color (lighter version)
                 const btnColor = setup.color || DEFAULT_HISTORY_COLOR;
@@ -2882,7 +2704,7 @@
                 const handleColorClick = (e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    openHistoryColorPicker(collection.id, setup.id);
+                    openHistoryColorPicker(setup.id);
                 };
                 colorBtn.addEventListener('click', handleColorClick);
                 colorBtn.addEventListener('touchend', (e) => {
@@ -2900,8 +2722,7 @@
                     if (e.target.classList.contains('history-item-color-btn')) return;
                     
                     // Check current active state
-                    const currentlyActive = setup.id === OpstillingData.activeSetupId && 
-                                          collection.id === OpstillingData.activeCollectionId;
+                    const currentlyActive = setup.id === OpstillingData.activeSetupId;
                     
                     // If clicking directly on input field of active item, allow normal editing
                     if (e.target.classList.contains('history-item-date') && currentlyActive) {
@@ -2913,7 +2734,6 @@
                     if (!currentlyActive) {
                         e.preventDefault();
                         e.stopPropagation();
-                        OpstillingData.activeCollectionId = collection.id;
                         OpstillingData.activeSetupId = setup.id;
                         await loadSetupFromOpstillingData(setup);
                         updateNotesTitle();
@@ -2979,14 +2799,12 @@
                 }
                 titleInput.addEventListener('focus', (e) => {
                     // Check current active state
-                    const currentlyActive = setup.id === OpstillingData.activeSetupId && 
-                                          collection.id === OpstillingData.activeCollectionId;
+                    const currentlyActive = setup.id === OpstillingData.activeSetupId;
                     // If not active, prevent focus and activate item instead
                     if (!currentlyActive) {
                         e.preventDefault();
                         e.stopPropagation();
                         // Activate the item (first click behavior)
-                        OpstillingData.activeCollectionId = collection.id;
                         OpstillingData.activeSetupId = setup.id;
                         loadSetupFromOpstillingData(setup);
                         updateNotesTitle();
@@ -2996,18 +2814,14 @@
                     // If active, allow normal focus for editing
                 });
                 titleInput.addEventListener('change', (e) => {
-                    const collectionId = parseFloat(e.target.dataset.collectionId);
                     const setupId = parseFloat(e.target.dataset.setupId);
-                    const collection = OpstillingData.collections.find(c => c.id === collectionId);
-                    if (collection) {
-                        const setup = collection.setups.find(s => s.id === setupId);
-                        if (setup) {
-                            setup.name = e.target.value;
-                            (async () => {
-                                await saveOpstillingDataToLocalStorage();
-                                await renderHistory();
-                            })();
-                        }
+                    const setup = OpstillingData.setups.find(s => s.id === setupId);
+                    if (setup) {
+                        setup.name = e.target.value;
+                        (async () => {
+                            await saveOpstillingDataToLocalStorage();
+                            await renderHistory();
+                        })();
                     }
                 });
                 
@@ -3015,10 +2829,9 @@
                 const handleDelete = (e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    const collectionId = parseFloat(deleteBtn.dataset.collectionId);
                     const setupId = parseFloat(deleteBtn.dataset.setupId);
                     (async () => {
-                        await deleteSetup(collectionId, setupId);
+                        await deleteSetup(setupId);
                     })();
                 };
                 
@@ -3032,21 +2845,19 @@
                 // Textarea touch handler for mobile - allow direct focus on touch
                 titleInput.addEventListener('touchend', (e) => {
                     // Check current active state
-                    const currentlyActive = setup.id === OpstillingData.activeSetupId && 
-                                          collection.id === OpstillingData.activeCollectionId;
+                    const currentlyActive = setup.id === OpstillingData.activeSetupId;
                     
                     if (!currentlyActive) {
                         // If not active, activate first, then focus
                         e.stopPropagation();
                         e.preventDefault();
-                        OpstillingData.activeCollectionId = collection.id;
                         OpstillingData.activeSetupId = setup.id;
                         loadSetupFromOpstillingData(setup);
                         updateNotesTitle();
                         renderHistory();
                         // After re-render, focus the input
                         setTimeout(() => {
-                            const newInput = document.querySelector(`.history-item-date[data-collection-id="${collection.id}"][data-setup-id="${setup.id}"]`);
+                            const newInput = document.querySelector(`.history-item-date[data-setup-id="${setup.id}"]`);
                             if (newInput) {
                                 newInput.focus();
                             }
@@ -3072,10 +2883,8 @@
             if (!sortedEntries.length) return;
             
             const activeSetup = getActiveSetup();
-            const activeCollection = getActiveCollection();
             let currentPos = sortedEntries.findIndex(entry => 
-                entry.setup.id === OpstillingData.activeSetupId && 
-                entry.collection.id === OpstillingData.activeCollectionId
+                entry.setup.id === OpstillingData.activeSetupId
             );
             if (currentPos === -1) {
                 currentPos = 0;
@@ -3092,7 +2901,6 @@
             }
             
             const targetEntry = sortedEntries[currentPos];
-            OpstillingData.activeCollectionId = targetEntry.collection.id;
             OpstillingData.activeSetupId = targetEntry.setup.id;
             await loadSetupFromOpstillingData(targetEntry.setup);
             updateNotesTitle();
@@ -3112,12 +2920,11 @@
             });
         }
         
-        async function deleteSetup(collectionId, setupId) {
-            const collection = OpstillingData.collections.find(c => c.id === collectionId);
-            if (!collection || !Array.isArray(collection.setups)) return;
+        async function deleteSetup(setupId) {
+            if (!OpstillingData || !Array.isArray(OpstillingData.setups)) return;
             
-            if (collection.setups.length <= 1) {
-                alert('Du kan ikke slette den sidste opstilling i en kollektion. Slet kollektionen i stedet.');
+            if (OpstillingData.setups.length <= 1) {
+                alert('Du kan ikke slette den sidste opstilling.');
                 return;
             }
             
@@ -3125,20 +2932,11 @@
                 return;
             }
             
-            collection.setups = collection.setups.filter(s => s.id !== setupId);
+            OpstillingData.setups = OpstillingData.setups.filter(s => s.id !== setupId);
             
-            if (OpstillingData.activeSetupId === setupId && OpstillingData.activeCollectionId === collectionId) {
-                if (collection.setups.length > 0) {
-                    OpstillingData.activeSetupId = collection.setups[collection.setups.length - 1].id;
-                } else {
-                    // Find another collection with setups
-                    const otherCollection = OpstillingData.collections.find(c => 
-                        c.id !== collectionId && Array.isArray(c.setups) && c.setups.length > 0
-                    );
-                    if (otherCollection) {
-                        OpstillingData.activeCollectionId = otherCollection.id;
-                        OpstillingData.activeSetupId = otherCollection.setups[otherCollection.setups.length - 1].id;
-                    }
+            if (OpstillingData.activeSetupId === setupId) {
+                if (OpstillingData.setups.length > 0) {
+                    OpstillingData.activeSetupId = OpstillingData.setups[OpstillingData.setups.length - 1].id;
                 }
             }
             
@@ -3152,14 +2950,14 @@
         
         // ===== HISTORY COLOR PICKER FUNCTIONS =====
         
-        function openHistoryColorPicker(collectionId, setupId) {
+        function openHistoryColorPicker(setupId) {
             if (!historyColorPickerModal) {
                 historyColorPickerModal = document.getElementById('historyColorPickerModal');
                 historyColorPickerGrid = document.getElementById('historyColorGrid');
             }
             if (!historyColorPickerModal || !historyColorPickerGrid) return;
             
-            historyColorPickerTarget = { collectionId, setupId };
+            historyColorPickerTarget = { setupId };
             buildHistoryColorGrid();
             historyColorPickerModal.classList.add('show');
         }
@@ -3185,13 +2983,10 @@
         
         async function handleHistoryColorSelected(color) {
             if (!historyColorPickerTarget) return;
-            const { collectionId, setupId } = historyColorPickerTarget;
+            const { setupId } = historyColorPickerTarget;
             
             // Find and update the setup
-            const collection = OpstillingData.collections.find(c => c.id === collectionId);
-            if (!collection) return;
-            
-            const setup = collection.setups.find(s => s.id === setupId);
+            const setup = OpstillingData.setups.find(s => s.id === setupId);
             if (!setup) return;
             
             setup.color = color;
@@ -3224,19 +3019,16 @@
         
         async function removeHistoryColor() {
             if (!historyColorPickerTarget) return;
-            const { collectionId, setupId } = historyColorPickerTarget;
+            const { setupId } = historyColorPickerTarget;
             
             // Find and update the setup
-            const collection = OpstillingData.collections.find(c => c.id === collectionId);
-            if (!collection) return;
-            
-            const setup = collection.setups.find(s => s.id === setupId);
+            const setup = OpstillingData.setups.find(s => s.id === setupId);
             if (!setup) return;
             
             delete setup.color;
             
             // Live-update the UI
-            const item = document.querySelector(`.history-item button[data-collection-id="${collectionId}"][data-setup-id="${setupId}"]`)?.closest('.history-item');
+            const item = document.querySelector(`.history-item button[data-setup-id="${setupId}"]`)?.closest('.history-item');
             if (item) {
                 // Update item background color to default
                 const isActive = item.classList.contains('active');
@@ -3358,7 +3150,7 @@
         // Load active setup from opstillingData, or fallback to legacy storage
         async function loadActiveOpstilling() {
             // First try to load from new opstillingData structure
-            if (OpstillingData && Array.isArray(OpstillingData.collections) && OpstillingData.collections.length > 0) {
+            if (OpstillingData && Array.isArray(OpstillingData.setups) && OpstillingData.setups.length > 0) {
                 const activeSetup = getActiveSetup();
                 if (activeSetup) {
                     // Always load setup to update workspace with positions and notes, even if empty
@@ -4273,6 +4065,10 @@ async function closeKeywordsPopup() {
         
         function renderLabels() {
             const container = document.getElementById('backgroundLabels');
+            if (!container) {
+                console.warn('backgroundLabels container not found - skipping label rendering');
+                return;
+            }
             container.innerHTML = '';
             
             if (currentBackground === 'none') return;
@@ -5599,9 +5395,9 @@ async function closeKeywordsPopup() {
                 
                 // Removed group inputs (#group1..#group6) – no listeners needed
                 
-                // Initialize background
-                renderBackground();
-                renderLabels();
+                // Initialize background (will be done in loadSetupFromOpstillingData)
+                // renderBackground();
+                // renderLabels();
                 
             } catch (error) {
                 console.error('Fejl ved initialisering:', error);

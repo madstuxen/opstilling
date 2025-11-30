@@ -2151,76 +2151,20 @@
             }
 
             const dialogData = allData && allData.dialogData ? allData.dialogData : await getDialogData();
-            if (!dialogData) {
+            if (!dialogData || !Array.isArray(dialogData.dialogs)) {
                 return { hasEntries: false };
             }
 
-            // Check if it's the new structure (has collections)
-            if (dialogData.collections && Array.isArray(dialogData.collections)) {
-                const matches = [];
-                dialogData.collections.forEach(collection => {
-                    if (!Array.isArray(collection.dialogs)) return;
-                    collection.dialogs.forEach(dialog => {
-                        const source = dialog.timestamp || dialog.updated;
-                        if (!source) return;
-                        const timestamp = new Date(source);
-                        if (Number.isNaN(timestamp.getTime())) return;
-                        const normalized = formatDateKey(timestamp);
-                        if (normalized !== dateKey) return;
-                        matches.push({ dialog, collection, timestamp });
-                    });
-                });
-
-                if (!matches.length) {
-                    return { hasEntries: false };
-                }
-
-                matches.sort((a, b) => b.timestamp - a.timestamp);
-                const latest = matches[0];
-                const leftParticipant = latest.dialog.participants?.left || {};
-                const rightParticipant = latest.dialog.participants?.right || {};
-                let leftName = leftParticipant.name || 'Venstre';
-                let rightName = rightParticipant.name || 'Højre';
-                
-                // Truncate names to 10 characters with ".."
-                const truncateName = (name) => {
-                    if (name.length > 10) {
-                        return name.substring(0, 10) + '..';
-                    }
-                    return name;
-                };
-                leftName = truncateName(leftName);
-                rightName = truncateName(rightName);
-                
-                const messageCount = Array.isArray(latest.dialog.messages) ? latest.dialog.messages.length : 0;
-                const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
-
-                const count = matches.length;
-                return {
-                    hasEntries: true,
-                    displayText: `${leftName} & ${rightName}`,
-                    latestTime,
-                    messageCount,
-                    count
-                };
-            }
-
-            // Legacy structure (old sessions format)
-            if (!Array.isArray(dialogData.sessions) || !dialogData.sessions.length) {
-                return { hasEntries: false };
-            }
-
-            const matches = dialogData.sessions
-                .map(session => {
-                    const source = session.updatedAt || session.createdAt;
-                    if (!source) return null;
-                    const timestamp = new Date(source);
-                    if (Number.isNaN(timestamp.getTime())) return null;
-                    const normalized = formatDateKey(timestamp);
-                    if (normalized !== dateKey) return null;
-                    return { session, timestamp };
-                })
-                .filter(Boolean);
+            const matches = [];
+            dialogData.dialogs.forEach(dialog => {
+                const source = dialog.timestamp || dialog.updated;
+                if (!source) return;
+                const timestamp = new Date(source);
+                if (Number.isNaN(timestamp.getTime())) return;
+                const normalized = formatDateKey(timestamp);
+                if (normalized !== dateKey) return;
+                matches.push({ dialog, timestamp });
+            });
 
             if (!matches.length) {
                 return { hasEntries: false };
@@ -2228,17 +2172,28 @@
 
             matches.sort((a, b) => b.timestamp - a.timestamp);
             const latest = matches[0];
-            const leftParticipant = latest.session.participants?.left || {};
-            const rightParticipant = latest.session.participants?.right || {};
-            const leftName = leftParticipant.name || 'Venstre deltager';
-            const rightName = rightParticipant.name || 'Højre deltager';
-            const messageCount = Array.isArray(latest.session.messages) ? latest.session.messages.length : 0;
+            const leftParticipant = latest.dialog.participants?.left || {};
+            const rightParticipant = latest.dialog.participants?.right || {};
+            let leftName = leftParticipant.name || 'Venstre';
+            let rightName = rightParticipant.name || 'Højre';
+            
+            // Truncate names to 10 characters with ".."
+            const truncateName = (name) => {
+                if (name.length > 10) {
+                    return name.substring(0, 10) + '..';
+                }
+                return name;
+            };
+            leftName = truncateName(leftName);
+            rightName = truncateName(rightName);
+            
+            const messageCount = Array.isArray(latest.dialog.messages) ? latest.dialog.messages.length : 0;
             const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
 
             const count = matches.length;
             return {
                 hasEntries: true,
-                displayText: `${leftName} vs. ${rightName}`,
+                displayText: `${leftName} & ${rightName}`,
                 latestTime,
                 messageCount,
                 count
@@ -2251,22 +2206,19 @@
             }
 
             const opstillingData = allData && allData.opstillingData ? allData.opstillingData : await getOpstillingData();
-            if (!opstillingData || !Array.isArray(opstillingData.collections)) {
+            if (!opstillingData || !Array.isArray(opstillingData.setups)) {
                 return { hasEntries: false };
             }
 
             const matches = [];
-            opstillingData.collections.forEach(collection => {
-                if (!Array.isArray(collection.setups)) return;
-                collection.setups.forEach(setup => {
-                    const source = setup.timestamp || setup.updated;
-                    if (!source) return;
-                    const timestamp = new Date(source);
-                    if (Number.isNaN(timestamp.getTime())) return;
-                    const normalized = formatDateKey(timestamp);
-                    if (normalized !== dateKey) return;
-                    matches.push({ setup, collection, timestamp });
-                });
+            opstillingData.setups.forEach(setup => {
+                const source = setup.timestamp || setup.updated;
+                if (!source) return;
+                const timestamp = new Date(source);
+                if (Number.isNaN(timestamp.getTime())) return;
+                const normalized = formatDateKey(timestamp);
+                if (normalized !== dateKey) return;
+                matches.push({ setup, timestamp });
             });
 
             if (!matches.length) {
@@ -2277,13 +2229,12 @@
             matches.sort((a, b) => b.timestamp - a.timestamp);
             const latest = matches[0];
             const setupName = latest.setup.name || 'Opstilling';
-            const collectionName = latest.collection.name || 'Samling';
             const partsCount = Array.isArray(latest.setup.parts) ? latest.setup.parts.length : 0;
             const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
 
             // Show the latest opstilling name, but count all matches
             const count = matches.length;
-            const displayText = `${setupName} i ${collectionName}`;
+            const displayText = `${setupName}`;
 
             return {
                 hasEntries: true,
@@ -2300,22 +2251,19 @@
             }
 
             const compareData = allData && allData.compareData ? allData.compareData : await getCompareData();
-            if (!compareData || !Array.isArray(compareData.collections)) {
+            if (!compareData || !Array.isArray(compareData.comparisons)) {
                 return { hasEntries: false };
             }
 
             const matches = [];
-            compareData.collections.forEach(collection => {
-                if (!Array.isArray(collection.comparisons)) return;
-                collection.comparisons.forEach(comparison => {
-                    const source = comparison.timestamp || comparison.updated;
-                    if (!source) return;
-                    const timestamp = new Date(source);
-                    if (Number.isNaN(timestamp.getTime())) return;
-                    const normalized = formatDateKey(timestamp);
-                    if (normalized !== dateKey) return;
-                    matches.push({ comparison, collection, timestamp });
-                });
+            compareData.comparisons.forEach(comparison => {
+                const source = comparison.timestamp || comparison.updated;
+                if (!source) return;
+                const timestamp = new Date(source);
+                if (Number.isNaN(timestamp.getTime())) return;
+                const normalized = formatDateKey(timestamp);
+                if (normalized !== dateKey) return;
+                matches.push({ comparison, timestamp });
             });
 
             if (!matches.length) {

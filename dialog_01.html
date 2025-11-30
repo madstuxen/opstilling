@@ -943,37 +943,8 @@
             flex-shrink: 0;
         }
         
-        .dialog-history-filter {
-            flex: 1;
-            min-width: 180px;
-            padding: 6px 14px 6px 16px;
-            border-radius: 8px;
-            border: 1px solid #cbd5f5;
-            background: #ffffff;
-            color: #1f2937;
-            font-size: 16px;
-            font-weight: 600;
-            outline: none;
-            appearance: none;
-            margin: 0 8px 0 0;
-            position: relative;
-            background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%);
-            background-position: calc(100% - 16px) 50%, calc(100% - 9px) 50%;
-            background-size: 7px 7px, 7px 7px;
-            background-repeat: no-repeat;
-        }
-        
-        .dialog-history-filter:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-        }
-        
         .dialog-history-sidebar.collapsed .dialog-history-header {
             justify-content: center;
-        }
-        
-        .dialog-history-sidebar.collapsed .dialog-history-filter {
-            display: none;
         }
         
         .dialog-history-content {
@@ -2164,7 +2135,6 @@
             <aside class="dialog-history-sidebar" id="dialogHistorySidebar">
                 <div class="dialog-history-header">
                     <button class="dialog-collapse-toggle" onclick="toggleDialogHistorySidebar()" title="Fold historik">></button>
-                    <select id="dialogHistoryFilter" class="dialog-history-filter" onchange="setDialogHistoryFilter(this.value)"></select>
                 </div>
                 <div class="dialog-history-content">
                     <div class="dialog-history-navigation">
@@ -2278,8 +2248,8 @@ const DIALOG_HISTORY_COLLAPSED_KEY = 'dialog_historySidebarCollapsed';
 let dialogHistoryCollapsed = true; // Default to collapsed
         let activeDialogId = null; // Used in legacy functions and writeDialogData
         
-        // New dialogData structure (similar to opstillingData)
-        let DialogData = null; // { version, updated, activeCollectionId, activeDialogId, collections: [...] }
+        // New dialogData structure (flat, no collections)
+        let DialogData = null; // { version, updated, activeDialogId, dialogs: [...] }
         
         // Color presets for collections (from opstilling)
         const DIALOG_COLLECTION_COLOR_PRESETS = [
@@ -2296,7 +2266,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
         ];
         
-        let historyColorPickerTarget = null; // { collectionId, dialogId } for the target dialog
+        let historyColorPickerTarget = null; // { dialogId } for the target dialog
         let historyColorPickerModal = null;
         let historyColorPickerGrid = null;
         
@@ -2490,23 +2460,16 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         }
         
         function migrateLegacyDialogData(legacyData) {
-            // Migrate old sessions structure to new collections/dialogs structure
+            // Migrate old sessions structure to new flat dialogs structure
             const sessions = Array.isArray(legacyData.sessions) ? legacyData.sessions : [];
-            const collections = [];
+            const dialogs = [];
             
             if (sessions.length > 0) {
-                // Create a default collection and migrate all sessions to dialogs
-                const defaultCollection = {
-                    id: 1,
-                    name: 'Samling 1',
-                    color: DIALOG_COLLECTION_COLOR_PRESETS[0],
-                    dialogs: []
-                };
-                
                 sessions.forEach((session, idx) => {
                     const dialog = {
                         id: idx + 1,
                         name: session.name || `Dialog ${idx + 1}`,
+                        color: DEFAULT_HISTORY_COLOR,
                         timestamp: session.createdAt || session.updatedAt || new Date().toISOString(),
                         updated: session.updatedAt || session.createdAt || new Date().toISOString(),
                         participants: session.participants || {
@@ -2515,18 +2478,15 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                         },
                         messages: Array.isArray(session.messages) ? session.messages : []
                     };
-                    defaultCollection.dialogs.push(dialog);
+                    dialogs.push(dialog);
                 });
-                
-                collections.push(defaultCollection);
             }
             
             return {
-                version: '1.0',
+                version: '2.0',
                 updated: new Date().toISOString(),
-                activeCollectionId: collections.length > 0 ? 1 : null,
-                activeDialogId: collections.length > 0 && collections[0].dialogs.length > 0 ? 1 : null,
-                collections: collections
+                activeDialogId: dialogs.length > 0 ? 1 : null,
+                dialogs: dialogs
             };
         }
         
@@ -2550,38 +2510,21 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         function ensureDefaultDialogData() {
             let dataWasCreated = false;
             
-            if (!DialogData || !Array.isArray(DialogData.collections)) {
+            if (!DialogData || !Array.isArray(DialogData.dialogs)) {
                 DialogData = {
-                    version: '1.0',
+                    version: '2.0',
                     updated: new Date().toISOString(),
-                    activeCollectionId: 1,
                     activeDialogId: 1,
-                    collections: []
+                    dialogs: []
                 };
                 dataWasCreated = true;
             }
-            if (!Array.isArray(DialogData.collections) || DialogData.collections.length === 0) {
-                DialogData.collections = [{
-                    id: 1,
-                    name: 'Samling 1',
-                    color: DIALOG_COLLECTION_COLOR_PRESETS[0],
-                    dialogs: []
-                }];
-                DialogData.activeCollectionId = 1;
-                dataWasCreated = true;
-            }
-            // Ensure all collections have colors
-            DialogData.collections.forEach((collection, idx) => {
-                if (!collection.color) {
-                    collection.color = DIALOG_COLLECTION_COLOR_PRESETS[idx % DIALOG_COLLECTION_COLOR_PRESETS.length];
-                }
-            });
-            const collection = DialogData.collections.find(c => c.id === DialogData.activeCollectionId) || DialogData.collections[0];
-            if (!collection.dialogs || collection.dialogs.length === 0) {
+            if (!Array.isArray(DialogData.dialogs) || DialogData.dialogs.length === 0) {
                 const now = new Date().toISOString();
                 const initialDialog = {
                     id: 1,
                     name: 'Dialog 1',
+                    color: DEFAULT_HISTORY_COLOR,
                     timestamp: now,
                     updated: now,
                     participants: {
@@ -2590,21 +2533,20 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     },
                     messages: []
                 };
-                collection.dialogs = [initialDialog];
+                DialogData.dialogs = [initialDialog];
                 DialogData.activeDialogId = 1;
                 dataWasCreated = true;
             }
-            // Ensure all dialogs have timestamps
-            DialogData.collections.forEach(collection => {
-                if (Array.isArray(collection.dialogs)) {
-                    collection.dialogs.forEach(dialog => {
-                        if (!dialog.timestamp) {
-                            dialog.timestamp = dialog.updated || new Date().toISOString();
-                        }
-                        if (!dialog.updated) {
-                            dialog.updated = dialog.timestamp || new Date().toISOString();
-                        }
-                    });
+            // Ensure all dialogs have timestamps and colors
+            DialogData.dialogs.forEach((dialog, idx) => {
+                if (!dialog.timestamp) {
+                    dialog.timestamp = dialog.updated || new Date().toISOString();
+                }
+                if (!dialog.updated) {
+                    dialog.updated = dialog.timestamp || new Date().toISOString();
+                }
+                if (!dialog.color) {
+                    dialog.color = DEFAULT_HISTORY_COLOR;
                 }
             });
             // Only save if we actually created new data structure AND not during initial load
@@ -2612,15 +2554,9 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             // Don't save during data creation - it's a load operation
         }
         
-        function getActiveCollection() {
-            if (!DialogData || !Array.isArray(DialogData.collections)) return null;
-            return DialogData.collections.find(c => c.id === DialogData.activeCollectionId) || DialogData.collections[0] || null;
-        }
-        
         function getActiveDialog() {
-            const col = getActiveCollection();
-            if (!col || !Array.isArray(col.dialogs)) return null;
-            return col.dialogs.find(d => d.id === DialogData.activeDialogId) || col.dialogs[0] || null;
+            if (!DialogData || !Array.isArray(DialogData.dialogs)) return null;
+            return DialogData.dialogs.find(d => d.id === DialogData.activeDialogId) || DialogData.dialogs[0] || null;
         }
         
         // Legacy functions for backwards compatibility (will be removed later)
@@ -2630,7 +2566,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             return {
                 version: '2.0',
                 sessions: activeDialog ? [{
-                    id: `${DialogData.activeCollectionId}-${DialogData.activeDialogId}`,
+                    id: `${DialogData.activeDialogId}`,
                     name: activeDialog.name,
                     createdAt: activeDialog.timestamp,
                     updatedAt: activeDialog.updated,
@@ -2638,7 +2574,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     messages: activeDialog.messages
                 }] : [],
                 lastCoachingUpdate: null,
-                activeDialogId: activeDialog ? `${DialogData.activeCollectionId}-${DialogData.activeDialogId}` : null
+                activeDialogId: activeDialog ? `${DialogData.activeDialogId}` : null
             };
         }
         
@@ -2784,30 +2720,22 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             return dateStr || '';
         }
         
-        // History sidebar state
-        let dialogHistoryFilterCollectionId = 'all';
-        
         // ===== HISTORY SIDEBAR FUNCTIONS (from opstilling_01.html) =====
         
         function getAllDialogsSorted() {
-            if (!DialogData || !Array.isArray(DialogData.collections)) return [];
+            if (!DialogData || !Array.isArray(DialogData.dialogs)) return [];
             const allDialogs = [];
-            DialogData.collections.forEach(collection => {
-                if (Array.isArray(collection.dialogs)) {
-                    collection.dialogs.forEach(dialog => {
-                        // Ensure dialog has timestamp
-                        if (!dialog.timestamp && dialog.updated) {
-                            dialog.timestamp = dialog.updated;
-                        } else if (!dialog.timestamp) {
-                            dialog.timestamp = new Date().toISOString();
-                        }
-                        allDialogs.push({
-                            dialog,
-                            collection,
-                            timestamp: new Date(dialog.timestamp)
-                        });
-                    });
+            DialogData.dialogs.forEach(dialog => {
+                // Ensure dialog has timestamp
+                if (!dialog.timestamp && dialog.updated) {
+                    dialog.timestamp = dialog.updated;
+                } else if (!dialog.timestamp) {
+                    dialog.timestamp = new Date().toISOString();
                 }
+                allDialogs.push({
+                    dialog,
+                    timestamp: new Date(dialog.timestamp)
+                });
             });
             // Sort by timestamp descending (newest first)
             allDialogs.sort((a, b) => b.timestamp - a.timestamp);
@@ -2815,56 +2743,21 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         }
         
         function getFilteredSortedDialogs() {
-            const all = getAllDialogsSorted();
-            if (dialogHistoryFilterCollectionId === 'all') {
-                return all;
-            }
-            const filterId = parseFloat(dialogHistoryFilterCollectionId);
-            return all.filter(entry => entry.collection && entry.collection.id === filterId);
+            return getAllDialogsSorted();
         }
         
-        function renderDialogHistoryFilterOptions() {
-            const filterEl = document.getElementById('dialogHistoryFilter');
-            if (!filterEl) return;
-            
-            const desiredValue = dialogHistoryFilterCollectionId === 'all' ? 'all' : String(dialogHistoryFilterCollectionId);
-            const options = ['<option value="all">Vis alle</option>'];
-            
-            if (DialogData && Array.isArray(DialogData.collections)) {
-                const sortedCollections = [...DialogData.collections].sort((a, b) => 
-                    (a.name || '').localeCompare(b.name || '', 'da', { sensitivity: 'base' })
-                );
-                sortedCollections.forEach(collection => {
-                    options.push(`<option value="${collection.id}">${collection.name || 'Samling'}</option>`);
-                });
-            }
-            
-            filterEl.innerHTML = options.join('');
-            const allowedValues = ['all', ...(DialogData?.collections || []).map(c => String(c.id))];
-            const nextValue = allowedValues.includes(desiredValue) ? desiredValue : 'all';
-            filterEl.value = nextValue;
-            dialogHistoryFilterCollectionId = nextValue === 'all' ? 'all' : parseFloat(nextValue);
-        }
-        
-        function setDialogHistoryFilter(value) {
-            dialogHistoryFilterCollectionId = value === 'all' ? 'all' : parseFloat(value);
-            renderDialogHistory();
-        }
         
         function renderDialogHistory() {
             const listEl = document.getElementById('dialogHistoryList');
             if (!listEl) return;
             listEl.innerHTML = '';
             
-            if (!DialogData || !Array.isArray(DialogData.collections)) {
+            if (!DialogData || !Array.isArray(DialogData.dialogs)) {
                 ensureDefaultDialogData();
             }
             
-            renderDialogHistoryFilterOptions();
-            
             const sortedEntries = getFilteredSortedDialogs();
             const activeDialog = getActiveDialog();
-            const activeCollection = getActiveCollection();
             
             if (sortedEntries.length === 0) {
                 listEl.innerHTML = '<div class="dialog-history-empty">Ingen gemte dialoger endnu.</div>';
@@ -2873,10 +2766,9 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 return;
             }
             
-            sortedEntries.forEach(({ dialog, collection }) => {
+            sortedEntries.forEach(({ dialog }) => {
                     const item = document.createElement('div');
-                const isActive = dialog.id === DialogData.activeDialogId && 
-                                collection.id === DialogData.activeCollectionId;
+                const isActive = dialog.id === DialogData.activeDialogId;
                 item.className = `dialog-history-item ${isActive ? 'active' : ''}`;
                 
                 // Set simple background color (not based on collection)
@@ -2892,7 +2784,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 // Set background color to dialog's custom color or default
                 titleWrapper.style.backgroundColor = dialogColor;
                 titleWrapper.style.color = '#ffffff';
-                titleWrapper.innerHTML = `<input type="text" class="dialog-history-item-title-input" value="${titleDisplay}" data-collection-id="${collection.id}" data-dialog-id="${dialog.id}" title="Rediger titel">`;
+                titleWrapper.innerHTML = `<input type="text" class="dialog-history-item-title-input" value="${titleDisplay}" data-dialog-id="${dialog.id}" title="Rediger titel">`;
                 item.appendChild(titleWrapper);
                 
                 const metaWrapper = document.createElement('div');
@@ -2934,7 +2826,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'dialog-history-item-delete';
-                deleteBtn.dataset.collectionId = collection.id;
                 deleteBtn.dataset.dialogId = dialog.id;
                 deleteBtn.textContent = '×';
                 item.appendChild(deleteBtn);
@@ -2944,7 +2835,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 colorBtn.className = 'dialog-history-item-color-btn';
                 colorBtn.textContent = 'C';
                 colorBtn.title = 'Vælg farve';
-                colorBtn.dataset.collectionId = collection.id;
                 colorBtn.dataset.dialogId = dialog.id;
                 // Set button color to show current color (lighter version)
                 const btnColor = dialog.color || DEFAULT_HISTORY_COLOR;
@@ -2955,7 +2845,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 const handleColorClick = (e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    openHistoryColorPicker(collection.id, dialog.id);
+                    openHistoryColorPicker(dialog.id);
                 };
                 colorBtn.addEventListener('click', handleColorClick);
                 colorBtn.addEventListener('touchend', (e) => {
@@ -2973,8 +2863,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     if (e.target.classList.contains('dialog-history-item-color-btn')) return;
                     
                     // Check current active state
-                    const currentlyActive = dialog.id === DialogData.activeDialogId && 
-                                          collection.id === DialogData.activeCollectionId;
+                    const currentlyActive = dialog.id === DialogData.activeDialogId;
                     
                     // If clicking directly on input field of active item, allow normal editing
                     if (e.target.classList.contains('dialog-history-item-title-input') && currentlyActive) {
@@ -2986,7 +2875,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     if (!currentlyActive) {
                         e.preventDefault();
                         e.stopPropagation();
-                        DialogData.activeCollectionId = collection.id;
                         DialogData.activeDialogId = dialog.id;
                         loadSavedDialogFromNewStructure(dialog);
                         renderDialogHistory();
@@ -3051,14 +2939,12 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 }
                 titleInput.addEventListener('focus', (e) => {
                     // Check current active state
-                    const currentlyActive = dialog.id === DialogData.activeDialogId && 
-                                          collection.id === DialogData.activeCollectionId;
+                    const currentlyActive = dialog.id === DialogData.activeDialogId;
                     // If not active, prevent focus and activate item instead
                     if (!currentlyActive) {
                         e.preventDefault();
                         e.stopPropagation();
                         // Activate the item (first click behavior)
-                        DialogData.activeCollectionId = collection.id;
                         DialogData.activeDialogId = dialog.id;
                         loadSavedDialogFromNewStructure(dialog);
                         renderDialogHistory();
@@ -3067,16 +2953,12 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     // If active, allow normal focus for editing
                 });
                 titleInput.addEventListener('change', async (e) => {
-                    const collectionId = parseFloat(e.target.dataset.collectionId);
                     const dialogId = parseFloat(e.target.dataset.dialogId);
-                    const collection = DialogData.collections.find(c => c.id === collectionId);
-                    if (collection) {
-                        const dialog = collection.dialogs.find(d => d.id === dialogId);
-                        if (dialog) {
-                            dialog.name = e.target.value;
-                            await saveDialogDataToLocalStorage();
-                            renderDialogHistory();
-                        }
+                    const dialog = DialogData.dialogs.find(d => d.id === dialogId);
+                    if (dialog) {
+                        dialog.name = e.target.value;
+                        await saveDialogDataToLocalStorage();
+                        renderDialogHistory();
                     }
                 });
                 
@@ -3084,9 +2966,8 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 const handleDelete = (e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    const collectionId = parseFloat(deleteBtn.dataset.collectionId);
                     const dialogId = parseFloat(deleteBtn.dataset.dialogId);
-                    deleteDialogFromNewStructure(collectionId, dialogId);
+                    deleteDialogFromNewStructure(dialogId);
                 };
                 
                 deleteBtn.addEventListener('click', handleDelete);
@@ -3099,20 +2980,18 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 // Textarea touch handler for mobile - allow direct focus on touch
                 titleInput.addEventListener('touchend', (e) => {
                     // Check current active state
-                    const currentlyActive = dialog.id === DialogData.activeDialogId && 
-                                          collection.id === DialogData.activeCollectionId;
+                    const currentlyActive = dialog.id === DialogData.activeDialogId;
                     
                     if (!currentlyActive) {
                         // If not active, activate first, then focus
                         e.stopPropagation();
                         e.preventDefault();
-                        DialogData.activeCollectionId = collection.id;
                         DialogData.activeDialogId = dialog.id;
                         loadSavedDialogFromNewStructure(dialog);
                         renderDialogHistory();
                         // After re-render, focus the input
                         setTimeout(() => {
-                            const newInput = document.querySelector(`.dialog-history-item-title-input[data-collection-id="${collection.id}"][data-dialog-id="${dialog.id}"]`);
+                            const newInput = document.querySelector(`.dialog-history-item-title-input[data-dialog-id="${dialog.id}"]`);
                             if (newInput) {
                                 newInput.focus();
                             }
@@ -3186,15 +3065,13 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             if (!sortedEntries.length) return;
             
             const currentPos = sortedEntries.findIndex(entry => 
-                entry.dialog.id === DialogData.activeDialogId && 
-                entry.collection.id === DialogData.activeCollectionId
+                entry.dialog.id === DialogData.activeDialogId
             );
             const nextIndex = currentPos === -1
                 ? (direction > 0 ? 0 : sortedEntries.length - 1)
                 : (direction < 0 ? Math.max(0, currentPos - 1) : Math.min(sortedEntries.length - 1, currentPos + 1));
             if (nextIndex !== currentPos && sortedEntries[nextIndex]) {
                 const targetEntry = sortedEntries[nextIndex];
-                DialogData.activeCollectionId = targetEntry.collection.id;
                 DialogData.activeDialogId = targetEntry.dialog.id;
                 // Only switch active dialog/collection – don't save when navigating history
                 loadSavedDialogFromNewStructure(targetEntry.dialog);
@@ -3237,30 +3114,21 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         
         async function promptCleanupEmptyDialogsOnLoad() {
             try {
-                if (!DialogData || !Array.isArray(DialogData.collections)) return;
+                if (!DialogData || !Array.isArray(DialogData.dialogs)) return;
                 
                 // Collect all empty dialogs (no messages or empty messages array)
                 const emptyDialogs = [];
-                DialogData.collections.forEach(collection => {
-                    if (Array.isArray(collection.dialogs)) {
-                        collection.dialogs.forEach(dialog => {
-                            const messages = Array.isArray(dialog.messages) ? dialog.messages : [];
-                            if (messages.length === 0) {
-                                emptyDialogs.push({ collection, dialog });
-                            }
-                        });
+                DialogData.dialogs.forEach(dialog => {
+                    const messages = Array.isArray(dialog.messages) ? dialog.messages : [];
+                    if (messages.length === 0) {
+                        emptyDialogs.push(dialog);
                     }
                 });
                 
                 if (!emptyDialogs.length) return;
                 
                 // Count total dialogs
-                let totalDialogs = 0;
-                DialogData.collections.forEach(collection => {
-                    if (Array.isArray(collection.dialogs)) {
-                        totalDialogs += collection.dialogs.length;
-                    }
-                });
+                const totalDialogs = DialogData.dialogs.length;
                 
                 // Do not apply cleanup if there is only one dialog total
                 if (totalDialogs <= 1) return;
@@ -3269,19 +3137,13 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 const sortedEmpty = emptyDialogs
                     .slice()
                     .sort((a, b) => {
-                        const timestampA = a.dialog.timestamp || a.dialog.updated || new Date(0).toISOString();
-                        const timestampB = b.dialog.timestamp || b.dialog.updated || new Date(0).toISOString();
+                        const timestampA = a.timestamp || a.updated || new Date(0).toISOString();
+                        const timestampB = b.timestamp || b.updated || new Date(0).toISOString();
                         return new Date(timestampB).getTime() - new Date(timestampA).getTime();
                     });
                 
-                const toKeep = sortedEmpty[0] ? { 
-                    collectionId: sortedEmpty[0].collection.id, 
-                    dialogId: sortedEmpty[0].dialog.id 
-                } : null;
-                
-                const toDelete = sortedEmpty.filter(item => 
-                    !(toKeep && item.collection.id === toKeep.collectionId && item.dialog.id === toKeep.dialogId)
-                );
+                const toKeep = sortedEmpty[0] ? sortedEmpty[0].id : null;
+                const toDelete = sortedEmpty.filter(dialog => dialog.id !== toKeep);
                 
                 if (!toDelete.length) return;
                 
@@ -3292,23 +3154,13 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 if (!shouldDelete) return;
                 
                 // Remove empty dialogs
-                toDelete.forEach(({ collection, dialog }) => {
-                    if (Array.isArray(collection.dialogs)) {
-                        collection.dialogs = collection.dialogs.filter(d => d.id !== dialog.id);
-                    }
-                });
+                const idsToDelete = toDelete.map(d => d.id);
+                DialogData.dialogs = DialogData.dialogs.filter(d => !idsToDelete.includes(d.id));
                 
                 // If we deleted the active dialog, switch to another one
                 const activeDialog = getActiveDialog();
-                if (!activeDialog) {
-                    // Find any remaining dialog
-                    const anyCollection = DialogData.collections.find(c => 
-                        Array.isArray(c.dialogs) && c.dialogs.length > 0
-                    );
-                    if (anyCollection && anyCollection.dialogs.length > 0) {
-                        DialogData.activeCollectionId = anyCollection.id;
-                        DialogData.activeDialogId = anyCollection.dialogs[0].id;
-                    }
+                if (!activeDialog && DialogData.dialogs.length > 0) {
+                    DialogData.activeDialogId = DialogData.dialogs[0].id;
                 }
                 
                 await saveDialogDataToLocalStorage();
@@ -3317,12 +3169,11 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             }
         }
         
-        async function deleteDialogFromNewStructure(collectionId, dialogId) {
-            const collection = DialogData.collections.find(c => c.id === collectionId);
-            if (!collection || !Array.isArray(collection.dialogs)) return;
+        async function deleteDialogFromNewStructure(dialogId) {
+            if (!DialogData || !Array.isArray(DialogData.dialogs)) return;
             
-            if (collection.dialogs.length <= 1) {
-                alert('Du kan ikke slette den sidste dialog i en samling. Slet samlingen i stedet.');
+            if (DialogData.dialogs.length <= 1) {
+                alert('Du kan ikke slette den sidste dialog.');
                 return;
             }
             
@@ -3330,20 +3181,11 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 return;
             }
             
-            collection.dialogs = collection.dialogs.filter(d => d.id !== dialogId);
+            DialogData.dialogs = DialogData.dialogs.filter(d => d.id !== dialogId);
             
-            if (DialogData.activeDialogId === dialogId && DialogData.activeCollectionId === collectionId) {
-                if (collection.dialogs.length > 0) {
-                    DialogData.activeDialogId = collection.dialogs[collection.dialogs.length - 1].id;
-                } else {
-                    // Find another collection with dialogs
-                    const otherCollection = DialogData.collections.find(c => 
-                        c.id !== collectionId && Array.isArray(c.dialogs) && c.dialogs.length > 0
-                    );
-                    if (otherCollection) {
-                        DialogData.activeCollectionId = otherCollection.id;
-                        DialogData.activeDialogId = otherCollection.dialogs[otherCollection.dialogs.length - 1].id;
-                    }
+            if (DialogData.activeDialogId === dialogId) {
+                if (DialogData.dialogs.length > 0) {
+                    DialogData.activeDialogId = DialogData.dialogs[DialogData.dialogs.length - 1].id;
                 }
             }
             
@@ -3357,14 +3199,14 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         
         // ===== HISTORY COLOR PICKER FUNCTIONS =====
         
-        function openHistoryColorPicker(collectionId, dialogId) {
+        function openHistoryColorPicker(dialogId) {
             if (!historyColorPickerModal) {
                 historyColorPickerModal = document.getElementById('historyColorPickerModal');
                 historyColorPickerGrid = document.getElementById('historyColorGrid');
             }
             if (!historyColorPickerModal || !historyColorPickerGrid) return;
             
-            historyColorPickerTarget = { collectionId, dialogId };
+            historyColorPickerTarget = { dialogId };
             buildHistoryColorGrid();
             historyColorPickerModal.classList.add('show');
         }
@@ -3390,19 +3232,16 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         
         async function handleHistoryColorSelected(color) {
             if (!historyColorPickerTarget) return;
-            const { collectionId, dialogId } = historyColorPickerTarget;
+            const { dialogId } = historyColorPickerTarget;
             
             // Find and update the dialog
-            const collection = DialogData.collections.find(c => c.id === collectionId);
-            if (!collection) return;
-            
-            const dialog = collection.dialogs.find(d => d.id === dialogId);
+            const dialog = DialogData.dialogs.find(d => d.id === dialogId);
             if (!dialog) return;
             
             dialog.color = color;
             
             // Live-update the UI
-            const item = document.querySelector(`.dialog-history-item button[data-collection-id="${collectionId}"][data-dialog-id="${dialogId}"]`)?.closest('.dialog-history-item');
+            const item = document.querySelector(`.dialog-history-item button[data-dialog-id="${dialogId}"]`)?.closest('.dialog-history-item');
             if (item) {
                 // Update item background color
                 const isActive = item.classList.contains('active');
@@ -3429,19 +3268,16 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         
         async function removeHistoryColor() {
             if (!historyColorPickerTarget) return;
-            const { collectionId, dialogId } = historyColorPickerTarget;
+            const { dialogId } = historyColorPickerTarget;
             
             // Find and update the dialog
-            const collection = DialogData.collections.find(c => c.id === collectionId);
-            if (!collection) return;
-            
-            const dialog = collection.dialogs.find(d => d.id === dialogId);
+            const dialog = DialogData.dialogs.find(d => d.id === dialogId);
             if (!dialog) return;
             
             delete dialog.color;
             
             // Live-update the UI
-            const item = document.querySelector(`.dialog-history-item button[data-collection-id="${collectionId}"][data-dialog-id="${dialogId}"]`)?.closest('.dialog-history-item');
+            const item = document.querySelector(`.dialog-history-item button[data-dialog-id="${dialogId}"]`)?.closest('.dialog-history-item');
             if (item) {
                 // Update item background color to default
                 const isActive = item.classList.contains('active');
@@ -3559,21 +3395,10 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         async function createNewDialogEntry() {
             ensureDefaultDialogData();
             
-            let collection = getActiveCollection();
-            if (!collection) {
-                ensureDefaultDialogData();
-                collection = getActiveCollection();
-                if (!collection) {
-                    // If still no collection, create a default one
-                    ensureDefaultDialogData();
-                    collection = getActiveCollection();
-                }
-            }
-            
-            // Find highest dialog ID in current collection
+            // Find highest dialog ID across all dialogs
             let maxId = 0;
-            if (Array.isArray(collection.dialogs)) {
-                collection.dialogs.forEach(d => {
+            if (Array.isArray(DialogData.dialogs)) {
+                DialogData.dialogs.forEach(d => {
                     if (d.id > maxId) maxId = d.id;
                 });
             }
@@ -3601,6 +3426,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             const newDialog = {
                 id: newId,
                 name: dialogName,
+                color: DEFAULT_HISTORY_COLOR,
                 timestamp: now,
                 updated: now,
                 participants: {
@@ -3610,13 +3436,13 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 messages: []
             };
             
-            if (!Array.isArray(collection.dialogs)) {
-                collection.dialogs = [];
+            if (!Array.isArray(DialogData.dialogs)) {
+                DialogData.dialogs = [];
             }
-            collection.dialogs.push(newDialog);
-            DialogData.activeDialogId = newId;
-            
-            // Clear UI without deleting anything
+        DialogData.dialogs.push(newDialog);
+        DialogData.activeDialogId = newId;
+        
+        // Clear UI without deleting anything
             if (autoTimeout) clearTimeout(autoTimeout);
             dialogActive = false;
             isAutoPlaying = false;
@@ -3673,10 +3499,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         
         async function persistActiveDialogToNewStructure(updateTimestamp = true) {
             if (isLoadingDialog) return;
-            if (!DialogData || !DialogData.activeDialogId || !DialogData.activeCollectionId) return;
-            
-            const collection = getActiveCollection();
-            if (!collection) return;
+            if (!DialogData || !DialogData.activeDialogId) return;
             
             const dialog = getActiveDialog();
             if (!dialog) return;
@@ -3739,23 +3562,16 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         function loadSavedDialog(sessionId) {
             // Try to parse sessionId as "collectionId-dialogId" format
             if (sessionId && typeof sessionId === 'string' && sessionId.includes('-')) {
-                const parts = sessionId.split('-');
-                if (parts.length >= 2) {
-                    const collectionId = parseFloat(parts[0]);
-                    const dialogId = parseFloat(parts[1]);
-                    if (!isNaN(collectionId) && !isNaN(dialogId)) {
-                        const collection = DialogData.collections.find(c => c.id === collectionId);
-                        if (collection) {
-                            const dialog = collection.dialogs.find(d => d.id === dialogId);
-                            if (dialog) {
-                                DialogData.activeCollectionId = collectionId;
-                                DialogData.activeDialogId = dialogId;
-                                saveDialogDataToLocalStorage();
-                                loadSavedDialogFromNewStructure(dialog);
-                                renderDialogHistory();
-                return;
-            }
-                        }
+                // Legacy sessionId format was "collectionId-dialogId", now just "dialogId"
+                const dialogId = parseFloat(sessionId);
+                if (!isNaN(dialogId)) {
+                    const dialog = DialogData.dialogs.find(d => d.id === dialogId);
+                    if (dialog) {
+                        DialogData.activeDialogId = dialogId;
+                        saveDialogDataToLocalStorage();
+                        loadSavedDialogFromNewStructure(dialog);
+                        renderDialogHistory();
+                        return;
                     }
                 }
             }
@@ -6007,9 +5823,6 @@ if (rightPart.pose) {
 
             // Render history
             renderDialogHistory();
-            
-            // Initialize samling manager color grid
-            buildDialogSamlingColorGrid();
             
             // Setup history color picker event listeners
             const historyRemoveColorBtn = document.getElementById('historyRemoveColorBtn');

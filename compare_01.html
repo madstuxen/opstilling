@@ -1576,30 +1576,6 @@
             position: relative;
         }
         
-        .history-filter {
-            flex: 1;
-            min-width: 180px;
-            padding: 6px 14px 6px 16px;
-            border-radius: 8px;
-            border: 1px solid #cbd5f5;
-            background: #ffffff;
-            color: #1f2937;
-            font-size: 16px;
-            font-weight: 600;
-            outline: none;
-            appearance: none;
-            margin: 0 8px 0 0;
-            position: relative;
-            background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%), linear-gradient(135deg, #6b7280 50%, transparent 50%);
-            background-position: calc(100% - 16px) 50%, calc(100% - 9px) 50%;
-            background-size: 7px 7px, 7px 7px;
-            background-repeat: no-repeat;
-        }
-        
-        .history-filter:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-        }
         
         .collapse-toggle {
             position: absolute;
@@ -2407,7 +2383,6 @@
             <div class="history-sidebar" id="historySidebar">
                 <div class="history-header">
                     <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
-                    <select id="historyFilter" class="history-filter" onchange="setHistoryFilter(this.value)"></select>
                 </div>
                 <div class="history-content">
                     <div class="history-navigation">
@@ -2626,13 +2601,11 @@
 		let currentPosePart = null;
 		let comparisonNotes = ''; // Text field content
 		
-		// CompareData structure
-		const COMPARE_STORAGE_KEY = 'compareData';
-		let CompareData = null;
-		let collectionCounter = 1;
-		let comparisonCounter = 1;
-		let historyFilterCollectionId = null;
-		
+	// CompareData structure (flat, no collections)
+	const COMPARE_STORAGE_KEY = 'compareData';
+	let CompareData = null; // { version, updated, activeComparisonId, comparisons: [...] }
+	let comparisonCounter = 1;
+	
 		// Color presets for collections
 		const COMPARE_COLLECTION_COLOR_PRESETS = [
 			'#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
@@ -2838,92 +2811,68 @@
 			}
 		}
 		
-		async function ensureDefaultCompareData() {
-			let dataWasCreated = false;
-			
-			if (!CompareData || !Array.isArray(CompareData.collections)) {
-				CompareData = {
-					version: '1.0',
-					updated: new Date().toISOString(),
-					activeCollectionId: 1,
-					activeComparisonId: 1,
-					collections: []
-				};
-				dataWasCreated = true;
-			}
-			if (!Array.isArray(CompareData.collections) || CompareData.collections.length === 0) {
-				CompareData.collections = [{
-					id: 1,
-					name: 'Samling 1',
-					color: COMPARE_COLLECTION_COLOR_PRESETS[0],
-					comparisons: []
-				}];
-				CompareData.activeCollectionId = 1;
-				dataWasCreated = true;
-			}
-			// Ensure all collections have colors
-			CompareData.collections.forEach((collection, idx) => {
-				if (!collection.color) {
-					collection.color = COMPARE_COLLECTION_COLOR_PRESETS[idx % COMPARE_COLLECTION_COLOR_PRESETS.length];
-				}
-			});
-			const collection = CompareData.collections.find(c => c.id === CompareData.activeCollectionId) || CompareData.collections[0];
-			if (!collection.comparisons || collection.comparisons.length === 0) {
-				const now = new Date().toISOString();
-				const initialComparison = {
-					id: 1,
-					name: 'Sammenligning 1',
-					timestamp: now,
-					updated: now,
-					leftParticipant: {
-						name: 'Venstre',
-						color: '#3b82f6',
-						pose: '',
-						flipped: false
-					},
-					rightParticipant: {
-						name: 'Højre',
-						color: '#ef4444',
-						pose: '',
-						flipped: false
-					},
-					traitNames: [],
-					leftScores: {},
-					rightScores: {},
-					notes: ''
-				};
-				collection.comparisons = [initialComparison];
-				CompareData.activeComparisonId = 1;
-				dataWasCreated = true;
-			}
-			// Ensure all comparisons have timestamps
-			CompareData.collections.forEach(collection => {
-				if (Array.isArray(collection.comparisons)) {
-					collection.comparisons.forEach(comparison => {
-						if (!comparison.timestamp) {
-							comparison.timestamp = comparison.updated || new Date().toISOString();
-						}
-						if (!comparison.updated) {
-							comparison.updated = comparison.timestamp || new Date().toISOString();
-						}
-					});
-				}
-			});
-			// Only save if we actually created new data structure AND not during initial load
-			// This prevents overwriting existing Firestore data with empty data on page load
-			// Don't save during data creation - it's a load operation
-		}
+	async function ensureDefaultCompareData() {
+		let dataWasCreated = false;
 		
-		function getActiveCollection() {
-			if (!CompareData || !Array.isArray(CompareData.collections)) return null;
-			return CompareData.collections.find(c => c.id === CompareData.activeCollectionId) || CompareData.collections[0] || null;
+		if (!CompareData || !Array.isArray(CompareData.comparisons)) {
+			CompareData = {
+				version: '2.0',
+				updated: new Date().toISOString(),
+				activeComparisonId: 1,
+				comparisons: []
+			};
+			dataWasCreated = true;
 		}
+		if (!Array.isArray(CompareData.comparisons) || CompareData.comparisons.length === 0) {
+			const now = new Date().toISOString();
+			const initialComparison = {
+				id: 1,
+				name: 'Sammenligning 1',
+				color: DEFAULT_HISTORY_COLOR,
+				timestamp: now,
+				updated: now,
+				leftParticipant: {
+					name: 'Venstre',
+					color: '#3b82f6',
+					pose: '',
+					flipped: false
+				},
+				rightParticipant: {
+					name: 'Højre',
+					color: '#ef4444',
+					pose: '',
+					flipped: false
+				},
+				traitNames: [],
+				leftScores: {},
+				rightScores: {},
+				notes: ''
+			};
+			CompareData.comparisons = [initialComparison];
+			CompareData.activeComparisonId = 1;
+			dataWasCreated = true;
+		}
+		// Ensure all comparisons have timestamps and colors
+		CompareData.comparisons.forEach((comparison, idx) => {
+			if (!comparison.timestamp) {
+				comparison.timestamp = comparison.updated || new Date().toISOString();
+			}
+			if (!comparison.updated) {
+				comparison.updated = comparison.timestamp || new Date().toISOString();
+			}
+			if (!comparison.color) {
+				comparison.color = DEFAULT_HISTORY_COLOR;
+			}
+		});
+		// Only save if we actually created new data structure AND not during initial load
+		// This prevents overwriting existing Firestore data with empty data on page load
+		// Don't save during data creation - it's a load operation
+	}
 		
-		function getActiveComparison() {
-			const col = getActiveCollection();
-			if (!col || !Array.isArray(col.comparisons)) return null;
-			return col.comparisons.find(c => c.id === CompareData.activeComparisonId) || col.comparisons[0] || null;
-		}
+	function getActiveComparison() {
+		if (!CompareData || !Array.isArray(CompareData.comparisons)) return null;
+		return CompareData.comparisons.find(c => c.id === CompareData.activeComparisonId) || CompareData.comparisons[0] || null;
+	}
 		
 		// Debounce timeout for comparison notes
 		let comparisonNotesDebounceTimeout = null;
@@ -3166,79 +3115,40 @@
 		
 		// ===== HISTORY SIDEBAR FUNCTIONS =====
 		
-		function getAllComparisonsSorted() {
-			if (!CompareData || !Array.isArray(CompareData.collections)) return [];
-			const allComparisons = [];
-			CompareData.collections.forEach(collection => {
-				if (Array.isArray(collection.comparisons)) {
-					collection.comparisons.forEach(comparison => {
-						if (!comparison.timestamp && comparison.updated) {
-							comparison.timestamp = comparison.updated;
-						} else if (!comparison.timestamp) {
-							comparison.timestamp = new Date().toISOString();
-						}
-						allComparisons.push({
-							comparison,
-							collection
-						});
-					});
-				}
-			});
-			return allComparisons.sort((a, b) => {
-				const tsA = a.comparison.timestamp || '';
-				const tsB = b.comparison.timestamp || '';
-				return tsB.localeCompare(tsA);
-			});
-		}
-		
-		function getFilteredSortedComparisons() {
-			const all = getAllComparisonsSorted();
-			if (!historyFilterCollectionId || historyFilterCollectionId === 'all') {
-				return all;
+	function getAllComparisonsSorted() {
+		if (!CompareData || !Array.isArray(CompareData.comparisons)) return [];
+		const allComparisons = [];
+		CompareData.comparisons.forEach(comparison => {
+			if (!comparison.timestamp && comparison.updated) {
+				comparison.timestamp = comparison.updated;
+			} else if (!comparison.timestamp) {
+				comparison.timestamp = new Date().toISOString();
 			}
-			const filterId = parseInt(historyFilterCollectionId, 10);
-			return all.filter(item => item.collection.id === filterId);
-		}
+			allComparisons.push({
+				comparison
+			});
+		});
+		return allComparisons.sort((a, b) => {
+			const tsA = a.comparison.timestamp || '';
+			const tsB = b.comparison.timestamp || '';
+			return tsB.localeCompare(tsA);
+		});
+	}
 		
-		function renderHistoryFilterOptions() {
-			const filterEl = document.getElementById('historyFilter');
-			if (!filterEl) return;
-			filterEl.innerHTML = '';
-			
-			const allOption = document.createElement('option');
-			allOption.value = 'all';
-			allOption.textContent = 'Alle samlinger';
-			filterEl.appendChild(allOption);
-			
-			if (CompareData && Array.isArray(CompareData.collections)) {
-				CompareData.collections.forEach(collection => {
-					const option = document.createElement('option');
-					option.value = collection.id;
-					option.textContent = collection.name || 'Samling';
-					if (collection.id === historyFilterCollectionId) {
-						option.selected = true;
-					}
-					filterEl.appendChild(option);
-				});
-			}
-		}
+	function getFilteredSortedComparisons() {
+		return getAllComparisonsSorted();
+	}
 		
-		function setHistoryFilter(value) {
-			historyFilterCollectionId = value === 'all' ? null : value;
-			renderHistory();
-			updateHistoryNavState();
-		}
-		
+	
 		async function renderHistory() {
 			const listEl = document.getElementById('historyList');
 			if (!listEl) return;
 			listEl.innerHTML = '';
 			
 			const filtered = getFilteredSortedComparisons();
-			filtered.forEach(({ comparison, collection }) => {
+			filtered.forEach(({ comparison }) => {
 				const item = document.createElement('div');
-				const isActive = comparison.id === CompareData.activeComparisonId && 
-				               collection.id === CompareData.activeCollectionId;
+				const isActive = comparison.id === CompareData.activeComparisonId;
 				item.className = `history-item ${isActive ? 'active' : ''}`;
 				
 				// Set simple background color (not based on collection)
@@ -3260,17 +3170,15 @@
 				dateInput.value = comparison.name || 'Sammenligning';
 				dateInput.readOnly = !isActive;
 				dateInput.setAttribute('data-comparison-id', comparison.id);
-				dateInput.addEventListener('focus', (e) => {
-					// Check current active state
-					const currentlyActive = comparison.id === CompareData.activeComparisonId && 
-					                       collection.id === CompareData.activeCollectionId;
-					// If not active, prevent focus and activate item instead
-					if (!currentlyActive) {
-						e.preventDefault();
-						e.stopPropagation();
-						// Activate the item (first click behavior)
-						CompareData.activeCollectionId = collection.id;
-						CompareData.activeComparisonId = comparison.id;
+			dateInput.addEventListener('focus', (e) => {
+				// Check current active state
+				const currentlyActive = comparison.id === CompareData.activeComparisonId;
+				// If not active, prevent focus and activate item instead
+				if (!currentlyActive) {
+					e.preventDefault();
+					e.stopPropagation();
+					// Activate the item (first click behavior)
+					CompareData.activeComparisonId = comparison.id;
 						loadComparisonFromCompareData(comparison);
 						renderHistory();
 						updateHistoryNavState();
@@ -3279,24 +3187,22 @@
 					// If active, allow normal focus for editing
 				});
 				
-				// Textarea touch handler for mobile - allow direct focus on touch
-				dateInput.addEventListener('touchend', (e) => {
-					// Check current active state
-					const currentlyActive = comparison.id === CompareData.activeComparisonId && 
-					                       collection.id === CompareData.activeCollectionId;
-					
-					if (!currentlyActive) {
-						// If not active, activate first, then focus
-						e.stopPropagation();
-						e.preventDefault();
-						CompareData.activeCollectionId = collection.id;
-						CompareData.activeComparisonId = comparison.id;
-						loadComparisonFromCompareData(comparison);
-						renderHistory();
-						updateHistoryNavState();
-						// After re-render, focus the input
-						setTimeout(() => {
-							const newInput = document.querySelector(`.history-item-date[data-collection-id="${collection.id}"][data-comparison-id="${comparison.id}"]`);
+			// Textarea touch handler for mobile - allow direct focus on touch
+			dateInput.addEventListener('touchend', (e) => {
+				// Check current active state
+				const currentlyActive = comparison.id === CompareData.activeComparisonId;
+				
+				if (!currentlyActive) {
+					// If not active, activate first, then focus
+					e.stopPropagation();
+					e.preventDefault();
+					CompareData.activeComparisonId = comparison.id;
+					loadComparisonFromCompareData(comparison);
+					renderHistory();
+					updateHistoryNavState();
+					// After re-render, focus the input
+					setTimeout(() => {
+						const newInput = document.querySelector(`.history-item-date[data-comparison-id="${comparison.id}"]`);
 							if (newInput) {
 								newInput.focus();
 							}
@@ -3359,11 +3265,11 @@
 				deleteBtn.textContent = '×';
 				
 				// Delete button handlers - both touch and click for mobile compatibility
-				const handleDelete = (e) => {
-					e.stopPropagation();
-					e.preventDefault();
-					deleteComparison(collection.id, comparison.id);
-				};
+			const handleDelete = async (e) => {
+				e.stopPropagation();
+				e.preventDefault();
+				await deleteComparison(comparison.id);
+			};
 				
 				deleteBtn.addEventListener('click', handleDelete);
 				
@@ -3407,22 +3313,20 @@
 					if (e.target.classList.contains('history-item-delete')) return;
 					if (e.target.classList.contains('history-item-color-btn')) return;
 					
-					// Check current active state
-					const currentlyActive = comparison.id === CompareData.activeComparisonId && 
-					                       collection.id === CompareData.activeCollectionId;
-					
-					// If clicking directly on input field of active item, allow normal editing
-					if (e.target.classList.contains('history-item-date') && currentlyActive) {
-						// Let the input handle focus normally
-						return;
-					}
-					
-					// First click/touch: If item is not active, activate it
-					if (!currentlyActive) {
-						e.preventDefault();
-						e.stopPropagation();
-						CompareData.activeCollectionId = collection.id;
-						CompareData.activeComparisonId = comparison.id;
+				// Check current active state
+				const currentlyActive = comparison.id === CompareData.activeComparisonId;
+				
+				// If clicking directly on input field of active item, allow normal editing
+				if (e.target.classList.contains('history-item-date') && currentlyActive) {
+					// Let the input handle focus normally
+					return;
+				}
+				
+				// First click/touch: If item is not active, activate it
+				if (!currentlyActive) {
+					e.preventDefault();
+					e.stopPropagation();
+					CompareData.activeComparisonId = comparison.id;
 						loadComparisonFromCompareData(comparison);
 						await renderHistory();
 						updateHistoryNavState();
@@ -3483,35 +3387,32 @@
 			updateHistoryNavState();
 		}
 		
-		function updateHistoryNavState() {
-			const filtered = getFilteredSortedComparisons();
-			const currentIndex = filtered.findIndex(item => 
-				item.comparison.id === CompareData.activeComparisonId && 
-				item.collection.id === CompareData.activeCollectionId
-			);
-			
-			const navUp = document.getElementById('navUp');
-			const navDown = document.getElementById('navDown');
-			
-			if (navUp) navUp.disabled = currentIndex <= 0;
-			if (navDown) navDown.disabled = currentIndex >= filtered.length - 1;
-		}
+	function updateHistoryNavState() {
+		const filtered = getFilteredSortedComparisons();
+		const currentIndex = filtered.findIndex(item => 
+			item.comparison.id === CompareData.activeComparisonId
+		);
 		
-		async function navigateHistory(direction) {
-			const filtered = getFilteredSortedComparisons();
-			const currentIndex = filtered.findIndex(item => 
-				item.comparison.id === CompareData.activeComparisonId && 
-				item.collection.id === CompareData.activeCollectionId
-			);
-			
-			if (currentIndex === -1) return;
-			
-			const newIndex = currentIndex + direction;
-			if (newIndex < 0 || newIndex >= filtered.length) return;
-			
-			const { comparison, collection } = filtered[newIndex];
-			CompareData.activeCollectionId = collection.id;
-			CompareData.activeComparisonId = comparison.id;
+		const navUp = document.getElementById('navUp');
+		const navDown = document.getElementById('navDown');
+		
+		if (navUp) navUp.disabled = currentIndex <= 0;
+		if (navDown) navDown.disabled = currentIndex >= filtered.length - 1;
+	}
+		
+	async function navigateHistory(direction) {
+		const filtered = getFilteredSortedComparisons();
+		const currentIndex = filtered.findIndex(item => 
+			item.comparison.id === CompareData.activeComparisonId
+		);
+		
+		if (currentIndex === -1) return;
+		
+		const newIndex = currentIndex + direction;
+		if (newIndex < 0 || newIndex >= filtered.length) return;
+		
+		const { comparison } = filtered[newIndex];
+		CompareData.activeComparisonId = comparison.id;
 			loadComparisonFromCompareData(comparison);
 			await renderHistory();
 			updateHistoryNavState();
@@ -3530,42 +3431,33 @@
 			});
 		}
 		
-		async function deleteComparison(collectionId, comparisonId) {
-			const collection = CompareData.collections.find(c => c.id === collectionId);
-			if (!collection || !Array.isArray(collection.comparisons)) return;
-			
-			if (collection.comparisons.length <= 1) {
-				alert('Du kan ikke slette den sidste sammenligning i en samling. Slet samlingen i stedet.');
-				return;
-			}
-			
-			if (!confirm('Er du sikker på du vil slette denne sammenligning?')) {
-				return;
-			}
-			
-			collection.comparisons = collection.comparisons.filter(c => c.id !== comparisonId);
-			
-			if (CompareData.activeComparisonId === comparisonId && CompareData.activeCollectionId === collectionId) {
-				if (collection.comparisons.length > 0) {
-					CompareData.activeComparisonId = collection.comparisons[collection.comparisons.length - 1].id;
-				} else {
-					const otherCollection = CompareData.collections.find(c => 
-						c.id !== collectionId && Array.isArray(c.comparisons) && c.comparisons.length > 0
-					);
-					if (otherCollection) {
-						CompareData.activeCollectionId = otherCollection.id;
-						CompareData.activeComparisonId = otherCollection.comparisons[otherCollection.comparisons.length - 1].id;
-					}
-				}
-			}
-			
-			await saveCompareDataToLocalStorage();
-			const activeComparison = getActiveComparison();
-			if (activeComparison) {
-				loadComparisonFromCompareData(activeComparison);
-			}
-			renderHistory();
+	async function deleteComparison(comparisonId) {
+		if (!CompareData || !Array.isArray(CompareData.comparisons)) return;
+		
+		if (CompareData.comparisons.length <= 1) {
+			alert('Du kan ikke slette den sidste sammenligning.');
+			return;
 		}
+		
+		if (!confirm('Er du sikker på du vil slette denne sammenligning?')) {
+			return;
+		}
+		
+		CompareData.comparisons = CompareData.comparisons.filter(c => c.id !== comparisonId);
+		
+		if (CompareData.activeComparisonId === comparisonId) {
+			if (CompareData.comparisons.length > 0) {
+				CompareData.activeComparisonId = CompareData.comparisons[CompareData.comparisons.length - 1].id;
+			}
+		}
+		
+		await saveCompareDataToLocalStorage();
+		const activeComparison = getActiveComparison();
+		if (activeComparison) {
+			loadComparisonFromCompareData(activeComparison);
+		}
+		renderHistory();
+	}
 		
 		// ===== HISTORY COLOR PICKER FUNCTIONS =====
 		
@@ -3600,21 +3492,15 @@
 			});
 		}
 		
-		async function handleHistoryColorSelected(color) {
-			if (!historyColorPickerTarget) return;
-			const comparisonId = historyColorPickerTarget;
-			
-			// Find and update the comparison
-			let comparison = null;
-			for (const collection of CompareData.collections) {
-				if (Array.isArray(collection.comparisons)) {
-					comparison = collection.comparisons.find(c => c.id === comparisonId);
-					if (comparison) break;
-				}
-			}
-			if (!comparison) return;
-			
-			comparison.color = color;
+	async function handleHistoryColorSelected(color) {
+		if (!historyColorPickerTarget) return;
+		const comparisonId = historyColorPickerTarget;
+		
+		// Find and update the comparison
+		const comparison = CompareData.comparisons.find(c => c.id === comparisonId);
+		if (!comparison) return;
+		
+		comparison.color = color;
 			
 			// Live-update the UI
 			const item = document.querySelector(`.history-item button[data-comparison-id="${comparisonId}"]`)?.closest('.history-item');
@@ -3642,19 +3528,13 @@
 			// Don't close picker - let user select multiple colors or click outside to close
 		}
 		
-		async function removeHistoryColor() {
-			if (!historyColorPickerTarget) return;
-			const comparisonId = historyColorPickerTarget;
-			
-			// Find and update the comparison
-			let comparison = null;
-			for (const collection of CompareData.collections) {
-				if (Array.isArray(collection.comparisons)) {
-					comparison = collection.comparisons.find(c => c.id === comparisonId);
-					if (comparison) break;
-				}
-			}
-			if (!comparison) return;
+	async function removeHistoryColor() {
+		if (!historyColorPickerTarget) return;
+		const comparisonId = historyColorPickerTarget;
+		
+		// Find and update the comparison
+		const comparison = CompareData.comparisons.find(c => c.id === comparisonId);
+		if (!comparison) return;
 			
 			delete comparison.color;
 			
@@ -3684,63 +3564,58 @@
 			// Don't close picker - let user click outside to close
 		}
 		
-		async function createNewComparison() {
-			if (!CompareData) {
-				await ensureDefaultCompareData();
-			}
-			
-			let collection = getActiveCollection();
-			if (!collection) {
-				await ensureDefaultCompareData();
-				collection = getActiveCollection();
-			}
-			
-			// Find highest comparison ID in current collection
-			let maxId = 0;
-			if (Array.isArray(collection.comparisons)) {
-				collection.comparisons.forEach(c => {
-					if (c.id > maxId) maxId = c.id;
-				});
-			}
-			
-			const newId = maxId + 1;
-			const comparisonName = `Sammenligning ${newId}`;
-			
-			// Save current workspace before switching
-			await syncCurrentWorkspaceToActiveComparison();
-			
-			// Create new comparison
-			const now = new Date().toISOString();
-			const newComparison = {
-				id: newId,
-				name: comparisonName,
-				timestamp: now,
-				updated: now,
-				leftParticipant: {
-					name: 'Venstre',
-					color: '#3b82f6',
-					pose: '',
-					flipped: false
-				},
-				rightParticipant: {
-					name: 'Højre',
-					color: '#ef4444',
-					pose: '',
-					flipped: false
-				},
-				traitNames: [],
-				leftScores: {},
-				rightScores: {},
-				notes: ''
-			};
-			
-			if (!Array.isArray(collection.comparisons)) {
-				collection.comparisons = [];
-			}
-			collection.comparisons.push(newComparison);
-			CompareData.activeComparisonId = newId;
-			
-			await saveCompareDataToLocalStorage();
+	async function createNewComparison() {
+		if (!CompareData) {
+			await ensureDefaultCompareData();
+		}
+		
+		// Find highest comparison ID across all comparisons
+		let maxId = 0;
+		if (Array.isArray(CompareData.comparisons)) {
+			CompareData.comparisons.forEach(c => {
+				if (c.id > maxId) maxId = c.id;
+			});
+		}
+		
+		const newId = maxId + 1;
+		const comparisonName = `Sammenligning ${newId}`;
+		
+		// Save current workspace before switching
+		await syncCurrentWorkspaceToActiveComparison();
+		
+		// Create new comparison with color
+		const now = new Date().toISOString();
+		const newComparison = {
+			id: newId,
+			name: comparisonName,
+			color: DEFAULT_HISTORY_COLOR,
+			timestamp: now,
+			updated: now,
+			leftParticipant: {
+				name: 'Venstre',
+				color: '#3b82f6',
+				pose: '',
+				flipped: false
+			},
+			rightParticipant: {
+				name: 'Højre',
+				color: '#ef4444',
+				pose: '',
+				flipped: false
+			},
+			traitNames: [],
+			leftScores: {},
+			rightScores: {},
+			notes: ''
+		};
+		
+		if (!Array.isArray(CompareData.comparisons)) {
+			CompareData.comparisons = [];
+		}
+		CompareData.comparisons.push(newComparison);
+		CompareData.activeComparisonId = newId;
+		
+		await saveCompareDataToLocalStorage();
 			
 			// Load the new empty comparison
 			loadComparisonFromCompareData(newComparison);
@@ -6094,7 +5969,6 @@ function resetPose(side) {
             
             // Render history
             renderHistory();
-            renderHistoryFilterOptions();
             
             // Setup history color picker event listeners
             const historyRemoveColorBtn = document.getElementById('historyRemoveColorBtn');
