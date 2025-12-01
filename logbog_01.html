@@ -587,7 +587,7 @@
 
         .activities-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, 140px);
+            grid-template-columns: repeat(auto-fit, 160px);
             gap: 10px;
             justify-content: flex-start;
         }
@@ -599,19 +599,17 @@
 
         .activity-tile {
             border-radius: 16px;
-            padding-top: 6px;
-            padding-right: 14px;
-            padding-left: 14px;
+            padding: 12px 14px;
             color: white;
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            gap: 0px;
+            gap: 2px;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            width: 140px;
-            min-height: 60px;
+            width: 160px;
+            min-height: 65px;
             text-align: left;
         }
 
@@ -621,21 +619,22 @@
             inset: 0;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
             mix-blend-mode: screen;
+            pointer-events: none;
+        }
+        
+        .activity-tile.empty::after {
+            display: none;
         }
 
         .activity-label {
             flex: 0 0 auto;
             min-width: 0;
-            font-size: 1.1rem;
+            font-size: 1.0rem;
             font-weight: 600;
-            line-height: 1.3;
+            line-height: 1.2;
             text-transform: none;
             letter-spacing: 0.02em;
             opacity: 1;
-            width: 140px;
-            word-break: break-word;
-            overflow-wrap: break-word;
-            hyphens: auto;
         }
 
         .activity-tile:hover {
@@ -644,14 +643,10 @@
         }
 
         .activity-meta {
-            font-size: 0.78rem;
-            font-weight: 600;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            opacity: 0.85;
-            word-break: break-word;
-            overflow-wrap: break-word;
-            hyphens: auto;
+            flex: 0 0 auto;
+            font-size: 0.75rem;
+            font-weight: 500;
+            opacity: 0.7;
         }
 
         .activity-tile.empty {
@@ -659,31 +654,66 @@
             box-shadow: none;
             border: 3px dashed currentColor;
             color: inherit;
+            flex-direction: row;
             align-items: flex-start;
-            justify-content: flex-start;
-            gap: 0;
-            text-align: left;
+            justify-content: space-between;
         }
 
-        .activity-tile.empty .activity-label {
-            flex: 0 0 auto;
-            font-size: 1.1rem;
-            font-weight: 600;
-            letter-spacing: 0.02em;
-            text-transform: none;
-            width: 140px;
-            word-break: break-word;
-            overflow-wrap: break-word;
-            hyphens: auto;
+        .activity-tile.empty .activity-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 0 1 auto;
+            max-width: 90px;
         }
 
         .activity-empty-text {
-            font-size: 0.85rem;
-            opacity: 0.85;
-            letter-spacing: 0.02em;
-            word-break: break-word;
-            overflow-wrap: break-word;
-            hyphens: auto;
+            font-size: 0.75rem;
+            opacity: 0.7;
+            font-weight: 500;
+        }
+
+        .activity-empty-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 2;
+            background: white;
+        }
+
+        .activity-empty-icon {
+            width: 15px;
+            height: 15px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .activity-empty-icon::before,
+        .activity-empty-icon::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            background: currentColor;
+            border-radius: 1px;
+        }
+
+        .activity-empty-icon::before {
+            width: 15px;
+            height: 2px;
+            transform: translate(-50%, -50%);
+        }
+
+        .activity-empty-icon::after {
+            width: 2px;
+            height: 15px;
+            transform: translate(-50%, -50%);
         }
 
         .journal-grid {
@@ -1877,6 +1907,15 @@
                 return;
             }
             
+            // 🛡️ CRITICAL SAFETY CHECK: Prevent data loss from empty saves
+            if (!entries || !Array.isArray(entries) || entries.length === 0) {
+                console.error('🚨 CRITICAL: Attempted to save empty or invalid logbookData!');
+                console.error('This would DELETE ALL DATA. Save blocked!');
+                console.trace(); // Show call stack
+                alert('FEJL: Forsøgte at gemme tom data! Dette er blokeret for at beskytte dine data. Reload siden.');
+                return;
+            }
+            
             try {
                 await saveLogbookDataToFirestore(entries);
                 // Update cache directly without reading from Firestore
@@ -2763,10 +2802,26 @@
         }
 
         async function updateActiveLogEntry(field, value) {
-            const entries = await getLogbookData();
+            let entries = await getLogbookData();
+            
+            // SAFETY CHECK: If entries is empty but we should have data, try to reload
+            if (!entries || entries.length === 0) {
+                console.error('⚠️ WARNING: entries array is empty! This could overwrite data.');
+                console.log('Attempting to reload data from Firestore...');
+                window.allUserData = null; // Clear cache to force reload
+                entries = await getLogbookData();
+                if (!entries || entries.length === 0) {
+                    console.error('❌ Still no data after reload. NOT SAVING to prevent data loss!');
+                    alert('FEJL: Kunne ikke indlæse logbog data. Gem ikke for at undgå datatab!');
+                    return;
+                }
+                console.log('✅ Data reloaded successfully, proceeding with save...');
+            }
+            
             let entry = entries.find(item => item.date === activeLogDate);
             if (!entry) {
-                entry = { date: getLocalDateKey(), dagbog: '', dreams: '', timestamp: new Date().toISOString() };
+                // BUG FIX: Use activeLogDate instead of getLocalDateKey()!
+                entry = { date: activeLogDate, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
                 entries.push(entry);
             }
             entry[field] = value;
@@ -3170,6 +3225,19 @@
             renderingActivities = true;
             
             const normalizedKey = normalizeDateKey(dateKey) || getTodayDateKey();
+            
+            // Update activity date label
+            const activityLabel = document.getElementById('activityDateLabel');
+            if (activityLabel && normalizedKey) {
+                try {
+                    const [year, month, day] = normalizedKey.split('-');
+                    const date = new Date(year, month - 1, day);
+                    activityLabel.textContent = date.toLocaleDateString('da-DK');
+                } catch (e) {
+                    activityLabel.textContent = normalizedKey;
+                }
+            }
+            
             const grid = document.getElementById('activitiesGrid');
             if (!grid) {
                 renderingActivities = false;
@@ -3292,7 +3360,7 @@
                 } else if (activity.type === 'relationer') {
                     const info = await getCompareActivityInfo(normalizedKey, window.allUserData || null);
                     if (info.hasEntries) {
-                        const compareLabel = info.count === 1 ? '1 sammen-<br>ligning' : `${info.count} sammen-<br>ligninger`;
+                        const compareLabel = info.count === 1 ? '1 sammenligning' : `${info.count} sammenligninger`;
                         badgeText = compareLabel;
                     } else {
                         isEmptyState = true;
@@ -3308,11 +3376,26 @@
                     tile.style.border = `3px dashed ${accentColor}`;
                     tile.style.boxShadow = 'none';
 
+                    // Left side: content wrapper with label and text
+                    const contentWrapper = document.createElement('div');
+                    contentWrapper.className = 'activity-content';
+
                     const emptyTextEl = document.createElement('div');
                     emptyTextEl.className = 'activity-empty-text';
                     emptyTextEl.textContent = emptyTextLabel;
 
-                    tile.append(labelEl, emptyTextEl);
+                    contentWrapper.append(labelEl, emptyTextEl);
+
+                    // Right side: circle with cross icon
+                    const emptyCircle = document.createElement('div');
+                    emptyCircle.className = 'activity-empty-circle';
+
+                    const emptyIcon = document.createElement('div');
+                    emptyIcon.className = 'activity-empty-icon';
+
+                    emptyCircle.appendChild(emptyIcon);
+
+                    tile.append(contentWrapper, emptyCircle);
                 } else {
                     tile.append(labelEl);
                     if (badgeText) {

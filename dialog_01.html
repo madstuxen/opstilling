@@ -2420,6 +2420,15 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             if (!currentUser || !db) return false;
             if (!DialogData) return false;
             
+            // 🛡️ CRITICAL SAFETY CHECK: Prevent data loss from empty saves
+            if (!DialogData.dialogs || !Array.isArray(DialogData.dialogs) || DialogData.dialogs.length === 0) {
+                console.error('🚨 CRITICAL: Attempted to save empty dialogData!');
+                console.error('This would DELETE ALL DIALOGS. Save blocked!');
+                console.trace();
+                alert('FEJL: Forsøgte at gemme tom dialog data! Dette er blokeret for at beskytte dine data. Reload siden.');
+                return false;
+            }
+            
             DialogData.updated = new Date().toISOString();
             
             try {

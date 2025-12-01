@@ -2571,6 +2571,15 @@
             if (!currentUser || !db) return false;
             if (!CompareData) return false;
             
+            // 🛡️ CRITICAL SAFETY CHECK: Prevent data loss from empty saves
+            if (!CompareData.comparisons || !Array.isArray(CompareData.comparisons) || CompareData.comparisons.length === 0) {
+                console.error('🚨 CRITICAL: Attempted to save empty compareData!');
+                console.error('This would DELETE ALL COMPARISONS. Save blocked!');
+                console.trace();
+                alert('FEJL: Forsøgte at gemme tom compare data! Dette er blokeret for at beskytte dine data. Reload siden.');
+                return false;
+            }
+            
             CompareData.updated = new Date().toISOString();
             
             try {

@@ -2024,6 +2024,15 @@
             
             updateBodyMapData();
             
+            // 🛡️ CRITICAL SAFETY CHECK: Prevent data loss from empty saves
+            if (!BodyMapData || !BodyMapData.dataIndexes || !Array.isArray(BodyMapData.dataIndexes) || BodyMapData.dataIndexes.length === 0) {
+                console.error('🚨 CRITICAL: Attempted to save empty bodymapData!');
+                console.error('This would DELETE ALL BODYMAPS. Save blocked!');
+                console.trace();
+                alert('FEJL: Forsøgte at gemme tom bodymap data! Dette er blokeret for at beskytte dine data. Reload siden.');
+                return false;
+            }
+            
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 await userDocRef.set({

@@ -2167,6 +2167,15 @@
             if (!currentUser || !db) return false;
             if (!OpstillingData) return false;
             
+            // 🛡️ CRITICAL SAFETY CHECK: Prevent data loss from empty saves
+            if (!OpstillingData.setups || !Array.isArray(OpstillingData.setups) || OpstillingData.setups.length === 0) {
+                console.error('🚨 CRITICAL: Attempted to save empty opstillingData!');
+                console.error('This would DELETE ALL SETUPS. Save blocked!');
+                console.trace();
+                alert('FEJL: Forsøgte at gemme tom opstilling data! Dette er blokeret for at beskytte dine data. Reload siden.');
+                return false;
+            }
+            
             OpstillingData.updated = new Date().toISOString();
             
             try {

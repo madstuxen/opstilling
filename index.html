@@ -1253,10 +1253,10 @@ const firebaseConfig = {
                         allData.data.bodymapData = data.bodymapData || null;
                         allData.data.affirmations = data.affirmations || null;
                         
-                        // Add metadata
+                        // Add metadata (handle both Firestore Timestamp and regular dates)
                         allData.metadata = {
-                            createdAt: data.createdAt?.toDate()?.toISOString() || null,
-                            updatedAt: data.updatedAt?.toDate()?.toISOString() || null
+                            createdAt: data.createdAt ? (typeof data.createdAt.toDate === 'function' ? data.createdAt.toDate().toISOString() : data.createdAt) : null,
+                            updatedAt: data.updatedAt ? (typeof data.updatedAt.toDate === 'function' ? data.updatedAt.toDate().toISOString() : data.updatedAt) : null
                         };
                         
                         console.log('Data loaded successfully:', allData);
