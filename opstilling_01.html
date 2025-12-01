@@ -2111,6 +2111,7 @@
             window.allDataLoadingPromise = (async () => {
                 try {
                     const userDocRef = db.collection('users').doc(currentUser.uid);
+                    console.log('🔥 FIRESTORE READ - opstilling_01.html - loadAllUserData');
                     const doc = await userDocRef.get();
                     const raw = doc.exists ? (doc.data() || {}) : {};
                     const data = {
@@ -2153,6 +2154,7 @@
             if (!currentUser || !db) return false;
             
             try {
+                console.log('🔥 FIRESTORE READ - opstilling_01.html - hasDataInFirestore');
                 const doc = await db.collection('users').doc(currentUser.uid).get();
                 const data = doc.data()?.opstillingData;
                 return data && Array.isArray(data.collections) && data.collections.length > 0;
@@ -2174,8 +2176,10 @@
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
                 
-                // Refresh cache after successful save so other pages can reuse updated data
-                await loadAllUserData(true);
+                // Update cache directly without reading from Firestore
+                if (window.allUserData) {
+                    window.allUserData.opstillingData = OpstillingData;
+                }
                 
                 console.log('[SAVE] Success');
                 return true;

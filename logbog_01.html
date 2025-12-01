@@ -580,8 +580,8 @@
         }
 
         .card-title span {
-            font-size: 0.9rem;
-            color: #6b7280;
+            font-size: 1rem;
+            color: #524f56;
             font-weight: 500;
         }
 
@@ -599,17 +599,20 @@
 
         .activity-tile {
             border-radius: 16px;
-            padding: 14px;
+            padding-top: 6px;
+            padding-right: 14px;
+            padding-left: 14px;
             color: white;
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 0px;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             width: 140px;
-            min-height: 100px;
+            min-height: 60px;
+            text-align: left;
         }
 
         .activity-tile::after {
@@ -621,7 +624,7 @@
         }
 
         .activity-label {
-            flex: 1 1 auto;
+            flex: 0 0 auto;
             min-width: 0;
             font-size: 1.1rem;
             font-weight: 600;
@@ -635,30 +638,9 @@
             hyphens: auto;
         }
 
-        .activity-time {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.85rem;
-            opacity: 0.85;
-            white-space: nowrap;
-        }
-
-        .activity-time svg {
-            flex-shrink: 0;
-        }
-
         .activity-tile:hover {
             transform: translateY(-6px);
             box-shadow: 0 18px 30px rgba(15, 23, 42, 0.25);
-        }
-
-        .activity-text {
-            font-size: 0.9rem;
-            opacity: 0.85;
-            word-break: break-word;
-            overflow-wrap: break-word;
-            hyphens: auto;
         }
 
         .activity-meta {
@@ -677,10 +659,10 @@
             box-shadow: none;
             border: 3px dashed currentColor;
             color: inherit;
-            align-items: center;
-            justify-content: center;
+            align-items: flex-start;
+            justify-content: flex-start;
             gap: 0;
-            text-align: center;
+            text-align: left;
         }
 
         .activity-tile.empty .activity-label {
@@ -693,23 +675,6 @@
             word-break: break-word;
             overflow-wrap: break-word;
             hyphens: auto;
-        }
-
-        .activity-empty-circle {
-            width: 29px;
-            height: 29px;
-            border: 2px solid currentColor;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .activity-empty-icon {
-            font-size: 2.4rem;
-            font-weight: 700;
-            line-height: 1;
-            transform: rotate(45deg);
         }
 
         .activity-empty-text {
@@ -1690,6 +1655,7 @@
             window.allDataLoadingPromise = (async () => {
                 try {
                     const userDocRef = db.collection('users').doc(currentUser.uid);
+                    console.log('🔥 FIRESTORE READ - logbog_01.html - loadAllUserData');
                     const doc = await userDocRef.get();
                     const raw = doc.exists ? (doc.data() || {}) : {};
                     const data = {
@@ -1722,7 +1688,7 @@
             return data.logbogData;
         }
         
-        // Load logbook entries directly from Firestore (used by check-in functions)
+        // Load logbook entries from cache (used by check-in functions)
         async function getLogbookEntries() {
             if (!currentUser || !db) {
                 console.error('[LOAD] User not logged in - cannot load data');
@@ -1730,14 +1696,10 @@
             }
             
             try {
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                const doc = await userDocRef.get();
-                if (doc.exists) {
-                    const raw = doc.data() || {};
-                    const firestoreData = Array.isArray(raw.logbogData) ? raw.logbogData : null;
-                    if (firestoreData !== null && Array.isArray(firestoreData)) {
-                        return firestoreData;
-                    }
+                // Use cached data instead of reading from Firestore every time!
+                const data = await loadAllUserData();
+                if (data && Array.isArray(data.logbogData)) {
+                    return data.logbogData;
                 }
             } catch (error) {
                 console.error('[LOAD] Error loading logbogData:', error);
@@ -1917,8 +1879,10 @@
             
             try {
                 await saveLogbookDataToFirestore(entries);
-                // Refresh cache after successful save so other views can use updated data
-                await loadAllUserData(true);
+                // Update cache directly without reading from Firestore
+                if (window.allUserData) {
+                    window.allUserData.logbogData = entries;
+                }
                 // Also save to localStorage as backup
                 try {
                     localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
@@ -3294,15 +3258,6 @@
                 labelEl.className = 'activity-label';
                 labelEl.textContent = activity.label || activity.type;
 
-                const timeEl = document.createElement('div');
-                timeEl.className = 'activity-time';
-                timeEl.innerHTML = CLOCK_ICON_SVG;
-                const timeSpan = document.createElement('span');
-                const textEl = document.createElement('div');
-                textEl.className = 'activity-text';
-
-                let displayTime = activity.time || '--:--';
-                let displayText = activity.text || '';
                 let isEmptyState = false;
                 let emptyTextLabel = 'Ingen aktivitet';
                 let badgeText = '';
@@ -3310,8 +3265,6 @@
                 if (activity.type === 'bodymap') {
                     const info = await getBodymapActivityInfo(normalizedKey, window.allUserData || null);
                     if (info.hasEntries) {
-                        displayTime = info.latestTime || displayTime;
-                        displayText = info.displayText || displayText;
                         const mapLabel = info.mapCount === 1 ? '1 map' : `${info.mapCount} maps`;
                         badgeText = mapLabel;
                     } else {
@@ -3321,13 +3274,6 @@
                 } else if (activity.type === 'dialog') {
                     const info = await getDialogActivityInfo(normalizedKey, window.allUserData || null);
                     if (info.hasEntries) {
-                        displayTime = info.latestTime || displayTime;
-                        // Use displayText from info, don't append messageSuffix if it's already there
-                        displayText = info.displayText || displayText;
-                        if (typeof info.messageCount === 'number' && info.messageCount > 0 && !displayText.includes('beskeder')) {
-                            const messageSuffix = ` · ${info.messageCount} beskeder`;
-                            displayText = displayText + messageSuffix;
-                        }
                         const dialogLabel = info.count === 1 ? '1 dialog' : `${info.count} dialoger`;
                         badgeText = dialogLabel;
                     } else {
@@ -3337,13 +3283,6 @@
                 } else if (activity.type === 'opstilling') {
                     const info = await getOpstillingActivityInfo(normalizedKey, window.allUserData || null);
                     if (info.hasEntries) {
-                        displayTime = info.latestTime || displayTime;
-                        // Use displayText from info, don't append partsSuffix if it's already there
-                        displayText = info.displayText || displayText;
-                        if (typeof info.partsCount === 'number' && info.partsCount > 0 && !displayText.includes('deltager')) {
-                            const partsSuffix = ` · ${info.partsCount} ${info.partsCount === 1 ? 'deltager' : 'deltagere'}`;
-                            displayText = displayText + partsSuffix;
-                        }
                         const opstillingLabel = info.count === 1 ? '1 opstilling' : `${info.count} opstillinger`;
                         badgeText = opstillingLabel;
                     } else {
@@ -3353,8 +3292,6 @@
                 } else if (activity.type === 'relationer') {
                     const info = await getCompareActivityInfo(normalizedKey, window.allUserData || null);
                     if (info.hasEntries) {
-                        displayTime = info.latestTime || displayTime;
-                        displayText = info.displayText || displayText;
                         const compareLabel = info.count === 1 ? '1 sammen-<br>ligning' : `${info.count} sammen-<br>ligninger`;
                         badgeText = compareLabel;
                     } else {
@@ -3371,25 +3308,13 @@
                     tile.style.border = `3px dashed ${accentColor}`;
                     tile.style.boxShadow = 'none';
 
-                    const emptyCircleEl = document.createElement('div');
-                    emptyCircleEl.className = 'activity-empty-circle';
-
-                    const emptyIconEl = document.createElement('div');
-                    emptyIconEl.className = 'activity-empty-icon';
-                    emptyIconEl.textContent = '×';
-
-                    emptyCircleEl.appendChild(emptyIconEl);
-
                     const emptyTextEl = document.createElement('div');
                     emptyTextEl.className = 'activity-empty-text';
                     emptyTextEl.textContent = emptyTextLabel;
 
-                    tile.append(labelEl, emptyCircleEl, emptyTextEl);
+                    tile.append(labelEl, emptyTextEl);
                 } else {
-                    timeSpan.textContent = displayTime;
-                    textEl.textContent = displayText;
-                    timeEl.appendChild(timeSpan);
-                    tile.append(labelEl, timeEl, textEl);
+                    tile.append(labelEl);
                     if (badgeText) {
                         const badgeEl = document.createElement('div');
                         badgeEl.className = 'activity-meta';
@@ -4503,7 +4428,7 @@
             const today = new Date();
             const activityLabel = document.getElementById('activityDateLabel');
 
-            activityLabel.textContent = `Aktiviteter for ${today.toLocaleDateString('da-DK')}`;
+            activityLabel.textContent = today.toLocaleDateString('da-DK');
         }
 
         function copyLogbookEntry() {

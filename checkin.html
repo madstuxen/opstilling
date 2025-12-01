@@ -800,16 +800,11 @@
                 return [];
             }
             
-            // Load logbogData directly from Firestore (only when needed for night overlay)
+            // Use cached data instead of reading from Firestore every time!
             try {
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                const doc = await userDocRef.get();
-                if (doc.exists) {
-                    const raw = doc.data() || {};
-                    const firestoreData = Array.isArray(raw.logbogData) ? raw.logbogData : null;
-                    if (firestoreData !== null && Array.isArray(firestoreData)) {
-                        return firestoreData;
-                    }
+                const data = await loadAllUserData();
+                if (data && Array.isArray(data.logbogData)) {
+                    return data.logbogData;
                 }
             } catch (error) {
                 console.error('[LOAD] Error loading logbogData:', error);
@@ -842,8 +837,10 @@
             isSavingData = true;
             try {
                 await saveLogbookDataToFirestore(entries);
-                // Refresh global cache after successful save
-                await loadAllUserData(true);
+                // Update cache directly without reading from Firestore
+                if (window.allUserData) {
+                    window.allUserData.logbogData = entries;
+                }
                 return true;
             } catch (error) {
                 console.error('[SAVE] Error saving to Firestore:', error);
@@ -1671,6 +1668,7 @@
             window.allDataLoadingPromise = (async () => {
                 try {
                     const userDocRef = db.collection('users').doc(currentUser.uid);
+                    console.log('🔥 FIRESTORE READ - checkin.html - loadAllUserData');
                     const doc = await userDocRef.get();
                     const raw = doc.exists ? (doc.data() || {}) : {};
                     const data = {
@@ -1767,8 +1765,10 @@
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
                 
-                // Refresh cache after write
-                await loadAllUserData(true);
+                // Update cache directly without reading from Firestore
+                if (window.allUserData) {
+                    window.allUserData.logbogData = logbogData;
+                }
                 
                 console.log(`[SAVE] Check-in saved to logbogData for ${dateKey} at ${timeStr}`);
             } catch (error) {

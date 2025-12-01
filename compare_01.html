@@ -2528,6 +2528,7 @@
             window.allDataLoadingPromise = (async () => {
                 try {
                     const userDocRef = db.collection('users').doc(currentUser.uid);
+                    console.log('🔥 FIRESTORE READ - compare_01.html - loadAllUserData');
                     const doc = await userDocRef.get();
                     const raw = doc.exists ? (doc.data() || {}) : {};
                     const data = {
@@ -2578,8 +2579,10 @@
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
                 
-                // Refresh cache after successful save so other pages can reuse updated data
-                await loadAllUserData(true);
+                // Update cache directly without reading from Firestore
+                if (window.allUserData) {
+                    window.allUserData.compareData = CompareData;
+                }
                 
                 console.log('[SAVE] Success');
                 return true;

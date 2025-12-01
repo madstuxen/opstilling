@@ -416,6 +416,7 @@ const firebaseConfig = {
             if (!user || !db) return;
             
             try {
+                console.log('🔥 FIRESTORE READ - index.html - loadAndSaveUserData');
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (userDoc.exists) {
                     const data = userDoc.data();
@@ -745,6 +746,7 @@ const firebaseConfig = {
                     };
                     
                     const userDocRef = db.collection('users').doc(currentUser.uid);
+                    console.log('🔥 FIRESTORE READ - index.html - migrateCheckinBtn');
                     const userDoc = await userDocRef.get();
                     
                     if (!userDoc.exists) {
@@ -936,6 +938,7 @@ const firebaseConfig = {
                     };
                     
                     const userDocRef = db.collection('users').doc(currentUser.uid);
+                    console.log('🔥 FIRESTORE READ - index.html - removeKeywordsBtn');
                     const userDoc = await userDocRef.get();
                     
                     if (!userDoc.exists) {
@@ -1098,6 +1101,7 @@ const firebaseConfig = {
                 
                 try {
                     const userDocRef = db.collection('users').doc(currentUser.uid);
+                    console.log('🔥 FIRESTORE READ - index.html - migrateCollectionsBtn');
                     const userDoc = await userDocRef.get();
                     
                     if (!userDoc.exists) {
@@ -1233,6 +1237,7 @@ const firebaseConfig = {
                     
                     // Read user document from Firestore
                     const userDocRef = db.collection('users').doc(currentUser.uid);
+                    console.log('🔥 FIRESTORE READ - index.html - debugDownloadBtn');
                     const userDoc = await userDocRef.get();
                     
                     if (userDoc.exists) {
