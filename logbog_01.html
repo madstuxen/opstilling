@@ -322,59 +322,6 @@
             display: none;
         }
 
-        .log-history-navigation {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            background: #e2e8f0;
-            border-bottom: 1px solid #d1d5db;
-        }
-
-        .log-nav-btn {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
-            border: none;
-            background: white;
-            cursor: pointer;
-            font-size: 0;
-            color: black;
-            transition: all 0.2s;
-            position: relative;
-            padding: 0;
-        }
-
-        .log-nav-btn::before {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .log-nav-btn#logHistoryPrev::before {
-            border-top: 12px solid black;
-            border-bottom: none;
-        }
-
-        .log-nav-btn#logHistoryNext::before {
-            border-bottom: 12px solid black;
-            border-top: none;
-        }
-
-        .log-nav-btn:hover {
-            background: #f3f4f6;
-        }
-
-        .log-nav-btn:disabled {
-            background: #d1d5db;
-            cursor: not-allowed;
-        }
-
         .log-history-list {
             flex: 1;
             overflow-y: auto;
@@ -1409,10 +1356,6 @@
                         <button class="log-collapse-toggle" onclick="toggleLogHistorySidebar()" title="Fold historik">></button>
                     </div>
                     <div class="log-history-content">
-                        <div class="log-history-navigation">
-                            <button class="log-nav-btn" id="logHistoryNext" onclick="navigateLogHistory(1)" title="Nyere"></button>
-                            <button class="log-nav-btn" id="logHistoryPrev" onclick="navigateLogHistory(-1)" title="Ældre"></button>
-                        </div>
                         <div class="log-history-list" id="logHistoryList"></div>
                     </div>
                     <button class="log-collapse-toggle log-collapse-toggle-bottom" onclick="toggleLogHistorySidebar()" title="Fold historik">></button>
@@ -2598,8 +2541,6 @@
                 listEl.appendChild(item);
             });
 
-            await updateLogHistoryNavState();
-
             if (activeItemEl) {
                 requestAnimationFrame(() => {
                     const listRect = listEl.getBoundingClientRect();
@@ -2890,39 +2831,6 @@
             await renderActivitiesForDate(activeLogDate);
         }
 
-        async function updateLogHistoryNavState() {
-            const entries = await getSortedLogEntries();
-            const prevBtn = document.getElementById('logHistoryPrev');
-            const nextBtn = document.getElementById('logHistoryNext');
-            if (!prevBtn || !nextBtn) return;
-
-            if (!entries.length) {
-                prevBtn.disabled = true;
-                nextBtn.disabled = true;
-                return;
-            }
-
-            const activeIndex = entries.findIndex(entry => entry.date === activeLogDate);
-            prevBtn.disabled = activeIndex === entries.length - 1 || activeIndex === -1;
-            nextBtn.disabled = activeIndex <= 0;
-        }
-
-        async function navigateLogHistory(direction) {
-            const entries = await getSortedLogEntries();
-            if (!entries.length) return;
-
-            let index = entries.findIndex(entry => entry.date === activeLogDate);
-            if (index === -1) {
-                index = 0;
-            }
-
-            if (direction < 0 && index < entries.length - 1) {
-                await setActiveLogDate(entries[index + 1].date);
-            } else if (direction > 0 && index > 0) {
-                await setActiveLogDate(entries[index - 1].date);
-            }
-        }
-
         function toggleLogHistorySidebar() {
             const sidebar = document.getElementById('logHistorySidebar');
             const toggleBtns = document.querySelectorAll('.log-collapse-toggle');
@@ -3109,7 +3017,7 @@
                 dreamDebounceTimeout = null;
             }
             
-            // Create new handlers with debounce (2 seconds)
+            // Create new handlers with debounce (3 seconds)
             logbookInputHandler = () => {
                 autoResizeTextarea(logbookEntryEl);
                 
@@ -3118,11 +3026,11 @@
                     clearTimeout(logbookDebounceTimeout);
                 }
                 
-                // Debounce: wait 2 seconds after last input
+                // Debounce: wait 3 seconds after last input
                 logbookDebounceTimeout = setTimeout(async () => {
                     await updateActiveLogEntry('dagbog', logbookEntryEl.value);
                     logbookDebounceTimeout = null;
-                }, 2000);
+                }, 3000);
             };
             
             dreamInputHandler = () => {
@@ -3133,11 +3041,11 @@
                     clearTimeout(dreamDebounceTimeout);
                 }
                 
-                // Debounce: wait 2 seconds after last input
+                // Debounce: wait 3 seconds after last input
                 dreamDebounceTimeout = setTimeout(async () => {
                     await updateActiveLogEntry('dreams', dreamEntryEl.value);
                     dreamDebounceTimeout = null;
-                }, 2000);
+                }, 3000);
             };
 
             // Add new listeners
