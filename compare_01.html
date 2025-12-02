@@ -22,7 +22,8 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 0px;
-            overflow-x: hidden;
+            touch-action: manipulation;
+            -webkit-text-size-adjust: none;
         }
         
         .comparison-container {
@@ -34,7 +35,8 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            overflow: visible;
+            height: calc(100vh - 40px);
+            overflow: hidden;
         }
         
         .header {
@@ -991,6 +993,22 @@
 		
         
         /* Comparison Section Styles */
+        .main-content {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+            display: flex;
+        }
+        
+        .comparison-workspace-container {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex: 1;
+            position: relative;
+        }
+        
         .comparison-section {
             flex: 1;
             background: white;
@@ -2226,14 +2244,16 @@
             
             <div class="controls-divider"></div>
             
-            <button class="btn" onclick="createNewComparison()" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white;">Ny Sammenligning</button>
+            <button class="btn" onclick="createNewComparison()" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); color: white;">Ny Spejling</button>
             <button class="btn random-btn" id="randomBtn" disabled>Random</button>
             <button class="btn clear-btn">Ryd Alt</button>
         </div>
         
-        <div class="status" id="status">Vælg to dele for at begynde sammenligning</div>
-        
-        <div class="participants-section">
+        <div class="main-content">
+            <div class="comparison-workspace-container">
+                <div class="status" id="status">Vælg to dele for at begynde sammenligning</div>
+                
+                <div class="participants-section">
             <div class="participants-container" id="compareParticipants">
                
 			   <div class="participant">
@@ -2377,6 +2397,8 @@
                     <p style="margin-bottom: 12px; text-align: left;"><strong>4. Fokuser på ligheder:</strong> Se hvor delene minder om hinanden i stedet for kun at fokusere på forskelle.</p>
                     <p style="margin-top: 15px; font-style: italic; color: #6b7280;">Dette værktøj hjælper med at reducere indre konflikt ved at se nuancer og ligheder mellem dele af dig selv.</p>
                 </div>
+            </div>
+            </div>
             </div>
             
             <!-- History Sidebar -->
@@ -3590,7 +3612,7 @@
 		}
 		
 		const newId = maxId + 1;
-		const comparisonName = `Sammenligning ${newId}`;
+		const comparisonName = `Spejling ${newId}`;
 		
 		// DON'T save current or new comparison - wait until user changes a slider
 		// There's nothing to save yet!

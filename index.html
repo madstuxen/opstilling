@@ -177,6 +177,81 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
         }
+        
+        /* Debug Overlay Styles */
+        .debug-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .debug-overlay.show {
+            display: flex;
+        }
+        
+        .debug-overlay-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        .debug-overlay-panel {
+            position: relative;
+            z-index: 1;
+            width: min(90vw, 500px);
+            max-height: 80vh;
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+        
+        .debug-overlay-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .debug-overlay-header h2 {
+            font-size: 1.25rem;
+            color: #111827;
+            margin: 0;
+        }
+        
+        .debug-overlay-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: #ef4444;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: all 0.2s ease;
+        }
+        
+        .debug-overlay-close:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+        
+        .debug-overlay-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
 
         .start-button {
             width: 100%;
@@ -314,11 +389,26 @@
         </div>
         
             <button type="button" class="start-button" id="goToCheckinBtn" style="margin-top: 20px;">Lad os starte!</button>
-            <button type="button" class="debug-button" id="debugDownloadBtn">📦 Download al data (DEBUG)</button>
-            <button type="button" class="debug-button" id="migrateCheckinBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">🔄 MIGRER: Flyt check-ins til logbog</button>
-            <button type="button" class="debug-button" id="removeKeywordsBtn" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">🗑️ MIGRER: Fjern keywords</button>
-            <button type="button" class="debug-button" id="migrateCollectionsBtn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">🔧 MIGRER: Fjern Collections</button>
             <button type="button" class="logout-button" id="logoutButton" style="margin-top: 10px;">Log ud</button>
+            <button type="button" class="debug-button" id="openDebugBtn" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); font-size: 12px; padding: 8px 16px; margin-top: 10px;">🔧 Debug</button>
+    </div>
+    
+    <!-- Debug Overlay -->
+    <div class="debug-overlay" id="debugOverlay">
+        <div class="debug-overlay-backdrop" id="debugOverlayBackdrop"></div>
+        <div class="debug-overlay-panel">
+            <div class="debug-overlay-header">
+                <h2>🔧 Debug & Migration Tools</h2>
+                <button class="debug-overlay-close" id="debugOverlayClose" title="Luk">×</button>
+            </div>
+            <div class="debug-overlay-content">
+                <button type="button" class="debug-button" id="debugDownloadBtn">📦 Download al data</button>
+                <button type="button" class="debug-button" id="debugRestoreBtn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">🔄 Restore fra backup</button>
+                <button type="button" class="debug-button" id="migrateCheckinBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">🔄 MIGRER: Flyt check-ins til logbog</button>
+                <button type="button" class="debug-button" id="removeKeywordsBtn" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">🗑️ MIGRER: Fjern keywords</button>
+                <button type="button" class="debug-button" id="migrateCollectionsBtn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">🔧 MIGRER: Fjern Collections</button>
+            </div>
+        </div>
     </div>
 
 </div>
@@ -375,7 +465,12 @@ const firebaseConfig = {
         const userEmailEl = document.getElementById('userEmail');
         const goToCheckinBtn = document.getElementById('goToCheckinBtn');
         const logoutButton = document.getElementById('logoutButton');
+        const openDebugBtn = document.getElementById('openDebugBtn');
+        const debugOverlay = document.getElementById('debugOverlay');
+        const debugOverlayClose = document.getElementById('debugOverlayClose');
+        const debugOverlayBackdrop = document.getElementById('debugOverlayBackdrop');
         const debugDownloadBtn = document.getElementById('debugDownloadBtn');
+        const debugRestoreBtn = document.getElementById('debugRestoreBtn');
         const migrateCheckinBtn = document.getElementById('migrateCheckinBtn');
         const removeKeywordsBtn = document.getElementById('removeKeywordsBtn');
         const migrateCollectionsBtn = document.getElementById('migrateCollectionsBtn');
@@ -697,6 +792,25 @@ const firebaseConfig = {
         if (goToCheckinBtn) {
             goToCheckinBtn.addEventListener('click', function() {
                 window.location.href = 'checkin.html';
+            });
+        }
+        
+        // Debug overlay handlers
+        if (openDebugBtn && debugOverlay) {
+            openDebugBtn.addEventListener('click', function() {
+                debugOverlay.classList.add('show');
+            });
+        }
+        
+        if (debugOverlayClose) {
+            debugOverlayClose.addEventListener('click', function() {
+                debugOverlay.classList.remove('show');
+            });
+        }
+        
+        if (debugOverlayBackdrop) {
+            debugOverlayBackdrop.addEventListener('click', function() {
+                debugOverlay.classList.remove('show');
             });
         }
         
@@ -1294,6 +1408,81 @@ const firebaseConfig = {
                         debugDownloadBtn.disabled = false;
                     }, 2000);
                 }
+            });
+        }
+        
+        // Debug: Restore from backup
+        if (debugRestoreBtn) {
+            debugRestoreBtn.addEventListener('click', async function() {
+                if (!currentUser) {
+                    alert('Du skal være logget ind for at restore data');
+                    return;
+                }
+                
+                // Create file input
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json';
+                
+                fileInput.onchange = async (e) => {
+                    try {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        
+                        debugRestoreBtn.disabled = true;
+                        debugRestoreBtn.textContent = '⏳ Læser backup...';
+                        
+                        console.log('📂 Læser backup fil...');
+                        const text = await file.text();
+                        const backup = JSON.parse(text);
+                        
+                        console.log('✅ Backup parsed:', backup);
+                        
+                        // Extract data object
+                        const dataToRestore = backup.data || backup;
+                        
+                        // Remove metadata fields that Firestore manages
+                        delete dataToRestore.createdAt;
+                        delete dataToRestore.updatedAt;
+                        
+                        console.log('💾 Data klar til restore:', Object.keys(dataToRestore));
+                        
+                        // Confirm with user
+                        const confirmMsg = `Vil du restore data fra backup?\n\nBackup info:\n- Timestamp: ${backup.timestamp || 'N/A'}\n- Email: ${backup.userEmail || 'N/A'}\n\nDette vil overskrive din nuværende data!`;
+                        
+                        if (!confirm(confirmMsg)) {
+                            debugRestoreBtn.textContent = '🔄 Restore fra backup';
+                            debugRestoreBtn.disabled = false;
+                            return;
+                        }
+                        
+                        debugRestoreBtn.textContent = '⏳ Restorer...';
+                        
+                        const userDocRef = db.collection('users').doc(currentUser.uid);
+                        await userDocRef.set(dataToRestore, { merge: true });
+                        
+                        console.log('✅ DATA RESTORED!');
+                        
+                        debugRestoreBtn.textContent = '✅ Data restored!';
+                        alert('✅ Data er restored! Reload siden nu.');
+                        
+                        setTimeout(() => {
+                            debugRestoreBtn.textContent = '🔄 Restore fra backup';
+                            debugRestoreBtn.disabled = false;
+                        }, 2000);
+                        
+                    } catch (error) {
+                        console.error('❌ Restore fejl:', error);
+                        alert('Fejl ved restore: ' + error.message);
+                        debugRestoreBtn.textContent = '❌ Fejl - prøv igen';
+                        setTimeout(() => {
+                            debugRestoreBtn.textContent = '🔄 Restore fra backup';
+                            debugRestoreBtn.disabled = false;
+                        }, 2000);
+                    }
+                };
+                
+                fileInput.click();
             });
         }
         

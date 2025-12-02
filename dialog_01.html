@@ -22,23 +22,23 @@
         body {
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
+            min-height: 100vh;
             padding: 0px;
+            touch-action: manipulation;
+            -webkit-text-size-adjust: none;
         }
         
         .dialog-container {
             width: 100%;
             max-width: 1600px;
             margin: 0 auto;
-            min-height: 600px;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 0px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            justify-content: space-around;
-            overflow-x: hidden;
-            overflow-y: visible;
+            height: calc(100vh - 40px);
+            overflow: hidden;
         }
         
         .header {
@@ -860,14 +860,20 @@
             flex: 1;
         }
         
-        .dialog-layout {
+        .main-content {
             position: relative;
-            display: block;
-            overflow-x: hidden;
-            overflow-y: visible;
-            width: 100%;
-            max-width: 100%;
-            max-height: 800px;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+            display: flex;
+        }
+        
+        .dialog-workspace-container {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex: 1;
+            position: relative;
         }
         
         .dialog-primary {
@@ -910,24 +916,23 @@
         }
         
         .dialog-history-sidebar {
+            width: 250px;
+            background: #f8fafc;
+            border-left: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             position: absolute;
             top: 0;
             right: 0;
             bottom: 0;
-            width: 240px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 18px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            transform: translateX(0);
             transition: transform 0.3s ease;
-            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
-            z-index: 5;
+            z-index: 4000;
         }
         
         .dialog-history-sidebar.collapsed {
-            transform: translateX(215px);
+            transform: translateX(212px);
         }
         
         .dialog-history-header {
@@ -1967,9 +1972,11 @@
             <button class="btn clear-btn" id="clearBtn">Ryd Alt</button>
         </div>
         
-        <div class="status" id="status">Vælg to dele og start dialog</div>
-        
-        <div class="participants-section">
+        <div class="main-content">
+            <div class="dialog-workspace-container">
+                <div class="status" id="status">Vælg to dele og start dialog</div>
+                
+                <div class="participants-section">
             <div class="participants-container">
 			
                 <div class="participant">
@@ -2112,9 +2119,8 @@
             </div>
         </div>
         
-        <div class="dialog-layout">
-            <div class="dialog-primary">
-                <div class="transcript-section">
+        <div class="dialog-primary">
+            <div class="transcript-section">
                     <div class="transcript-header">
                         <h3 style="color: #475569; font-size: 16px;">Dialog transskript</h3>
                     </div>
@@ -2132,6 +2138,8 @@
                     </div>
                 </div>
             </div>
+            </div>
+            
             <aside class="dialog-history-sidebar" id="dialogHistorySidebar">
                 <div class="dialog-history-header">
                     <button class="dialog-collapse-toggle" onclick="toggleDialogHistorySidebar()" title="Fold historik">></button>
@@ -3038,7 +3046,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         
         function updateDialogHistoryToggleUI() {
             const sidebar = document.getElementById('dialogHistorySidebar');
-            const layout = document.querySelector('.dialog-layout');
+            const layout = document.querySelector('.main-content');
             if (!sidebar || !layout) return;
             
             sidebar.classList.toggle('collapsed', dialogHistoryCollapsed);

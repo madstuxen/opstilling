@@ -780,6 +780,15 @@
         async function saveLogbookDataToFirestore(entries) {
             if (!currentUser || !db) return false;
             
+            // 🛡️ CRITICAL SAFETY CHECK: Prevent data loss from empty saves
+            if (!entries || !Array.isArray(entries) || entries.length === 0) {
+                console.error('🚨 CRITICAL: Attempted to save empty logbookData from checkin.html!');
+                console.error('This would DELETE ALL DATA. Save blocked!');
+                console.trace(); // Show call stack
+                alert('FEJL: Forsøgte at gemme tom data fra check-in! Dette er blokeret for at beskytte dine data. Reload siden.');
+                return false;
+            }
+            
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 await userDocRef.set({
@@ -953,7 +962,21 @@
             const dateKey = getTodayDateKey();
             
             // Læs eksisterende entries
-            const entries = await getLogbookEntries();
+            let entries = await getLogbookEntries();
+            
+            // 🛡️ SAFETY: If cache is empty, force fresh read from Firestore!
+            if (!entries || entries.length === 0) {
+                console.warn('⚠️ Dream overlay: Cache empty - forcing fresh read!');
+                const freshData = await loadAllUserData(true);
+                if (freshData && Array.isArray(freshData.logbogData)) {
+                    entries = freshData.logbogData;
+                    console.log(`✅ Fresh read successful - got ${entries.length} entries`);
+                } else {
+                    entries = [];
+                    console.log('✅ No existing entries - creating first entry');
+                }
+            }
+            
             let entry = entries.find(item => item.date === dateKey);
             
             // Hvis entry ikke findes, opret en ny
@@ -1078,6 +1101,11 @@
             await new Promise(resolve => setTimeout(resolve, 1000));
             
             console.log('[INIT] Initial load complete');
+            
+            // 4. Preload all user data into cache (including logbogData)
+            console.log('[INIT] Preloading user data into cache...');
+            await loadAllUserData();
+            console.log('[INIT] Cache preloaded ✅');
             
             // Now safe to hydrate and setup
             hydrateNightOverlay();
@@ -1676,7 +1704,7 @@
                         dialogData: raw.dialogData || null,
                         opstillingData: raw.opstillingData || null,
                         compareData: raw.compareData || null,
-                        // logbogData removed - only loaded when needed for night overlay
+                        logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : [],
                         // forside_checkin_data is deprecated - now using logbogData.checkins
                         forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
                     };
@@ -1723,7 +1751,7 @@
                 // Get today's date key
                 const dateKey = getTodayDateKey();
                 
-                // Load existing logbogData
+                // Load existing logbogData from cache
                 const logbogData = await getLogbookEntries();
                 
                 // Find or create entry for today

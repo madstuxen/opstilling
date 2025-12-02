@@ -1549,7 +1549,6 @@
             version: "3.0",
             metadata: {
                 title: "",
-                created: null,
                 updated: null,
                 showOnionLayers: true,
                 activeIndexId: null
@@ -1660,22 +1659,7 @@
 
         function ensureIndexTimestamp(index) {
             if (!index.timestamp) {
-                const dateStr = index.date || '';
-                const timeStr = index.time || '00:00';
-                // Expect ISO date format YYYY-MM-DD everywhere
-                const parts = dateStr.split('-');
-                if (parts.length === 3) {
-                    const year = parseInt(parts[0], 10);
-                    const month = parseInt(parts[1], 10) - 1;
-                    const day = parseInt(parts[2], 10);
-                    const [hourStr = '0', minuteStr = '0'] = (timeStr || '').split(/[:.]/);
-                    const hour = parseInt(hourStr, 10);
-                    const minute = parseInt(minuteStr, 10);
-                    const timestampDate = new Date(year, month, day, Number.isFinite(hour) ? hour : 0, Number.isFinite(minute) ? minute : 0);
-                    index.timestamp = timestampDate.toISOString();
-                } else {
-                    index.timestamp = new Date().toISOString();
-                }
+                index.timestamp = new Date().toISOString();
             }
             return index.timestamp;
         }
@@ -1741,30 +1725,6 @@
             } catch (e) {
                 return false;
             }
-        }
-
-        /**
-         * Konverterer Date eller ISO string til lokal dato (YYYY-MM-DD) i brugerens timezone
-         * @param {Date|string|null} date - Dato at konvertere (default: nu)
-         * @returns {string|null} - Dato i YYYY-MM-DD format eller null ved fejl
-         */
-        function getLocalDateKey(date = null) {
-            const d = date ? new Date(date) : new Date();
-            if (isNaN(d.getTime())) return null;
-            
-            const timezone = getUserTimezone();
-            
-            // Konverter til lokal tid ved at formatere med da-DK locale og brugerens timezone
-            const localDateStr = d.toLocaleDateString('da-DK', {
-                timeZone: timezone,
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            });
-            
-            // Format er "DD.MM.YYYY" - konverter til "YYYY-MM-DD"
-            const [day, month, year] = localDateStr.split('.');
-            return `${year}-${month}-${day}`;
         }
 
         function formatDkDate(dateStr) {
@@ -1939,15 +1899,11 @@
             BodyMapData.metadata.updated = now;
             BodyMapData.metadata.showOnionLayers = showOnionLayers;
             BodyMapData.metadata.activeIndexId = activeIndexId;
-            if (!BodyMapData.metadata.created) {
-                BodyMapData.metadata.created = now;
-            }
             BodyMapData.labelColors = labelColors; // Save label colors
             BodyMapData.dataIndexes = dataIndexes.map(index => ({
                 id: index.id,
-                date: index.date,
-                time: index.time,
                 timestamp: ensureIndexTimestamp(index),
+                updated: index.updated || index.timestamp || ensureIndexTimestamp(index),
                 title: index.title || '',
                 color: index.color || DEFAULT_HISTORY_COLOR,
                 labels: index.labels.map(label => {
@@ -2100,7 +2056,6 @@
             if (parsed.metadata) {
                 BodyMapData.metadata = {
                     title: parsed.metadata.title || '',
-                    created: parsed.metadata.created || null,
                     updated: parsed.metadata.updated || null,
                     showOnionLayers: parsed.metadata.showOnionLayers !== undefined ? parsed.metadata.showOnionLayers : true,
                     activeIndexId: parsed.metadata.activeIndexId || null
@@ -2216,16 +2171,14 @@
         async function createNewIndex(options = {}) {
             const { skipRender = false, autoScroll = false, skipSave = false } = options;
             const now = new Date();
-            const hh = String(now.getHours()).padStart(2, '0');
-            const mm = String(now.getMinutes()).padStart(2, '0');
+            const timestamp = now.toISOString();
             const index = {
                 id: indexCounter++,
-                date: getLocalDateKey(now),  // Brug lokal dato
-                time: `${hh}:${mm}`,
+                timestamp: timestamp,
+                updated: timestamp,
                 title: generateDefaultLayerTitle(),
-                color: DEFAULT_HISTORY_COLOR, // NY: tilføj default farve
-                labels: [],
-                timestamp: now.toISOString()  // Behold UTC timestamp
+                color: DEFAULT_HISTORY_COLOR,
+                labels: []
             };
             
             dataIndexes.push(index);
@@ -2315,9 +2268,11 @@
                 const metaWrapper = document.createElement('div');
                 metaWrapper.className = 'history-item-meta';
                 const ts = ensureIndexTimestamp(index);
-                const dateDk = formatDkDate(index.date);
+                const dateObj = new Date(ts);
+                const dateDk = formatDkDate(dateObj.toISOString().split('T')[0]);
+                const timeStr = dateObj.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
                 metaWrapper.innerHTML = `
-                    <span class="history-item-time">${dateDk} ${index.time}</span>
+                    <span class="history-item-time">${dateDk} ${timeStr}</span>
                     <span class="history-item-labels">Labels: ${index.labels.length}</span>
                 `;
                 item.appendChild(metaWrapper);
@@ -2432,7 +2387,8 @@
                     const indexObj = dataIndexes.find(idx => idx.id === indexId);
                     if (indexObj) {
                         indexObj.title = e.target.value;
-                        // Do NOT touch indexObj.date, indexObj.time, or indexObj.timestamp here.
+                        // Update 'updated' timestamp when title changes
+                        indexObj.updated = new Date().toISOString();
                         await saveToLocalStorage();
                         // Re-render to show updated title but keep ordering (timestamp unchanged)
                         renderHistory();
@@ -3079,6 +3035,12 @@
                     // Only save if text actually changed
                     if (newText !== oldText) {
                         label.text = newText;
+                        
+                        // Update timestamp when label is modified
+                        const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
+                        if (activeIndex) {
+                            activeIndex.updated = new Date().toISOString();
+                        }
                         
                         // Update color button data attribute
                         const colorBtn = labelInput.querySelector('.label-color-btn');
@@ -3903,6 +3865,9 @@
             
             activeIndex.labels.push(newLabel);
             
+            // Update timestamp when labels are modified
+            activeIndex.updated = new Date().toISOString();
+            
             // Increment total labels counter
             totalLabelsCreated++;
             
@@ -3976,6 +3941,8 @@
             const labelIndex = activeIndex.labels.findIndex(l => l.id === labelId);
             if (labelIndex !== -1) {
                 activeIndex.labels.splice(labelIndex, 1);
+                // Update timestamp when labels are modified
+                activeIndex.updated = new Date().toISOString();
             }
             
             // Renumber all labels with the same text across all indexes to be consecutive
