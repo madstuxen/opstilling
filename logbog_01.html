@@ -3877,7 +3877,7 @@
             // Draw line connecting points
             const step = chartWidth / xRange;
             ctx.strokeStyle = '#8b5cf6';
-            ctx.lineWidth = 5;
+            ctx.lineWidth = 3.5;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
             ctx.beginPath();
@@ -3961,7 +3961,7 @@
             sortedData.forEach((point, idx) => {
                 const x = padding.left + (point.x - xMin) * step;
                 const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
-                const radius = point.size / 15;
+                const radius = point.size / 19;
                 const isHollow = !checkinDetailedView && point.count > 1;
 
                 // Skip if coordinates are invalid
@@ -3980,7 +3980,7 @@
                     ctx.fillStyle = 'white';
                     ctx.fill();
                     ctx.strokeStyle = '#8b5cf6';
-                    ctx.lineWidth = 3;
+                    ctx.lineWidth = 2.5;
                     ctx.stroke();
                 } else {
                     // Filled circle - darker for single entries (size 100)
@@ -4002,11 +4002,15 @@
                 // Position labels at noon (kl. 12) - index + 0.5
                 const x = padding.left + (index + 0.5 - xMin) * step;
                 const dateObj = new Date(dateKey);
-                const label = dateObj.toLocaleDateString('da-DK', {
-                    day: '2-digit',
-                    month: 'short'
-                });
-                ctx.fillText(label, x, height - padding.bottom + 12);
+                
+                // Get day and month separately for two-line display
+                const day = dateObj.toLocaleDateString('da-DK', { day: '2-digit' });
+                const month = dateObj.toLocaleDateString('da-DK', { month: 'short' }).replace('.', '');
+                
+                // Draw day on first line
+                ctx.fillText(day, x, height - padding.bottom + 6);
+                // Draw month on second line
+                ctx.fillText(month, x, height - padding.bottom + 20);
             });
 
             // Hover functionality - remove old listeners first
