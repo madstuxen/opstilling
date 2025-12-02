@@ -1620,7 +1620,7 @@
         function getNextLayerNumber() {
             let maxNumber = 0;
             dataIndexes.forEach(idx => {
-                const num = extractLayerNumber(idx.title);
+                const num = extractLayerNumber(idx.name);
                 if (num !== null && num > maxNumber) {
                     maxNumber = num;
                 }
@@ -1640,18 +1640,18 @@
             
             let maxNumber = 0;
             sortedIndexes.forEach(idx => {
-                const currentTitle = (idx.title || '').trim();
-                const existingNumber = extractLayerNumber(currentTitle);
+                const currentName = (idx.name || '').trim();
+                const existingNumber = extractLayerNumber(currentName);
                 if (existingNumber !== null) {
                     maxNumber = Math.max(maxNumber, existingNumber);
                 }
             });
             
             sortedIndexes.forEach(idx => {
-                const currentTitle = (idx.title || '').trim();
-                if (!currentTitle) {
+                const currentName = (idx.name || '').trim();
+                if (!currentName) {
                     const nextNumber = maxNumber + 1;
-                    idx.title = `Lag ${nextNumber}`;
+                    idx.name = `Lag ${nextNumber}`;
                     maxNumber = nextNumber;
                 }
             });
@@ -1853,10 +1853,11 @@
                 showOnionLayers = true;
                 updateLayerToggleUI();
                 const firstIndex = await createNewIndex({ autoScroll: true, skipSave: true });
-                // Force explicit title "Lag 1" for the very first layer
+                // Force explicit name "Lag 1" for the very first layer
                 if (firstIndex) {
-                    firstIndex.title = 'Lag 1';
-                    firstIndex.color = DEFAULT_HISTORY_COLOR; // Tilføj standard farve
+                    firstIndex.name = 'Lag 1';
+                    firstIndex.color = DEFAULT_HISTORY_COLOR;
+                    firstIndex.notes = '';
                 }
                 // Don't save - det er en load-operation, vil først blive gemt når brugeren laver en eksplicit ændring
             }
@@ -1904,8 +1905,9 @@
                 id: index.id,
                 timestamp: ensureIndexTimestamp(index),
                 updated: index.updated || index.timestamp || ensureIndexTimestamp(index),
-                title: index.title || '',
+                name: index.name || '',
                 color: index.color || DEFAULT_HISTORY_COLOR,
+                notes: index.notes || '',
                 labels: index.labels.map(label => {
                     const baseX = typeof label.x === 'number' ? label.x : 0;
                     const baseY = typeof label.y === 'number' ? label.y : 0;
@@ -2176,8 +2178,9 @@
                 id: indexCounter++,
                 timestamp: timestamp,
                 updated: timestamp,
-                title: generateDefaultLayerTitle(),
+                name: generateDefaultLayerTitle(),
                 color: DEFAULT_HISTORY_COLOR,
+                notes: '',
                 labels: []
             };
             
@@ -2229,7 +2232,7 @@
                 item.style.color = '#1f2937';
                 item.style.borderColor = isActive ? indexColor : 'transparent';
 
-                const titleDisplay = index.title || 'Lag';
+                const titleDisplay = index.name || 'Lag';
                 const titleWrapper = document.createElement('div');
                 titleWrapper.className = 'history-item-title';
                 // Set background color to match history item color
@@ -2386,8 +2389,8 @@
                     const indexId = parseFloat(e.target.dataset.id);
                     const indexObj = dataIndexes.find(idx => idx.id === indexId);
                     if (indexObj) {
-                        indexObj.title = e.target.value;
-                        // Update 'updated' timestamp when title changes
+                        indexObj.name = e.target.value;
+                        // Update 'updated' timestamp when name changes
                         indexObj.updated = new Date().toISOString();
                         await saveToLocalStorage();
                         // Re-render to show updated title but keep ordering (timestamp unchanged)

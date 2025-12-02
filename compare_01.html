@@ -2865,22 +2865,24 @@
 				color: DEFAULT_HISTORY_COLOR,
 				timestamp: now,
 				updated: now,
-				leftParticipant: {
-					name: 'Venstre',
-					color: '#3b82f6',
-					pose: '',
-					flipped: false
-				},
-				rightParticipant: {
-					name: 'Højre',
-					color: '#ef4444',
-					pose: '',
-					flipped: false
+				notes: '',
+				participants: {
+					left: {
+						name: 'Venstre',
+						color: '#3b82f6',
+						pose: '',
+						flipped: false
+					},
+					right: {
+						name: 'Højre',
+						color: '#ef4444',
+						pose: '',
+						flipped: false
+					}
 				},
 				traitNames: [],
 				leftScores: {},
 				rightScores: {},
-				notes: ''
 			};
 			CompareData.comparisons = [initialComparison];
 			CompareData.activeComparisonId = 1;
@@ -2976,14 +2978,14 @@
 			const leftFlipped = leftMirror ? leftMirror.checked : (leftParticipant?.getAttribute('data-mirror') === 'true');
 			const rightFlipped = rightMirror ? rightMirror.checked : (rightParticipant?.getAttribute('data-mirror') === 'true');
 			
-			comparison.leftParticipant = {
+			comparison.participants.left = {
 				name: leftNameEl ? leftNameEl.textContent.trim() : 'Venstre',
 				color: leftColor || '#3b82f6',
 				pose: leftPoseName || '',
 				flipped: leftFlipped
 			};
 			
-			comparison.rightParticipant = {
+			comparison.participants.right = {
 				name: rightNameEl ? rightNameEl.textContent.trim() : 'Højre',
 				color: rightColor || '#ef4444',
 				pose: rightPoseName || '',
@@ -3014,10 +3016,10 @@
 			const leftCircle = document.getElementById('leftCircle');
 			const rightCircle = document.getElementById('rightCircle');
 			
-			if (comparison.leftParticipant) {
+			if (comparison.participants.left) {
 				const leftNameEl = document.getElementById('leftName');
-				if (leftNameEl) leftNameEl.textContent = comparison.leftParticipant.name || 'Venstre';
-				leftColor = comparison.leftParticipant.color || '#3b82f6';
+				if (leftNameEl) leftNameEl.textContent = comparison.participants.left.name || 'Venstre';
+				leftColor = comparison.participants.left.color || '#3b82f6';
 				leftLightColor = lightenColor(leftColor, 0.6);
 				if (leftCircle && !isInitialLoad) {
 					leftCircle.style.display = 'flex';
@@ -3029,15 +3031,15 @@
 				}
 				const leftMirror = document.getElementById('leftMirror');
 				if (leftMirror) {
-					leftMirror.checked = comparison.leftParticipant.flipped || false;
+					leftMirror.checked = comparison.participants.left.flipped || false;
 				}
 				const leftParticipant = document.querySelector('#leftCircle').closest('.participant');
 				if (leftParticipant) {
-					leftParticipant.setAttribute('data-mirror', String(comparison.leftParticipant.flipped || false));
+					leftParticipant.setAttribute('data-mirror', String(comparison.participants.left.flipped || false));
 				}
 				// Apply pose using pose name (like dialog does)
-				if (comparison.leftParticipant.pose) {
-					applyParticipantPose('left', comparison.leftParticipant.pose, comparison.leftParticipant.flipped || false);
+				if (comparison.participants.left.pose) {
+					applyParticipantPose('left', comparison.participants.left.pose, comparison.participants.left.flipped || false);
 				} else {
 					// Reset to default pose if no pose is set
 					if (leftParticipant) {
@@ -3061,10 +3063,10 @@
 				}
 			}
 			
-			if (comparison.rightParticipant) {
+			if (comparison.participants.right) {
 				const rightNameEl = document.getElementById('rightName');
-				if (rightNameEl) rightNameEl.textContent = comparison.rightParticipant.name || 'Højre';
-				rightColor = comparison.rightParticipant.color || '#ef4444';
+				if (rightNameEl) rightNameEl.textContent = comparison.participants.right.name || 'Højre';
+				rightColor = comparison.participants.right.color || '#ef4444';
 				rightLightColor = lightenColor(rightColor, 0.6);
 				if (rightCircle && !isInitialLoad) {
 					rightCircle.style.display = 'flex';
@@ -3076,15 +3078,15 @@
 				}
 				const rightMirror = document.getElementById('rightMirror');
 				if (rightMirror) {
-					rightMirror.checked = comparison.rightParticipant.flipped || false;
+					rightMirror.checked = comparison.participants.right.flipped || false;
 				}
 				const rightParticipant = document.querySelector('#rightCircle').closest('.participant');
 				if (rightParticipant) {
-					rightParticipant.setAttribute('data-mirror', String(comparison.rightParticipant.flipped || false));
+					rightParticipant.setAttribute('data-mirror', String(comparison.participants.right.flipped || false));
 				}
 				// Apply pose using pose name (like dialog does)
-				if (comparison.rightParticipant.pose) {
-					applyParticipantPose('right', comparison.rightParticipant.pose, comparison.rightParticipant.flipped || false);
+				if (comparison.participants.right.pose) {
+					applyParticipantPose('right', comparison.participants.right.pose, comparison.participants.right.flipped || false);
 				} else {
 					// Reset to default pose if no pose is set
 					if (rightParticipant) {
@@ -3285,8 +3287,8 @@
 				
 				const participants = document.createElement('span');
 				participants.className = 'history-item-participants';
-				const leftName = truncateName(comparison.leftParticipant?.name || 'Venstre');
-				const rightName = truncateName(comparison.rightParticipant?.name || 'Højre');
+				const leftName = truncateName(comparison.participants.left?.name || 'Venstre');
+				const rightName = truncateName(comparison.participants.right?.name || 'Højre');
 				participants.textContent = `${leftName} & ${rightName}`;
 				
 				secondLine.appendChild(participants);
@@ -3625,22 +3627,24 @@
 			color: DEFAULT_HISTORY_COLOR,
 			timestamp: now,
 			updated: now,
-			leftParticipant: {
-				name: 'Venstre',
-				color: '#3b82f6',
-				pose: '',
-				flipped: false
-			},
-			rightParticipant: {
-				name: 'Højre',
-				color: '#ef4444',
-				pose: '',
-				flipped: false
+			notes: '',
+			participants: {
+				left: {
+					name: 'Venstre',
+					color: '#3b82f6',
+					pose: '',
+					flipped: false
+				},
+				right: {
+					name: 'Højre',
+					color: '#ef4444',
+					pose: '',
+					flipped: false
+				}
 			},
 			traitNames: [],
 			leftScores: {},
-			rightScores: {},
-			notes: ''
+			rightScores: {}
 		};
 		
 		if (!Array.isArray(CompareData.comparisons)) {
