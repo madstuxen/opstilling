@@ -2,7 +2,7 @@
 <html lang="da">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
     <title>Logbog</title>
@@ -43,6 +43,7 @@
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: white;
             padding: 16px 24px;
+            padding-top: calc(env(safe-area-inset-top) + 16px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -210,7 +211,7 @@
 
         .content {
             padding: 10px;
-            padding-right: 24px;
+            padding-right: 0px;
             padding-left: 5px;
             display: flex;
             flex-direction: column;
@@ -240,61 +241,60 @@
         }
 
         .log-history-sidebar {
-            position: absolute;
+            position: fixed;
             top: 0;
             right: -24px;
             width: 260px;
-            height: 100%;
+            height: 100vh;
             background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            border: none;
             border-radius: 18px;
-            overflow: hidden;
+            overflow-x: visible;
+            overflow-y: hidden;
             display: flex;
             flex-direction: column;
             transition: transform 0.3s ease;
             box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
-            z-index: 5;
+            z-index: 100;
+        }
+
+        .log-history-top-bar {
+            height: calc(env(safe-area-inset-top) + 69px);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            flex-shrink: 0;
+            overflow: visible;
         }
 
         .log-history-sidebar.collapsed {
             transform: translateX(230px);
+            overflow: visible;
+            border-radius: 18px 0 0 18px;
         }
 
-        .log-history-header {
-            background: #e2e8f0;
-            padding: 14px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-weight: 600;
-            color: #374151;
-            position: relative;
+        .log-history-sidebar.collapsed .log-collapse-toggle {
+            left: -28px;
         }
 
-        .log-history-sidebar.collapsed .log-history-header {
-            justify-content: center;
-        }
-
-        .log-history-sidebar.collapsed .log-history-header span {
-            display: none;
+        .log-history-sidebar.collapsed .log-collapse-toggle-bottom {
+            left: -28px;
         }
 
         .log-collapse-toggle {
             position: absolute;
             left: 2px;
-            top: 9px;
+            bottom: 10px;
             background: #4f46e5;
             color: white;
             border: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 9px;
+            width: 20px;
+            height: 50px;
+            border-radius: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 28px;
             transition: all 0.3s ease;
             z-index: 100;
             padding: 0;
@@ -1405,9 +1405,8 @@
                     </section>
                 </div>
                 <aside class="log-history-sidebar" id="logHistorySidebar">
-                    <div class="log-history-header">
+                    <div class="log-history-top-bar">
                         <button class="log-collapse-toggle" onclick="toggleLogHistorySidebar()" title="Fold historik">></button>
-                        <span>Historik</span>
                     </div>
                     <div class="log-history-content">
                         <div class="log-history-navigation">
