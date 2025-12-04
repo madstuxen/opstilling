@@ -1107,6 +1107,9 @@
             await loadAllUserData();
             console.log('[INIT] Cache preloaded ✅');
             
+            // 5. Ensure indexuserData is set (needed for coaching)
+            await ensureIndexUserData();
+            
             // Now safe to hydrate and setup
             hydrateNightOverlay();
             setupOverlayActivityListeners();
@@ -1680,6 +1683,69 @@
             });
         }
         
+        // Helper function to detect user timezone (same as index.html)
+        function detectUserTimezone() {
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Copenhagen';
+            } catch (e) {
+                console.warn('Kunne ikke auto-detecte timezone:', e);
+            }
+            return 'Europe/Copenhagen';
+        }
+
+        // Ensure indexuserData is set with "You" value from Firestore
+        // This is needed for coaching to work properly
+        async function ensureIndexUserData() {
+            if (!currentUser || !db) return;
+            
+            // Check if indexuserData already has a "You" value
+            try {
+                const existingData = localStorage.getItem('indexuserData');
+                if (existingData) {
+                    const parsed = JSON.parse(existingData);
+                    if (parsed.You && parsed.You.trim() !== '') {
+                        console.log('[indexuserData] Already has "You" value:', parsed.You);
+                        return; // Already has valid "You" value
+                    }
+                }
+            } catch (e) {
+                console.warn('[indexuserData] Error parsing existing data:', e);
+            }
+            
+            // Need to fetch userData from Firestore
+            try {
+                console.log('[indexuserData] Missing "You" value - fetching from Firestore...');
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
+                
+                if (doc.exists) {
+                    const data = doc.data();
+                    const userData = data.userData || null;
+                    
+                    if (userData) {
+                        const dataToSave = {
+                            ...userData,
+                            You: userData.displayName || '',
+                            timezone: userData.timezone || detectUserTimezone()
+                        };
+                        localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
+                        console.log('[indexuserData] Saved to localStorage:', dataToSave);
+                    } else {
+                        // userData doesn't exist in Firestore
+                        const dataToSave = {
+                            timezone: detectUserTimezone()
+                        };
+                        localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
+                        console.log('[indexuserData] No userData in Firestore, created with timezone');
+                    }
+                } else {
+                    console.warn('[indexuserData] User document not found in Firestore');
+                }
+            } catch (error) {
+                console.error('[indexuserData] Error fetching from Firestore:', error);
+            }
+        }
+
         // Load all user data (cached across the page, shared via window)
         // Note: logbogData is NOT loaded here - it's only loaded when needed for night overlay
         async function loadAllUserData(forceRefresh = false) {

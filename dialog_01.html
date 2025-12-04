@@ -8,7 +8,7 @@
     <!-- Firestore -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
     <title>Dialog - V</title>
@@ -37,7 +37,7 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 40px);
+            height: 100vh;
             overflow: hidden;
         }
         
@@ -45,6 +45,7 @@
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: white;
             padding: 16px 24px;
+            padding-top: calc(env(safe-area-inset-top) + 16px);
             text-align: center;
             border-radius: 0px;
             display: flex;
@@ -887,27 +888,45 @@
         
         .dialog-collapse-toggle {
             position: absolute;
-            left: 0px;
-            top: 10px;
+            left: 2px;
+            bottom: 10px;
             background: #4f46e5;
             color: white;
             border: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
+            width: 20px;
+            height: 50px;
+            border-radius: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
             transition: all 0.3s ease;
             z-index: 100;
             padding: 0;
+        }
+
+        .dialog-collapse-toggle img {
+            width: 12px;
+            height: 30px;
+            filter: brightness(0) invert(1);
+            transition: transform 0.6s ease;
+        }
+
+        .dialog-history-sidebar.collapsed .dialog-collapse-toggle img {
+            transform: rotate(180deg);
+        }
+
+        .dialog-history-sidebar.collapsed .dialog-collapse-toggle {
+            left: -28px;
         }
         
         .dialog-collapse-toggle-bottom {
             top: auto;
             bottom: 10px;
+        }
+
+        .dialog-history-sidebar.collapsed .dialog-collapse-toggle-bottom {
+            left: -28px;
         }
         
         .dialog-collapse-toggle:hover {
@@ -916,40 +935,35 @@
         }
         
         .dialog-history-sidebar {
-            width: 250px;
-            background: #f8fafc;
-            border-left: 1px solid #e2e8f0;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: absolute;
+            position: fixed;
             top: 0;
             right: 0;
-            bottom: 0;
-            transform: translateX(0);
-            transition: transform 0.3s ease;
+            width: 200px;
+            height: 100vh;
+            background: #f8fafc;
+            border: none;
+            border-radius: 18px 0 0 18px;
+            overflow-x: visible;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.6s ease;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
             z-index: 4000;
+        }
+
+        .dialog-history-top-bar {
+            height: calc(env(safe-area-inset-top) + 69px);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            flex-shrink: 0;
+            overflow: visible;
         }
         
         .dialog-history-sidebar.collapsed {
-            transform: translateX(212px);
-        }
-        
-        .dialog-history-header {
-            background: #e2e8f0;
-            padding: 14px 16px 14px 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-weight: 600;
-            color: #374151;
-            position: relative;
-            flex-shrink: 0;
-        }
-        
-        .dialog-history-sidebar.collapsed .dialog-history-header {
-            justify-content: center;
+            transform: translateX(200px);
+            overflow: visible;
+            border-radius: 18px 0 0 18px;
         }
         
         .dialog-history-content {
@@ -959,49 +973,6 @@
             min-height: 0;
             overflow: hidden;
             height: 100%;
-        }
-        
-        .dialog-history-navigation {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0px 12px 0px 12px;
-            background: #e2e8f0;
-            border-bottom: 1px solid #d1d5db;
-            flex-shrink: 0;
-        }
-        
-        .dialog-nav-btn-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            justify-content: space-between;
-        }
-        
-        .dialog-nav-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            border: none;
-            background: white;
-            cursor: pointer;
-            font-size: 0;
-            position: relative;
-            transition: all 0.2s ease;
-            padding: 0;
-        }
-        
-        .dialog-nav-btn::before {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
         }
         
         #dialogHistoryNewer::before {
@@ -1918,9 +1889,9 @@
     /* Touch devices adjustments */
     @media (hover: none) and (pointer: coarse) {
         body { padding: 0px; }
-        .header { padding: 5px; }
+        .header { padding: 16px 24px; padding-top: calc(env(safe-area-inset-top) + 16px); }
         .header h1 { font-size: 2.0em; margin-bottom: 0; }
-        .dialog-container { border-radius: 20px; }
+        .dialog-container { border-radius: 0px; }
         .controls-bar { padding: 8px 12px; gap: 10px; }
         .participant-dropdown { font-size: 13px; padding: 6px 10px; border-radius: 8px; }
         .btn { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
@@ -2141,19 +2112,13 @@
             </div>
             
             <aside class="dialog-history-sidebar" id="dialogHistorySidebar">
-                <div class="dialog-history-header">
-                    <button class="dialog-collapse-toggle" onclick="toggleDialogHistorySidebar()" title="Fold historik">></button>
+                <div class="dialog-history-top-bar">
+                    <button class="dialog-collapse-toggle" onclick="toggleDialogHistorySidebar()" title="Fold historik"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
                 </div>
                 <div class="dialog-history-content">
-                    <div class="dialog-history-navigation">
-                        <div class="dialog-nav-btn-group">
-                            <button type="button" class="dialog-nav-btn" id="dialogHistoryNewer" onclick="navigateDialogHistory(-1)" title="Nyere"></button>
-                            <button type="button" class="dialog-nav-btn" id="dialogHistoryOlder" onclick="navigateDialogHistory(1)" title="Ældre"></button>
-                        </div>
-                    </div>
                     <div class="dialog-history-list" id="dialogHistoryList"></div>
                 </div>
-                <button class="dialog-collapse-toggle dialog-collapse-toggle-bottom" onclick="toggleDialogHistorySidebar()" title="Fold historik">></button>
+                <button class="dialog-collapse-toggle dialog-collapse-toggle-bottom" onclick="toggleDialogHistorySidebar()" title="Fold historik"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
             </aside>
         </div>
     </div>
@@ -2822,7 +2787,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 firstLine.className = 'dialog-history-item-meta-line';
                 firstLine.innerHTML = `
                     <span class="dialog-history-item-time">${dateDk} ${timeStr}</span>
-                    <span class="dialog-history-item-messages">besk: ${messagesCount}</span>
                 `;
                 
                 const secondLine = document.createElement('div');
@@ -2831,8 +2795,15 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     <span class="dialog-history-item-participants">${leftName} & ${rightName}</span>
                 `;
                 
+                const thirdLine = document.createElement('div');
+                thirdLine.className = 'dialog-history-item-meta-line';
+                thirdLine.innerHTML = `
+                    <span class="dialog-history-item-messages">Besked: ${messagesCount}</span>
+                `;
+                
                 metaWrapper.appendChild(firstLine);
                 metaWrapper.appendChild(secondLine);
+                metaWrapper.appendChild(thirdLine);
                 item.appendChild(metaWrapper);
 
                 const deleteBtn = document.createElement('button');
@@ -3016,33 +2987,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 listEl.appendChild(item);
             });
             
-            const navUp = document.getElementById('dialogHistoryNewer');
-            const navDown = document.getElementById('dialogHistoryOlder');
-            const canNavigate = sortedEntries.length > 1;
-            if (navUp) navUp.disabled = !canNavigate;
-            if (navDown) navDown.disabled = !canNavigate;
-        }
-        
-        function updateDialogHistoryNavState(sortedEntries) {
-            const newerBtn = document.getElementById('dialogHistoryNewer');
-            const olderBtn = document.getElementById('dialogHistoryOlder');
-            if (!newerBtn || !olderBtn) return;
-            
-            if (!sortedEntries || !sortedEntries.length) {
-                newerBtn.disabled = true;
-                olderBtn.disabled = true;
-                return;
-            }
-            
-            const currentPos = sortedEntries.findIndex(entry => 
-                entry.dialog.id === DialogData.activeDialogId && 
-                entry.collection.id === DialogData.activeCollectionId
-            );
-            const atNewest = currentPos <= 0;
-            const atOldest = currentPos === sortedEntries.length - 1 || currentPos === -1;
-            
-            newerBtn.disabled = atNewest;
-            olderBtn.disabled = atOldest;
         }
         
         function updateDialogHistoryToggleUI() {
@@ -3052,11 +2996,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             
             sidebar.classList.toggle('collapsed', dialogHistoryCollapsed);
             layout.classList.toggle('history-collapsed', dialogHistoryCollapsed);
-            
-            const toggles = sidebar.querySelectorAll('.dialog-collapse-toggle');
-            toggles.forEach(toggle => {
-                toggle.textContent = dialogHistoryCollapsed ? '<' : '>';
-            });
         }
         
         function toggleDialogHistorySidebar() {
@@ -3069,25 +3008,6 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             try {
                 localStorage.setItem(DIALOG_HISTORY_COLLAPSED_KEY, String(dialogHistoryCollapsed));
             } catch (_) {}
-        }
-        
-        async function navigateDialogHistory(direction) {
-            const sortedEntries = getFilteredSortedDialogs();
-            if (!sortedEntries.length) return;
-            
-            const currentPos = sortedEntries.findIndex(entry => 
-                entry.dialog.id === DialogData.activeDialogId
-            );
-            const nextIndex = currentPos === -1
-                ? (direction > 0 ? 0 : sortedEntries.length - 1)
-                : (direction < 0 ? Math.max(0, currentPos - 1) : Math.min(sortedEntries.length - 1, currentPos + 1));
-            if (nextIndex !== currentPos && sortedEntries[nextIndex]) {
-                const targetEntry = sortedEntries[nextIndex];
-                DialogData.activeDialogId = targetEntry.dialog.id;
-                // Only switch active dialog/collection – don't save when navigating history
-                loadSavedDialogFromNewStructure(targetEntry.dialog);
-                renderDialogHistory();
-            }
         }
         
         function loadSavedDialogFromNewStructure(dialog) {

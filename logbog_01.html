@@ -243,17 +243,17 @@
         .log-history-sidebar {
             position: fixed;
             top: 0;
-            right: -24px;
-            width: 260px;
+            right: 0px;
+            width: 200px;
             height: 100vh;
             background: #f8fafc;
             border: none;
-            border-radius: 18px;
+            border-radius: 18px 0 0 18px;
             overflow-x: visible;
             overflow-y: hidden;
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease;
+            transition: transform 0.6s ease;
             box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
             z-index: 100;
         }
@@ -267,7 +267,7 @@
         }
 
         .log-history-sidebar.collapsed {
-            transform: translateX(230px);
+            transform: translateX(200px);
             overflow: visible;
             border-radius: 18px 0 0 18px;
         }
@@ -294,10 +294,20 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
             transition: all 0.3s ease;
             z-index: 100;
             padding: 0;
+        }
+
+        .log-collapse-toggle img {
+            width: 12px;
+            height: 30px;
+            filter: brightness(0) invert(1);
+            transition: transform 0.6s ease;
+        }
+
+        .log-history-sidebar.collapsed .log-collapse-toggle img {
+            transform: rotate(180deg);
         }
 
         .log-collapse-toggle:hover {
@@ -1353,12 +1363,12 @@
                 </div>
                 <aside class="log-history-sidebar" id="logHistorySidebar">
                     <div class="log-history-top-bar">
-                        <button class="log-collapse-toggle" onclick="toggleLogHistorySidebar()" title="Fold historik">></button>
+                        <button class="log-collapse-toggle" onclick="toggleLogHistorySidebar()" title="Fold historik"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
                     </div>
                     <div class="log-history-content">
                         <div class="log-history-list" id="logHistoryList"></div>
                     </div>
-                    <button class="log-collapse-toggle log-collapse-toggle-bottom" onclick="toggleLogHistorySidebar()" title="Fold historik">></button>
+                    <button class="log-collapse-toggle log-collapse-toggle-bottom" onclick="toggleLogHistorySidebar()" title="Fold historik"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
                 </aside>
             </div>
         </div>
@@ -2395,7 +2405,7 @@
         function formatLogHistoryDate(dateStr, options) {
             const parsed = parseDanishDateTime(dateStr) || new Date(`${dateStr}T00:00:00`);
             if (!parsed || Number.isNaN(parsed.getTime())) return dateStr;
-            return parsed.toLocaleDateString('da-DK', options);
+            return parsed.toLocaleDateString('da-DK', options).replace(/\./g, '');
         }
 
         async function renderLogHistory(externalEntries = null) {
@@ -2434,7 +2444,7 @@
 
                 const dateLabelEl = document.createElement('div');
                 dateLabelEl.className = 'log-history-item-date';
-                dateLabelEl.textContent = formatLogHistoryDate(entry.date, { day: '2-digit', month: 'long', year: 'numeric' });
+                dateLabelEl.textContent = formatLogHistoryDate(entry.date, { day: '2-digit', month: 'short', year: '2-digit' });
                 headerEl.appendChild(dateLabelEl);
 
                 const colorBtn = document.createElement('button');
@@ -2482,7 +2492,7 @@
                 if (snippetSource.length === 0) {
                     snippetEl.textContent = 'Ingen noter endnu.';
                 } else {
-                    const shortened = snippetSource.length > 60 ? `${snippetSource.slice(0, 60)}…` : snippetSource;
+                    const shortened = snippetSource.length > 45 ? `${snippetSource.slice(0, 45)}…` : snippetSource;
                     snippetEl.textContent = shortened;
                 }
 
@@ -2833,13 +2843,9 @@
 
         function toggleLogHistorySidebar() {
             const sidebar = document.getElementById('logHistorySidebar');
-            const toggleBtns = document.querySelectorAll('.log-collapse-toggle');
-            if (!sidebar || !toggleBtns.length) return;
+            if (!sidebar) return;
 
             const collapsed = sidebar.classList.toggle('collapsed');
-            toggleBtns.forEach(btn => {
-                btn.textContent = collapsed ? '<' : '>';
-            });
             try {
                 localStorage.setItem(LOG_HISTORY_COLLAPSED_KEY, String(collapsed));
             } catch (error) {
@@ -4697,10 +4703,6 @@
                 } else {
                     historySidebar.classList.remove('collapsed');
                 }
-                const toggleBtns = historySidebar.querySelectorAll('.log-collapse-toggle');
-                toggleBtns.forEach(btn => {
-                    btn.textContent = collapsedState ? '<' : '>';
-                });
             }
 
             window.addEventListener('resize', () => {

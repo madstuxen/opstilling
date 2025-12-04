@@ -2,7 +2,7 @@
 <html lang="da">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
     <title>Forskelle og Ligheder</title>
@@ -35,7 +35,7 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 40px);
+            height: 100vh;
             overflow: hidden;
         }
         
@@ -43,6 +43,7 @@
             background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             color: white;
             padding: 16px 24px;
+            padding-top: calc(env(safe-area-inset-top) + 16px);
             text-align: center;
             border-radius: 0px;
             display: flex;
@@ -1537,24 +1538,37 @@
 		
 		
 		
-		/* History Sidebar (from opstilling_01.html) */
+		/* History Sidebar */
         .history-sidebar {
-            width: 250px;
-            background: #f8fafc;
-            border-left: 1px solid #e2e8f0;
-            display: flex;
-            flex-direction: column;
-            position: absolute;
+            position: fixed;
             top: 0;
             right: 0;
-            bottom: 0;
-            transform: translateX(0);
-            transition: transform 0.3s ease;
+            width: 200px;
+            height: 100vh;
+            background: #f8fafc;
+            border: none;
+            border-radius: 18px 0 0 18px;
+            overflow-x: visible;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.6s ease;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
             z-index: 4000;
+        }
+
+        .history-top-bar {
+            height: calc(env(safe-area-inset-top) + 69px);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            flex-shrink: 0;
+            overflow: visible;
         }
         
         .history-sidebar.collapsed {
-            transform: translateX(212px);
+            transform: translateX(200px);
+            overflow: visible;
+            border-radius: 18px 0 0 18px;
         }
         
         .history-content {
@@ -1569,50 +1583,39 @@
         .history-sidebar.collapsed .history-content {
             display: none;
         }
-        
-        .history-sidebar.collapsed .history-header {
-            justify-content: center;
-            font-size: 0;
-            padding-left: 16px;
-        }
-        
-        .history-header {
-            background: #e2e8f0;
-            padding: 10px 12px 10px 40px;
-            text-align: center;
-            font-weight: bold;
-            color: #374151;
-            border-bottom: 2px solid #d1d5db;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
-            height: 50px;
-            min-height: 50px;
-            max-height: 50px;
-            box-sizing: border-box;
-            position: relative;
-        }
-        
-        
+
         .collapse-toggle {
             position: absolute;
             left: 2px;
-            top: 12px;
+            bottom: 10px;
             background: #4f46e5;
             color: white;
             border: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 8px;
+            width: 20px;
+            height: 50px;
+            border-radius: 18px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
             transition: all 0.3s ease;
             z-index: 100;
             padding: 0;
+        }
+
+        .collapse-toggle img {
+            width: 12px;
+            height: 30px;
+            filter: brightness(0) invert(1);
+            transition: transform 0.6s ease;
+        }
+
+        .history-sidebar.collapsed .collapse-toggle img {
+            transform: rotate(180deg);
+        }
+
+        .history-sidebar.collapsed .collapse-toggle {
+            left: -28px;
         }
         
         .collapse-toggle:hover {
@@ -1624,16 +1627,9 @@
             top: auto;
             bottom: 8px;
         }
-        
-        .history-navigation {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            background: #e2e8f0;
-            border-bottom: 1px solid #d1d5db;
-            flex-shrink: 0;
+
+        .history-sidebar.collapsed .collapse-toggle-bottom {
+            left: -28px;
         }
         
         .nav-btn {
@@ -1781,9 +1777,12 @@
             gap: 10px;
         }
         
-        .history-item-time,
-        .history-item-participants {
+        .history-item-time {
             white-space: nowrap;
+        }
+        
+        .history-item-participants {
+            white-space: normal;
         }
         
         .history-item-delete {
@@ -2203,9 +2202,9 @@
     /* Touch devices adjustments */
     @media (hover: none) and (pointer: coarse) {
         body { padding: 0px; }
-        .header { padding: 5px; }
+        .header { padding: 16px 24px; padding-top: calc(env(safe-area-inset-top) + 16px); }
         .header h1 { font-size: 2.0em; margin-bottom: 0; }
-        .comparison-container { border-radius: 20px; }
+        .comparison-container { border-radius: 0px; }
         .controls-bar { padding: 8px 12px; gap: 10px; }
         .participant-dropdown { font-size: 13px; padding: 6px 10px; border-radius: 8px; }
         .btn { padding: 6px 12px; font-size: 13px; border-radius: 8px; }
@@ -2403,19 +2402,13 @@
             
             <!-- History Sidebar -->
             <div class="history-sidebar" id="historySidebar">
-                <div class="history-header">
-                    <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
+                <div class="history-top-bar">
+                    <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
                 </div>
                 <div class="history-content">
-                    <div class="history-navigation">
-                        <div class="nav-btn-group">
-                            <button class="nav-btn" id="navUp" onclick="navigateHistory(-1)" title="Gå ned"></button>
-                            <button class="nav-btn" id="navDown" onclick="navigateHistory(1)" title="Gå op"></button>
-                        </div>
-                    </div>
                     <div class="history-list" id="historyList"></div>
                 </div>
-                <button class="collapse-toggle collapse-toggle-bottom" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie">></button>
+                <button class="collapse-toggle collapse-toggle-bottom" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
             </div>
         </div>
     </div>
@@ -2811,8 +2804,8 @@
 		
 		function truncateName(name) {
 			if (!name || typeof name !== 'string') return '';
-			if (name.length > 10) {
-				return name.substring(0, 10) + '..';
+			if (name.length > 20) {
+				return name.substring(0, 20) + '..';
 			}
 			return name;
 		}
@@ -3289,7 +3282,7 @@
 				participants.className = 'history-item-participants';
 				const leftName = truncateName(comparison.participants.left?.name || 'Venstre');
 				const rightName = truncateName(comparison.participants.right?.name || 'Højre');
-				participants.textContent = `${leftName} & ${rightName}`;
+				participants.innerHTML = `${leftName} &<br>${rightName}`;
 				
 				secondLine.appendChild(participants);
 				
@@ -3420,51 +3413,15 @@
 				listEl.appendChild(item);
 			});
 			
-			updateHistoryNavState();
-		}
-		
-	function updateHistoryNavState() {
-		const filtered = getFilteredSortedComparisons();
-		const currentIndex = filtered.findIndex(item => 
-			item.comparison.id === CompareData.activeComparisonId
-		);
-		
-		const navUp = document.getElementById('navUp');
-		const navDown = document.getElementById('navDown');
-		
-		if (navUp) navUp.disabled = currentIndex <= 0;
-		if (navDown) navDown.disabled = currentIndex >= filtered.length - 1;
-	}
-		
-	async function navigateHistory(direction) {
-		const filtered = getFilteredSortedComparisons();
-		const currentIndex = filtered.findIndex(item => 
-			item.comparison.id === CompareData.activeComparisonId
-		);
-		
-		if (currentIndex === -1) return;
-		
-		const newIndex = currentIndex + direction;
-		if (newIndex < 0 || newIndex >= filtered.length) return;
-		
-		const { comparison } = filtered[newIndex];
-		CompareData.activeComparisonId = comparison.id;
-			loadComparisonFromCompareData(comparison);
-			await renderHistory();
-			updateHistoryNavState();
 		}
 		
 		function toggleHistorySidebar() {
 			const sidebar = document.getElementById('historySidebar');
-			const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
-			if (!sidebar || !toggleBtns.length) return;
+			if (!sidebar) return;
 			
 			sidebar.classList.toggle('collapsed');
 			const isCollapsed = sidebar.classList.contains('collapsed');
 			localStorage.setItem('compare_historySidebarCollapsed', isCollapsed);
-			toggleBtns.forEach(btn => {
-				btn.textContent = isCollapsed ? '<' : '>';
-			});
 		}
 		
 	async function deleteComparison(comparisonId) {
@@ -5917,13 +5874,10 @@ function resetPose(side) {
             historySidebarCollapsed = savedCollapsed === null || savedCollapsed === 'true';
             const sidebar = document.getElementById('historySidebar');
             if (sidebar) {
-                const toggleBtns = sidebar.querySelectorAll('.collapse-toggle');
                 if (historySidebarCollapsed) {
                     sidebar.classList.add('collapsed');
-                    toggleBtns.forEach(btn => btn.textContent = '<');
                 } else {
                     sidebar.classList.remove('collapsed');
-                    toggleBtns.forEach(btn => btn.textContent = '>');
                 }
             }
             
