@@ -1912,6 +1912,7 @@
         // Main save function - always saves to Firestore if user is logged in
         async function saveCheckinData(engine) {
             if (!engine || !engine.blackboard) {
+                console.log('[SAVE_CHECKIN] No engine or blackboard');
                 return;
             }
             
@@ -1923,16 +1924,21 @@
             const status = engine.blackboard.status;
             const taknem = engine.blackboard.taknem;
             
+            console.log('[SAVE_CHECKIN] Blackboard state:', { status, taknem, fullBlackboard: JSON.stringify(engine.blackboard) });
+            
             // Only save if both status and taknem exist
             if (status !== undefined && taknem !== undefined && taknem !== null && taknem !== '') {
                 isSavingData = true;
                 try {
                     await saveCheckinDataToFirestore(engine);
+                    console.log('[SAVE_CHECKIN] Successfully saved status:', status, 'taknem:', taknem);
                 } catch (error) {
                     console.error('[SAVE_CHECKIN] Error saving:', error);
                 } finally {
                     isSavingData = false;
                 }
+            } else {
+                console.warn('[SAVE_CHECKIN] Skipped save - status:', status, 'taknem:', taknem);
             }
         }
         
