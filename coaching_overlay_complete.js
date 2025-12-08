@@ -315,6 +315,21 @@ function openCoachingOverlay(dataSource = 'myCoachingProject') {
  */
 function closeCoachingOverlay() {
     if (coachingOverlay) {
+        // Before closing, check if there's unsent text in the textarea for a save-type question
+        // This ensures taknem (and similar) gets saved even if user closes without pressing Enter
+        if (currentEngine && currentQuestion && currentQuestion.type === 'save' && currentQuestion.saveAs) {
+            try {
+                const rootEl = (window.coachingOverlay && window.coachingOverlay.contentRoot) ? window.coachingOverlay.contentRoot : coachingOverlay.content;
+                const textarea = rootEl.querySelector('#rightTextarea');
+                if (textarea && textarea.value && textarea.value.trim()) {
+                    currentEngine.blackboard[currentQuestion.saveAs] = textarea.value.trim();
+                    debugLog('Saved unsent response on close:', currentQuestion.saveAs, '=', textarea.value.trim());
+                }
+            } catch (e) {
+                debugLog('Error saving unsent response:', e);
+            }
+        }
+        
         // Dispatch custom event before closing so pages can save data if needed
         const closeEvent = new CustomEvent('coachingOverlayClosing', {
             detail: {
@@ -2781,6 +2796,21 @@ function makeDraggable(element, handle) {
  */
 function closeCoachingOverlay() {
     if (coachingOverlay) {
+        // Before closing, check if there's unsent text in the textarea for a save-type question
+        // This ensures taknem (and similar) gets saved even if user closes without pressing Enter
+        if (currentEngine && currentQuestion && currentQuestion.type === 'save' && currentQuestion.saveAs) {
+            try {
+                const rootEl = (window.coachingOverlay && window.coachingOverlay.contentRoot) ? window.coachingOverlay.contentRoot : coachingOverlay.content;
+                const textarea = rootEl.querySelector('#rightTextarea');
+                if (textarea && textarea.value && textarea.value.trim()) {
+                    currentEngine.blackboard[currentQuestion.saveAs] = textarea.value.trim();
+                    debugLog('Saved unsent response on close:', currentQuestion.saveAs, '=', textarea.value.trim());
+                }
+            } catch (e) {
+                debugLog('Error saving unsent response:', e);
+            }
+        }
+        
         // Dispatch custom event before closing so pages can save data if needed
         const closeEvent = new CustomEvent('coachingOverlayClosing', {
             detail: {

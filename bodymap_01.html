@@ -438,7 +438,7 @@
             top: auto;
             bottom: 8px;
         }
-
+        
         .history-sidebar.collapsed .collapse-toggle-bottom {
             left: -28px;
         }
@@ -1375,10 +1375,10 @@
             <div class="history-sidebar" id="historySidebar">
                 <div class="history-top-bar">
                     <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
-                    <button type="button" class="layer-toggle-btn" id="layerToggleBtn" onclick="toggleOnionLayers()" aria-pressed="true" title="Skjul lag">
-                        <img src="imagefiles/lay_on.svg" alt="Lag vises" width="28" height="28">
-                    </button>
-                </div>
+                        <button type="button" class="layer-toggle-btn" id="layerToggleBtn" onclick="toggleOnionLayers()" aria-pressed="true" title="Skjul lag">
+                            <img src="imagefiles/lay_on.svg" alt="Lag vises" width="28" height="28">
+                        </button>
+                    </div>
                 <div class="history-content">
                     <div class="history-list" id="historyList"></div>
                 </div>
@@ -1641,7 +1641,7 @@
 
         function ensureIndexTimestamp(index) {
             if (!index.timestamp) {
-                index.timestamp = new Date().toISOString();
+                    index.timestamp = new Date().toISOString();
             }
             return index.timestamp;
         }
@@ -2418,7 +2418,7 @@
                 // Append in order (already newest-first)
                 list.appendChild(item);
             });
-            
+
             if (shouldScrollHistoryToBottom) {
                 list.scrollTop = list.scrollHeight;
                 shouldScrollHistoryToBottom = false;
@@ -3984,7 +3984,7 @@
         function showHelp() {
             openCoachingOverlayFromFile('coaching_templates/Body_help_coaching.json');
         }
-        
+
         function buildHistoryColorGrid() {
             const gridEl = document.getElementById('historyColorGrid');
             if (!gridEl) return;

@@ -386,6 +386,48 @@
             line-height: 1.4;
         }
 
+        .log-history-month-header {
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .log-history-month-header:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .log-history-month-header.expanded {
+            margin-bottom: 12px;
+        }
+
+        .log-history-month-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .log-history-month-count {
+            font-size: 0.8rem;
+            opacity: 0.85;
+            flex: 1;
+            text-align: right;
+        }
+
+        .log-history-month-arrow {
+            font-size: 0.7rem;
+            opacity: 0.9;
+            transition: transform 0.2s ease;
+        }
+
         .log-history-item-meta {
             display: flex;
             justify-content: space-between;
@@ -1069,7 +1111,6 @@
             width: 100%;
             height: 240px;
             border-radius: 0px;
-            border-radius: 16px;
             background: white;
             box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
         }
@@ -2409,7 +2450,10 @@
             return parsed.toLocaleDateString('da-DK', options).replace(/\./g, '');
         }
 
-        async function renderLogHistory(externalEntries = null) {
+        // Track which months are expanded (by month key like "2024-11")
+        const expandedMonths = new Set();
+
+        async function renderLogHistory(externalEntries = null, skipAutoScroll = false) {
             const listEl = document.getElementById('logHistoryList');
             if (!listEl) return;
 
@@ -2418,7 +2462,89 @@
 
             let activeItemEl = null;
 
+            // Group entries by month
+            const monthGroups = {};
             entries.forEach(entry => {
+                if (!entry.date) return;
+                const monthKey = entry.date.substring(0, 7); // "YYYY-MM"
+                if (!monthGroups[monthKey]) {
+                    monthGroups[monthKey] = [];
+                }
+                monthGroups[monthKey].push(entry);
+            });
+
+            // Get current date info
+            const now = new Date();
+            const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const dayOfMonth = now.getDate();
+            
+            // Calculate previous month key
+            const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const prevMonthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+
+            // Sort month keys (newest first)
+            const sortedMonthKeys = Object.keys(monthGroups).sort((a, b) => b.localeCompare(a));
+
+            // Determine which months should show expanded by default
+            // Current month is always expanded
+            // Previous month is expanded if we're in the first 7 days of the current month
+            const autoExpandedMonths = new Set([currentMonthKey]);
+            if (dayOfMonth <= 7) {
+                autoExpandedMonths.add(prevMonthKey);
+            }
+
+            // Render each month group
+            sortedMonthKeys.forEach(monthKey => {
+                const monthEntries = monthGroups[monthKey];
+                const isCurrentOrGracePeriod = autoExpandedMonths.has(monthKey);
+                const isExpanded = isCurrentOrGracePeriod || expandedMonths.has(monthKey);
+
+                // For non-current months, show a collapsible header
+                if (!isCurrentOrGracePeriod) {
+                    const monthHeader = document.createElement('div');
+                    monthHeader.className = 'log-history-month-header' + (isExpanded ? ' expanded' : '');
+                    monthHeader.dataset.monthKey = monthKey;
+
+                    // Parse month for display
+                    const [year, month] = monthKey.split('-');
+                    const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+                    const monthName = monthDate.toLocaleDateString('da-DK', { month: 'short' }).replace('.', '');
+                    const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
+                    monthHeader.innerHTML = `
+                        <span class="log-history-month-title">${capitalizedMonth} ${year}</span>
+                        <span class="log-history-month-count">${monthEntries.length} poster</span>
+                        <span class="log-history-month-arrow">${isExpanded ? '▼' : '▶'}</span>
+                    `;
+
+                    monthHeader.addEventListener('click', async () => {
+                        // Remember header position relative to viewport before re-render
+                        const headerRect = monthHeader.getBoundingClientRect();
+                        const listRect = listEl.getBoundingClientRect();
+                        const offsetFromListTop = headerRect.top - listRect.top;
+                        
+                        if (expandedMonths.has(monthKey)) {
+                            expandedMonths.delete(monthKey);
+                        } else {
+                            expandedMonths.add(monthKey);
+                        }
+                        
+                        // Store scroll restore info globally so renderLogHistory can use it
+                        window._monthScrollRestore = {
+                            monthKey: monthKey,
+                            offsetFromListTop: offsetFromListTop
+                        };
+                        
+                        await renderLogHistory(entries, true);
+                    });
+
+                    listEl.appendChild(monthHeader);
+                }
+
+                // Only render entries if expanded
+                if (!isExpanded) return;
+
+                monthEntries.forEach(entry => {
                 const item = document.createElement('div');
                 item.className = 'log-history-item';
                 // Mark item with its date so color picker can live-update styling without saving
@@ -2550,9 +2676,19 @@
                 });
 
                 listEl.appendChild(item);
-            });
+                });
+            }); // End of sortedMonthKeys.forEach
 
-            if (activeItemEl) {
+            // Handle scroll restoration for month fold/unfold
+            if (window._monthScrollRestore) {
+                const restore = window._monthScrollRestore;
+                window._monthScrollRestore = null;
+                const newHeader = listEl.querySelector(`.log-history-month-header[data-month-key="${restore.monthKey}"]`);
+                if (newHeader) {
+                    // Try to restore position - browser will clamp if list is too short
+                    listEl.scrollTop = newHeader.offsetTop - restore.offsetFromListTop;
+                }
+            } else if (activeItemEl && !skipAutoScroll) {
                 requestAnimationFrame(() => {
                     const listRect = listEl.getBoundingClientRect();
                     const itemRect = activeItemEl.getBoundingClientRect();
