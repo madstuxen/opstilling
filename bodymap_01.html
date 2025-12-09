@@ -3946,38 +3946,120 @@
         }
         
         function saveImage() {
+            // Save current onion layer state (outside try block for error handling)
+            const wasShowingOnionLayers = showOnionLayers;
+            
             try {
                 const workspace = document.getElementById('workspace');
                 
-                // Hide delete buttons
-                const deleteBtns = workspace.querySelectorAll('.label-delete-btn');
-                deleteBtns.forEach(btn => btn.style.opacity = '0');
+                // Hide onion layers for screenshot
+                if (showOnionLayers) {
+                    toggleOnionLayers(false);
+                }
                 
-                // Modern-screenshot
-                modernScreenshot.domToPng(workspace, {
-                    width: workspace.offsetWidth,
-                    height: workspace.offsetHeight,
-                    scale: 2,
-                    quality: 1
-                }).then(dataUrl => {
-                    // Restore UI
-                    deleteBtns.forEach(btn => btn.style.opacity = '');
+                // Wait for render to complete
+                setTimeout(() => {
+                    // Hide delete buttons and color buttons
+                    const deleteBtns = workspace.querySelectorAll('.label-delete-btn');
+                    const colorBtns = workspace.querySelectorAll('.label-color-btn');
+                    deleteBtns.forEach(btn => btn.style.opacity = '0');
+                    colorBtns.forEach(btn => btn.style.opacity = '0');
                     
-                    // Download
-                    const link = document.createElement('a');
-                    const dato = new Date().toISOString().slice(0, 10);
-                    link.download = `BodyMap-${dato}.png`;
-                    link.href = dataUrl;
-                    link.click();
-                }).catch(error => {
-                    console.error('Fejl:', error);
+                    // Convert textareas to divs to prevent text duplication in screenshot
+                    const textareas = workspace.querySelectorAll('.label-text-input');
+                    const textareaBackups = [];
+                    textareas.forEach(textarea => {
+                        const backup = {
+                            element: textarea,
+                            parent: textarea.parentNode,
+                            nextSibling: textarea.nextSibling,
+                            value: textarea.value,
+                            className: textarea.className,
+                            style: textarea.getAttribute('style')
+                        };
+                        textareaBackups.push(backup);
+                        
+                        // Create a div with the same styling and content
+                        const div = document.createElement('div');
+                        div.className = textarea.className.replace('label-text-input', 'label-text-display');
+                        div.textContent = textarea.value || textarea.placeholder || '';
+                        div.style.cssText = textarea.style.cssText;
+                        div.style.display = 'inline-block';
+                        div.style.width = '100%';
+                        div.style.height = 'auto';
+                        div.style.minHeight = textarea.style.minHeight || 'auto';
+                        
+                        // Replace textarea with div
+                        textarea.parentNode.replaceChild(div, textarea);
+                    });
                     
-                    // Restore UI on error
-                    deleteBtns.forEach(btn => btn.style.opacity = '');
-                });
+                    // Modern-screenshot
+                    modernScreenshot.domToPng(workspace, {
+                        width: workspace.offsetWidth,
+                        height: workspace.offsetHeight,
+                        scale: 2,
+                        quality: 1
+                    }).then(dataUrl => {
+                        // Restore textareas
+                        textareaBackups.forEach(backup => {
+                            const div = backup.parent.querySelector('.label-text-display');
+                            if (div) {
+                                backup.element.value = backup.value;
+                                if (backup.style) {
+                                    backup.element.setAttribute('style', backup.style);
+                                }
+                                backup.parent.replaceChild(backup.element, div);
+                            }
+                        });
+                        
+                        // Restore UI
+                        deleteBtns.forEach(btn => btn.style.opacity = '');
+                        colorBtns.forEach(btn => btn.style.opacity = '');
+                        
+                        // Restore onion layers state
+                        if (wasShowingOnionLayers) {
+                            toggleOnionLayers(true);
+                        }
+                        
+                        // Download
+                        const link = document.createElement('a');
+                        const dato = new Date().toISOString().slice(0, 10);
+                        link.download = `BodyMap-${dato}.png`;
+                        link.href = dataUrl;
+                        link.click();
+                    }).catch(error => {
+                        console.error('Fejl:', error);
+                        
+                        // Restore textareas on error
+                        textareaBackups.forEach(backup => {
+                            const div = backup.parent.querySelector('.label-text-display');
+                            if (div) {
+                                backup.element.value = backup.value;
+                                if (backup.style) {
+                                    backup.element.setAttribute('style', backup.style);
+                                }
+                                backup.parent.replaceChild(backup.element, div);
+                            }
+                        });
+                        
+                        // Restore UI on error
+                        deleteBtns.forEach(btn => btn.style.opacity = '');
+                        colorBtns.forEach(btn => btn.style.opacity = '');
+                        
+                        // Restore onion layers state on error
+                        if (wasShowingOnionLayers) {
+                            toggleOnionLayers(true);
+                        }
+                    });
+                }, 100); // Small delay to ensure render completes
             } catch (error) {
                 console.error('Fejl ved gem af billede:', error);
                 alert('Kunne ikke gemme billede. Prøv igen.');
+                
+                // Restore onion layers state on error if it was changed
+                if (wasShowingOnionLayers && !showOnionLayers) {
+                    toggleOnionLayers(true);
+                }
             }
         }
         

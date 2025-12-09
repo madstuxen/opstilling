@@ -1007,6 +1007,7 @@
             flex-direction: column;
             overflow: hidden;
             flex: 1;
+            min-height: 0;
             position: relative;
         }
         
@@ -1015,6 +1016,8 @@
             background: white;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
         }
         
         .comparison-header {
@@ -1031,7 +1034,7 @@
             overflow-y: auto;
             padding: 20px;
             background: #fafafa;
-            min-height: 400px;
+            min-height: 0;
         }
         
         .step-container {
@@ -2397,10 +2400,10 @@
                     <p style="margin-top: 15px; font-style: italic; color: #6b7280;">Dette værktøj hjælper med at reducere indre konflikt ved at se nuancer og ligheder mellem dele af dig selv.</p>
                 </div>
             </div>
-                </div>
-            </div>
             
             <!-- History Sidebar -->
+        </div>
+            
             <div class="history-sidebar" id="historySidebar">
                 <div class="history-top-bar">
                     <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
