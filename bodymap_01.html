@@ -793,6 +793,48 @@
             transform: scale(1.1);
         }
 
+        .log-history-month-header {
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .log-history-month-header:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .log-history-month-header.expanded {
+            margin-bottom: 12px;
+        }
+
+        .log-history-month-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .log-history-month-count {
+            font-size: 0.8rem;
+            opacity: 0.85;
+            flex: 1;
+            text-align: right;
+        }
+
+        .log-history-month-arrow {
+            font-size: 0.7rem;
+            opacity: 0.9;
+            transition: transform 0.2s ease;
+        }
+
         .nav-btn-group {
             display: flex;
             align-items: center;
@@ -1916,6 +1958,94 @@
         }
         
         // Load all user data (cached) for this page, shared via window
+        // Helper: Get month key from date (YYYY-MM format)
+        function getMonthKey(date = null) {
+            const d = date ? new Date(date) : new Date();
+            if (isNaN(d.getTime())) return null;
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
+        }
+        
+        // Helper: Get months to load based on current date
+        // Returns array of month keys: [currentMonth, previousMonth?]
+        function getMonthsToLoad() {
+            const now = new Date();
+            const currentMonthKey = getMonthKey(now);
+            const dayOfMonth = now.getDate();
+            
+            const monthsToLoad = [currentMonthKey];
+            
+            // If before the 7th, also load previous month
+            if (dayOfMonth <= 7) {
+                const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const prevMonthKey = getMonthKey(prevMonth);
+                monthsToLoad.push(prevMonthKey);
+            }
+            
+            return monthsToLoad;
+        }
+        
+        // Helper: Load data for specific month from Firestore subcollection
+        async function loadMonthData(monthKey, forceRefresh = false) {
+            if (!currentUser || !db) return null;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                console.log(`🔥 FIRESTORE READ - bodymap_01.html - loadMonthData(${monthKey})`);
+                const doc = await monthDocRef.get();
+                if (!doc.exists) return null;
+                
+                return doc.data() || null;
+            } catch (error) {
+                console.error(`[LOAD] Error loading month data for ${monthKey}:`, error);
+                return null;
+            }
+        }
+        
+        // Helper: Merge data from multiple months into flat structure
+        function mergeMonthlyData(monthsData) {
+            const merged = {
+                bodymapData: { dataIndexes: [] },
+                dialogData: { dialogs: [] },
+                opstillingData: { setups: [] },
+                compareData: { comparisons: [] },
+                logbogData: []
+            };
+            
+            monthsData.forEach(monthData => {
+                if (!monthData) return;
+                
+                // Merge bodymap
+                if (monthData.bodymap && Array.isArray(monthData.bodymap.dataIndexes)) {
+                    merged.bodymapData.dataIndexes.push(...monthData.bodymap.dataIndexes);
+                }
+                
+                // Merge dialog
+                if (monthData.dialog && Array.isArray(monthData.dialog.dialogs)) {
+                    merged.dialogData.dialogs.push(...monthData.dialog.dialogs);
+                }
+                
+                // Merge opstilling
+                if (monthData.opstilling && Array.isArray(monthData.opstilling.setups)) {
+                    merged.opstillingData.setups.push(...monthData.opstilling.setups);
+                }
+                
+                // Merge compare
+                if (monthData.compare && Array.isArray(monthData.compare.comparisons)) {
+                    merged.compareData.comparisons.push(...monthData.compare.comparisons);
+                }
+                
+                // Merge logbog
+                if (Array.isArray(monthData.logbog)) {
+                    merged.logbogData.push(...monthData.logbog);
+                }
+            });
+            
+            return merged;
+        }
+        
         async function loadAllUserData(forceRefresh = false) {
             if (!currentUser || !db) return null;
             
@@ -1933,16 +2063,62 @@
                     console.log('🔥 FIRESTORE READ - bodymap_01.html - loadAllUserData');
                     const doc = await userDocRef.get();
                     const raw = doc.exists ? (doc.data() || {}) : {};
-                    const data = {
-                        bodymapData: raw.bodymapData || null,
-                        dialogData: raw.dialogData || null,
-                        opstillingData: raw.opstillingData || null,
-                        compareData: raw.compareData || null,
-                        logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
-                        forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
-                    };
-                    window.allUserData = data;
-                    return data;
+                    
+                    // Check if data is in new monthly structure
+                    const userData = raw.userData || {};
+                    const registreringer = userData.registreringer || {};
+                    const hasMonthlyStructure = Object.keys(registreringer).length > 0 || 
+                                                 Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
+                    
+                    if (hasMonthlyStructure) {
+                        // New monthly structure: Load from subcollections
+                        // Get months to load: current + previous (if before 7th) + any months with data in registreringer
+                        const monthsToLoadSet = new Set(getMonthsToLoad());
+                        
+                        // NOTE: We do NOT load all months from registreringer or subcollections here
+                        // registreringer is only used to show counts in history panel
+                        // We only load months from getMonthsToLoad() (current + previous if before 7th)
+                        // Older months are loaded on-demand when user expands them in history panel
+                        
+                        const monthsToLoad = Array.from(monthsToLoadSet);
+                        const monthsData = await Promise.all(
+                            monthsToLoad.map(monthKey => loadMonthData(monthKey))
+                        );
+                        
+                        const merged = mergeMonthlyData(monthsData);
+                        
+                        // Fallback to old structure if no data found in subcollections
+                        let bodymapData = merged.bodymapData.dataIndexes.length > 0 ? merged.bodymapData : null;
+                        if (!bodymapData && raw.bodymapData && Array.isArray(raw.bodymapData.dataIndexes) && raw.bodymapData.dataIndexes.length > 0) {
+                            bodymapData = raw.bodymapData;
+                        }
+                        
+                        const data = {
+                            bodymapData: bodymapData,
+                            dialogData: merged.dialogData.dialogs.length > 0 ? merged.dialogData : null,
+                            opstillingData: merged.opstillingData.setups.length > 0 ? merged.opstillingData : null,
+                            compareData: merged.compareData.comparisons.length > 0 ? merged.compareData : null,
+                            logbogData: merged.logbogData.length > 0 ? merged.logbogData : null,
+                            userData: userData,
+                            registreringer: registreringer,
+                            loadedMonths: monthsToLoad
+                        };
+                        
+                        window.allUserData = data;
+                        return data;
+                    } else {
+                        // Old structure (backward compatibility)
+                        const data = {
+                            bodymapData: raw.bodymapData || null,
+                            dialogData: raw.dialogData || null,
+                            opstillingData: raw.opstillingData || null,
+                            compareData: raw.compareData || null,
+                            logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
+                            forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
+                        };
+                        window.allUserData = data;
+                        return data;
+                    }
                 } catch (error) {
                     console.error('[LOAD] Error loading all user data in bodymap_01.html:', error);
                     window.allUserData = null;
@@ -1956,6 +2132,52 @@
         }
         
         // Save bodymap data to Firestore
+        // Helper: Update registreringer with count for a specific data type and month
+        async function updateRegistreringer(monthKey, dataType, count) {
+            if (!currentUser || !db) return;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
+                const raw = doc.exists ? (doc.data() || {}) : {};
+                const userData = raw.userData || {};
+                const registreringer = userData.registreringer || {};
+                
+                // Initialize month object if it doesn't exist
+                if (!registreringer[monthKey]) {
+                    registreringer[monthKey] = {};
+                }
+                
+                // Update count for this data type
+                if (count > 0) {
+                    registreringer[monthKey][dataType] = String(count);
+                } else {
+                    // Remove data type from month if count is 0
+                    delete registreringer[monthKey][dataType];
+                }
+                
+                // Remove month from registreringer if it has no data types left
+                if (Object.keys(registreringer[monthKey]).length === 0) {
+                    delete registreringer[monthKey];
+                }
+                
+                await userDocRef.set({
+                    userData: {
+                        ...userData,
+                        registreringer: registreringer
+                    },
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                // Update cache
+                if (window.allUserData) {
+                    window.allUserData.registreringer = registreringer;
+                }
+            } catch (error) {
+                console.error('[SAVE] Error updating registreringer:', error);
+            }
+        }
+        
         async function saveBodymapDataToFirestore() {
             if (!currentUser || !db) return false;
             
@@ -1972,18 +2194,71 @@
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                await userDocRef.set({
-                    bodymapData: BodyMapData,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
+                const doc = await userDocRef.get();
+                const raw = doc.exists ? (doc.data() || {}) : {};
                 
-                // Update cache directly without reading from Firestore
-                if (window.allUserData) {
-                    window.allUserData.bodymapData = BodyMapData;
+                // Check if data is in new monthly structure
+                const userData = raw.userData || {};
+                const registreringer = userData.registreringer || {};
+                const hasMonthlyStructure = Object.keys(registreringer).length > 0 || 
+                                             Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
+                
+                if (hasMonthlyStructure) {
+                    // New monthly structure: Group dataIndexes by month and save to subcollections
+                    const indexesByMonth = {};
+                    BodyMapData.dataIndexes.forEach(index => {
+                        if (!index.timestamp && !index.updated) {
+                            index.timestamp = new Date().toISOString();
+                            index.updated = index.timestamp;
+                        }
+                        const timestamp = index.timestamp || index.updated || new Date().toISOString();
+                        const monthKey = getMonthKey(timestamp);
+                        if (!monthKey) return;
+                        
+                        if (!indexesByMonth[monthKey]) {
+                            indexesByMonth[monthKey] = [];
+                        }
+                        indexesByMonth[monthKey].push(index);
+                    });
+                    
+                    // Save each month to its subcollection
+                    for (const [monthKey, monthIndexes] of Object.entries(indexesByMonth)) {
+                        const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                        const existingMonthData = await monthDocRef.get();
+                        const monthData = existingMonthData.exists ? (existingMonthData.data() || {}) : {};
+                        
+                        monthData.bodymap = {
+                            dataIndexes: monthIndexes,
+                            version: BodyMapData.version || '2.0',
+                            updated: BodyMapData.updated || new Date().toISOString()
+                        };
+                        
+                        await monthDocRef.set(monthData, { merge: true });
+                        // NOTE: registreringer is updated only when indexes are created or deleted, not on every save
+                    }
+                    
+                    // Update cache
+                    if (window.allUserData) {
+                        window.allUserData.bodymapData = BodyMapData;
+                    }
+                    
+                    console.log('[SAVE] Success - saved to monthly structure');
+                    return true;
+                } else {
+                    // Old structure (backward compatibility)
+                    await userDocRef.set({
+                        bodymapData: BodyMapData,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    
+                    // Update cache directly without reading from Firestore
+                    if (window.allUserData) {
+                        window.allUserData.bodymapData = BodyMapData;
+                    }
+                    
+                    console.log('[SAVE] Success - saved to old structure');
+                    return true;
                 }
-                
-                console.log('[SAVE] Success');
-                return true;
             } catch (error) {
                 console.error('[SAVE] Error:', error);
                 return false;
@@ -2172,15 +2447,89 @@
                 renderWorkspace();
                 if (!skipSave) {
                     await saveToLocalStorage();
+                    // Update registreringer (count changed - new index created)
+                    const monthKey = getMonthKey(index.timestamp || index.updated);
+                    if (monthKey) {
+                        await updateRegistreringer(monthKey, 'bodymap', dataIndexes.length);
+                    }
                 }
             }
             
             return index;
         }
         
-        function renderHistory() {
+        // Track which months are expanded (by month key like "2024-11")
+        const expandedMonths = new Set();
+        
+        // Helper: Load month on-demand and merge with existing data
+        async function loadMonthOnDemand(monthKey) {
+            if (!currentUser || !db) return;
+            
+            // Check if month is already loaded
+            if (window.allUserData && window.allUserData.loadedMonths && 
+                window.allUserData.loadedMonths.includes(monthKey)) {
+                return; // Already loaded
+            }
+            
+            try {
+                // Load month data from subcollection
+                const monthData = await loadMonthData(monthKey);
+                if (!monthData || !monthData.bodymap || !Array.isArray(monthData.bodymap.dataIndexes)) {
+                    return;
+                }
+                
+                // Merge with existing dataIndexes
+                if (!Array.isArray(dataIndexes)) {
+                    dataIndexes = [];
+                }
+                
+                // Add indexes from this month (avoid duplicates by ID)
+                const existingIndexIds = new Set(dataIndexes.map(idx => idx.id));
+                monthData.bodymap.dataIndexes.forEach(index => {
+                    if (!existingIndexIds.has(index.id)) {
+                        ensureIndexTimestamp(index);
+                        dataIndexes.push(index);
+                    }
+                });
+                
+                // Update BodyMapData
+                if (!BodyMapData) {
+                    BodyMapData = {
+                        version: '2.0',
+                        metadata: {},
+                        dataIndexes: []
+                    };
+                }
+                BodyMapData.dataIndexes = dataIndexes;
+                
+                // Update loadedMonths in cache
+                if (!window.allUserData) {
+                    window.allUserData = {};
+                }
+                if (!window.allUserData.loadedMonths) {
+                    window.allUserData.loadedMonths = [];
+                }
+                if (!window.allUserData.loadedMonths.includes(monthKey)) {
+                    window.allUserData.loadedMonths.push(monthKey);
+                }
+                
+                // Update bodymapData in cache
+                if (!window.allUserData.bodymapData) {
+                    window.allUserData.bodymapData = BodyMapData;
+                } else {
+                    window.allUserData.bodymapData.dataIndexes = dataIndexes;
+                }
+                
+                console.log(`[LOAD] Loaded month ${monthKey} on-demand for bodymap`);
+            } catch (error) {
+                console.error(`[LOAD] Error loading month ${monthKey} on-demand:`, error);
+            }
+        }
+        
+        async function renderHistory() {
             if (!USE_HISTORY) return;
             const list = document.getElementById('historyList');
+            if (!list) return;
             list.innerHTML = '';
             
             ensureLayerTitles();
@@ -2194,7 +2543,141 @@
                     return tb - ta;
                 });
 
+            // Group indexes by month
+            const monthGroups = {};
             sortedIndexes.forEach(index => {
+                const timestamp = ensureIndexTimestamp(index);
+                const monthKey = getMonthKey(timestamp);
+                if (!monthKey) return;
+                
+                if (!monthGroups[monthKey]) {
+                    monthGroups[monthKey] = [];
+                }
+                monthGroups[monthKey].push(index);
+            });
+            
+            // Get registreringer to show all available months
+            let allAvailableMonths = [];
+            if (currentUser && db) {
+                try {
+                    const userDocRef = db.collection('users').doc(currentUser.uid);
+                    const doc = await userDocRef.get();
+                    if (doc.exists) {
+                        const raw = doc.data() || {};
+                        const userData = raw.userData || {};
+                        const registreringer = userData.registreringer || {};
+                        allAvailableMonths = Object.keys(registreringer).sort((a, b) => b.localeCompare(a));
+                    }
+                } catch (error) {
+                    console.error('[LOAD] Error loading registreringer:', error);
+                }
+            }
+            
+            // Get current date info
+            const now = new Date();
+            const currentMonthKey = getMonthKey(now);
+            const dayOfMonth = now.getDate();
+            
+            // Calculate previous month key
+            const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const prevMonthKey = getMonthKey(prevMonth);
+            
+            // Combine loaded months with available months from registreringer
+            const allMonthKeys = new Set([...Object.keys(monthGroups), ...allAvailableMonths]);
+            const sortedMonthKeys = Array.from(allMonthKeys).sort((a, b) => b.localeCompare(a));
+            
+            // Determine which months should show expanded by default
+            const autoExpandedMonths = new Set([currentMonthKey]);
+            if (dayOfMonth <= 7) {
+                autoExpandedMonths.add(prevMonthKey);
+            }
+            
+            // Render each month group
+            for (const monthKey of sortedMonthKeys) {
+                const monthIndexes = monthGroups[monthKey] || [];
+                const isCurrentOrGracePeriod = autoExpandedMonths.has(monthKey);
+                const isExpanded = isCurrentOrGracePeriod || expandedMonths.has(monthKey);
+                
+                // Get count from registreringer if indexes not loaded yet
+                let indexCount = monthIndexes.length;
+                if (indexCount === 0 && currentUser && db) {
+                    try {
+                        const userDocRef = db.collection('users').doc(currentUser.uid);
+                        const doc = await userDocRef.get();
+                        if (doc && doc.exists) {
+                            const raw = doc.data() || {};
+                            const userData = raw.userData || {};
+                            const registreringer = userData.registreringer || {};
+                            const monthReg = registreringer[monthKey];
+                            if (monthReg) {
+                                if (typeof monthReg === 'object') {
+                                    // New structure: { bodymap: "4", ... }
+                                    const countStr = monthReg.bodymap;
+                                    if (countStr) {
+                                        indexCount = parseInt(countStr, 10) || 0;
+                                    }
+                                } else if (typeof monthReg === 'string') {
+                                    // Old structure: "4" (backward compatibility)
+                                    indexCount = parseInt(monthReg, 10) || 0;
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        // Ignore errors
+                    }
+                }
+                
+                // For non-current months, show a collapsible header
+                if (!isCurrentOrGracePeriod) {
+                    const monthHeader = document.createElement('div');
+                    monthHeader.className = 'log-history-month-header' + (isExpanded ? ' expanded' : '');
+                    monthHeader.dataset.monthKey = monthKey;
+                    
+                    // Parse month for display
+                    const [year, month] = monthKey.split('-');
+                    const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+                    const monthName = monthDate.toLocaleDateString('da-DK', { month: 'short' }).replace('.', '');
+                    const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+                    
+                    monthHeader.innerHTML = `
+                        <span class="log-history-month-title">${capitalizedMonth} ${year}</span>
+                        <span class="log-history-month-count">${indexCount} lag</span>
+                        <span class="log-history-month-arrow">${isExpanded ? '▼' : '▶'}</span>
+                    `;
+                    
+                    monthHeader.addEventListener('click', async () => {
+                        // Remember header position relative to viewport before re-render
+                        const headerRect = monthHeader.getBoundingClientRect();
+                        const listRect = list.getBoundingClientRect();
+                        const offsetFromListTop = headerRect.top - listRect.top;
+                        
+                        if (expandedMonths.has(monthKey)) {
+                            expandedMonths.delete(monthKey);
+                        } else {
+                            expandedMonths.add(monthKey);
+                            // Load month on-demand if not already loaded
+                            await loadMonthOnDemand(monthKey);
+                            // Note: loadMonthOnDemand already updates dataIndexes and BodyMapData
+                            // No need to call loadFromLocalStorage() which would reload everything
+                        }
+                        
+                        // Store scroll restore info globally so renderHistory can use it
+                        window._monthScrollRestore = {
+                            monthKey: monthKey,
+                            offsetFromListTop: offsetFromListTop
+                        };
+                        
+                        // Re-render with updated data
+                        await renderHistory();
+                    });
+                    
+                    list.appendChild(monthHeader);
+                }
+                
+                // Only render indexes if expanded
+                if (!isExpanded) continue;
+                
+                monthIndexes.forEach(index => {
                 const item = document.createElement('div');
                 const isActive = index.id === activeIndexId;
                 item.className = `history-item ${isActive ? 'active' : ''}`;
@@ -2417,9 +2900,19 @@
 
                 // Append in order (already newest-first)
                 list.appendChild(item);
-            });
-
-            if (shouldScrollHistoryToBottom) {
+                });
+            } // End of sortedMonthKeys for...of loop
+            
+            // Handle scroll restoration for month fold/unfold
+            if (window._monthScrollRestore) {
+                const restore = window._monthScrollRestore;
+                window._monthScrollRestore = null;
+                const newHeader = list.querySelector(`.log-history-month-header[data-month-key="${restore.monthKey}"]`);
+                if (newHeader) {
+                    // Try to restore position - browser will clamp if list is too short
+                    list.scrollTop = newHeader.offsetTop - restore.offsetFromListTop;
+                }
+            } else if (shouldScrollHistoryToBottom) {
                 list.scrollTop = list.scrollHeight;
                 shouldScrollHistoryToBottom = false;
             } else if (shouldScrollHistoryToTop) {
@@ -3566,7 +4059,24 @@
             
             renderHistory();
             renderWorkspace();
+            
+            // Save and update registreringer (count changed - index deleted)
             await saveToLocalStorage();
+            // Calculate counts per month and update registreringer
+            const indexesByMonth = {};
+            dataIndexes.forEach(index => {
+                const monthKey = getMonthKey(index.timestamp || index.updated);
+                if (monthKey) {
+                    if (!indexesByMonth[monthKey]) {
+                        indexesByMonth[monthKey] = 0;
+                    }
+                    indexesByMonth[monthKey]++;
+                }
+            });
+            // Update registreringer for all affected months
+            for (const [monthKey, count] of Object.entries(indexesByMonth)) {
+                await updateRegistreringer(monthKey, 'bodymap', count);
+            }
         }
         
         // Reset figure to default pose

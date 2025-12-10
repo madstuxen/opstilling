@@ -410,6 +410,8 @@
                 <button type="button" class="debug-button" id="migrateBodyMapTitleBtn" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">🏷️ MIGRER: BodyMap title → name</button>
                 <button type="button" class="debug-button" id="migrateAddNotesBtn" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">📝 MIGRER: Tilføj notes felt</button>
                 <button type="button" class="debug-button" id="migrateCompareParticipantsBtn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">👥 MIGRER: Compare participants</button>
+                <button type="button" class="debug-button" id="migrateMonthlyStructureBtn" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">📅 MIGRER: Til måned-baseret struktur</button>
+                <button type="button" class="debug-button" id="fixRegistreringerBtn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">🔧 FIX: Opdater registreringer</button>
             </div>
         </div>
     </div>
@@ -480,6 +482,7 @@ const firebaseConfig = {
         const migrateBodyMapTitleBtn = document.getElementById('migrateBodyMapTitleBtn');
         const migrateAddNotesBtn = document.getElementById('migrateAddNotesBtn');
         const migrateCompareParticipantsBtn = document.getElementById('migrateCompareParticipantsBtn');
+        const migrateMonthlyStructureBtn = document.getElementById('migrateMonthlyStructureBtn');
         let currentUser = null;
         
         // Debug: Check if all elements exist
@@ -1525,6 +1528,637 @@ const firebaseConfig = {
                     setTimeout(() => {
                         migrateAddNotesBtn.textContent = '📝 MIGRER: Tilføj notes felt';
                         migrateAddNotesBtn.disabled = false;
+                    }, 3000);
+                }
+            });
+        }
+        
+        // Migration: Convert to monthly structure
+        if (migrateMonthlyStructureBtn) {
+            migrateMonthlyStructureBtn.addEventListener('click', async function() {
+                if (!currentUser) {
+                    alert('Du skal være logget ind for at køre migration');
+                    return;
+                }
+                
+                const confirm1 = confirm('⚠️ VIGTIG: Denne migration konverterer data til måned-baseret struktur!\n\n' +
+                    'Struktur:\n' +
+                    '- Data grupperes efter måned (YYYY-MM format)\n' +
+                    '- Hver måned indeholder: bodymap, compare, logbog, opstilling\n' +
+                    '- userData.registreringer indeholder oversigt over måneder med data\n\n' +
+                    'En backup vil blive downloadet først.\n\n' +
+                    'Vil du fortsætte?');
+                if (!confirm1) return;
+                
+                migrateMonthlyStructureBtn.disabled = true;
+                migrateMonthlyStructureBtn.textContent = '⏳ Downloader backup...';
+                
+                try {
+                    // Step 1: Download backup first
+                    const backupData = {
+                        timestamp: new Date().toISOString(),
+                        userEmail: currentUser.email,
+                        userId: currentUser.uid,
+                        data: {}
+                    };
+                    
+                    const userDocRef = db.collection('users').doc(currentUser.uid);
+                    console.log('🔥 FIRESTORE READ - index.html - migrateMonthlyStructureBtn');
+                    const userDoc = await userDocRef.get();
+                    
+                    if (!userDoc.exists) {
+                        throw new Error('Ingen brugerdata fundet');
+                    }
+                    
+                    const data = userDoc.data();
+                    backupData.data = data;
+                    
+                    // Create backup file
+                    const backupJson = JSON.stringify(backupData, null, 2);
+                    const backupBlob = new Blob([backupJson], { type: 'application/json' });
+                    const backupUrl = URL.createObjectURL(backupBlob);
+                    const backupLink = document.createElement('a');
+                    backupLink.href = backupUrl;
+                    backupLink.download = `backup-before-monthly-migration-${currentUser.uid}-${Date.now()}.json`;
+                    document.body.appendChild(backupLink);
+                    backupLink.click();
+                    document.body.removeChild(backupLink);
+                    URL.revokeObjectURL(backupUrl);
+                    
+                    console.log('✅ Backup downloaded');
+                    
+                    // Step 2: Wait a bit to ensure download started
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    migrateMonthlyStructureBtn.textContent = '⏳ Migrerer data...';
+                    
+                    // Step 3: Migrate data
+                    let migrationLog = ['📅 MONTHLY STRUCTURE MIGRATION START\n'];
+                    migrationLog.push('═'.repeat(50));
+                    migrationLog.push('');
+                    
+                    // Helper function to extract month key from date/timestamp
+                    function getMonthKey(dateValue) {
+                        if (!dateValue) return null;
+                        
+                        let date;
+                        if (typeof dateValue === 'string') {
+                            // Try to parse ISO string or YYYY-MM-DD format
+                            if (dateValue.includes('T')) {
+                                date = new Date(dateValue);
+                            } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                                // YYYY-MM-DD format
+                                date = new Date(dateValue + 'T00:00:00');
+                            } else {
+                                date = new Date(dateValue);
+                            }
+                        } else if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+                            // Firestore Timestamp
+                            date = dateValue.toDate();
+                        } else {
+                            date = new Date(dateValue);
+                        }
+                        
+                        if (isNaN(date.getTime())) {
+                            return null;
+                        }
+                        
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        return `${year}-${month}`;
+                    }
+                    
+                    // Initialize new structure
+                    const monthlyData = {};
+                    const registreringer = {};
+                    
+                    // Migrate bodymapData
+                    if (data.bodymapData && data.bodymapData.dataIndexes && Array.isArray(data.bodymapData.dataIndexes)) {
+                        migrationLog.push(`📝 Migrerer bodymapData (${data.bodymapData.dataIndexes.length} indexes)...`);
+                        let migratedCount = 0;
+                        
+                        data.bodymapData.dataIndexes.forEach(index => {
+                            const monthKey = getMonthKey(index.timestamp || index.updated);
+                            if (!monthKey) {
+                                migrationLog.push(`⚠️ Skipped index uden gyldig timestamp: ${index.id || 'unknown'}`);
+                                return;
+                            }
+                            
+                            if (!monthlyData[monthKey]) {
+                                monthlyData[monthKey] = {
+                                    bodymap: { dataIndexes: [] },
+                                    compare: { comparisons: [] },
+                                    logbog: [],
+                                    opstilling: { setups: [] },
+                                    dialog: { dialogs: [] }
+                                };
+                            }
+                            
+                            monthlyData[monthKey].bodymap.dataIndexes.push(index);
+                            migratedCount++;
+                        });
+                        
+                        migrationLog.push(`✅ ${migratedCount} bodymap indexes migreret`);
+                    } else {
+                        migrationLog.push('ℹ️ Ingen bodymapData fundet');
+                    }
+                    
+                    migrationLog.push('');
+                    
+                    // Migrate compareData
+                    if (data.compareData && data.compareData.comparisons && Array.isArray(data.compareData.comparisons)) {
+                        migrationLog.push(`📊 Migrerer compareData (${data.compareData.comparisons.length} sammenligninger)...`);
+                        let migratedCount = 0;
+                        
+                        data.compareData.comparisons.forEach(comparison => {
+                            const monthKey = getMonthKey(comparison.timestamp || comparison.updated);
+                            if (!monthKey) {
+                                migrationLog.push(`⚠️ Skipped comparison uden gyldig timestamp: ${comparison.id || 'unknown'}`);
+                                return;
+                            }
+                            
+                            if (!monthlyData[monthKey]) {
+                                monthlyData[monthKey] = {
+                                    bodymap: { dataIndexes: [] },
+                                    compare: { comparisons: [] },
+                                    logbog: [],
+                                    opstilling: { setups: [] },
+                                    dialog: { dialogs: [] }
+                                };
+                            }
+                            
+                            monthlyData[monthKey].compare.comparisons.push(comparison);
+                            migratedCount++;
+                        });
+                        
+                        migrationLog.push(`✅ ${migratedCount} sammenligninger migreret`);
+                    } else {
+                        migrationLog.push('ℹ️ Ingen compareData fundet');
+                    }
+                    
+                    migrationLog.push('');
+                    
+                    // Migrate logbogData
+                    if (data.logbogData && Array.isArray(data.logbogData)) {
+                        migrationLog.push(`📔 Migrerer logbogData (${data.logbogData.length} entries)...`);
+                        let migratedCount = 0;
+                        
+                        data.logbogData.forEach(entry => {
+                            const monthKey = getMonthKey(entry.date);
+                            if (!monthKey) {
+                                migrationLog.push(`⚠️ Skipped entry uden gyldig date: ${entry.date || 'unknown'}`);
+                                return;
+                            }
+                            
+                            if (!monthlyData[monthKey]) {
+                                monthlyData[monthKey] = {
+                                    bodymap: { dataIndexes: [] },
+                                    compare: { comparisons: [] },
+                                    logbog: [],
+                                    opstilling: { setups: [] },
+                                    dialog: { dialogs: [] }
+                                };
+                            }
+                            
+                            monthlyData[monthKey].logbog.push(entry);
+                            migratedCount++;
+                        });
+                        
+                        migrationLog.push(`✅ ${migratedCount} logbog entries migreret`);
+                    } else {
+                        migrationLog.push('ℹ️ Ingen logbogData fundet');
+                    }
+                    
+                    migrationLog.push('');
+                    
+                    // Migrate dialogData
+                    if (data.dialogData && data.dialogData.dialogs && Array.isArray(data.dialogData.dialogs)) {
+                        migrationLog.push(`💬 Migrerer dialogData (${data.dialogData.dialogs.length} dialoger)...`);
+                        let migratedCount = 0;
+                        
+                        data.dialogData.dialogs.forEach(dialog => {
+                            const monthKey = getMonthKey(dialog.timestamp || dialog.updated);
+                            if (!monthKey) {
+                                migrationLog.push(`⚠️ Skipped dialog uden gyldig timestamp: ${dialog.id || 'unknown'}`);
+                                return;
+                            }
+                            
+                            if (!monthlyData[monthKey]) {
+                                monthlyData[monthKey] = {
+                                    bodymap: { dataIndexes: [] },
+                                    compare: { comparisons: [] },
+                                    logbog: [],
+                                    opstilling: { setups: [] },
+                                    dialog: { dialogs: [] }
+                                };
+                            }
+                            
+                            // Ensure dialog object exists for this month
+                            if (!monthlyData[monthKey].dialog) {
+                                monthlyData[monthKey].dialog = { dialogs: [] };
+                            }
+                            
+                            monthlyData[monthKey].dialog.dialogs.push(dialog);
+                            migratedCount++;
+                        });
+                        
+                        migrationLog.push(`✅ ${migratedCount} dialoger migreret`);
+                    } else {
+                        migrationLog.push('ℹ️ Ingen dialogData fundet');
+                    }
+                    
+                    migrationLog.push('');
+                    
+                    // Migrate opstillingData
+                    if (data.opstillingData && data.opstillingData.setups && Array.isArray(data.opstillingData.setups)) {
+                        migrationLog.push(`🎭 Migrerer opstillingData (${data.opstillingData.setups.length} setups)...`);
+                        let migratedCount = 0;
+                        
+                        data.opstillingData.setups.forEach(setup => {
+                            const monthKey = getMonthKey(setup.timestamp || setup.updated);
+                            if (!monthKey) {
+                                migrationLog.push(`⚠️ Skipped setup uden gyldig timestamp: ${setup.id || 'unknown'}`);
+                                return;
+                            }
+                            
+                            if (!monthlyData[monthKey]) {
+                                monthlyData[monthKey] = {
+                                    bodymap: { dataIndexes: [] },
+                                    compare: { comparisons: [] },
+                                    logbog: [],
+                                    opstilling: { setups: [] },
+                                    dialog: { dialogs: [] }
+                                };
+                            }
+                            
+                            monthlyData[monthKey].opstilling.setups.push(setup);
+                            migratedCount++;
+                        });
+                        
+                        migrationLog.push(`✅ ${migratedCount} setups migreret`);
+                    } else {
+                        migrationLog.push('ℹ️ Ingen opstillingData fundet');
+                    }
+                    
+                    migrationLog.push('');
+                    migrationLog.push(`📅 Oprettet ${Object.keys(monthlyData).length} måneder`);
+                    
+                    // Calculate registreringer (counts for all data types per month)
+                    Object.keys(monthlyData).forEach(monthKey => {
+                        const monthData = monthlyData[monthKey];
+                        const monthReg = {};
+                        
+                        const logbogCount = monthData.logbog ? monthData.logbog.length : 0;
+                        const bodymapCount = monthData.bodymap && monthData.bodymap.dataIndexes ? monthData.bodymap.dataIndexes.length : 0;
+                        const compareCount = monthData.compare && monthData.compare.comparisons ? monthData.compare.comparisons.length : 0;
+                        const opstillingCount = monthData.opstilling && monthData.opstilling.setups ? monthData.opstilling.setups.length : 0;
+                        const dialogCount = monthData.dialog && monthData.dialog.dialogs ? monthData.dialog.dialogs.length : 0;
+                        
+                        if (logbogCount > 0) monthReg.logbog = String(logbogCount);
+                        if (bodymapCount > 0) monthReg.bodymap = String(bodymapCount);
+                        if (compareCount > 0) monthReg.compare = String(compareCount);
+                        if (opstillingCount > 0) monthReg.opstilling = String(opstillingCount);
+                        if (dialogCount > 0) monthReg.dialog = String(dialogCount);
+                        
+                        // Only add month if it has at least one data type
+                        if (Object.keys(monthReg).length > 0) {
+                            registreringer[monthKey] = monthReg;
+                        }
+                    });
+                    
+                    migrationLog.push(`📊 Registreringer: ${Object.keys(registreringer).length} måneder med data`);
+                    // Count total entries by type
+                    let totalLogbog = 0, totalBodymap = 0, totalCompare = 0, totalOpstilling = 0, totalDialog = 0;
+                    Object.values(registreringer).forEach(monthReg => {
+                        if (typeof monthReg === 'object') {
+                            if (monthReg.logbog) totalLogbog += parseInt(monthReg.logbog, 10);
+                            if (monthReg.bodymap) totalBodymap += parseInt(monthReg.bodymap, 10);
+                            if (monthReg.compare) totalCompare += parseInt(monthReg.compare, 10);
+                            if (monthReg.opstilling) totalOpstilling += parseInt(monthReg.opstilling, 10);
+                            if (monthReg.dialog) totalDialog += parseInt(monthReg.dialog, 10);
+                        }
+                    });
+                    migrationLog.push(`   - Logbog: ${totalLogbog} entries`);
+                    migrationLog.push(`   - Bodymap: ${totalBodymap} entries`);
+                    migrationLog.push(`   - Compare: ${totalCompare} entries`);
+                    migrationLog.push(`   - Opstilling: ${totalOpstilling} entries`);
+                    migrationLog.push(`   - Dialog: ${totalDialog} entries`);
+                    
+                    // Step 4: Save new structure to Firestore subcollections
+                    migrationLog.push('');
+                    migrationLog.push('💾 Gemmer til Firestore subcollections...');
+                    
+                    // Save each month to subcollections
+                    for (const [monthKey, monthData] of Object.entries(monthlyData)) {
+                        const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                        await monthDocRef.set(monthData, { merge: true });
+                        migrationLog.push(`✅ Gemt måned ${monthKey} til subcollection`);
+                    }
+                    
+                    // Update userData.registreringer in main document
+                    const updateData = {
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    if (!data.userData) {
+                        updateData.userData = { registreringer: registreringer };
+                    } else {
+                        updateData.userData = {
+                            ...data.userData,
+                            registreringer: registreringer
+                        };
+                    }
+                    
+                    // Remove old structure from main document
+                    updateData.bodymapData = firebase.firestore.FieldValue.delete();
+                    updateData.compareData = firebase.firestore.FieldValue.delete();
+                    updateData.logbogData = firebase.firestore.FieldValue.delete();
+                    updateData.opstillingData = firebase.firestore.FieldValue.delete();
+                    updateData.dialogData = firebase.firestore.FieldValue.delete();
+                    
+                    // Also remove any month keys from main document (they should be in subcollections)
+                    Object.keys(monthlyData).forEach(monthKey => {
+                        updateData[monthKey] = firebase.firestore.FieldValue.delete();
+                    });
+                    
+                    await userDocRef.set(updateData, { merge: true });
+                    
+                    migrationLog.push('✅ Ny struktur gemt til Firestore');
+                    migrationLog.push('🗑️ Gammel struktur slettet');
+                    migrationLog.push('');
+                    migrationLog.push('🎉 MIGRATION FULDFØRT!');
+                    
+                    console.log('Migration log:', migrationLog.join('\n'));
+                    alert(migrationLog.join('\n'));
+                    
+                    migrateMonthlyStructureBtn.textContent = '✅ Migration fuldført!';
+                    setTimeout(() => {
+                        migrateMonthlyStructureBtn.textContent = '📅 MIGRER: Til måned-baseret struktur';
+                        migrateMonthlyStructureBtn.disabled = false;
+                    }, 5000);
+                    
+                } catch (error) {
+                    console.error('Migration error:', error);
+                    alert('❌ Fejl ved migration: ' + error.message);
+                    migrateMonthlyStructureBtn.textContent = '❌ Migration fejlede';
+                    setTimeout(() => {
+                        migrateMonthlyStructureBtn.textContent = '📅 MIGRER: Til måned-baseret struktur';
+                        migrateMonthlyStructureBtn.disabled = false;
+                    }, 3000);
+                }
+            });
+        }
+        
+        // Fix registreringer: Read all data and update registreringer correctly
+        const fixRegistreringerBtn = document.getElementById('fixRegistreringerBtn');
+        if (fixRegistreringerBtn) {
+            fixRegistreringerBtn.addEventListener('click', async function() {
+                if (!auth.currentUser || !db) {
+                    alert('❌ Du skal være logget ind');
+                    return;
+                }
+                
+                fixRegistreringerBtn.disabled = true;
+                fixRegistreringerBtn.textContent = '⏳ Opdaterer registreringer...';
+                
+                try {
+                    const userDocRef = db.collection('users').doc(auth.currentUser.uid);
+                    const doc = await userDocRef.get();
+                    const raw = doc.exists ? (doc.data() || {}) : {};
+                    
+                    const fixLog = [];
+                    fixLog.push('🔧 Starter opdatering af registreringer...');
+                    fixLog.push('');
+                    
+                    // Initialize registreringer
+                    const registreringer = {};
+                    
+                    // Helper function to get month key from date
+                    function getMonthKey(dateValue) {
+                        if (!dateValue) return null;
+                        let date;
+                        if (typeof dateValue === 'string') {
+                            if (dateValue.includes('T')) {
+                                date = new Date(dateValue);
+                            } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                                date = new Date(dateValue + 'T00:00:00');
+                            } else {
+                                date = new Date(dateValue);
+                            }
+                        } else if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+                            date = dateValue.toDate();
+                        } else {
+                            date = new Date(dateValue);
+                        }
+                        if (isNaN(date.getTime())) return null;
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        return `${year}-${month}`;
+                    }
+                    
+                    // Load all months from subcollections
+                    fixLog.push('📂 Læser alle måneder fra subcollections...');
+                    const monthsCollectionRef = userDocRef.collection('months');
+                    const monthsSnapshot = await monthsCollectionRef.get();
+                    fixLog.push(`   Fundet ${monthsSnapshot.size} måneder i subcollections`);
+                    
+                    // Also check main document for month keys
+                    const monthKeysFromMain = Object.keys(raw).filter(key => /^\d{4}-\d{2}$/.test(key));
+                    fixLog.push(`   Fundet ${monthKeysFromMain.length} måneder i hoveddokument`);
+                    
+                    const allMonthKeys = new Set(monthKeysFromMain);
+                    monthsSnapshot.forEach(monthDoc => {
+                        allMonthKeys.add(monthDoc.id);
+                    });
+                    
+                    fixLog.push(`   Total ${allMonthKeys.size} unikke måneder`);
+                    fixLog.push('');
+                    
+                    // Process each month
+                    for (const monthKey of allMonthKeys) {
+                        const monthReg = {};
+                        
+                        // Get data from subcollection
+                        let monthData = null;
+                        const monthDoc = monthsSnapshot.docs.find(d => d.id === monthKey);
+                        if (monthDoc) {
+                            monthData = monthDoc.data();
+                        }
+                        
+                        // Also check main document
+                        if (!monthData && raw[monthKey]) {
+                            monthData = raw[monthKey];
+                        }
+                        
+                        // Merge if both exist
+                        if (monthDoc && raw[monthKey]) {
+                            monthData = {
+                                bodymap: monthDoc.data().bodymap || raw[monthKey].bodymap,
+                                compare: monthDoc.data().compare || raw[monthKey].compare,
+                                dialog: monthDoc.data().dialog || raw[monthKey].dialog,
+                                opstilling: monthDoc.data().opstilling || raw[monthKey].opstilling,
+                                logbog: monthDoc.data().logbog || raw[monthKey].logbog
+                            };
+                        }
+                        
+                        if (!monthData) continue;
+                        
+                        // Count logbog
+                        if (Array.isArray(monthData.logbog) && monthData.logbog.length > 0) {
+                            monthReg.logbog = String(monthData.logbog.length);
+                        }
+                        
+                        // Count bodymap
+                        if (monthData.bodymap && Array.isArray(monthData.bodymap.dataIndexes) && monthData.bodymap.dataIndexes.length > 0) {
+                            monthReg.bodymap = String(monthData.bodymap.dataIndexes.length);
+                        }
+                        
+                        // Count compare
+                        if (monthData.compare && Array.isArray(monthData.compare.comparisons) && monthData.compare.comparisons.length > 0) {
+                            monthReg.compare = String(monthData.compare.comparisons.length);
+                        }
+                        
+                        // Count opstilling
+                        if (monthData.opstilling && Array.isArray(monthData.opstilling.setups) && monthData.opstilling.setups.length > 0) {
+                            monthReg.opstilling = String(monthData.opstilling.setups.length);
+                        }
+                        
+                        // Count dialog
+                        if (monthData.dialog && Array.isArray(monthData.dialog.dialogs) && monthData.dialog.dialogs.length > 0) {
+                            monthReg.dialog = String(monthData.dialog.dialogs.length);
+                        }
+                        
+                        // Only add month if it has at least one data type
+                        if (Object.keys(monthReg).length > 0) {
+                            registreringer[monthKey] = monthReg;
+                        }
+                    }
+                    
+                    // Also check old structure (top-level fields) as fallback
+                    fixLog.push('📋 Tjekker gammel struktur (top-level felter)...');
+                    
+                    if (raw.logbogData && Array.isArray(raw.logbogData) && raw.logbogData.length > 0) {
+                        fixLog.push(`   Fundet ${raw.logbogData.length} logbog entries i gammel struktur`);
+                        raw.logbogData.forEach(entry => {
+                            if (entry.date) {
+                                const monthKey = entry.date.substring(0, 7); // YYYY-MM
+                                if (!registreringer[monthKey]) {
+                                    registreringer[monthKey] = {};
+                                }
+                                const currentCount = parseInt(registreringer[monthKey].logbog || '0', 10);
+                                registreringer[monthKey].logbog = String(currentCount + 1);
+                            }
+                        });
+                    }
+                    
+                    if (raw.bodymapData && raw.bodymapData.dataIndexes && Array.isArray(raw.bodymapData.dataIndexes) && raw.bodymapData.dataIndexes.length > 0) {
+                        fixLog.push(`   Fundet ${raw.bodymapData.dataIndexes.length} bodymap indexes i gammel struktur`);
+                        raw.bodymapData.dataIndexes.forEach(index => {
+                            const monthKey = getMonthKey(index.timestamp || index.updated);
+                            if (monthKey) {
+                                if (!registreringer[monthKey]) {
+                                    registreringer[monthKey] = {};
+                                }
+                                const currentCount = parseInt(registreringer[monthKey].bodymap || '0', 10);
+                                registreringer[monthKey].bodymap = String(currentCount + 1);
+                            }
+                        });
+                    }
+                    
+                    if (raw.compareData && raw.compareData.comparisons && Array.isArray(raw.compareData.comparisons) && raw.compareData.comparisons.length > 0) {
+                        fixLog.push(`   Fundet ${raw.compareData.comparisons.length} comparisons i gammel struktur`);
+                        raw.compareData.comparisons.forEach(comparison => {
+                            const monthKey = getMonthKey(comparison.timestamp || comparison.updated);
+                            if (monthKey) {
+                                if (!registreringer[monthKey]) {
+                                    registreringer[monthKey] = {};
+                                }
+                                const currentCount = parseInt(registreringer[monthKey].compare || '0', 10);
+                                registreringer[monthKey].compare = String(currentCount + 1);
+                            }
+                        });
+                    }
+                    
+                    if (raw.opstillingData && raw.opstillingData.setups && Array.isArray(raw.opstillingData.setups) && raw.opstillingData.setups.length > 0) {
+                        fixLog.push(`   Fundet ${raw.opstillingData.setups.length} setups i gammel struktur`);
+                        raw.opstillingData.setups.forEach(setup => {
+                            const monthKey = getMonthKey(setup.timestamp || setup.updated);
+                            if (monthKey) {
+                                if (!registreringer[monthKey]) {
+                                    registreringer[monthKey] = {};
+                                }
+                                const currentCount = parseInt(registreringer[monthKey].opstilling || '0', 10);
+                                registreringer[monthKey].opstilling = String(currentCount + 1);
+                            }
+                        });
+                    }
+                    
+                    if (raw.dialogData && raw.dialogData.dialogs && Array.isArray(raw.dialogData.dialogs) && raw.dialogData.dialogs.length > 0) {
+                        fixLog.push(`   Fundet ${raw.dialogData.dialogs.length} dialogs i gammel struktur`);
+                        raw.dialogData.dialogs.forEach(dialog => {
+                            const monthKey = getMonthKey(dialog.timestamp || dialog.updated);
+                            if (monthKey) {
+                                if (!registreringer[monthKey]) {
+                                    registreringer[monthKey] = {};
+                                }
+                                const currentCount = parseInt(registreringer[monthKey].dialog || '0', 10);
+                                registreringer[monthKey].dialog = String(currentCount + 1);
+                            }
+                        });
+                    }
+                    
+                    fixLog.push('');
+                    fixLog.push(`📊 Opdaterer registreringer med ${Object.keys(registreringer).length} måneder...`);
+                    
+                    // Count totals
+                    let totalLogbog = 0, totalBodymap = 0, totalCompare = 0, totalOpstilling = 0, totalDialog = 0;
+                    Object.values(registreringer).forEach(monthReg => {
+                        if (typeof monthReg === 'object') {
+                            if (monthReg.logbog) totalLogbog += parseInt(monthReg.logbog, 10);
+                            if (monthReg.bodymap) totalBodymap += parseInt(monthReg.bodymap, 10);
+                            if (monthReg.compare) totalCompare += parseInt(monthReg.compare, 10);
+                            if (monthReg.opstilling) totalOpstilling += parseInt(monthReg.opstilling, 10);
+                            if (monthReg.dialog) totalDialog += parseInt(monthReg.dialog, 10);
+                        }
+                    });
+                    
+                    fixLog.push(`   - Logbog: ${totalLogbog} entries`);
+                    fixLog.push(`   - Bodymap: ${totalBodymap} entries`);
+                    fixLog.push(`   - Compare: ${totalCompare} entries`);
+                    fixLog.push(`   - Opstilling: ${totalOpstilling} entries`);
+                    fixLog.push(`   - Dialog: ${totalDialog} entries`);
+                    fixLog.push('');
+                    
+                    // Update userData.registreringer in main document
+                    const userData = raw.userData || {};
+                    await userDocRef.set({
+                        userData: {
+                            ...userData,
+                            registreringer: registreringer
+                        },
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    
+                    fixLog.push('✅ Registreringer opdateret!');
+                    fixLog.push('');
+                    fixLog.push('🎉 FÆRDIG!');
+                    
+                    console.log('Fix log:', fixLog.join('\n'));
+                    alert(fixLog.join('\n'));
+                    
+                    fixRegistreringerBtn.textContent = '✅ Registreringer opdateret!';
+                    setTimeout(() => {
+                        fixRegistreringerBtn.textContent = '🔧 FIX: Opdater registreringer';
+                        fixRegistreringerBtn.disabled = false;
+                    }, 5000);
+                    
+                } catch (error) {
+                    console.error('Fix registreringer error:', error);
+                    alert('❌ Fejl ved opdatering: ' + error.message);
+                    fixRegistreringerBtn.textContent = '❌ Opdatering fejlede';
+                    setTimeout(() => {
+                        fixRegistreringerBtn.textContent = '🔧 FIX: Opdater registreringer';
+                        fixRegistreringerBtn.disabled = false;
                     }, 3000);
                 }
             });

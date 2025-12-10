@@ -791,10 +791,58 @@
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                await userDocRef.set({
-                    logbogData: entries,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
+                const doc = await userDocRef.get();
+                const raw = doc.exists ? (doc.data() || {}) : {};
+                
+                // Check if data is in new monthly structure
+                const userData = raw.userData || {};
+                const registreringer = userData.registreringer || {};
+                const hasMonthlyStructure = Object.keys(registreringer).length > 0 || 
+                                             Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
+                
+                if (hasMonthlyStructure) {
+                    // New monthly structure: Group entries by month
+                    const entriesByMonth = {};
+                    entries.forEach(entry => {
+                        if (!entry.date) return;
+                        const monthKey = entry.date.substring(0, 7); // YYYY-MM
+                        if (!entriesByMonth[monthKey]) {
+                            entriesByMonth[monthKey] = [];
+                        }
+                        entriesByMonth[monthKey].push(entry);
+                    });
+                    
+                    // Save each month
+                    const updateData = {
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    for (const [monthKey, monthEntries] of Object.entries(entriesByMonth)) {
+                        // Load existing month data or create new
+                        const existingMonthData = raw[monthKey] || getOrCreateMonthData(monthKey);
+                        
+                        // Get old count before updating
+                        const oldCount = existingMonthData.logbog ? existingMonthData.logbog.length : 0;
+                        const newCount = monthEntries.length;
+                        
+                        existingMonthData.logbog = monthEntries;
+                        updateData[monthKey] = existingMonthData;
+                        
+                        // Only update registreringer if count changed
+                        if (oldCount !== newCount) {
+                            await updateRegistreringer(monthKey, 'logbog', newCount);
+                        }
+                    }
+                    
+                    await userDocRef.set(updateData, { merge: true });
+                } else {
+                    // Old structure (backward compatibility)
+                    await userDocRef.set({
+                        logbogData: entries,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+                
                 console.log('[SAVE] Success');
                 return true;
             } catch (error) {
@@ -1746,6 +1794,99 @@
             }
         }
 
+        // Helper: Get month key from date (YYYY-MM format)
+        function getMonthKey(date = null) {
+            const d = date ? new Date(date) : new Date();
+            if (isNaN(d.getTime())) return null;
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
+        }
+        
+        // Helper: Get months to load based on current date
+        function getMonthsToLoad() {
+            const now = new Date();
+            const currentMonthKey = getMonthKey(now);
+            const dayOfMonth = now.getDate();
+            
+            const monthsToLoad = [currentMonthKey];
+            
+            // If before the 7th, also load previous month
+            if (dayOfMonth <= 7) {
+                const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const prevMonthKey = getMonthKey(prevMonth);
+                monthsToLoad.push(prevMonthKey);
+            }
+            
+            return monthsToLoad;
+        }
+        
+        // Helper: Load data for specific month from Firestore
+        async function loadMonthData(monthKey) {
+            if (!currentUser || !db) return null;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                console.log(`🔥 FIRESTORE READ - checkin.html - loadMonthData(${monthKey})`);
+                const doc = await userDocRef.get();
+                if (!doc.exists) return null;
+                
+                const raw = doc.data() || {};
+                const monthData = raw[monthKey];
+                
+                if (!monthData || typeof monthData !== 'object') {
+                    return null;
+                }
+                
+                return monthData;
+            } catch (error) {
+                console.error(`[LOAD] Error loading month data for ${monthKey}:`, error);
+                return null;
+            }
+        }
+        
+        // Helper: Merge data from multiple months into flat structure
+        function mergeMonthlyData(monthsData) {
+            const merged = {
+                bodymapData: { dataIndexes: [] },
+                dialogData: { dialogs: [] },
+                opstillingData: { setups: [] },
+                compareData: { comparisons: [] },
+                logbogData: []
+            };
+            
+            monthsData.forEach(monthData => {
+                if (!monthData) return;
+                
+                // Merge bodymap
+                if (monthData.bodymap && Array.isArray(monthData.bodymap.dataIndexes)) {
+                    merged.bodymapData.dataIndexes.push(...monthData.bodymap.dataIndexes);
+                }
+                
+                // Merge dialog
+                if (monthData.dialog && Array.isArray(monthData.dialog.dialogs)) {
+                    merged.dialogData.dialogs.push(...monthData.dialog.dialogs);
+                }
+                
+                // Merge opstilling
+                if (monthData.opstilling && Array.isArray(monthData.opstilling.setups)) {
+                    merged.opstillingData.setups.push(...monthData.opstilling.setups);
+                }
+                
+                // Merge compare
+                if (monthData.compare && Array.isArray(monthData.compare.comparisons)) {
+                    merged.compareData.comparisons.push(...monthData.compare.comparisons);
+                }
+                
+                // Merge logbog
+                if (Array.isArray(monthData.logbog)) {
+                    merged.logbogData.push(...monthData.logbog);
+                }
+            });
+            
+            return merged;
+        }
+        
         // Load all user data (cached across the page, shared via window)
         // Note: logbogData is NOT loaded here - it's only loaded when needed for night overlay
         async function loadAllUserData(forceRefresh = false) {
@@ -1765,17 +1906,49 @@
                     console.log('🔥 FIRESTORE READ - checkin.html - loadAllUserData');
                     const doc = await userDocRef.get();
                     const raw = doc.exists ? (doc.data() || {}) : {};
-                    const data = {
-                        bodymapData: raw.bodymapData || null,
-                        dialogData: raw.dialogData || null,
-                        opstillingData: raw.opstillingData || null,
-                        compareData: raw.compareData || null,
-                        logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : [],
-                        // forside_checkin_data is deprecated - now using logbogData.checkins
-                        forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
-                    };
-                    window.allUserData = data;
-                    return data;
+                    
+                    // Check if data is in new monthly structure
+                    const userData = raw.userData || {};
+                    const registreringer = userData.registreringer || {};
+                    const hasMonthlyStructure = Object.keys(registreringer).length > 0 || 
+                                                 Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
+                    
+                    if (hasMonthlyStructure) {
+                        // New monthly structure
+                        const monthsToLoad = getMonthsToLoad();
+                        const monthsData = await Promise.all(
+                            monthsToLoad.map(monthKey => loadMonthData(monthKey))
+                        );
+                        
+                        const merged = mergeMonthlyData(monthsData);
+                        
+                        const data = {
+                            bodymapData: merged.bodymapData.dataIndexes.length > 0 ? merged.bodymapData : null,
+                            dialogData: merged.dialogData.dialogs.length > 0 ? merged.dialogData : null,
+                            opstillingData: merged.opstillingData.setups.length > 0 ? merged.opstillingData : null,
+                            compareData: merged.compareData.comparisons.length > 0 ? merged.compareData : null,
+                            logbogData: merged.logbogData.length > 0 ? merged.logbogData : [],
+                            userData: userData,
+                            registreringer: registreringer,
+                            loadedMonths: monthsToLoad
+                        };
+                        
+                        window.allUserData = data;
+                        return data;
+                    } else {
+                        // Old structure (backward compatibility)
+                        const data = {
+                            bodymapData: raw.bodymapData || null,
+                            dialogData: raw.dialogData || null,
+                            opstillingData: raw.opstillingData || null,
+                            compareData: raw.compareData || null,
+                            logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : [],
+                            // forside_checkin_data is deprecated - now using logbogData.checkins
+                            forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
+                        };
+                        window.allUserData = data;
+                        return data;
+                    }
                 } catch (error) {
                     console.error('[LOAD] Error loading all user data in checkin.html:', error);
                     window.allUserData = null;
@@ -1788,7 +1961,64 @@
             return window.allDataLoadingPromise;
         }
         
-        // Save check-in data to logbogData using cached data
+        // Helper: Get or create month data structure
+        function getOrCreateMonthData(monthKey) {
+            return {
+                bodymap: { dataIndexes: [] },
+                compare: { comparisons: [] },
+                logbog: [],
+                opstilling: { setups: [] }
+            };
+        }
+        
+        // Helper: Update registreringer with logbog count for a month
+        // Helper: Update registreringer with count for a specific data type and month
+        async function updateRegistreringer(monthKey, dataType, count) {
+            if (!currentUser || !db) return;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
+                const raw = doc.exists ? (doc.data() || {}) : {};
+                const userData = raw.userData || {};
+                const registreringer = userData.registreringer || {};
+                
+                // Initialize month object if it doesn't exist
+                if (!registreringer[monthKey]) {
+                    registreringer[monthKey] = {};
+                }
+                
+                // Update count for this data type
+                if (count > 0) {
+                    registreringer[monthKey][dataType] = String(count);
+                } else {
+                    // Remove data type from month if count is 0
+                    delete registreringer[monthKey][dataType];
+                }
+                
+                // Remove month from registreringer if it has no data types left
+                if (Object.keys(registreringer[monthKey]).length === 0) {
+                    delete registreringer[monthKey];
+                }
+                
+                await userDocRef.set({
+                    userData: {
+                        ...userData,
+                        registreringer: registreringer
+                    },
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                // Update cache
+                if (window.allUserData) {
+                    window.allUserData.registreringer = registreringer;
+                }
+            } catch (error) {
+                console.error('[SAVE] Error updating registreringer:', error);
+            }
+        }
+        
+        // Save check-in data to logbogData using cached data (monthly structure)
         async function saveCheckinDataToFirestore(engine) {
             if (!currentUser || !db) return;
             
@@ -1816,6 +2046,7 @@
                 
                 // Get today's date key
                 const dateKey = getTodayDateKey();
+                const monthKey = dateKey.substring(0, 7); // YYYY-MM
                 
                 // Load existing logbogData from cache
                 const logbogData = await getLogbookEntries();
@@ -1852,12 +2083,58 @@
                 // Update timestamp
                 entry.timestamp = now.toISOString();
                 
-                // Save to Firestore
+                // Save to Firestore (monthly structure)
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                await userDocRef.set({
-                    logbogData: logbogData,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
+                const doc = await userDocRef.get();
+                const raw = doc.exists ? (doc.data() || {}) : {};
+                
+                // Check if data is in new monthly structure
+                const userData = raw.userData || {};
+                const registreringer = userData.registreringer || {};
+                const hasMonthlyStructure = Object.keys(registreringer).length > 0 || 
+                                             Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
+                
+                if (hasMonthlyStructure) {
+                    // New monthly structure: Group entries by month
+                    const entriesByMonth = {};
+                    logbogData.forEach(entry => {
+                        if (!entry.date) return;
+                        const entryMonthKey = entry.date.substring(0, 7); // YYYY-MM
+                        if (!entriesByMonth[entryMonthKey]) {
+                            entriesByMonth[entryMonthKey] = [];
+                        }
+                        entriesByMonth[entryMonthKey].push(entry);
+                    });
+                    
+                    // Save each month
+                    const updateData = {
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    for (const [entryMonthKey, monthEntries] of Object.entries(entriesByMonth)) {
+                        // Load existing month data or create new
+                        const existingMonthData = raw[entryMonthKey] || getOrCreateMonthData(entryMonthKey);
+                        existingMonthData.logbog = monthEntries;
+                        updateData[entryMonthKey] = existingMonthData;
+                        
+                        // Get old count before updating
+                        const oldCount = existingMonthData.logbog ? existingMonthData.logbog.length : 0;
+                        const newCount = monthEntries.length;
+                        
+                        // Only update registreringer if count changed
+                        if (oldCount !== newCount) {
+                            await updateRegistreringer(entryMonthKey, 'logbog', newCount);
+                        }
+                    }
+                    
+                    await userDocRef.set(updateData, { merge: true });
+                } else {
+                    // Old structure (backward compatibility)
+                    await userDocRef.set({
+                        logbogData: logbogData,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
                 
                 // Update cache directly without reading from Firestore
                 if (window.allUserData) {

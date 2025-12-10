@@ -1102,6 +1102,48 @@
             font-style: italic;
         }
 
+        .log-history-month-header {
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .log-history-month-header:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .log-history-month-header.expanded {
+            margin-bottom: 12px;
+        }
+
+        .log-history-month-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .log-history-month-count {
+            font-size: 0.8rem;
+            opacity: 0.85;
+            flex: 1;
+            text-align: right;
+        }
+
+        .log-history-month-arrow {
+            font-size: 0.7rem;
+            opacity: 0.9;
+            transition: transform 0.2s ease;
+        }
+
         .dialog-history-item-delete {
             position: absolute;
             top: 6px;
@@ -2337,6 +2379,94 @@ let dialogHistoryCollapsed = true; // Default to collapsed
 		
         // Firestore functions
         // Load all user data (cached) for this page, shared via window
+        // Helper: Get month key from date (YYYY-MM format)
+        function getMonthKey(date = null) {
+            const d = date ? new Date(date) : new Date();
+            if (isNaN(d.getTime())) return null;
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
+        }
+        
+        // Helper: Get months to load based on current date
+        // Returns array of month keys: [currentMonth, previousMonth?]
+        function getMonthsToLoad() {
+            const now = new Date();
+            const currentMonthKey = getMonthKey(now);
+            const dayOfMonth = now.getDate();
+            
+            const monthsToLoad = [currentMonthKey];
+            
+            // If before the 7th, also load previous month
+            if (dayOfMonth <= 7) {
+                const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const prevMonthKey = getMonthKey(prevMonth);
+                monthsToLoad.push(prevMonthKey);
+            }
+            
+            return monthsToLoad;
+        }
+        
+        // Helper: Load data for specific month from Firestore subcollection
+        async function loadMonthData(monthKey, forceRefresh = false) {
+            if (!currentUser || !db) return null;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                console.log(`🔥 FIRESTORE READ - dialog_01.html - loadMonthData(${monthKey})`);
+                const doc = await monthDocRef.get();
+                if (!doc.exists) return null;
+                
+                return doc.data() || null;
+            } catch (error) {
+                console.error(`[LOAD] Error loading month data for ${monthKey}:`, error);
+                return null;
+            }
+        }
+        
+        // Helper: Merge data from multiple months into flat structure
+        function mergeMonthlyData(monthsData) {
+            const merged = {
+                bodymapData: { dataIndexes: [] },
+                dialogData: { dialogs: [] },
+                opstillingData: { setups: [] },
+                compareData: { comparisons: [] },
+                logbogData: []
+            };
+            
+            monthsData.forEach(monthData => {
+                if (!monthData) return;
+                
+                // Merge bodymap
+                if (monthData.bodymap && Array.isArray(monthData.bodymap.dataIndexes)) {
+                    merged.bodymapData.dataIndexes.push(...monthData.bodymap.dataIndexes);
+                }
+                
+                // Merge dialog
+                if (monthData.dialog && Array.isArray(monthData.dialog.dialogs)) {
+                    merged.dialogData.dialogs.push(...monthData.dialog.dialogs);
+                }
+                
+                // Merge opstilling
+                if (monthData.opstilling && Array.isArray(monthData.opstilling.setups)) {
+                    merged.opstillingData.setups.push(...monthData.opstilling.setups);
+                }
+                
+                // Merge compare
+                if (monthData.compare && Array.isArray(monthData.compare.comparisons)) {
+                    merged.compareData.comparisons.push(...monthData.compare.comparisons);
+                }
+                
+                // Merge logbog
+                if (Array.isArray(monthData.logbog)) {
+                    merged.logbogData.push(...monthData.logbog);
+                }
+            });
+            
+            return merged;
+        }
+        
         async function loadAllUserData(forceRefresh = false) {
             if (!currentUser || !db) return null;
             
@@ -2354,16 +2484,142 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                     console.log('🔥 FIRESTORE READ - dialog_01.html - loadAllUserData');
                     const doc = await userDocRef.get();
                     const raw = doc.exists ? (doc.data() || {}) : {};
-                    const data = {
-                        bodymapData: raw.bodymapData || null,
-                        dialogData: raw.dialogData || null,
-                        opstillingData: raw.opstillingData || null,
-                        compareData: raw.compareData || null,
-                        logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
-                        forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
-                    };
-                    window.allUserData = data;
-                    return data;
+                    
+                    // Check if data is in new monthly structure
+                    const userData = raw.userData || {};
+                    const registreringer = userData.registreringer || {};
+                    const hasMonthlyStructure = Object.keys(registreringer).length > 0 || 
+                                                 Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
+                    
+                    if (hasMonthlyStructure) {
+                        // New monthly structure: Load from subcollections
+                        // Get months to load: current + previous (if before 7th) + any months with data in registreringer
+                        const monthsToLoadSet = new Set(getMonthsToLoad());
+                        
+                        // NOTE: We do NOT load all months from registreringer or subcollections here
+                        // registreringer is only used to show counts in history panel
+                        // We only load months from getMonthsToLoad() (current + previous if before 7th)
+                        // Older months are loaded on-demand when user expands them in history panel
+                        
+                        // Check main document for month-based data (e.g., "2025-11", "2025-12")
+                        Object.keys(raw).forEach(key => {
+                            if (/^\d{4}-\d{2}$/.test(key)) {
+                                const monthKey = key;
+                                const monthData = raw[monthKey] || {};
+                                // Add month if it has dialog data
+                                if (monthData.dialog && Array.isArray(monthData.dialog.dialogs) && monthData.dialog.dialogs.length > 0) {
+                                    monthsToLoadSet.add(monthKey);
+                                }
+                            }
+                        });
+                        
+                        // Load ALL months in ONE read from subcollections
+                        const monthsDataMap = new Map(); // Use Map to merge data from both sources
+                        
+                        // First, load from main document
+                        const monthsToLoad = Array.from(monthsToLoadSet);
+                        monthsToLoad.forEach(monthKey => {
+                            const monthDataFromMain = raw[monthKey];
+                            if (monthDataFromMain) {
+                                monthsDataMap.set(monthKey, monthDataFromMain);
+                            }
+                        });
+                        
+                        // Then, load from subcollections and merge
+                        try {
+                            const monthsCollectionRef = userDocRef.collection('months');
+                            const monthsSnapshot = await monthsCollectionRef.get();
+                            
+                            monthsSnapshot.forEach(monthDoc => {
+                                const monthKey = monthDoc.id;
+                                const monthDataFromSub = monthDoc.data() || {};
+                                
+                                // Merge with existing data from main document, or use subcollection data
+                                if (monthsDataMap.has(monthKey)) {
+                                    // Merge: combine data from both sources
+                                    const existing = monthsDataMap.get(monthKey);
+                                    monthsDataMap.set(monthKey, {
+                                        opstilling: monthDataFromSub.opstilling || existing.opstilling,
+                                        dialog: monthDataFromSub.dialog || existing.dialog,
+                                        compare: monthDataFromSub.compare || existing.compare,
+                                        bodymap: monthDataFromSub.bodymap || existing.bodymap,
+                                        logbog: monthDataFromSub.logbog || existing.logbog
+                                    });
+                                } else {
+                                    monthsDataMap.set(monthKey, monthDataFromSub);
+                                }
+                            });
+                        } catch (error) {
+                            console.error(`[DEBUG] Error loading subcollections:`, error);
+                        }
+                        
+                        // Convert Map to array for mergeMonthlyData, preserving order from monthsToLoad
+                        const monthsData = monthsToLoad.map(monthKey => monthsDataMap.get(monthKey)).filter(m => m !== undefined);
+                        const merged = mergeMonthlyData(monthsData);
+                        
+                        // Fallback to old structure if no data found in subcollections
+                        let dialogData = merged.dialogData.dialogs.length > 0 ? merged.dialogData : null;
+                        if (!dialogData && raw.dialogData && Array.isArray(raw.dialogData.dialogs) && raw.dialogData.dialogs.length > 0) {
+                            dialogData = raw.dialogData;
+                        }
+                        
+                        let opstillingData = merged.opstillingData.setups.length > 0 ? merged.opstillingData : null;
+                        if (!opstillingData && raw.opstillingData && Array.isArray(raw.opstillingData.setups) && raw.opstillingData.setups.length > 0) {
+                            opstillingData = raw.opstillingData;
+                        }
+                        
+                        // Update registreringer based on actual loaded data if missing or incorrect
+                        if (dialogData && Array.isArray(dialogData.dialogs)) {
+                            const dialogsByMonth = {};
+                            dialogData.dialogs.forEach(dialog => {
+                                const timestamp = dialog.timestamp || dialog.updated || new Date().toISOString();
+                                const monthKey = getMonthKey(timestamp);
+                                if (monthKey) {
+                                    if (!dialogsByMonth[monthKey]) {
+                                        dialogsByMonth[monthKey] = 0;
+                                    }
+                                    dialogsByMonth[monthKey]++;
+                                }
+                            });
+                            
+                            // Update registreringer for all months with dialogs
+                            for (const [monthKey, count] of Object.entries(dialogsByMonth)) {
+                                const monthReg = registreringer[monthKey];
+                                const currentCount = monthReg && typeof monthReg === 'object' ? parseInt(monthReg.dialog || '0', 10) : 0;
+                                if (currentCount !== count) {
+                                    await updateRegistreringer(monthKey, 'dialog', count);
+                                    registreringer[monthKey] = registreringer[monthKey] || {};
+                                    registreringer[monthKey].dialog = String(count);
+                                }
+                            }
+                        }
+                        
+                        const data = {
+                            bodymapData: merged.bodymapData.dataIndexes.length > 0 ? merged.bodymapData : null,
+                            dialogData: dialogData,
+                            opstillingData: opstillingData,
+                            compareData: merged.compareData.comparisons.length > 0 ? merged.compareData : null,
+                            logbogData: merged.logbogData.length > 0 ? merged.logbogData : null,
+                            userData: userData,
+                            registreringer: registreringer,
+                            loadedMonths: monthsToLoad
+                        };
+                        
+                        window.allUserData = data;
+                        return data;
+                    } else {
+                        // Old structure (backward compatibility)
+                        const data = {
+                            bodymapData: raw.bodymapData || null,
+                            dialogData: raw.dialogData || null,
+                            opstillingData: raw.opstillingData || null,
+                            compareData: raw.compareData || null,
+                            logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
+                            forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
+                        };
+                        window.allUserData = data;
+                        return data;
+                    }
                 } catch (error) {
                     console.error('[LOAD] Error loading all user data in dialog_01.html:', error);
                     window.allUserData = null;
@@ -2389,6 +2645,52 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             }
         }
         
+        // Helper: Update registreringer with count for a specific data type and month
+        async function updateRegistreringer(monthKey, dataType, count) {
+            if (!currentUser || !db) return;
+            
+            try {
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
+                const raw = doc.exists ? (doc.data() || {}) : {};
+                const userData = raw.userData || {};
+                const registreringer = userData.registreringer || {};
+                
+                // Initialize month object if it doesn't exist
+                if (!registreringer[monthKey]) {
+                    registreringer[monthKey] = {};
+                }
+                
+                // Update count for this data type
+                if (count > 0) {
+                    registreringer[monthKey][dataType] = String(count);
+                } else {
+                    // Remove data type from month if count is 0
+                    delete registreringer[monthKey][dataType];
+                }
+                
+                // Remove month from registreringer if it has no data types left
+                if (Object.keys(registreringer[monthKey]).length === 0) {
+                    delete registreringer[monthKey];
+                }
+                
+                await userDocRef.set({
+                    userData: {
+                        ...userData,
+                        registreringer: registreringer
+                    },
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                // Update cache
+                if (window.allUserData) {
+                    window.allUserData.registreringer = registreringer;
+                }
+            } catch (error) {
+                console.error('[SAVE] Error updating registreringer:', error);
+            }
+        }
+        
         async function saveDialogDataToFirestore() {
             if (!currentUser || !db) return false;
             if (!DialogData) return false;
@@ -2406,18 +2708,71 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             
             try {
                 const userDocRef = db.collection('users').doc(currentUser.uid);
-                await userDocRef.set({
-                    dialogData: DialogData,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
+                const doc = await userDocRef.get();
+                const raw = doc.exists ? (doc.data() || {}) : {};
                 
-                // Update cache directly without reading from Firestore
-                if (window.allUserData) {
-                    window.allUserData.dialogData = DialogData;
+                // Check if data is in new monthly structure
+                const userData = raw.userData || {};
+                const registreringer = userData.registreringer || {};
+                const hasMonthlyStructure = Object.keys(registreringer).length > 0 || 
+                                             Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
+                
+                if (hasMonthlyStructure) {
+                    // New monthly structure: Group dialogs by month and save to subcollections
+                    const dialogsByMonth = {};
+                    DialogData.dialogs.forEach(dialog => {
+                        if (!dialog.timestamp && !dialog.updated) {
+                            dialog.timestamp = new Date().toISOString();
+                            dialog.updated = dialog.timestamp;
+                        }
+                        const timestamp = dialog.timestamp || dialog.updated || new Date().toISOString();
+                        const monthKey = getMonthKey(timestamp);
+                        if (!monthKey) return;
+                        
+                        if (!dialogsByMonth[monthKey]) {
+                            dialogsByMonth[monthKey] = [];
+                        }
+                        dialogsByMonth[monthKey].push(dialog);
+                    });
+                    
+                    // Save each month to its subcollection
+                    for (const [monthKey, monthDialogs] of Object.entries(dialogsByMonth)) {
+                        const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                        const existingMonthData = await monthDocRef.get();
+                        const monthData = existingMonthData.exists ? (existingMonthData.data() || {}) : {};
+                        
+                        monthData.dialog = {
+                            dialogs: monthDialogs,
+                            version: DialogData.version || '2.0',
+                            updated: DialogData.updated
+                        };
+                        
+                        await monthDocRef.set(monthData, { merge: true });
+                        // NOTE: registreringer is updated only when dialogs are created or deleted, not on every save
+                    }
+                    
+                    // Update cache
+                    if (window.allUserData) {
+                        window.allUserData.dialogData = DialogData;
+                    }
+                    
+                    console.log('[SAVE] Success - saved to monthly structure');
+                    return true;
+                } else {
+                    // Old structure (backward compatibility)
+                    await userDocRef.set({
+                        dialogData: DialogData,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    
+                    // Update cache directly without reading from Firestore
+                    if (window.allUserData) {
+                        window.allUserData.dialogData = DialogData;
+                    }
+                    
+                    console.log('[SAVE] Success - saved to old structure');
+                    return true;
                 }
-                
-                console.log('[SAVE] Success');
-                return true;
             } catch (error) {
                 console.error('[SAVE] Error:', error);
                 return false;
@@ -2698,6 +3053,64 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         
         // ===== HISTORY SIDEBAR FUNCTIONS (from opstilling_01.html) =====
         
+        // Track which months are expanded (by month key like "2024-11")
+        const expandedMonths = new Set();
+        
+        // Helper: Load month on-demand and merge with existing data
+        async function loadMonthOnDemand(monthKey) {
+            if (!currentUser || !db) return;
+            
+            // Check if month is already loaded
+            if (window.allUserData && window.allUserData.loadedMonths && 
+                window.allUserData.loadedMonths.includes(monthKey)) {
+                return; // Already loaded
+            }
+            
+            try {
+                // Load month data from subcollection
+                const monthData = await loadMonthData(monthKey);
+                if (!monthData || !monthData.dialog || !Array.isArray(monthData.dialog.dialogs)) {
+                    return;
+                }
+                
+                // Merge with existing DialogData
+                if (!DialogData) {
+                    DialogData = {
+                        version: '2.0',
+                        updated: new Date().toISOString(),
+                        activeDialogId: null,
+                        dialogs: []
+                    };
+                }
+                if (!Array.isArray(DialogData.dialogs)) {
+                    DialogData.dialogs = [];
+                }
+                
+                // Add dialogs from this month (avoid duplicates by ID)
+                const existingDialogIds = new Set(DialogData.dialogs.map(d => d.id));
+                monthData.dialog.dialogs.forEach(dialog => {
+                    if (!existingDialogIds.has(dialog.id)) {
+                        DialogData.dialogs.push(dialog);
+                    }
+                });
+                
+                // Update loadedMonths in cache
+                if (!window.allUserData) {
+                    window.allUserData = {};
+                }
+                if (!window.allUserData.loadedMonths) {
+                    window.allUserData.loadedMonths = [];
+                }
+                if (!window.allUserData.loadedMonths.includes(monthKey)) {
+                    window.allUserData.loadedMonths.push(monthKey);
+                }
+                
+                console.log(`[LOAD] Loaded month ${monthKey} on-demand for dialog`);
+            } catch (error) {
+                console.error(`[LOAD] Error loading month ${monthKey} on-demand:`, error);
+            }
+        }
+        
         function getAllDialogsSorted() {
             if (!DialogData || !Array.isArray(DialogData.dialogs)) return [];
             const allDialogs = [];
@@ -2723,7 +3136,7 @@ let dialogHistoryCollapsed = true; // Default to collapsed
         }
         
         
-        function renderDialogHistory() {
+        async function renderDialogHistory() {
             const listEl = document.getElementById('dialogHistoryList');
             if (!listEl) return;
             listEl.innerHTML = '';
@@ -2736,13 +3149,178 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             const activeDialog = getActiveDialog();
             
             if (sortedEntries.length === 0) {
-                listEl.innerHTML = '<div class="dialog-history-empty">Ingen gemte dialoger endnu.</div>';
-                DialogData.activeDialogId = null;
-                updateDialogHistoryNavState([]);
-                return;
+                // Check if there are months with data in registreringer
+                let hasAnyData = false;
+                if (currentUser && db) {
+                    try {
+                        const userDocRef = db.collection('users').doc(currentUser.uid);
+                        const doc = await userDocRef.get();
+                        if (doc.exists) {
+                            const raw = doc.data() || {};
+                            const userData = raw.userData || {};
+                            const registreringer = userData.registreringer || {};
+                            hasAnyData = Object.keys(registreringer).length > 0;
+                        }
+                    } catch (error) {
+                        // Ignore errors
+                    }
+                }
+                
+                if (!hasAnyData) {
+                    listEl.innerHTML = '<div class="dialog-history-empty">Ingen gemte dialoger endnu.</div>';
+                    DialogData.activeDialogId = null;
+                    if (typeof updateDialogHistoryNavState === 'function') {
+                        updateDialogHistoryNavState([]);
+                    }
+                    return;
+                }
             }
             
+            // Group dialogs by month
+            const monthGroups = {};
             sortedEntries.forEach(({ dialog }) => {
+                const timestamp = dialog.timestamp || dialog.updated || new Date().toISOString();
+                const monthKey = getMonthKey(timestamp);
+                if (!monthKey) return;
+                
+                if (!monthGroups[monthKey]) {
+                    monthGroups[monthKey] = [];
+                }
+                monthGroups[monthKey].push(dialog);
+            });
+            
+            // Get registreringer to show all available months
+            let allAvailableMonths = [];
+            if (currentUser && db) {
+                try {
+                    const userDocRef = db.collection('users').doc(currentUser.uid);
+                    const doc = await userDocRef.get();
+                    if (doc.exists) {
+                        const raw = doc.data() || {};
+                        const userData = raw.userData || {};
+                        const registreringer = userData.registreringer || {};
+                        // Get months that have dialog data
+                        allAvailableMonths = Object.keys(registreringer)
+                            .filter(monthKey => {
+                                const monthReg = registreringer[monthKey];
+                                if (monthReg && typeof monthReg === 'object') {
+                                    // New structure: { dialog: "2", ... }
+                                    return monthReg.dialog && parseInt(monthReg.dialog, 10) > 0;
+                                }
+                                return false;
+                            })
+                            .sort((a, b) => b.localeCompare(a));
+                    }
+                } catch (error) {
+                    console.error('[LOAD] Error loading registreringer:', error);
+                }
+            }
+            
+            // Get current date info
+            const now = new Date();
+            const currentMonthKey = getMonthKey(now);
+            const dayOfMonth = now.getDate();
+            
+            // Calculate previous month key
+            const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const prevMonthKey = getMonthKey(prevMonth);
+            
+            // Combine loaded months with available months from registreringer
+            const allMonthKeys = new Set([...Object.keys(monthGroups), ...allAvailableMonths]);
+            const sortedMonthKeys = Array.from(allMonthKeys).sort((a, b) => b.localeCompare(a));
+            
+            // Determine which months should show expanded by default
+            const autoExpandedMonths = new Set([currentMonthKey]);
+            if (dayOfMonth <= 7) {
+                autoExpandedMonths.add(prevMonthKey);
+            }
+            
+            // Render each month group
+            for (const monthKey of sortedMonthKeys) {
+                const monthDialogs = monthGroups[monthKey] || [];
+                const isCurrentOrGracePeriod = autoExpandedMonths.has(monthKey);
+                const isExpanded = isCurrentOrGracePeriod || expandedMonths.has(monthKey);
+                
+				// Get count from registreringer if dialogs not loaded yet
+				let dialogCount = monthDialogs.length;
+				if (dialogCount === 0 && currentUser && db) {
+					try {
+						const userDocRef = db.collection('users').doc(currentUser.uid);
+						const doc = await userDocRef.get();
+						if (doc && doc.exists) {
+							const raw = doc.data() || {};
+							const userData = raw.userData || {};
+							const registreringer = userData.registreringer || {};
+							const monthReg = registreringer[monthKey];
+							if (monthReg) {
+								if (typeof monthReg === 'object') {
+									// New structure: { dialog: "2", ... }
+									const countStr = monthReg.dialog;
+									if (countStr) {
+										dialogCount = parseInt(countStr, 10) || 0;
+									}
+								} else if (typeof monthReg === 'string') {
+									// Old structure: "2" (backward compatibility)
+									dialogCount = parseInt(monthReg, 10) || 0;
+								}
+							}
+						}
+					} catch (error) {
+						// Ignore errors
+					}
+				}
+                
+                // For non-current months, show a collapsible header
+                if (!isCurrentOrGracePeriod) {
+                    const monthHeader = document.createElement('div');
+                    monthHeader.className = 'log-history-month-header' + (isExpanded ? ' expanded' : '');
+                    monthHeader.dataset.monthKey = monthKey;
+                    
+                    // Parse month for display
+                    const [year, month] = monthKey.split('-');
+                    const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+                    const monthName = monthDate.toLocaleDateString('da-DK', { month: 'short' }).replace('.', '');
+                    const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+                    
+                    monthHeader.innerHTML = `
+                        <span class="log-history-month-title">${capitalizedMonth} ${year}</span>
+                        <span class="log-history-month-count">${dialogCount} dialoger</span>
+                        <span class="log-history-month-arrow">${isExpanded ? '▼' : '▶'}</span>
+                    `;
+                    
+                    monthHeader.addEventListener('click', async () => {
+                        // Remember header position relative to viewport before re-render
+                        const headerRect = monthHeader.getBoundingClientRect();
+                        const listRect = listEl.getBoundingClientRect();
+                        const offsetFromListTop = headerRect.top - listRect.top;
+                        
+                        if (expandedMonths.has(monthKey)) {
+                            expandedMonths.delete(monthKey);
+                        } else {
+                            expandedMonths.add(monthKey);
+                            // Load month on-demand if not already loaded
+                            await loadMonthOnDemand(monthKey);
+                            // Reload DialogData after loading month
+                            await loadDialogData();
+                        }
+                        
+                        // Store scroll restore info globally so renderDialogHistory can use it
+                        window._monthScrollRestore = {
+                            monthKey: monthKey,
+                            offsetFromListTop: offsetFromListTop
+                        };
+                        
+                        // Re-render with updated data
+                        await renderDialogHistory();
+                    });
+                    
+                    listEl.appendChild(monthHeader);
+                }
+                
+                // Only render dialogs if expanded
+                if (!isExpanded) continue;
+                
+                monthDialogs.forEach(dialog => {
                     const item = document.createElement('div');
                 const isActive = dialog.id === DialogData.activeDialogId;
                 item.className = `dialog-history-item ${isActive ? 'active' : ''}`;
@@ -2985,8 +3563,35 @@ let dialogHistoryCollapsed = true; // Default to collapsed
                 }, { passive: false });
                 
                 listEl.appendChild(item);
-            });
+                });
+            } // End of sortedMonthKeys for...of loop
             
+            // Handle scroll restoration for month fold/unfold
+            if (window._monthScrollRestore) {
+                const restore = window._monthScrollRestore;
+                window._monthScrollRestore = null;
+                const newHeader = listEl.querySelector(`.log-history-month-header[data-month-key="${restore.monthKey}"]`);
+                if (newHeader) {
+                    // Try to restore position - browser will clamp if list is too short
+                    listEl.scrollTop = newHeader.offsetTop - restore.offsetFromListTop;
+                }
+            }
+            
+            // Update navigation state with all dialogs (if function exists)
+            const allDialogs = sortedEntries.map(e => e.dialog);
+            if (typeof updateDialogHistoryNavState === 'function') {
+                updateDialogHistoryNavState(allDialogs);
+            }
+            
+        }
+        
+        // Function to update navigation state (if needed)
+        function updateDialogHistoryNavState(dialogs) {
+            // This function can be used to update navigation state if needed
+            // Currently it's a placeholder to prevent errors
+            if (dialogs && Array.isArray(dialogs)) {
+                // Could update navigation buttons, counts, etc. here if needed
+            }
         }
         
         function updateDialogHistoryToggleUI() {
@@ -3124,7 +3729,25 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             if (activeDialog) {
                 loadSavedDialogFromNewStructure(activeDialog);
             }
+            
+            // Save and update registreringer (count changed - dialog deleted)
             await saveDialogDataToLocalStorage();
+            // Calculate counts per month and update registreringer
+            const dialogsByMonth = {};
+            DialogData.dialogs.forEach(dialog => {
+                const monthKey = getMonthKey(dialog.timestamp || dialog.updated);
+                if (monthKey) {
+                    if (!dialogsByMonth[monthKey]) {
+                        dialogsByMonth[monthKey] = 0;
+                    }
+                    dialogsByMonth[monthKey]++;
+                }
+            });
+            // Update registreringer for all affected months
+            for (const [monthKey, count] of Object.entries(dialogsByMonth)) {
+                await updateRegistreringer(monthKey, 'dialog', count);
+            }
+            
             renderDialogHistory();
         }
         
@@ -3358,6 +3981,13 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             }
         DialogData.dialogs.push(newDialog);
         DialogData.activeDialogId = newId;
+        
+        // Save and update registreringer (count changed - new dialog created)
+        await saveDialogDataToLocalStorage();
+        const monthKey = getMonthKey(newDialog.timestamp || newDialog.updated);
+        if (monthKey) {
+            await updateRegistreringer(monthKey, 'dialog', DialogData.dialogs.length);
+        }
         
         // Clear UI without deleting anything
             if (autoTimeout) clearTimeout(autoTimeout);
