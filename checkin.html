@@ -812,21 +812,23 @@
                         entriesByMonth[monthKey].push(entry);
                     });
                     
-                    // Save each month
-                    const updateData = {
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    
+                    // Save each month to subcollections
                     for (const [monthKey, monthEntries] of Object.entries(entriesByMonth)) {
+                        const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                        
                         // Load existing month data or create new
-                        const existingMonthData = raw[monthKey] || getOrCreateMonthData(monthKey);
+                        const monthDoc = await monthDocRef.get();
+                        const existingMonthData = monthDoc.exists ? (monthDoc.data() || {}) : {};
                         
                         // Get old count before updating
                         const oldCount = existingMonthData.logbog ? existingMonthData.logbog.length : 0;
                         const newCount = monthEntries.length;
                         
+                        // Update logbog array for this month
                         existingMonthData.logbog = monthEntries;
-                        updateData[monthKey] = existingMonthData;
+                        
+                        // Save to subcollection
+                        await monthDocRef.set(existingMonthData, { merge: true });
                         
                         // Only update registreringer if count changed
                         if (oldCount !== newCount) {
@@ -834,7 +836,10 @@
                         }
                     }
                     
-                    await userDocRef.set(updateData, { merge: true });
+                    // Update main document timestamp
+                    await userDocRef.set({
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
                 } else {
                     // Old structure (backward compatibility)
                     await userDocRef.set({
@@ -2048,41 +2053,6 @@
                 const dateKey = getTodayDateKey();
                 const monthKey = dateKey.substring(0, 7); // YYYY-MM
                 
-                // Load existing logbogData from cache
-                const logbogData = await getLogbookEntries();
-                
-                // Find or create entry for today
-                let entry = logbogData.find(item => item.date === dateKey);
-                if (!entry) {
-                    entry = {
-                        date: dateKey,
-                        dagbog: '',
-                        dreams: '',
-                        checkins: [],
-                        timestamp: now.toISOString(),
-                        color: '#b8735e'
-                    };
-                    logbogData.push(entry);
-                }
-                
-                // Initialize checkins array if it doesn't exist
-                if (!Array.isArray(entry.checkins)) {
-                    entry.checkins = [];
-                }
-                
-                // Add new check-in to the array
-                entry.checkins.push({
-                    time: timeStr,
-                    status: Number(status)
-                });
-                
-                // Update taknem and affirm (latest values win)
-                entry.taknem = String(taknem);
-                entry.affirm = affirmText || '';
-                
-                // Update timestamp
-                entry.timestamp = now.toISOString();
-                
                 // Save to Firestore (monthly structure)
                 const userDocRef = db.collection('users').doc(currentUser.uid);
                 const doc = await userDocRef.get();
@@ -2095,43 +2065,83 @@
                                              Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
                 
                 if (hasMonthlyStructure) {
-                    // New monthly structure: Group entries by month
-                    const entriesByMonth = {};
-                    logbogData.forEach(entry => {
-                        if (!entry.date) return;
-                        const entryMonthKey = entry.date.substring(0, 7); // YYYY-MM
-                        if (!entriesByMonth[entryMonthKey]) {
-                            entriesByMonth[entryMonthKey] = [];
-                        }
-                        entriesByMonth[entryMonthKey].push(entry);
-                    });
+                    // New monthly structure: Load existing month data from Firestore first
+                    const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                    const monthDoc = await monthDocRef.get();
+                    const existingMonthData = monthDoc.exists ? (monthDoc.data() || {}) : {};
                     
-                    // Save each month
-                    const updateData = {
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
+                    // Get existing logbog entries for this month (or empty array)
+                    let monthLogbogEntries = Array.isArray(existingMonthData.logbog) ? existingMonthData.logbog : [];
                     
-                    for (const [entryMonthKey, monthEntries] of Object.entries(entriesByMonth)) {
-                        // Load existing month data or create new
-                        const existingMonthData = raw[entryMonthKey] || getOrCreateMonthData(entryMonthKey);
-                        existingMonthData.logbog = monthEntries;
-                        updateData[entryMonthKey] = existingMonthData;
-                        
-                        // Get old count before updating
-                        const oldCount = existingMonthData.logbog ? existingMonthData.logbog.length : 0;
-                        const newCount = monthEntries.length;
-                        
-                        // Only update registreringer if count changed
-                        if (oldCount !== newCount) {
-                            await updateRegistreringer(entryMonthKey, 'logbog', newCount);
-                        }
+                    // Find or create entry for today
+                    let entry = monthLogbogEntries.find(item => item.date === dateKey);
+                    if (!entry) {
+                        entry = {
+                            date: dateKey,
+                            dagbog: '',
+                            dreams: '',
+                            checkins: [],
+                            timestamp: now.toISOString(),
+                            color: '#b8735e'
+                        };
+                        monthLogbogEntries.push(entry);
                     }
                     
-                    await userDocRef.set(updateData, { merge: true });
+                    // Initialize checkins array if it doesn't exist
+                    if (!Array.isArray(entry.checkins)) {
+                        entry.checkins = [];
+                    }
+                    
+                    // Add new check-in to the array
+                    entry.checkins.push({
+                        time: timeStr,
+                        status: Number(status)
+                    });
+                    
+                    // Update taknem and affirm (latest values win)
+                    entry.taknem = String(taknem);
+                    entry.affirm = affirmText || '';
+                    
+                    // Update timestamp
+                    entry.timestamp = now.toISOString();
+                    
+                    // Get old count before updating
+                    const oldCount = existingMonthData.logbog ? existingMonthData.logbog.length : 0;
+                    const newCount = monthLogbogEntries.length;
+                    
+                    // Update logbog array for this month
+                    existingMonthData.logbog = monthLogbogEntries;
+                    
+                    // Save to subcollection
+                    await monthDocRef.set(existingMonthData, { merge: true });
+                    
+                    // Only update registreringer if count changed
+                    if (oldCount !== newCount) {
+                        await updateRegistreringer(monthKey, 'logbog', newCount);
+                    }
+                    
+                    // Update cache with merged data
+                    if (window.allUserData) {
+                        // Reload all user data to update cache properly
+                        await loadAllUserData(true);
+                    }
+                    
+                    // Update main document timestamp and lastCheckinDate in userData
+                    await userDocRef.set({
+                        userData: {
+                            ...userData,
+                            lastCheckinDate: dateKey // Store today's date as last check-in date
+                        },
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
                 } else {
                     // Old structure (backward compatibility)
                     await userDocRef.set({
                         logbogData: logbogData,
+                        userData: {
+                            ...userData,
+                            lastCheckinDate: dateKey // Store today's date as last check-in date
+                        },
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
                 }
@@ -2139,6 +2149,11 @@
                 // Update cache directly without reading from Firestore
                 if (window.allUserData) {
                     window.allUserData.logbogData = logbogData;
+                    if (window.allUserData.userData) {
+                        window.allUserData.userData.lastCheckinDate = dateKey;
+                    } else {
+                        window.allUserData.userData = { lastCheckinDate: dateKey };
+                    }
                 }
                 
                 console.log(`[SAVE] Check-in saved to logbogData for ${dateKey} at ${timeStr}`);
@@ -2164,22 +2179,25 @@
         // Check if user has already checked in today
         async function hasCheckedInToday() {
             try {
-                const logbogData = await loadCheckinDataFromFirestore();
-                if (!logbogData || !Array.isArray(logbogData) || logbogData.length === 0) {
+                const todayKey = getTodayDateKey();
+                
+                if (!currentUser || !db) {
                     return false;
                 }
                 
-                const todayKey = getTodayDateKey();
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const doc = await userDocRef.get();
                 
-                // Check if there's an entry for today with checkins
-                const todayEntry = logbogData.find(item => item.date === todayKey);
+                if (doc.exists) {
+                    const raw = doc.data() || {};
+                    const userData = raw.userData || {};
+                    const lastCheckinDate = userData.lastCheckinDate;
+                    
+                    // If lastCheckinDate matches today, user has already checked in
+                    return lastCheckinDate === todayKey;
+                }
                 
-                // User has checked in if entry exists and has at least one check-in
-                const hasCheckin = todayEntry && 
-                                  Array.isArray(todayEntry.checkins) && 
-                                  todayEntry.checkins.length > 0;
-                
-                return hasCheckin;
+                return false;
             } catch (error) {
                 console.error('[CHECK] Error checking if user has checked in today:', error);
                 return false;
