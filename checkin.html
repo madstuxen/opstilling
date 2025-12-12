@@ -1002,6 +1002,7 @@
 
         // Funktion til at gemme dreams data når overlayet lukkes
         // Appender tekst til eksisterende dreams for datoen
+        // IMPORTANT: Loads data directly from Firestore to avoid overwriting
         async function saveDreamsDataOnClose() {
             const textarea = document.getElementById('nightDreamEntry');
             if (!textarea) return;
@@ -1011,46 +1012,74 @@
             // Gem kun hvis der faktisk er tekst
             if (!newText) return;
             
-            // Hent datoen når overlayet lukkes (ikke når det åbnes)
-            const dateKey = getTodayDateKey();
+            if (!currentUser || !db) {
+                console.error('[DREAMS] User not logged in - cannot save');
+                return;
+            }
             
-            // Læs eksisterende entries
-            let entries = await getLogbookEntries();
-            
-            // 🛡️ SAFETY: If cache is empty, force fresh read from Firestore!
-            if (!entries || entries.length === 0) {
-                console.warn('⚠️ Dream overlay: Cache empty - forcing fresh read!');
-                const freshData = await loadAllUserData(true);
-                if (freshData && Array.isArray(freshData.logbogData)) {
-                    entries = freshData.logbogData;
-                    console.log(`✅ Fresh read successful - got ${entries.length} entries`);
-                } else {
-                    entries = [];
-                    console.log('✅ No existing entries - creating first entry');
+            try {
+                // Hent datoen når overlayet lukkes (ikke når det åbnes)
+                const dateKey = getTodayDateKey();
+                const monthKey = dateKey.substring(0, 7); // YYYY-MM
+                
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                
+                // Load existing month data directly from Firestore (NOT from cache!)
+                const monthDoc = await monthDocRef.get();
+                const existingMonthData = monthDoc.exists ? (monthDoc.data() || {}) : {};
+                
+                // Get existing logbog entries for this month (or empty array)
+                let monthLogbogEntries = Array.isArray(existingMonthData.logbog) ? existingMonthData.logbog : [];
+                
+                // Find or create entry for today
+                let entry = monthLogbogEntries.find(item => item.date === dateKey);
+                if (!entry) {
+                    entry = {
+                        date: dateKey,
+                        dagbog: '',
+                        dreams: '',
+                        checkins: [],
+                        timestamp: new Date().toISOString(),
+                        color: '#b8735e'
+                    };
+                    monthLogbogEntries.push(entry);
                 }
+                
+                // Appender ny tekst til eksisterende dreams (hvis der allerede er noget)
+                if (entry.dreams && entry.dreams.trim()) {
+                    entry.dreams = entry.dreams.trim() + '\n\n' + newText;
+                } else {
+                    entry.dreams = newText;
+                }
+                
+                // Update timestamp
+                entry.timestamp = new Date().toISOString();
+                
+                // Get old count before updating
+                const oldCount = existingMonthData.logbog ? existingMonthData.logbog.length : 0;
+                const newCount = monthLogbogEntries.length;
+                
+                // Update logbog array for this month
+                existingMonthData.logbog = monthLogbogEntries;
+                
+                // Save to subcollection
+                await monthDocRef.set(existingMonthData, { merge: true });
+                
+                // Only update registreringer if count changed
+                if (oldCount !== newCount) {
+                    await updateRegistreringer(monthKey, 'logbog', newCount);
+                }
+                
+                // Update cache with merged data
+                if (window.allUserData) {
+                    await loadAllUserData(true);
+                }
+                
+                console.log(`[DREAMS] Saved dreams for ${dateKey}`);
+            } catch (error) {
+                console.error('[DREAMS] Error saving dreams:', error);
             }
-            
-            let entry = entries.find(item => item.date === dateKey);
-            
-            // Hvis entry ikke findes, opret en ny
-            if (!entry) {
-                entry = {
-                    date: dateKey,
-                    dagbog: '',
-                    dreams: ''
-                };
-                entries.push(entry);
-            }
-            
-            // Appender ny tekst til eksisterende dreams (hvis der allerede er noget)
-            if (entry.dreams && entry.dreams.trim()) {
-                entry.dreams = entry.dreams.trim() + '\n\n' + newText;
-            } else {
-                entry.dreams = newText;
-            }
-            
-            // Gem alle entries
-            await saveLogbookEntries(entries);
         }
 
         async function hydrateNightOverlay() {

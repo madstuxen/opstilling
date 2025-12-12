@@ -404,6 +404,7 @@
             <div class="debug-overlay-content">
                 <button type="button" class="debug-button" id="debugDownloadBtn">📦 Download al data</button>
                 <button type="button" class="debug-button" id="debugRestoreBtn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">🔄 Restore fra backup</button>
+                <button type="button" class="debug-button" id="restoreDecemberLogbogBtn" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">📅 GENDAN: December logbog fra backup</button>
             </div>
         </div>
     </div>
@@ -999,6 +1000,179 @@ const firebaseConfig = {
                             debugRestoreBtn.textContent = '🔄 Restore fra backup';
                             debugRestoreBtn.disabled = false;
                         }, 2000);
+                    }
+                };
+                
+                fileInput.click();
+            });
+        }
+        
+        // Restore December logbog entries from backup
+        const restoreDecemberLogbogBtn = document.getElementById('restoreDecemberLogbogBtn');
+        if (restoreDecemberLogbogBtn) {
+            restoreDecemberLogbogBtn.addEventListener('click', async function() {
+                if (!auth.currentUser || !db) {
+                    alert('❌ Du skal være logget ind');
+                    return;
+                }
+                
+                // Create file input
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json';
+                
+                fileInput.onchange = async (e) => {
+                    try {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        
+                        restoreDecemberLogbogBtn.disabled = true;
+                        restoreDecemberLogbogBtn.textContent = '⏳ Læser backup...';
+                        
+                        const text = await file.text();
+                        const backup = JSON.parse(text);
+                        
+                        const userDocRef = db.collection('users').doc(auth.currentUser.uid);
+                        const monthKey = '2025-12';
+                        const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                        
+                        // Extract December logbog entries from backup
+                        let backupEntries = [];
+                        
+                        // Check different backup structures
+                        if (backup.data && backup.data.months && backup.data.months[monthKey] && backup.data.months[monthKey].logbog) {
+                            // New backup format with months subcollection
+                            backupEntries = Array.isArray(backup.data.months[monthKey].logbog) ? backup.data.months[monthKey].logbog : [];
+                        } else if (backup.data && backup.data[monthKey] && backup.data[monthKey].logbog) {
+                            // Monthly structure in main doc
+                            backupEntries = Array.isArray(backup.data[monthKey].logbog) ? backup.data[monthKey].logbog : [];
+                        } else if (backup[monthKey] && backup[monthKey].logbog) {
+                            backupEntries = Array.isArray(backup[monthKey].logbog) ? backup[monthKey].logbog : [];
+                        } else if (backup.data && backup.data.logbogData) {
+                            // Old structure - filter for December entries
+                            const allEntries = Array.isArray(backup.data.logbogData) ? backup.data.logbogData : [];
+                            backupEntries = allEntries.filter(entry => {
+                                if (!entry.date) return false;
+                                return entry.date.startsWith(monthKey);
+                            });
+                        } else if (backup.logbogData) {
+                            // Old structure at root level
+                            const allEntries = Array.isArray(backup.logbogData) ? backup.logbogData : [];
+                            backupEntries = allEntries.filter(entry => {
+                                if (!entry.date) return false;
+                                return entry.date.startsWith(monthKey);
+                            });
+                        }
+                        
+                        if (backupEntries.length === 0) {
+                            alert('❌ Ingen december logbog entries fundet i backup filen');
+                            restoreDecemberLogbogBtn.textContent = '📅 GENDAN: December logbog fra backup';
+                            restoreDecemberLogbogBtn.disabled = false;
+                            return;
+                        }
+                        
+                        restoreDecemberLogbogBtn.textContent = `⏳ Gendanner ${backupEntries.length} entries...`;
+                        
+                        // Load existing December data from Firestore
+                        const monthDoc = await monthDocRef.get();
+                        const existingMonthData = monthDoc.exists ? (monthDoc.data() || {}) : {};
+                        const existingEntries = Array.isArray(existingMonthData.logbog) ? existingMonthData.logbog : [];
+                        
+                        // Merge backup entries with existing (backup takes precedence for same date)
+                        const mergedEntries = [...existingEntries];
+                        let restoredCount = 0;
+                        let newCount = 0;
+                        
+                        backupEntries.forEach(backupEntry => {
+                            if (!backupEntry.date) return;
+                            
+                            const existingIndex = mergedEntries.findIndex(e => e.date === backupEntry.date);
+                            if (existingIndex >= 0) {
+                                // Merge: Keep existing entry but update with backup data
+                                const existing = mergedEntries[existingIndex];
+                                mergedEntries[existingIndex] = {
+                                    ...existing,
+                                    ...backupEntry,
+                                    // Preserve checkins from both (merge arrays, dedupe by time)
+                                    checkins: dedupeCheckins([
+                                        ...(Array.isArray(existing.checkins) ? existing.checkins : []),
+                                        ...(Array.isArray(backupEntry.checkins) ? backupEntry.checkins : [])
+                                    ])
+                                };
+                                restoredCount++;
+                            } else {
+                                // New entry
+                                mergedEntries.push(backupEntry);
+                                newCount++;
+                            }
+                        });
+                        
+                        // Helper to dedupe checkins by time
+                        function dedupeCheckins(checkins) {
+                            const seen = new Set();
+                            return checkins.filter(c => {
+                                const key = `${c.time}-${c.status}`;
+                                if (seen.has(key)) return false;
+                                seen.add(key);
+                                return true;
+                            });
+                        }
+                        
+                        // Update month data
+                        existingMonthData.logbog = mergedEntries;
+                        
+                        // Save to subcollection
+                        await monthDocRef.set(existingMonthData, { merge: true });
+                        
+                        // Update registreringer
+                        const oldCountReg = existingEntries.length;
+                        const newCountTotal = mergedEntries.length;
+                        if (oldCountReg !== newCountTotal) {
+                            const userDoc = await userDocRef.get();
+                            const raw = userDoc.exists ? (userDoc.data() || {}) : {};
+                            const userData = raw.userData || {};
+                            const registreringer = userData.registreringer || {};
+                            
+                            if (newCountTotal > 0) {
+                                if (!registreringer[monthKey]) {
+                                    registreringer[monthKey] = {};
+                                }
+                                registreringer[monthKey].logbog = String(newCountTotal);
+                            }
+                            
+                            await userDocRef.set({
+                                userData: {
+                                    ...userData,
+                                    registreringer: registreringer
+                                },
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }, { merge: true });
+                        }
+                        
+                        const resultMsg = `✅ December logbog gendannet!\n\n` +
+                            `- Fundet i backup: ${backupEntries.length} entries\n` +
+                            `- Eksisterende: ${existingEntries.length} entries\n` +
+                            `- Opdateret: ${restoredCount} entries\n` +
+                            `- Nye: ${newCount} entries\n` +
+                            `- Total efter merge: ${mergedEntries.length} entries`;
+                        
+                        console.log(resultMsg);
+                        alert(resultMsg);
+                        
+                        restoreDecemberLogbogBtn.textContent = '✅ December logbog gendannet!';
+                        setTimeout(() => {
+                            restoreDecemberLogbogBtn.textContent = '📅 GENDAN: December logbog fra backup';
+                            restoreDecemberLogbogBtn.disabled = false;
+                        }, 5000);
+                        
+                    } catch (error) {
+                        console.error('❌ Restore december logbog fejl:', error);
+                        alert('❌ Fejl ved gendannelse: ' + error.message);
+                        restoreDecemberLogbogBtn.textContent = '❌ Fejl - prøv igen';
+                        setTimeout(() => {
+                            restoreDecemberLogbogBtn.textContent = '📅 GENDAN: December logbog fra backup';
+                            restoreDecemberLogbogBtn.disabled = false;
+                        }, 3000);
                     }
                 };
                 
