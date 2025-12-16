@@ -774,6 +774,19 @@
         
         .selector-label-text {
             width: 100%;
+            outline: none;
+            padding: 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .selector-label-text[contenteditable="true"] {
+            background-color: rgba(255, 255, 255, 0.5);
+            cursor: text !important;
+        }
+        
+        .selector-label-text[contenteditable="true"]:focus {
+            background-color: rgba(255, 255, 255, 0.8);
         }
         
         .selector-value-slider {
@@ -3480,7 +3493,7 @@
                 : label.labelNumber;
             container.innerHTML = `
                 <div class="label-input label-active" style="background:${labelBackground}; border:3px solid ${labelColor};">
-                    <textarea class="label-text-input" placeholder="${placeholderText}">${label.text}</textarea>
+                    <textarea class="label-text-input" data-label-id="${label.id}" placeholder="${placeholderText}">${label.text}</textarea>
                     <span class="label-number">${displayNumber}</span>
                     ${valueMeterHtml}
                     ${valueSliderHtml}
@@ -3915,7 +3928,7 @@
                 
                 // Create HTML with text and hidden slider
                 item.innerHTML = `
-                    <div class="selector-label-text">${label.text || 'Ingen tekst'}</div>
+                    <div class="selector-label-text" contenteditable="false">${label.text || 'Ingen tekst'}</div>
                     <input type="range" 
                            class="selector-value-slider" 
                            min="0" max="5" 
@@ -3925,6 +3938,7 @@
                 `;
                 
                 const slider = item.querySelector('.selector-value-slider');
+                const textElement = item.querySelector('.selector-label-text');
                 
                 const toggleSelection = () => {
                     labelSelectorSelections[label.id] = !labelSelectorSelections[label.id];
@@ -3934,11 +3948,15 @@
                         item.style.color = '#1f2937';
                         item.className = 'label-selector-item selected';
                         slider.style.display = 'block'; // Show slider when selected
+                        textElement.contentEditable = 'true'; // Make text editable
+                        textElement.style.cursor = 'text';
                     } else {
                         item.style.background = '#f3f4f6';
                         item.style.color = '#4b5563';
                         item.className = 'label-selector-item unselected';
                         slider.style.display = 'none'; // Hide slider when unselected
+                        textElement.contentEditable = 'false'; // Make text non-editable
+                        textElement.style.cursor = 'pointer';
                     }
                     item.style.borderColor = labelColor;
                     
@@ -3946,14 +3964,42 @@
                     renderWorkspace();
                 };
                 
-                // Click on item (but not slider) toggles selection
+                // Update label text when edited
+                textElement.addEventListener('input', (e) => {
+                    label.text = e.target.textContent;
+                    
+                    // Update textarea in background workspace if label is visible
+                    if (labelSelectorSelections[label.id]) {
+                        const allContainers = workspace.querySelectorAll('.label-container');
+                        allContainers.forEach(container => {
+                            const textarea = container.querySelector('.label-text-input');
+                            if (textarea && textarea.getAttribute('data-label-id') == label.id) {
+                                textarea.value = label.text;
+                            }
+                        });
+                    }
+                });
+                
+                // Prevent text edit from toggling selection
+                textElement.addEventListener('click', (e) => {
+                    if (labelSelectorSelections[label.id]) {
+                        e.stopPropagation();
+                    }
+                });
+                textElement.addEventListener('touchend', (e) => {
+                    if (labelSelectorSelections[label.id]) {
+                        e.stopPropagation();
+                    }
+                });
+                
+                // Click on item (but not slider or editable text) toggles selection
                 item.addEventListener('click', (e) => {
-                    if (e.target !== slider) {
+                    if (e.target !== slider && e.target !== textElement) {
                         toggleSelection();
                     }
                 });
                 item.addEventListener('touchend', (e) => {
-                    if (e.target !== slider) {
+                    if (e.target !== slider && e.target !== textElement) {
                         e.preventDefault();
                         toggleSelection();
                     }
