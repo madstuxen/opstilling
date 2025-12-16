@@ -1515,8 +1515,8 @@
         </div>
         
         <div class="toolbar">
-            <button class="btn-new-index" onclick="newIndex()">Nyt lag</button>
-            <button class="btn-new-label" onclick="newLabel()">Ny label</button>
+            <button class="btn-new-index" onclick="newIndex()">Nyt Map</button>
+            <button class="btn-new-label" onclick="newLabel()">Nyt Sted</button>
             <button class="btn-save-image" onclick="saveImage()">Gem billede</button>
             <button class="btn-help" onclick="showHelp()">Hjælp</button>
         </div>
@@ -1553,7 +1553,7 @@
     <div class="label-selector-overlay" id="labelSelectorOverlay">
         <div class="label-selector-modal" onclick="event.stopPropagation()">
             <div class="label-selector-header">
-                <h3>Behold disse labels på nyt lag</h3>
+                <h3>Behold disse steder på nyt map</h3>
                 <p>Klik for at beholde</p>
             </div>
             <div class="label-selector-grid" id="labelSelectorGrid"></div>
@@ -1760,7 +1760,7 @@
 
         function generateDefaultLayerTitle() {
             const nextNumber = getNextLayerNumber();
-            return `Lag ${nextNumber}`;
+            return `Map ${nextNumber}`;
         }
 
         function ensureLayerTitles() {
@@ -2820,7 +2820,7 @@
                 `;
                 const labelsLine = document.createElement('div');
                 labelsLine.className = 'history-item-labels';
-                labelsLine.textContent = `Labels: ${index.labels.length}`;
+                labelsLine.textContent = `Steder: ${index.labels.length}`;
                 item.appendChild(labelsLine);
                 item.appendChild(metaWrapper);
 
