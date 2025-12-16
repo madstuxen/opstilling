@@ -2109,9 +2109,9 @@
             monthsData.forEach(monthData => {
                 if (!monthData) return;
                 
-                // Merge bodymap
-                if (monthData.bodymap && Array.isArray(monthData.bodymap.dataIndexes)) {
-                    merged.bodymapData.dataIndexes.push(...monthData.bodymap.dataIndexes);
+                // Merge bodymaps
+                if (monthData.bodymaps && monthData.bodymaps.maps && Array.isArray(monthData.bodymaps.maps)) {
+                    merged.bodymapData.dataIndexes.push(...monthData.bodymaps.maps);
                 }
                 
                 // Merge dialog
@@ -2319,10 +2319,9 @@
                         const existingMonthData = await monthDocRef.get();
                         const monthData = existingMonthData.exists ? (existingMonthData.data() || {}) : {};
                         
-                        monthData.bodymap = {
-                            dataIndexes: monthIndexes,
-                            version: BodyMapData.version || '2.0',
-                            updated: BodyMapData.updated || new Date().toISOString()
+                        // NEW STRUCTURE: Save as bodymaps.maps (consistent with compare, dialog, opstilling)
+                        monthData.bodymaps = {
+                            maps: monthIndexes
                         };
                         
                         await monthDocRef.set(monthData, { merge: true });
@@ -2549,7 +2548,17 @@
             try {
                 // Load month data from subcollection
                 const monthData = await loadMonthData(monthKey);
-                if (!monthData || !monthData.bodymap || !Array.isArray(monthData.bodymap.dataIndexes)) {
+                if (!monthData) {
+                    return;
+                }
+                
+                // Get bodymaps data
+                if (!monthData.bodymaps || !monthData.bodymaps.maps || !Array.isArray(monthData.bodymaps.maps)) {
+                    return;
+                }
+                
+                const bodymapArray = monthData.bodymaps.maps;
+                if (bodymapArray.length === 0) {
                     return;
                 }
                 
@@ -2560,7 +2569,7 @@
                 
                 // Add indexes from this month (avoid duplicates by ID)
                 const existingIndexIds = new Set(dataIndexes.map(idx => idx.id));
-                monthData.bodymap.dataIndexes.forEach(index => {
+                bodymapArray.forEach(index => {
                     if (!existingIndexIds.has(index.id)) {
                         ensureIndexTimestamp(index);
                         dataIndexes.push(index);
