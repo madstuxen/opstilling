@@ -387,14 +387,6 @@
             display: none;
         }
         
-        .onion-layer-toggle {
-            display: none;
-        }
-        
-        .onion-layer-toggle input[type="checkbox"] {
-            display: none;
-        }
-        
         .collapse-toggle {
             position: absolute;
             left: 2px;
@@ -770,11 +762,51 @@
             border: 2px solid;
             background: #f3f4f6;
             color: #4b5563;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         
         .label-selector-item:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .selector-label-text {
+            width: 100%;
+        }
+        
+        .selector-value-slider {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .selector-value-slider::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .selector-value-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .history-item-title {
@@ -861,10 +893,6 @@
         /* Guide figure is 1.8x bigger */
         #guideFigure .body {
             transform: scale(1.8) translateX(-50%);
-        }
-        
-        .part.onion-layer {
-            pointer-events: none;
         }
         
         .part.dragging {
@@ -1242,7 +1270,7 @@
         .label-delete-btn {
             position: absolute;
             top: 6px;
-            right: 6px;
+            left: 6px;
             opacity: 0;
             pointer-events: none;
             background: #ef4444;
@@ -1257,14 +1285,14 @@
             padding: 0;
             text-align: center;
             transition: opacity 0.2s ease, background 0.2s ease, transform 0.2s ease;
-            z-index: 1;
+            z-index: 100;
             user-select: none;
             -webkit-user-select: none;
         }
         
         .label-color-btn {
             position: absolute;
-            top: 28px;
+            top: 6px;
             right: 6px;
             opacity: 0;
             pointer-events: none;
@@ -1285,10 +1313,79 @@
             -webkit-user-select: none;
         }
         
+        .label-value-meter {
+            position: absolute;
+            bottom: 6px;
+            left: 6px;
+            right: 50px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 2px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .label-value-meter-fill {
+            height: 100%;
+            transition: width 0.2s ease, background 0.2s ease;
+            border-radius: 2px;
+        }
+        
+        .label-value-slider {
+            position: absolute;
+            bottom: 6px;
+            left: 6px;
+            right: 50px;
+            opacity: 0;
+            pointer-events: none;
+            height: 4px;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background: transparent;
+            border-radius: 2px;
+            outline: none;
+            transition: opacity 0.2s ease;
+            z-index: 10;
+        }
+        
+        .label-value-slider::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .label-value-slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
         .label-container:hover .label-delete-btn,
-        .label-container:hover .label-color-btn {
+        .label-container:hover .label-color-btn,
+        .label-container:hover .label-value-slider {
             opacity: 1;
             pointer-events: auto;
+        }
+        
+        /* Read-only labels */
+        .label-container.read-only {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        .label-container.read-only .label-input {
+            cursor: not-allowed;
         }
         
         .label-delete-btn:hover {
@@ -1417,9 +1514,6 @@
             <div class="history-sidebar" id="historySidebar">
                 <div class="history-top-bar">
                     <button class="collapse-toggle" onclick="toggleHistorySidebar()" title="Kollaps/udvid historie"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
-                        <button type="button" class="layer-toggle-btn" id="layerToggleBtn" onclick="toggleOnionLayers()" aria-pressed="true" title="Skjul lag">
-                            <img src="imagefiles/lay_on.svg" alt="Lag vises" width="28" height="28">
-                        </button>
                     </div>
                 <div class="history-content">
                     <div class="history-list" id="historyList"></div>
@@ -1550,7 +1644,6 @@
         let bodymapTitle = ''; // Title of the current bodymap
         let shouldScrollHistoryToBottom = false;
         let shouldScrollHistoryToTop = false;
-        let showOnionLayers = true; // Toggle for showing onion layers
         // Disable history panel and its logic
         const USE_HISTORY = true;
         const isMobile = 'ontouchstart' in window;
@@ -1564,21 +1657,19 @@
             '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
         ];
         
-        let historyColorPickerTarget = null; // index.id for the target index or label.text for label
+        let historyColorPickerTarget = null; // index.id for the target index or labelGroupId for label
         let colorPickerMode = 'history'; // 'history' or 'label'
-        let labelColors = {}; // Map of label text to color: { "Hoved": "#f59e0b", ... }
         
         // Main data structure for saving/loading
         let BodyMapData = {
-            version: "3.0",
+            version: "4.0", // Updated to 4.0 for ID-based label system
             metadata: {
                 title: "",
                 updated: null,
-                showOnionLayers: true,
                 activeIndexId: null
             },
-            dataIndexes: [],
-            labelColors: {} // Store label colors by text
+            dataIndexes: []
+            // labelColors removed - colors now stored on individual labels
         };
         
         function hexToRgba(hex, alpha) {
@@ -1760,20 +1851,6 @@
             return dateStr || '';
         }
         
-        function updateLayerToggleUI() {
-            const btn = document.getElementById('layerToggleBtn');
-            if (!btn) return;
-            const img = btn.querySelector('img');
-            const isActive = !!showOnionLayers;
-            if (img) {
-                img.src = isActive ? 'imagefiles/lay_on.svg' : 'imagefiles/lay_off.svg';
-                img.alt = isActive ? 'Lag vises' : 'Lag skjult';
-            }
-            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-            btn.classList.toggle('active', isActive);
-            btn.title = isActive ? 'Skjul lag' : 'Vis lag';
-        }
-        
         // Animations library - loaded from JSON files
         let animationsLibrary = {};
         
@@ -1873,9 +1950,7 @@
             // 4. Load data ÉN gang
             const loaded = await loadFromLocalStorage();
             if (!loaded) {
-                // No data in Firestore - create first index and default to showing layers
-                showOnionLayers = true;
-                updateLayerToggleUI();
+                // No data in Firestore - create first index
                 const firstIndex = await createNewIndex({ autoScroll: true, skipSave: true });
                 // Force explicit name "Lag 1" for the very first layer
                 if (firstIndex) {
@@ -1903,7 +1978,6 @@
                     sidebar.classList.remove('collapsed');
                 }
             }
-            updateLayerToggleUI();
             // Cleanup: ask to remove empty layers (no labels)
             promptCleanupEmptyLayersOnLoad();
         }
@@ -1919,9 +1993,8 @@
             
             BodyMapData.metadata.title = bodymapTitle;
             BodyMapData.metadata.updated = now;
-            BodyMapData.metadata.showOnionLayers = showOnionLayers;
             BodyMapData.metadata.activeIndexId = activeIndexId;
-            BodyMapData.labelColors = labelColors; // Save label colors
+            // labelColors no longer used - colors stored on individual labels
             BodyMapData.dataIndexes = dataIndexes.map(index => ({
                 id: index.id,
                 timestamp: ensureIndexTimestamp(index),
@@ -1942,7 +2015,11 @@
                     
                     return {
                         id: label.id,
-                        text: label.text,
+                        uniqueId: label.uniqueId || `label_${label.id}`,
+                        labelGroupId: label.labelGroupId || `group_${label.id}`,
+                        text: label.text || '',
+                        value: label.value ?? 3,
+                        color: label.color || DEFAULT_HISTORY_COLOR,
                         x: roundTo2Decimals(baseX),
                         y: roundTo2Decimals(baseY),
                         offsetX: roundTo2Decimals(rawOffsetX),
@@ -1951,7 +2028,7 @@
                         pointerY: roundTo2Decimals(basePointerY),
                         pointerOffsetX: roundTo2Decimals(rawPointerOffsetX),
                         pointerOffsetY: roundTo2Decimals(rawPointerOffsetY),
-                        labelNumber: label.labelNumber
+                        labelNumber: label.labelNumber || 1
                     };
                 })
             }));
@@ -2313,18 +2390,8 @@
                 BodyMapData.metadata = {
                     title: parsed.metadata.title || '',
                     updated: parsed.metadata.updated || null,
-                    showOnionLayers: parsed.metadata.showOnionLayers !== undefined ? parsed.metadata.showOnionLayers : true,
                     activeIndexId: parsed.metadata.activeIndexId || null
                 };
-                showOnionLayers = BodyMapData.metadata.showOnionLayers;
-                updateLayerToggleUI();
-            }
-            
-            // Restore labelColors
-            if (parsed.labelColors && typeof parsed.labelColors === 'object') {
-                labelColors = parsed.labelColors;
-            } else {
-                labelColors = {};
             }
             
             // Restore dataIndexes og strip mapId
@@ -2387,7 +2454,6 @@
             if (firestoreData !== null) {
                 const success = await processLoadedData(firestoreData);
                 if (success) {
-                    updateLayerToggleUI();
                     renderHistory();
                     renderWorkspace();
                 }
@@ -2395,17 +2461,6 @@
             }
             
             return false;
-        }
-        // Toggle onion layers visibility
-        function toggleOnionLayers(forceState) {
-            if (typeof forceState === 'boolean') {
-                showOnionLayers = forceState;
-            } else {
-                showOnionLayers = !showOnionLayers;
-            }
-            updateLayerToggleUI();
-            renderWorkspace();
-            // Don't save - it's just a UI toggle, not a data change
         }
         
         // Toggle history sidebar collapse/expand
@@ -2450,7 +2505,12 @@
                     // Update registreringer (count changed - new index created)
                     const monthKey = getMonthKey(index.timestamp || index.updated);
                     if (monthKey) {
-                        await updateRegistreringer(monthKey, 'bodymap', dataIndexes.length);
+                        // Count indexes in this specific month (not total!)
+                        const countInMonth = dataIndexes.filter(idx => {
+                            const idxMonth = getMonthKey(idx.timestamp || idx.updated);
+                            return idxMonth === monthKey;
+                        }).length;
+                        await updateRegistreringer(monthKey, 'bodymap', countInMonth);
                     }
                 }
             }
@@ -2959,23 +3019,6 @@
             svgContainer.setAttribute('viewBox', `0 0 ${minWorkspaceWidth} ${minWorkspaceHeight}`);
             svgContainer.setAttribute('preserveAspectRatio', 'none');
             
-            const activePosition = sortedIndexes.findIndex(idx => idx.id === activeIndexId);
-            // Build layers to show: active + up to 4 older (total up to 5) by recency
-            let layersToShow = [];
-            if (showOnionLayers) {
-                const slice = sortedIndexes.slice(activePosition, activePosition + 5); // active first (newer) to older
-                // Render active first, then older; we'll control stacking via z-index
-                for (let i = 0; i < slice.length; i++) {
-                    const layerIdx = slice[i];
-                    // layerNum: 0 = active (newest), increases with age
-                    const layerNum = i;
-                    layersToShow.push({ layerIndex: layerIdx, layerNum });
-                }
-            } else {
-                // Only active
-                layersToShow = [{ layerIndex: sortedIndexes[activePosition], layerNum: 0 }];
-            }
-
             const guideFigure = createGuideFigure();
             workspace.appendChild(guideFigure);
             
@@ -2998,13 +3041,9 @@
             svgContainer.style.height = workspaceHeight + 'px';
             svgContainer.setAttribute('viewBox', `0 0 ${workspaceWidth} ${workspaceHeight}`);
             
-            layersToShow.forEach(({ layerIndex, layerNum }) => {
-                if (!showOnionLayers && layerIndex.id !== activeIndexId) {
-                    return;
-                }
-                const indexColor = layerIndex.color || DEFAULT_HISTORY_COLOR;
-                renderOnionLayer(layerIndex, layerNum, workspace, svgContainer, indexColor, sortedIndexes, labelsGroup);
-            });
+            // Only render the active layer (no onion layers)
+            const indexColor = activeIndex.color || DEFAULT_HISTORY_COLOR;
+            renderActiveLayer(activeIndex, workspace, svgContainer, indexColor, sortedIndexes, labelsGroup);
         }
         
         function createGuideFigure() {
@@ -3166,21 +3205,20 @@
             }
         }
         
-        // Get label color based on text, fallback to default
-        function getLabelColor(labelText) {
-            if (!labelText || labelText.trim() === '') {
-                return DEFAULT_HISTORY_COLOR;
+        // Get label color - now reads directly from label object
+        function getLabelColor(label) {
+            // If label is passed as object, read color from it
+            if (typeof label === 'object' && label !== null) {
+                return label.color || DEFAULT_HISTORY_COLOR;
             }
-            return labelColors[labelText.trim()] || DEFAULT_HISTORY_COLOR;
+            // Legacy support: if string (text) is passed, return default
+            return DEFAULT_HISTORY_COLOR;
         }
         
-        function renderOnionLayer(layerIndex, layerNum, workspace, svgContainer, indexColor, sortedIndexes, labelsGroup) {
-            // Calculate opacity and scale based on distance from active
-            // First layer gets big jump, then linear
-            const opacity = layerNum === 0 ? 1 : 0.6 - (layerNum - 1) * 0.1;
-            const scale = 1 - (layerNum * 0.08); // More aggressive scale down
-            
-            const isActive = layerIndex.id === activeIndexId;
+        function renderActiveLayer(layerIndex, workspace, svgContainer, indexColor, sortedIndexes, labelsGroup) {
+            // Only render active layer (no onion layers)
+            const opacity = 1;
+            const isActive = true;
             
             // Get guide figure center for calculating displacement vector
             // Use workspace coordinates (accounting for scroll)
@@ -3200,8 +3238,15 @@
             
             const guideCenter = { x: guideCenterX, y: guideCenterY };
             
-            // Only render labels for onion layers (not the guide figure itself)
+            // Only render labels (filter by selector if active)
             layerIndex.labels.forEach(label => {
+                // If label selector is open, only show selected labels
+                if (labelSelectorNewIndex && labelSelectorNewIndex.id === layerIndex.id) {
+                    if (!labelSelectorSelections[label.id]) {
+                        return; // Skip this label - not selected yet
+                    }
+                }
+                
                 // Compute display label number: number of same text in older entries + 1
                 try {
                     if (sortedIndexes && Array.isArray(sortedIndexes)) {
@@ -3211,7 +3256,7 @@
                         older.forEach(idx => {
                             if (Array.isArray(idx.labels)) {
                                 idx.labels.forEach(lab => {
-                                    if (lab.text === label.text && lab.text && lab.text.trim() !== '') {
+                                    if (lab.labelGroupId === label.labelGroupId && lab.labelGroupId) {
                                         olderCount++;
                                     }
                                 });
@@ -3244,19 +3289,10 @@
                 label.pointerX = pointerAbsX;
                 label.pointerY = pointerAbsY;
                 
-                // Calculate displacement vector from guide center to label position
-                const dx = labelAbsX - guideCenterX;
-                const dy = labelAbsY - guideCenterY;
-                const length = Math.sqrt(dx * dx + dy * dy);
-                
-                // Normalize and scale by layerNum
-                const offsetX = length > 0 ? (dx / length) * layerNum * 20 : 0;
-                const offsetY = length > 0 ? (dy / length) * layerNum * 20 : 0;
-                
-                // Render pointer line and point only for active layer
-                if (isActive && label.pointerX !== undefined && label.pointerY !== undefined) {
-                    const lineX1 = labelAbsX + offsetX;
-                    const lineY1 = labelAbsY + offsetY;
+                // Render pointer line and point (always active layer)
+                if (label.pointerX !== undefined && label.pointerY !== undefined) {
+                    const lineX1 = labelAbsX;
+                    const lineY1 = labelAbsY;
                     const lineX2 = label.pointerX;
                     const lineY2 = label.pointerY;
                     
@@ -3267,7 +3303,7 @@
                         line.setAttribute('y1', lineY1);
                         line.setAttribute('x2', lineX2);
                         line.setAttribute('y2', lineY2);
-                        const labelColor = getLabelColor(label.text);
+                        const labelColor = getLabelColor(label);
                         line.setAttribute('stroke', labelColor);
                         line.setAttribute('stroke-width', '3');
                         line.setAttribute('data-label-id', label.id);
@@ -3284,7 +3320,7 @@
                     point.style.left = lineX2 + 'px';
                     point.style.top = lineY2 + 'px';
                     point.style.opacity = opacity;
-                    const labelColor = getLabelColor(label.text);
+                    const labelColor = getLabelColor(label);
                     point.style.background = labelColor;
                     
                     // Add dragging functionality using pointer events
@@ -3292,6 +3328,7 @@
                     let pointDragStartX = 0;
                     let pointDragStartY = 0;
                     
+                    // Enable pointer dragging (always allowed now)
                     if (!isMobile) {
                         point.addEventListener('pointerdown', (e) => {
                             isBodymapDragging = true;
@@ -3337,15 +3374,7 @@
                             label.pointerOffsetX = label.pointerX - guideCenterAfterDrag.x;
                             label.pointerOffsetY = label.pointerY - guideCenterAfterDrag.y;
                             
-                            // Update all labels with the same text across all indexes: only offsets
-                            dataIndexes.forEach(idx => {
-                                idx.labels.forEach(lab => {
-                                    if (lab.text === label.text && lab.id !== label.id) {
-                                        lab.pointerOffsetX = label.pointerOffsetX;
-                                        lab.pointerOffsetY = label.pointerOffsetY;
-                                    }
-                                });
-                            });
+                            // No syncing - each label is independent
                             
                             (async () => { await saveToLocalStorage(); })();
                             isBodymapDragging = false;
@@ -3401,16 +3430,7 @@
                             const guideCenterAfterDrag = getGuideCenter(workspace);
                             label.pointerOffsetX = label.pointerX - guideCenterAfterDrag.x;
                             label.pointerOffsetY = label.pointerY - guideCenterAfterDrag.y;
-                            dataIndexes.forEach(idx => {
-                                idx.labels.forEach(lab => {
-                                    if (lab.text === label.text && lab.id !== label.id) {
-                                        lab.pointerX = label.pointerX;
-                                        lab.pointerY = label.pointerY;
-                                        lab.pointerOffsetX = label.pointerOffsetX;
-                                        lab.pointerOffsetY = label.pointerOffsetY;
-                                    }
-                                });
-                            });
+                            // No syncing - each label is independent
                             (async () => { await saveToLocalStorage(); })();
                             isBodymapDragging = false;
                             renderWorkspace();
@@ -3420,47 +3440,50 @@
                     labelsGroup.appendChild(point);
                 }
                 
-                const labelEl = createLabelElement(label, isActive, opacity, scale, offsetX, offsetY, layerNum);
+                const labelEl = createLabelElement(label);
                 labelsGroup.appendChild(labelEl);
             });
         }
         
-        function createLabelElement(label, isActive, opacity, scale, offsetX = 0, offsetY = 0, layerNum = 0) {
+        function createLabelElement(label) {
             const container = document.createElement('div');
             container.className = 'label-container';
-            if (!isActive) {
-                container.classList.add('onion-layer');
-            }
-
+            
             const relevantIndexes = dataIndexes;
             const workspace = document.getElementById('workspace');
+            const isActive = true; // Always active (no onion layers)
             
-            container.style.left = (label.x + offsetX) + 'px';
-            container.style.top = (label.y + offsetY) + 'px';
-            container.style.opacity = opacity;
-            // Simplify: no per-layer scaling like onion-layers; match simple/opstilling behavior
+            container.style.left = label.x + 'px';
+            container.style.top = label.y + 'px';
+            container.style.opacity = 1;
             container.style.transform = `translate(-50%, -50%)`;
-            // Ensure stacking: newer layers (layerNum 0) above older ones
-            const layerZ = 200 - layerNum;
-            container.style.zIndex = String(Math.max(layerZ, 21));
+            container.style.zIndex = '50';
+            container.style.cursor = 'move';
             
-            // Get label color based on text
-            const labelColor = getLabelColor(label.text);
+            // Get label color from label object
+            const labelColor = getLabelColor(label);
             const lightColor = lightenHex(labelColor, 0.65);
             const labelBackground = lightColor;
             
-            // Create label with number badge, color button, and delete button
-            const deleteBtnHtml = isActive ? '<button class="label-delete-btn" title="Slet label">×</button>' : '';
-            const colorBtnHtml = isActive ? '<button class="label-color-btn" title="Vælg farve">C</button>' : '';
+            // Create label with number badge, color button, value slider, value meter, and delete button
+            const deleteBtnHtml = '<button class="label-delete-btn" title="Slet label">×</button>';
+            const colorBtnHtml = `<button class="label-color-btn" title="Vælg farve" data-label-group-id="${label.labelGroupId || ''}">C</button>`;
+            const valueSliderHtml = `<input type="range" class="label-value-slider" min="0" max="5" value="${label.value ?? 3}" title="Værdi: ${label.value ?? 3}">`;
+            
+            // Value meter - always visible, shows current value as a bar
+            const valuePercent = ((label.value ?? 3) / 5) * 100;
+            const valueMeterHtml = `<div class="label-value-meter"><div class="label-value-meter-fill" style="width: ${valuePercent}%; background: ${labelColor};"></div></div>`;
+            
             const placeholderText = label.text === '' ? 'Skriv her' : '';
-            const activeClass = isActive ? 'label-active' : '';
             const displayNumber = (typeof label._displayLabelNumber === 'number' && label._displayLabelNumber > 0)
                 ? label._displayLabelNumber
                 : label.labelNumber;
             container.innerHTML = `
-                <div class="label-input ${activeClass}" style="background:${labelBackground}; ${isActive ? `border:3px solid ${labelColor};` : ''}">
+                <div class="label-input label-active" style="background:${labelBackground}; border:3px solid ${labelColor};">
                     <textarea class="label-text-input" placeholder="${placeholderText}">${label.text}</textarea>
                     <span class="label-number">${displayNumber}</span>
+                    ${valueMeterHtml}
+                    ${valueSliderHtml}
                     ${colorBtnHtml}
                     ${deleteBtnHtml}
                 </div>
@@ -3509,12 +3532,7 @@
                             activeIndex.updated = new Date().toISOString();
                         }
                         
-                        // Update color button data attribute
-                        const colorBtn = labelInput.querySelector('.label-color-btn');
-                        if (colorBtn) {
-                            const escapedText = newText.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                            colorBtn.setAttribute('data-label-text', escapedText);
-                        }
+                        // Color button already has labelGroupId in data attribute, no need to update
                         
                         if (newText !== '' && oldText === '') {
                             // This is a newly created label getting its text for the first time
@@ -3536,14 +3554,10 @@
                         } else if (newText !== '' && oldText !== '' && newText !== oldText) {
                             // Text was changed - need to renumber both old and new text groups
                             // First, renumber the old text group (excluding this label)
+                            // When text changes, label stays in same group (labelGroupId unchanged)
+                            // So we don't need to renumber old text group anymore
+                            // Just recalculate this label's number within its group
                             const oldTextLabels = [];
-                            relevantIndexes.forEach(idx => {
-                                idx.labels.forEach(lab => {
-                                    if (lab.text === oldText && lab.id !== label.id) {
-                                        oldTextLabels.push({ id: lab.id, index: idx });
-                                    }
-                                });
-                            });
                             let counter = 1;
                             oldTextLabels.forEach(lab => {
                                 lab.index.labels.forEach(l => {
@@ -3553,11 +3567,11 @@
                                 });
                             });
                             
-                            // Now assign new number to this label
+                            // Now assign new number to this label (within same labelGroupId)
                             let count = 0;
                             relevantIndexes.forEach(idx => {
                                 idx.labels.forEach(lab => {
-                                    if (lab.text === newText && lab.id !== label.id) {
+                                    if (lab.labelGroupId === label.labelGroupId && lab.uniqueId !== label.uniqueId) {
                                         count++;
                                     }
                                 });
@@ -3569,8 +3583,8 @@
                                 numberSpan.textContent = `${label.labelNumber}`;
                             }
                             
-                            // Update label color based on new text
-                            const newLabelColor = getLabelColor(newText);
+                            // Update label color - no longer changes when text changes
+                            const newLabelColor = getLabelColor(label);
                             if (labelInput) {
                                 const newLightColor = lightenHex(newLabelColor, 0.65);
                                 labelInput.style.background = newLightColor;
@@ -3608,37 +3622,44 @@
                     colorBtn.addEventListener('mousedown', (e) => {
                         e.stopPropagation();
                         e.preventDefault();
-                        const labelText = label.text || '';
-                        if (labelText.trim() !== '') {
-                            openLabelColorPicker(labelText.trim());
-                        } else {
-                            // Fallback: try to get from textarea
-                            const textarea = container.querySelector('.label-text-input');
-                            if (textarea) {
-                                const text = textarea.value.trim();
-                                if (text !== '') {
-                                    openLabelColorPicker(text);
-                                }
-                            }
+                        if (label.labelGroupId) {
+                            openLabelColorPicker(label.labelGroupId);
                         }
                     });
                     
                     colorBtn.addEventListener('touchend', (e) => {
                         e.stopPropagation();
                         e.preventDefault();
-                        const labelText = label.text || '';
-                        if (labelText.trim() !== '') {
-                            openLabelColorPicker(labelText.trim());
-                        } else {
-                            const textarea = container.querySelector('.label-text-input');
-                            if (textarea) {
-                                const text = textarea.value.trim();
-                                if (text !== '') {
-                                    openLabelColorPicker(text);
-                                }
-                            }
+                        if (label.labelGroupId) {
+                            openLabelColorPicker(label.labelGroupId);
                         }
                     }, { passive: false });
+                }
+                
+                // Add value slider functionality
+                const valueSlider = container.querySelector('.label-value-slider');
+                const valueMeterFill = container.querySelector('.label-value-meter-fill');
+                if (valueSlider) {
+                    valueSlider.addEventListener('input', (e) => {
+                        label.value = parseInt(e.target.value);
+                        e.target.title = `Værdi: ${label.value}`;
+                        
+                        // Update meter fill width
+                        if (valueMeterFill) {
+                            const valuePercent = (label.value / 5) * 100;
+                            valueMeterFill.style.width = `${valuePercent}%`;
+                        }
+                    });
+                    
+                    valueSlider.addEventListener('change', async (e) => {
+                        label.value = parseInt(e.target.value);
+                        await saveToLocalStorage();
+                    });
+                    
+                    // Prevent slider from triggering drag
+                    valueSlider.addEventListener('pointerdown', (e) => {
+                        e.stopPropagation();
+                    });
                 }
                 
                 // State for drag and edit
@@ -3736,8 +3757,8 @@
                             if (svgContainer) {
                                 const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
                                 if (svgLine) {
-                                    svgLine.setAttribute('x1', label.x + offsetX);
-                                    svgLine.setAttribute('y1', label.y + offsetY);
+                                    svgLine.setAttribute('x1', label.x);
+                                    svgLine.setAttribute('y1', label.y);
                                 }
                             }
                             e.preventDefault();
@@ -3759,15 +3780,7 @@
                             label.offsetX = label.x - guideCenterAfterDrag.x;
                             label.offsetY = label.y - guideCenterAfterDrag.y;
                             
-                            // Update all labels with the same text across all indexes: only offsets
-                            relevantIndexes.forEach(idx => {
-                                idx.labels.forEach(lab => {
-                                    if (lab.text === label.text && lab.id !== label.id) {
-                                        lab.offsetX = label.offsetX;
-                                        lab.offsetY = label.offsetY;
-                                    }
-                                });
-                            });
+                            // No syncing - each label is independent
                             
                             // Re-render workspace to show updated positions
                             renderWorkspace();
@@ -3832,8 +3845,8 @@
                             if (svgContainer) {
                                 const svgLine = svgContainer.querySelector(`line[data-label-id="${label.id}"]`);
                                 if (svgLine) {
-                                    svgLine.setAttribute('x1', label.x + offsetX);
-                                    svgLine.setAttribute('y1', label.y + offsetY);
+                                    svgLine.setAttribute('x1', label.x);
+                                    svgLine.setAttribute('y1', label.y);
                                 }
                             }
                             e.preventDefault();
@@ -3847,16 +3860,7 @@
                             const guideCenterAfterDrag = getGuideCenter(workspace);
                             label.offsetX = label.x - guideCenterAfterDrag.x;
                             label.offsetY = label.y - guideCenterAfterDrag.y;
-                            relevantIndexes.forEach(idx => {
-                                idx.labels.forEach(lab => {
-                                    if (lab.text === label.text && lab.id !== label.id) {
-                                        lab.x = label.x;
-                                        lab.y = label.y;
-                                        lab.offsetX = label.offsetX;
-                                        lab.offsetY = label.offsetY;
-                                    }
-                                });
-                            });
+                            // No syncing - each label is independent
                             renderWorkspace();
                             (async () => { await saveToLocalStorage(); })();
                         }
@@ -3886,6 +3890,10 @@
             labelSelectorNewIndex = index;
             labelSelectorSelections = {};
             
+            // Activate the new index (but labels won't show until selected)
+            activeIndexId = index.id;
+            renderWorkspace(); // Render with no visible labels initially
+            
             const grid = document.getElementById('labelSelectorGrid');
             if (!grid) return;
             
@@ -3901,10 +3909,22 @@
                 
                 const item = document.createElement('div');
                 item.className = 'label-selector-item unselected';
-                item.textContent = label.text || 'Ingen tekst';
                 
-                const labelColor = getLabelColor(label.text);
+                const labelColor = getLabelColor(label);
                 item.style.borderColor = labelColor;
+                
+                // Create HTML with text and hidden slider
+                item.innerHTML = `
+                    <div class="selector-label-text">${label.text || 'Ingen tekst'}</div>
+                    <input type="range" 
+                           class="selector-value-slider" 
+                           min="0" max="5" 
+                           value="${label.value ?? 3}"
+                           style="display: none;"
+                           data-label-id="${label.id}">
+                `;
+                
+                const slider = item.querySelector('.selector-value-slider');
                 
                 const toggleSelection = () => {
                     labelSelectorSelections[label.id] = !labelSelectorSelections[label.id];
@@ -3913,19 +3933,67 @@
                         item.style.background = lightenHex(labelColor, 0.65);
                         item.style.color = '#1f2937';
                         item.className = 'label-selector-item selected';
+                        slider.style.display = 'block'; // Show slider when selected
                     } else {
                         item.style.background = '#f3f4f6';
                         item.style.color = '#4b5563';
                         item.className = 'label-selector-item unselected';
+                        slider.style.display = 'none'; // Hide slider when unselected
                     }
                     item.style.borderColor = labelColor;
+                    
+                    // Re-render workspace to show/hide label in background
+                    renderWorkspace();
                 };
                 
-                item.addEventListener('click', toggleSelection);
+                // Click on item (but not slider) toggles selection
+                item.addEventListener('click', (e) => {
+                    if (e.target !== slider) {
+                        toggleSelection();
+                    }
+                });
                 item.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    toggleSelection();
+                    if (e.target !== slider) {
+                        e.preventDefault();
+                        toggleSelection();
+                    }
                 }, { passive: false });
+                
+                // Prevent slider from toggling selection
+                slider.addEventListener('click', (e) => e.stopPropagation());
+                slider.addEventListener('touchend', (e) => e.stopPropagation());
+                
+                // Update label value and meter in background when slider changes
+                slider.addEventListener('input', (e) => {
+                    const newValue = parseInt(e.target.value);
+                    label.value = newValue; // Update in data
+                    
+                    // Update value meter in background workspace if label is visible
+                    if (labelSelectorSelections[label.id]) {
+                        const labelContainer = workspace.querySelector(`.label-container`);
+                        if (labelContainer) {
+                            // Find the meter for this specific label
+                            const allContainers = workspace.querySelectorAll('.label-container');
+                            allContainers.forEach(container => {
+                                // Match by checking if label text matches (since DOM doesn't have label id easily)
+                                const textarea = container.querySelector('.label-text-input');
+                                if (textarea && textarea.value === label.text) {
+                                    const meterFill = container.querySelector('.label-value-meter-fill');
+                                    if (meterFill) {
+                                        const valuePercent = (newValue / 5) * 100;
+                                        meterFill.style.width = `${valuePercent}%`;
+                                    }
+                                    // Update slider in workspace too (if visible)
+                                    const workspaceSlider = container.querySelector('.label-value-slider');
+                                    if (workspaceSlider) {
+                                        workspaceSlider.value = newValue;
+                                        workspaceSlider.title = `Værdi: ${newValue}`;
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
                 
                 grid.appendChild(item);
             });
@@ -3935,6 +4003,16 @@
         
         async function closeLabelSelector() {
             if (!labelSelectorNewIndex) return;
+            
+            // Update values from sliders before filtering
+            const sliders = document.querySelectorAll('.selector-value-slider');
+            sliders.forEach(slider => {
+                const labelId = parseInt(slider.getAttribute('data-label-id'));
+                const label = labelSelectorNewIndex.labels.find(l => l.id === labelId);
+                if (label && labelSelectorSelections[labelId]) {
+                    label.value = parseInt(slider.value);
+                }
+            });
             
             // Keep only selected labels
             labelSelectorNewIndex.labels = labelSelectorNewIndex.labels.filter(label => 
@@ -3947,7 +4025,7 @@
             shouldScrollHistoryToBottom = false;
             renderHistory();
             renderWorkspace();
-            await saveToLocalStorage();
+            await saveToLocalStorage(); // Only ONE save!
             
             labelSelectorNewIndex = null;
             labelSelectorSelections = {};
@@ -3972,12 +4050,13 @@
                 let originalX = origLabel.x;
                 let originalY = origLabel.y;
                 
+                    // Find max labelNumber for this labelGroupId (not text!)
                     sortedIndexes.forEach(idx => {
                     idx.labels.forEach(lab => {
-                        if (lab.text === origLabel.text && lab.labelNumber > maxLabelNumber) {
+                        if (lab.labelGroupId === origLabel.labelGroupId && lab.labelNumber > maxLabelNumber) {
                             maxLabelNumber = lab.labelNumber;
                         }
-                        if (lab.text === origLabel.text && lab.labelNumber === 1) {
+                        if (lab.labelGroupId === origLabel.labelGroupId && lab.labelNumber === 1) {
                             originalX = lab.x;
                             originalY = lab.y;
                         }
@@ -3989,7 +4068,11 @@
                 
                 index.labels.push({
                     id: labelIdCounter++,
+                    uniqueId: `label_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // NEW unique ID
+                    labelGroupId: origLabel.labelGroupId, // COPY group ID
                     text: origLabel.text,
+                    value: origLabel.value ?? 3, // Copy value or default to 3
+                    color: origLabel.color || DEFAULT_HISTORY_COLOR, // Copy color
                     x: originalX,
                     y: originalY,
                     pointerX,
@@ -4039,18 +4122,18 @@
                 activeIndexId = remaining[0] ? remaining[0].id : null;
                 }
             
-            // Renumber labels
-            const labelsByText = {};
+            // Renumber labels by labelGroupId
+            const labelsByGroupId = {};
             dataIndexes.forEach(idx => {
                         idx.labels.forEach(lab => {
-                    if (!labelsByText[lab.text]) {
-                        labelsByText[lab.text] = [];
+                    if (!labelsByGroupId[lab.labelGroupId]) {
+                        labelsByGroupId[lab.labelGroupId] = [];
                             }
-                    labelsByText[lab.text].push(lab);
+                    labelsByGroupId[lab.labelGroupId].push(lab);
                         });
                     });
             
-            Object.values(labelsByText).forEach(labelGroup => {
+            Object.values(labelsByGroupId).forEach(labelGroup => {
                 labelGroup.sort((a, b) => a.labelNumber - b.labelNumber);
                 labelGroup.forEach((lab, idx) => {
                     lab.labelNumber = idx + 1;
@@ -4335,7 +4418,11 @@
             // Create new label with placeholder text
             const newLabel = {
                 id: labelIdCounter++,
+                uniqueId: `label_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                labelGroupId: `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 text: '',
+                value: 3, // Default middle value (0-5 scale)
+                color: DEFAULT_HISTORY_COLOR,
                 x: x,
                 y: y,
                 pointerX: pointerX,
@@ -4409,6 +4496,11 @@
         async function deleteLabel(labelId) {
             if (!activeIndexId) return;
             
+            // Confirm deletion
+            if (!confirm('Vil du slette denne label?')) {
+                return;
+            }
+            
             const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
             if (!activeIndex) return;
 
@@ -4431,6 +4523,8 @@
             
             // Renumber all labels with the same text across all indexes to be consecutive
             if (labelText) {
+                // Legacy code - this function might not be used anymore
+                // But update to use labelGroupId for consistency
                 const allLabels = [];
                 mapIndexes.forEach(idx => {
                     idx.labels.forEach(lab => {
@@ -4599,14 +4693,14 @@
             modal.classList.add('show');
         }
         
-        function openLabelColorPicker(labelText) {
-            console.log('openLabelColorPicker called with:', labelText);
+        function openLabelColorPicker(labelGroupId) {
+            console.log('openLabelColorPicker called with labelGroupId:', labelGroupId);
             const modal = document.getElementById('historyColorPickerModal');
             if (!modal) {
                 console.error('Modal not found!');
                 return;
             }
-            historyColorPickerTarget = labelText;
+            historyColorPickerTarget = labelGroupId;
             colorPickerMode = 'label';
             buildHistoryColorGrid();
             modal.classList.add('show');
@@ -4620,22 +4714,12 @@
         window.handleLabelColorClick = function(event, button) {
             event.stopPropagation();
             event.preventDefault();
-            const labelText = button.getAttribute('data-label-text') || '';
-            console.log('handleLabelColorClick called with text:', labelText);
-            if (labelText && labelText.trim() !== '') {
-                openLabelColorPicker(labelText.trim());
+            const labelGroupId = button.getAttribute('data-label-group-id') || '';
+            console.log('handleLabelColorClick called with labelGroupId:', labelGroupId);
+            if (labelGroupId && labelGroupId.trim() !== '') {
+                openLabelColorPicker(labelGroupId.trim());
             } else {
-                // Fallback: try to find text from textarea
-                const container = button.closest('.label-container');
-                if (container) {
-                    const textarea = container.querySelector('.label-text-input');
-                    if (textarea) {
-                        const text = textarea.value.trim();
-                        if (text !== '') {
-                            openLabelColorPicker(text);
-                        }
-                    }
-                }
+                console.warn('No labelGroupId found on color button');
             }
             return false;
         };
@@ -4656,12 +4740,8 @@
                             hasChanges = true;
                         }
                     } else if (colorPickerMode === 'label') {
-                        // target is label text
-                        if (color === null) {
-                            delete labelColors[target];
-                        } else {
-                            labelColors[target] = color;
-                        }
+                        // Labels already updated in handleHistoryColorSelected
+                        // Colors stored on individual labels now, not in labelColors
                         hasChanges = true;
                     }
                 });
@@ -4708,45 +4788,50 @@
                     colorBtn.style.color = '#ffffff';
                 }
             } else if (colorPickerMode === 'label') {
-                // Live-update all labels with the same text
-                const labelText = historyColorPickerTarget;
-                labelColors[labelText] = color;
-                // Update all label elements with this text
-                document.querySelectorAll('.label-container').forEach(container => {
-                    const textarea = container.querySelector('.label-text-input');
-                    if (textarea && textarea.value.trim() === labelText) {
-                        const labelInput = container.querySelector('.label-input');
-                        if (labelInput) {
-                            const isActive = labelInput.classList.contains('label-active');
-                            const lightColor = lightenHex(color, 0.65);
-                            labelInput.style.background = lightColor;
-                            labelInput.style.border = isActive ? `3px solid ${color}` : 'none';
-                        }
-                        // Update color button if it exists
-                        const colorBtn = container.querySelector('.label-color-btn');
-                        if (colorBtn) {
-                            colorBtn.style.background = color;
-                            colorBtn.style.color = '#ffffff';
-                        }
-                    }
-                });
-                // Update pointer lines and points
-                dataIndexes.forEach(idx => {
-                    idx.labels.forEach(lab => {
-                        if (lab.text === labelText) {
-                            // Update SVG lines
-                            const svgLine = document.querySelector(`line[data-label-id="${lab.id}"]`);
-                            if (svgLine) {
-                                svgLine.setAttribute('stroke', color);
-                            }
-                            // Update pointer points
-                            const point = document.querySelector(`.label-pointer-point[data-label-id="${lab.id}"]`);
-                            if (point) {
-                                point.style.background = color;
+                // Update only this specific label (no syncing)
+                const labelGroupId = historyColorPickerTarget;
+                
+                // Find and update only the active label with this labelGroupId
+                const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
+                if (activeIndex) {
+                    activeIndex.labels.forEach(lab => {
+                        if (lab.labelGroupId === labelGroupId) {
+                            lab.color = color; // Update color in data
+                            
+                            // Update UI for this label
+                            const container = document.querySelector(`.label-container .label-color-btn[data-label-group-id="${labelGroupId}"]`)?.closest('.label-container');
+                            if (container) {
+                                const labelInput = container.querySelector('.label-input');
+                                if (labelInput) {
+                                    const lightColor = lightenHex(color, 0.65);
+                                    labelInput.style.background = lightColor;
+                                    labelInput.style.border = `3px solid ${color}`;
+                                }
+                                // Update color button
+                                const colorBtn = container.querySelector('.label-color-btn');
+                                if (colorBtn) {
+                                    colorBtn.style.background = color;
+                                    colorBtn.style.color = '#ffffff';
+                                }
+                                // Update value meter fill
+                                const meterFill = container.querySelector('.label-value-meter-fill');
+                                if (meterFill) {
+                                    meterFill.style.background = color;
+                                }
+                                // Update SVG line
+                                const svgLine = document.querySelector(`line[data-label-id="${lab.id}"]`);
+                                if (svgLine) {
+                                    svgLine.setAttribute('stroke', color);
+                                }
+                                // Update pointer point
+                                const point = document.querySelector(`.label-pointer-point[data-label-id="${lab.id}"]`);
+                                if (point) {
+                                    point.style.background = color;
+                                }
                             }
                         }
                     });
-                });
+                }
             }
             // Don't close overlay - only close when clicking outside or pressing Escape
         }
@@ -4781,46 +4866,50 @@
                     colorBtn.style.color = '#ffffff';
                 }
             } else if (colorPickerMode === 'label') {
-                // Remove color from all labels with the same text
-                const labelText = historyColorPickerTarget;
-                delete labelColors[labelText];
-                // Update all label elements with this text
-                document.querySelectorAll('.label-container').forEach(container => {
-                    const textarea = container.querySelector('.label-text-input');
-                    if (textarea && textarea.value.trim() === labelText) {
-                        const labelInput = container.querySelector('.label-input');
-                        if (labelInput) {
-                            const isActive = labelInput.classList.contains('label-active');
-                            const defaultColor = DEFAULT_HISTORY_COLOR;
-                            const lightColor = lightenHex(defaultColor, 0.65);
-                            labelInput.style.background = lightColor;
-                            labelInput.style.border = isActive ? `3px solid ${defaultColor}` : 'none';
-                        }
-                        // Update color button if it exists
-                        const colorBtn = container.querySelector('.label-color-btn');
-                        if (colorBtn) {
-                            colorBtn.style.background = DEFAULT_HISTORY_COLOR;
-                            colorBtn.style.color = '#ffffff';
-                        }
-                    }
-                });
-                // Update pointer lines and points
-                dataIndexes.forEach(idx => {
-                    idx.labels.forEach(lab => {
-                        if (lab.text === labelText) {
-                            // Update SVG lines
-                            const svgLine = document.querySelector(`line[data-label-id="${lab.id}"]`);
-                            if (svgLine) {
-                                svgLine.setAttribute('stroke', DEFAULT_HISTORY_COLOR);
-                            }
-                            // Update pointer points
-                            const point = document.querySelector(`.label-pointer-point[data-label-id="${lab.id}"]`);
-                            if (point) {
-                                point.style.background = DEFAULT_HISTORY_COLOR;
+                // Reset color to default for only this specific label (no syncing)
+                const labelGroupId = historyColorPickerTarget;
+                
+                // Find and update only the active label with this labelGroupId
+                const activeIndex = dataIndexes.find(idx => idx.id === activeIndexId);
+                if (activeIndex) {
+                    activeIndex.labels.forEach(lab => {
+                        if (lab.labelGroupId === labelGroupId) {
+                            lab.color = DEFAULT_HISTORY_COLOR;
+                            
+                            // Update UI for this label
+                            const container = document.querySelector(`.label-container .label-color-btn[data-label-group-id="${labelGroupId}"]`)?.closest('.label-container');
+                            if (container) {
+                                const labelInput = container.querySelector('.label-input');
+                                if (labelInput) {
+                                    const lightColor = lightenHex(DEFAULT_HISTORY_COLOR, 0.65);
+                                    labelInput.style.background = lightColor;
+                                    labelInput.style.border = `3px solid ${DEFAULT_HISTORY_COLOR}`;
+                                }
+                                // Update color button
+                                const colorBtn = container.querySelector('.label-color-btn');
+                                if (colorBtn) {
+                                    colorBtn.style.background = DEFAULT_HISTORY_COLOR;
+                                    colorBtn.style.color = '#ffffff';
+                                }
+                                // Update value meter fill
+                                const meterFill = container.querySelector('.label-value-meter-fill');
+                                if (meterFill) {
+                                    meterFill.style.background = DEFAULT_HISTORY_COLOR;
+                                }
+                                // Update SVG line
+                                const svgLine = document.querySelector(`line[data-label-id="${lab.id}"]`);
+                                if (svgLine) {
+                                    svgLine.setAttribute('stroke', DEFAULT_HISTORY_COLOR);
+                                }
+                                // Update pointer point
+                                const point = document.querySelector(`.label-pointer-point[data-label-id="${lab.id}"]`);
+                                if (point) {
+                                    point.style.background = DEFAULT_HISTORY_COLOR;
+                                }
                             }
                         }
                     });
-                });
+                }
             }
             // Don't close overlay - only close when clicking outside or pressing Escape
         }
