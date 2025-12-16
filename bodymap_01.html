@@ -773,11 +773,13 @@
         }
         
         .selector-label-text {
-            width: 100%;
+            width: 75%;
             outline: none;
-            padding: 4px;
+            padding: 4px 8px;
             border-radius: 4px;
             transition: background-color 0.2s;
+            text-align: left;
+            margin-left: 8px;
         }
         
         .selector-label-text[contenteditable="true"] {
@@ -3940,6 +3942,17 @@
                 const slider = item.querySelector('.selector-value-slider');
                 const textElement = item.querySelector('.selector-label-text');
                 
+                // Helper function to focus text and place cursor at end
+                const focusTextAtEnd = () => {
+                    textElement.focus();
+                    const range = document.createRange();
+                    const selection = window.getSelection();
+                    range.selectNodeContents(textElement);
+                    range.collapse(false); // false = collapse to end
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                };
+                
                 const toggleSelection = () => {
                     labelSelectorSelections[label.id] = !labelSelectorSelections[label.id];
                     
@@ -3950,6 +3963,9 @@
                         slider.style.display = 'block'; // Show slider when selected
                         textElement.contentEditable = 'true'; // Make text editable
                         textElement.style.cursor = 'text';
+                        
+                        // Focus and place cursor at end of text
+                        setTimeout(focusTextAtEnd, 100); // Mobile-friendly timeout
                     } else {
                         item.style.background = '#f3f4f6';
                         item.style.color = '#4b5563';
@@ -3957,6 +3973,7 @@
                         slider.style.display = 'none'; // Hide slider when unselected
                         textElement.contentEditable = 'false'; // Make text non-editable
                         textElement.style.cursor = 'pointer';
+                        textElement.blur(); // Remove focus when deselected
                     }
                     item.style.borderColor = labelColor;
                     
@@ -3980,35 +3997,32 @@
                     }
                 });
                 
-                // Prevent text edit from toggling selection
-                textElement.addEventListener('click', (e) => {
-                    if (labelSelectorSelections[label.id]) {
-                        e.stopPropagation();
-                    }
-                });
-                textElement.addEventListener('touchend', (e) => {
-                    if (labelSelectorSelections[label.id]) {
-                        e.stopPropagation();
-                    }
-                });
-                
-                // Click on item (but not slider or editable text) toggles selection
+                // Click on item (but not slider) toggles selection
+                // If text is editable (selected), allow clicking on text without toggling
                 item.addEventListener('click', (e) => {
-                    if (e.target !== slider && e.target !== textElement) {
-                        toggleSelection();
+                    if (e.target === slider) {
+                        return; // Slider handles its own clicks
                     }
+                    if (e.target === textElement && labelSelectorSelections[label.id]) {
+                        // Re-focus on text when clicking on already selected text
+                        setTimeout(focusTextAtEnd, 0);
+                        return; // Allow text editing when already selected
+                    }
+                    toggleSelection();
                 });
                 item.addEventListener('touchend', (e) => {
-                    if (e.target !== slider && e.target !== textElement) {
-                        e.preventDefault();
-                        toggleSelection();
+                    if (e.target === slider) {
+                        return; // Slider handles its own touches
                     }
+                    if (e.target === textElement && labelSelectorSelections[label.id]) {
+                        // On mobile, ensure keyboard shows and cursor is placed
+                        e.preventDefault();
+                        setTimeout(focusTextAtEnd, 100); // Longer timeout for mobile
+                        return; // Allow text editing when already selected
+                    }
+                    e.preventDefault();
+                    toggleSelection();
                 }, { passive: false });
-                
-                // Prevent slider from toggling selection
-                slider.addEventListener('click', (e) => e.stopPropagation());
-                slider.addEventListener('touchend', (e) => e.stopPropagation());
-                
                 // Update label value and meter in background when slider changes
                 slider.addEventListener('input', (e) => {
                     const newValue = parseInt(e.target.value);
