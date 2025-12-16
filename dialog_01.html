@@ -2438,9 +2438,9 @@ let dialogHistoryCollapsed = true; // Default to collapsed
             monthsData.forEach(monthData => {
                 if (!monthData) return;
                 
-                // Merge bodymap
-                if (monthData.bodymap && Array.isArray(monthData.bodymap.dataIndexes)) {
-                    merged.bodymapData.dataIndexes.push(...monthData.bodymap.dataIndexes);
+                // Merge bodymaps
+                if (monthData.bodymaps && monthData.bodymaps.maps && Array.isArray(monthData.bodymaps.maps)) {
+                    merged.bodymapData.dataIndexes.push(...monthData.bodymaps.maps);
                 }
                 
                 // Merge dialog

@@ -2138,9 +2138,9 @@
                     return;
                 }
                 
-                // Merge bodymap
-                if (monthData.bodymap && Array.isArray(monthData.bodymap.dataIndexes)) {
-                    merged.bodymapData.dataIndexes.push(...monthData.bodymap.dataIndexes);
+                // Merge bodymaps
+                if (monthData.bodymaps && monthData.bodymaps.maps && Array.isArray(monthData.bodymaps.maps)) {
+                    merged.bodymapData.dataIndexes.push(...monthData.bodymaps.maps);
                 }
                 
                 // Merge dialog
@@ -2215,7 +2215,7 @@
                                 if ((monthData.opstilling && Array.isArray(monthData.opstilling.setups) && monthData.opstilling.setups.length > 0) ||
                                     (monthData.dialog && Array.isArray(monthData.dialog.dialogs) && monthData.dialog.dialogs.length > 0) ||
                                     (monthData.compare && Array.isArray(monthData.compare.comparisons) && monthData.compare.comparisons.length > 0) ||
-                                    (monthData.bodymap && Array.isArray(monthData.bodymap.dataIndexes) && monthData.bodymap.dataIndexes.length > 0) ||
+                                    (monthData.bodymaps && monthData.bodymaps.maps && Array.isArray(monthData.bodymaps.maps) && monthData.bodymaps.maps.length > 0) ||
                                     (Array.isArray(monthData.logbog) && monthData.logbog.length > 0)) {
                                     monthsToLoadSet.add(monthKey);
                                 }
