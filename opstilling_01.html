@@ -341,9 +341,9 @@
         .workspace {
             flex: 1;
             position: relative;
-            height: 600px;
-            max-height: 600px;
-            min-height: 600px;
+            height: 960px;
+            max-height: 960px;
+            min-height: 960px;
             width: 100%;
             max-width: 1200px;
             min-width: 0;
@@ -362,9 +362,9 @@
         .workspace-content {
             position: relative;
             width: 1200px;
-            height: 600px;
+            height: 960px;
             min-width: 1200px;
-            min-height: 600px;
+            min-height: 960px;
         }
         
         .background-layer {
@@ -2810,10 +2810,17 @@
         function exportCurrentPartsToModel() {
             const parts = document.querySelectorAll('.part');
             const result = [];
+            const workspaceContent = document.querySelector('.workspace-content');
+            const workspaceWidth = workspaceContent ? workspaceContent.offsetWidth : 1200;
+            const workspaceHeight = workspaceContent ? workspaceContent.offsetHeight : 960;
+            
             parts.forEach(part => {
                 const name = part.querySelector('.part-name')?.textContent || '';
-                const x = parseInt(part.style.left) || 0;
-                const y = parseInt(part.style.top) || 0;
+                const xPixels = parseInt(part.style.left) || 0;
+                const yPixels = parseInt(part.style.top) || 0;
+                // Convert pixels to percentage
+                const x = (xPixels / workspaceWidth) * 100;
+                const y = (yPixels / workspaceHeight) * 100;
                 const size = parseFloat(part.getAttribute('data-part-scale') || '1') || 1;
                 const poseAttr = part.getAttribute('data-pose') || '';
                 const pose = poseAttr; // keep raw pose id/name for now
@@ -5400,7 +5407,26 @@ async function closeKeywordsPopup() {
             mirror = false
         }) {
             try {
-                addPart(name, x, y, true, true);
+                // Convert percentage to pixels based on current workspace size
+                const workspace = document.getElementById('workspace');
+                const workspaceContent = workspace.querySelector('.workspace-content');
+                const workspaceWidth = workspaceContent ? workspaceContent.offsetWidth : 1200;
+                const workspaceHeight = workspaceContent ? workspaceContent.offsetHeight : 960;
+                
+                // Check if x and y are already in pixels (legacy format) or percentage (new format)
+                // If x > 100 or y > 100, assume it's pixels (legacy), otherwise assume percentage
+                let xPixels, yPixels;
+                if (x > 100 || y > 100) {
+                    // Legacy format - already in pixels
+                    xPixels = x;
+                    yPixels = y;
+                } else {
+                    // New format - percentage, convert to pixels
+                    xPixels = (x / 100) * workspaceWidth;
+                    yPixels = (y / 100) * workspaceHeight;
+                }
+                
+                addPart(name, xPixels, yPixels, true, true);
 
                 const newPart = document.querySelector('.part:last-child');
                 if (!newPart) return;
