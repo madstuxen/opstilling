@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
     <title>Logbog</title>
     <!-- Firebase App (the core Firebase SDK) - Using v8 for compatibility -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -23,7 +22,7 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #573920;
             min-height: 100vh;
             padding: 0px;
             display: flex;
@@ -33,38 +32,112 @@
         .container {
             width: 100%;
             max-width: 1400px;
-            background: rgba(255, 255, 255, 0.95);
+            background: transparent;
             border-radius: 0px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: none;
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
 
         .header {
-            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            background: transparent;
             color: white;
             padding: 16px 24px;
             padding-top: calc(env(safe-area-inset-top) + 16px);
             display: flex;
             align-items: center;
-            justify-content: center;
-            text-align: center;
+            justify-content: flex-start;
+            text-align: left;
             position: relative;
-            transition: background 0.3s ease;
         }
 
-        .header h1 {
-            font-size: 2rem;
-            font-weight: 300;
+        .header-bar {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
             width: 100%;
-            text-align: center;
+            min-width: 0;
+        }
+
+        .header-title-row {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        /* Ikon + Logbog samme række — datolinjen må ikke skubbe overskriften væk fra bogen */
+        .header-title-top {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .header-book-icon {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            display: block;
+            flex-shrink: 0;
+        }
+
+        .header-book-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            flex-wrap: wrap;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .header-log-color-btn {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            color: #ffffff;
+        }
+
+        .header-log-color-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-active-log-date {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #ffffff;
+            line-height: 1.3;
+            text-align: left;
+        }
+
+        .header-title-row h1 {
+            margin: 0;
+            font-size: 4rem;
+            font-weight: 300;
+            text-align: left;
+            color: #ffffff;
+            line-height: 1.2;
+            min-width: 0;
         }
 
         .header .nav-controls {
-            position: absolute;
-            top: 16px;
-            left: 24px;
+            position: relative;
+            flex-shrink: 0;
             display: inline-flex;
             flex-direction: column;
             gap: 0;
@@ -213,113 +286,81 @@
 
         .content {
             padding: 10px;
-            padding-right: 0px;
+            padding-right: 10px;
             padding-left: 5px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 16px;
             width: 100%;
         }
 
         .card {
-            background: #f5f5f8;
+            background: #f3f4f6;
             border-radius: 18px;
             padding: 7px 5px;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
         }
 
         .log-layout {
-            position: relative;
-            display: block;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 14px;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            padding-right: 220px;
         }
 
         .log-primary {
             flex: 1;
+            min-width: 0;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            width: 100%;
-            padding-right: 10px;
+            gap: 16px;
+            width: auto;
+        }
+
+        .log-history-panel-shell {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            height: 100dvh;
+            width: 220px;
+            z-index: 4000;
+            display: flex;
+            flex-direction: column;
+            pointer-events: auto;
         }
 
         .log-history-sidebar {
-            position: fixed;
-            top: 0;
-            right: 0px;
-            width: 200px;
-            height: 100vh;
-            background: #f8fafc;
-            border: none;
-            border-radius: 18px 0 0 18px;
-            overflow-x: visible;
-            overflow-y: hidden;
+            width: 220px;
+            flex: 1;
+            min-height: 0;
+            box-sizing: border-box;
+            background: #ffffff;
+            border-left: 1px solid #e0e0e0;
+            box-shadow: -6px 0 14px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            transition: transform 0.6s ease;
-            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
-            z-index: 100;
+            min-height: 0;
         }
 
         .log-history-top-bar {
-            height: calc(env(safe-area-inset-top) + 69px);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            position: relative;
             flex-shrink: 0;
-            overflow: visible;
+            padding: calc(60px + env(safe-area-inset-top, 0px)) 12px 12px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #ffffff;
         }
 
-        .log-history-sidebar.collapsed {
-            transform: translateX(200px);
-            overflow: visible;
-            border-radius: 18px 0 0 18px;
-        }
-
-        .log-history-sidebar.collapsed .log-collapse-toggle {
-            left: -28px;
-        }
-
-        .log-history-sidebar.collapsed .log-collapse-toggle-bottom {
-            left: -28px;
-        }
-
-        .log-collapse-toggle {
-            position: absolute;
-            left: 2px;
-            bottom: 10px;
-            background: #4f46e5;
-            color: white;
-            border: none;
-            width: 20px;
-            height: 50px;
-            border-radius: 18px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            z-index: 100;
-            padding: 0;
-        }
-
-        .log-collapse-toggle img {
-            width: 12px;
-            height: 30px;
-            filter: brightness(0) invert(1);
-            transition: transform 0.6s ease;
-        }
-
-        .log-history-sidebar.collapsed .log-collapse-toggle img {
-            transform: rotate(180deg);
-        }
-
-        .log-collapse-toggle:hover {
-            background: #4338ca;
-            transform: scale(1.1);
-        }
-
-        .log-collapse-toggle-bottom {
-            top: auto;
-            bottom: 8px;
+        .log-history-panel-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333333;
+            line-height: 22px;
         }
 
         .log-history-content {
@@ -330,104 +371,197 @@
             overflow: hidden;
         }
 
-        .log-history-sidebar.collapsed .log-history-content {
-            display: none;
-        }
-
         .log-history-list {
             flex: 1;
             overflow-y: auto;
-            padding: 12px;
-            padding-bottom: 60px;
+            overflow-x: hidden;
+            padding: 8px;
+            padding-bottom: 100px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            min-height: 0;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .log-history-empty {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px 12px;
+            font-size: 14px;
+            font-style: italic;
+            color: #999999;
+        }
+
+        @media (max-width: 900px) {
+            .log-layout {
+                flex-direction: column;
+                padding-right: 0;
+            }
+
+            .log-history-panel-shell {
+                width: min(220px, 100vw);
+            }
+
+            .log-history-sidebar {
+                width: min(220px, 100vw);
+            }
+        }
+
+        @media (min-width: 901px) {
+            .log-history-panel-title {
+                font-size: 20px;
+                line-height: 24px;
+            }
+
+            .log-history-item-title {
+                font-size: 14px;
+            }
+
+            .log-history-item-subtitle,
+            .log-history-item-snippet {
+                font-size: 15px;
+            }
+
+            .log-history-month-count {
+                font-size: 14px;
+            }
+
+            .log-history-empty {
+                font-size: 16px;
+            }
         }
 
         .log-history-item {
-            padding: 10px;
-            margin-bottom: 6px;
-            border-radius: 10px;
-            background: #e0e7ff;
+            margin-bottom: 8px;
+            border-radius: 8px;
             cursor: pointer;
             display: flex;
-            flex-direction: column;
-            gap: 6px;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-            border: 2px solid transparent;
-            position: relative;
+            flex-direction: row;
+            align-items: stretch;
+            gap: 8px;
+            border: 1px solid #e0e0e0;
+            background: #f9f9f9;
+            padding: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            transition: box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
             touch-action: manipulation;
         }
 
         .log-history-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.15);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         }
 
         .log-history-item.active {
-            background: #c7d2fe;
-            color: #1f2937;
-            border-color: #6366f1;
-            box-shadow: 0 12px 22px rgba(79, 70, 229, 0.25);
+            border: 2px solid #3b82f6;
+            background: #eff6ff;
+            padding: 7px;
         }
 
-        .log-history-item-date {
+        .log-history-item-color-bar {
+            width: 4px;
+            flex-shrink: 0;
+            border-radius: 2px;
+            align-self: stretch;
+            min-height: 100%;
+        }
+
+        .log-history-item-body {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .log-history-item-title {
+            font-size: 13px;
             font-weight: 600;
-            font-size: 0.95rem;
-            text-transform: capitalize;
+            color: #333333;
+            line-height: 1.25;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        .log-history-item-weekday {
-            font-size: 0.8rem;
-            opacity: 0.8;
+        .log-history-item-subtitle {
+            margin-top: 2px;
+            font-size: 13px;
+            color: #666666;
+            line-height: 1.35;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .log-history-item-snippet {
-            font-size: 0.82rem;
-            opacity: 0.9;
+            margin-top: 3px;
+            font-size: 13px;
+            color: #666666;
             line-height: 1.4;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .log-history-month-header {
-            padding: 12px 14px;
+            padding: 12px;
             margin-bottom: 8px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            color: white;
+            border-radius: 8px;
+            background: #f0f0f0;
+            color: #333333;
             cursor: pointer;
             display: flex;
+            flex-direction: row;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            transition: all 0.2s ease;
+            transition: background 0.15s ease;
             user-select: none;
+            border: none;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: left;
+            font: inherit;
         }
 
         .log-history-month-header:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            background: #eaeaea;
         }
 
         .log-history-month-header.expanded {
-            margin-bottom: 12px;
+            margin-bottom: 8px;
+        }
+
+        .log-history-month-text {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0;
         }
 
         .log-history-month-title {
             font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 16px;
+            color: #333333;
+            line-height: 1.2;
         }
 
         .log-history-month-count {
-            font-size: 0.8rem;
-            opacity: 0.85;
-            flex: 1;
-            text-align: right;
+            margin-top: 2px;
+            font-size: 12px;
+            color: #666666;
         }
 
         .log-history-month-arrow {
-            font-size: 0.7rem;
-            opacity: 0.9;
-            transition: transform 0.2s ease;
+            flex-shrink: 0;
+            font-size: 16px;
+            color: #666666;
+            line-height: 1;
         }
 
         .log-history-item-meta {
@@ -435,56 +569,6 @@
             justify-content: space-between;
             font-size: 0.75rem;
             opacity: 0.7;
-        }
-
-        .log-history-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-            position: relative;
-            padding: 2px 12px;
-            border-radius: 999px;
-            margin-bottom: 6px;
-        }
-
-        .log-history-item-date {
-            font-size: 16px;
-            font-weight: 600;
-            color: #ffffff;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .log-history-color-btn {
-            flex-shrink: 0;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: none;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        .log-history-item:hover .log-history-color-btn,
-        .log-history-item.active .log-history-color-btn {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .log-history-color-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .log-history-color-picker-modal {
@@ -565,14 +649,15 @@
         }
 
         .card-title {
-            font-size: 1.25rem;
-            color: #1f2937;
+            font-size: 20px;
+            font-weight: 600;
+            color: #374151;
             margin-bottom: 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            padding-left: 18px;
+            padding-left: 8px;
         }
 
         .card-title span {
@@ -581,10 +666,16 @@
             font-weight: 500;
         }
 
+        .journal-card {
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+        }
+
         .journal-grid {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 10px;
+            gap: 16px;
         }
 
         .journal-entry,
@@ -592,31 +683,31 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            padding: 0;
-            border-radius: 18px;
+            padding: 12px;
+            border-radius: 20px;
+            border: none;
         }
 
         .journal-entry {
-            background: #f5f5f8;
+            background: #d6d3d1;
         }
 
         .dreams-entry {
-            padding: 7px;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(124, 58, 237, 0.12) 100%);
-            border: 1px solid rgba(124, 58, 237, 0.2);
+            background: #ddd6fe;
         }
 
         .journal-entry label,
         .dreams-entry label {
-            font-size: 1.25rem;
+            font-size: 20px;
             font-weight: 600;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
+            color: #374151;
+            text-transform: none;
+            letter-spacing: normal;
             display: flex;
             align-items: center;
             gap: 10px;
-            padding-left: 18px;
+            padding-left: 0;
+            margin-bottom: 0;
         }
 
         .journal-title {
@@ -631,32 +722,69 @@
         }
 
         .journal-title img {
-            width: 55px;
-            height: auto;
+            width: 40px;
+            height: 40px;
             flex-shrink: 0;
+            object-fit: contain;
         }
 
-        .journal-copy-btn {
-            padding: 8px 16px;
-            color: white;
+        .journal-title-actions,
+        .dreams-title-actions {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .journal-save-btn,
+        .dreams-save-btn {
+            padding: 8px 14px;
+            color: #ecfdf5;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 500;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             text-align: center;
             display: block;
             text-transform: none;
             letter-spacing: normal;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-            background: linear-gradient(135deg, #E6B94F 0%, #d97706 100%);
+            box-shadow: none;
+            background: #22c55e;
+        }
+
+        .journal-save-btn:hover,
+        .dreams-save-btn:hover {
+            background: #16a34a;
+            color: #ffffff;
+        }
+
+        .journal-save-btn:active,
+        .dreams-save-btn:active {
+            transform: translateY(0);
+        }
+
+        .journal-copy-btn {
+            padding: 8px 14px;
+            color: #713f12;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: block;
+            text-transform: none;
+            letter-spacing: normal;
+            box-shadow: none;
+            background: #fde047;
         }
 
         .journal-copy-btn:hover {
-            background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3);
+            background: #facc15;
+            color: #451a03;
         }
 
         .journal-copy-btn:active {
@@ -665,6 +793,11 @@
 
         .dreams-title {
             justify-content: space-between;
+            font-size: 20px;
+            font-weight: 600;
+            color: #374151;
+            text-transform: none;
+            letter-spacing: normal;
         }
 
         .dreams-title-content {
@@ -674,31 +807,31 @@
         }
 
         .dreams-title img {
-            width: 56px;
-            height: auto;
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
         }
 
         .dreams-copy-btn {
-            padding: 8px 16px;
-            color: white;
+            padding: 8px 14px;
+            color: #fdf4ff;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 500;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             text-align: center;
             display: block;
             text-transform: none;
             letter-spacing: normal;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-            background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            box-shadow: none;
+            background: #86198f;
         }
 
         .dreams-copy-btn:hover {
-            background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(236, 72, 153, 0.3);
+            background: #a21caf;
+            color: #ffffff;
         }
 
         .dreams-copy-btn:active {
@@ -709,15 +842,13 @@
         .journal-entry textarea,
         .dreams-entry textarea {
             width: 100%;
-            min-height: 200px;
-            padding: 9px;
-            border-radius: 12px;
+            min-height: 150px;
+            padding: 12px;
+            border-radius: 20px;
             border: none;
-            background: rgba(255, 255, 255, 0.92);
-            color: #1f2937;
             font-family: 'Arial', sans-serif;
-            font-size: 16px; /* avoid iOS zoom on focus */
-            line-height: 1.6;
+            font-size: 15px;
+            line-height: 22px;
             resize: none;
             overflow: hidden;
             box-sizing: border-box;
@@ -728,42 +859,62 @@
         .journal-entry textarea:focus {
             outline: none;
             box-shadow: none;
-            background: #ececf4;
+            background: #FAF5E4;
         }
 
         .dreams-entry textarea:focus {
             outline: none;
-            border-color: #7c3aed;
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.35);
+            background: #ede9fe;
         }
 
         .journal-entry textarea {
-            background: #ffffff;
+            background: #FAF5E4;
+            color: #111827;
             height: auto;
-            min-height: 200px;
+            min-height: 150px;
         }
 
-        .tanker-card {
-            background: #f5f5f8;
+        /* tankerContainer + tankerOverlayContent: samme ydre kort-farve */
+        .tanker-card,
+        .tanker-overlay-content {
+            background: #a7f3d0;
+            border-radius: 20px;
+            padding: 12px;
             grid-column: 1 / -1;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        }
+
+        .tanker-overlay-content:not(.tanker-card) {
+            grid-column: auto;
+        }
+
+        .tanker-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .tanker-title-row img {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .tanker-title-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #065f46;
         }
 
         .tanker-entry {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 0;
             padding: 0;
-            background: #f5f5f8;
-        }
-
-        .tanker-entry label {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #475569;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
+            background: transparent;
         }
 
         .tanker-entry textarea {
@@ -778,126 +929,182 @@
             resize: none;
             overflow: hidden;
             box-sizing: border-box;
-            background: #d1fae5;
-            color: #1f2937;
+            background: #f0fdf4;
+            color: #14532d;
             -webkit-appearance: none;
             appearance: none;
         }
 
         .tanker-entry textarea:focus {
             outline: none;
-            box-shadow: none;
-            background: #d1fae5;
+            box-shadow: 0 0 0 2px rgba(236, 253, 245, 0.35);
+            background: #f0fdf4;
         }
 
         .tanker-entry textarea::placeholder {
-            color: #9ca3af;
+            color: #6b7280;
             font-style: italic;
         }
 
         .dreams-entry textarea {
-            min-height: 160px;
-            padding: 9px;
-            background: rgba(139, 92, 246, 0.08);
-            border: 1px solid rgba(124, 58, 237, 0.25);
-            color: #312e81;
-            font-family: 'Arial', sans-serif;
-            font-size: 16px; /* ensure >=16px for iOS */
+            min-height: 150px;
+            padding: 12px;
+            background: #ede9fe;
+            border: none;
+            color: #2e1065;
+            font-size: 15px;
+            line-height: 22px;
             -webkit-appearance: none;
             appearance: none;
         }
 
-        .dreams-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
         .checkins-card {
-            padding-bottom: 0;
+            padding: 8px 4px 8px 8px;
+            background: #f3f4f6;
+            border-radius: 12px;
+            box-shadow: none;
         }
 
         .checkins-header {
             position: relative;
             display: flex;
             align-items: center;
-            justify-content: flex-start;
-            gap: 16px;
-            padding-bottom: 9px;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding-bottom: 0;
         }
 
+        .checkins-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-        .checkin-view-toggle {
+        .checkins-title-row img {
             width: 40px;
             height: 40px;
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .checkins-title-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .checkins-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .checkin-view-toggle {
+            width: 36px;
+            height: 36px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: border-color 0.2s ease, background 0.2s ease;
             margin-right: 0;
-            background: white;
-            border-radius: 8px;
-            padding: 0;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+            background: #ffffff;
+            border-radius: 6px;
+            border: 2px solid #e5e7eb;
+            padding: 5px;
+            box-sizing: border-box;
             overflow: hidden;
             display: block;
-            object-fit: cover;
+            object-fit: contain;
         }
 
         .checkin-view-toggle:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            background: #f9fafb;
         }
 
         .checkin-days-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            border: none;
-            background: white;
-            color: #7c3aed;
+            min-width: 36px;
+            height: auto;
+            border-radius: 6px;
+            border: 2px solid #e5e7eb;
+            background: #ffffff;
+            color: #374151;
             font-size: 14px;
             font-weight: 600;
             line-height: 1;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0;
+            padding: 6px 12px;
         }
 
         .checkin-days-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
+            background: #f9fafb;
         }
 
         .checkin-days-btn.active {
+            background: #8b5cf6;
+            border-color: #8b5cf6;
+            color: #ffffff;
+        }
+
+        .checkin-plus-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 6px;
+            background: #8b5cf6;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1;
+            padding: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        .checkin-plus-btn span {
+            display: block;
+            margin-top: -3px;
+        }
+
+        .checkin-plus-btn:hover {
             background: #7c3aed;
-            color: white;
+        }
+
+        .checkin-plus-btn:active {
+            transform: scale(0.96);
         }
 
         .chart-tooltip {
             position: absolute;
-            background: white;
-            border: 2px solid #3b82f6;
-            border-radius: 8px;
-            padding: 8px 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            background: #1f2937;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             pointer-events: none;
             z-index: 1000;
-            font-size: 12px;
+            font-size: 14px;
+            font-weight: 600;
         }
 
         .chart-tooltip p {
             margin: 0;
-            font-weight: bold;
+            font-weight: 600;
+            color: #ffffff;
         }
 
         .chart-tooltip p:not(:first-child) {
             margin-top: 4px;
-            font-weight: normal;
+            font-weight: 600;
+            opacity: 0.95;
         }
 
         .collapse-btn {
@@ -935,28 +1142,33 @@
 
         .chart-wrapper {
             position: relative;
-            padding: 0px 0 11px;
+            padding: 0;
             margin-left: 44px;
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            min-height: 200px;
         }
 
         .chart-canvas {
             display: block;
             width: 100%;
-            height: 240px;
-            border-radius: 0px;
-            background: white;
-            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+            height: 220px;
+            min-height: 200px;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: none;
         }
 
         .checkins-side-icons {
             position: absolute;
             left: 1px;
-            top: -5px;
-            width: 42px;
-            height: 240px;
+            top: -2px;
+            width: 40px;
+            height: 220px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -966,7 +1178,7 @@
         }
 
         .checkins-side-icons img {
-            width: 42px;
+            width: 40px;
             height: auto;
         }
 
@@ -998,8 +1210,10 @@
             display: none;
             align-items: center;
             justify-content: center;
-            background: rgba(15, 23, 42, 0.35);
+            background: rgba(0, 0, 0, 0.5);
             z-index: 5001;
+            padding: 16px;
+            box-sizing: border-box;
         }
 
         .checkin-modal.show {
@@ -1008,14 +1222,16 @@
 
         .checkin-modal-content {
             background: white;
-            border-radius: 18px;
-            padding: 24px;
-            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.25);
             width: 90%;
             max-width: 400px;
+            max-height: 50vh;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 12px;
         }
 
         .checkin-modal-header {
@@ -1057,7 +1273,8 @@
             align-items: center;
             gap: 16px;
             position: relative;
-            padding: 10px 0;
+            padding: 8px;
+            margin: 24px 0;
         }
 
         .checkin-slider-icon {
@@ -1067,13 +1284,20 @@
         }
 
         .checkin-slider {
+            --pct: 50%;
             flex: 1;
             height: 8px;
             border-radius: 4px;
-            background: #e5e7eb;
             outline: none;
             -webkit-appearance: none;
             appearance: none;
+            background: transparent;
+        }
+
+        .checkin-slider::-webkit-slider-runnable-track {
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #8b5cf6 0%, #8b5cf6 var(--pct, 50%), #e5e7eb var(--pct, 50%), #e5e7eb 100%);
         }
 
         .checkin-slider::-webkit-slider-thumb {
@@ -1082,60 +1306,67 @@
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            background: #7c3aed;
+            background: #8b5cf6;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+            margin-top: -8px;
+            box-shadow: 0 2px 6px rgba(139, 92, 246, 0.35);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .checkin-slider::-webkit-slider-thumb:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+            transform: scale(1.08);
+        }
+
+        .checkin-slider::-moz-range-track {
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #8b5cf6 0%, #8b5cf6 var(--pct, 50%), #e5e7eb var(--pct, 50%), #e5e7eb 100%);
         }
 
         .checkin-slider::-moz-range-thumb {
             width: 24px;
             height: 24px;
             border-radius: 50%;
-            background: #7c3aed;
+            background: #8b5cf6;
             cursor: pointer;
             border: none;
-            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+            box-shadow: 0 2px 6px rgba(139, 92, 246, 0.35);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .checkin-slider::-moz-range-thumb:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+            transform: scale(1.08);
         }
 
         .checkin-slider-value {
             text-align: center;
-            font-size: 2rem;
+            font-size: 24px;
             font-weight: 600;
-            color: #7c3aed;
+            color: #374151;
+            margin-top: 12px;
         }
 
         .checkin-save-btn {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-            color: white;
+            width: 100%;
+            padding: 16px;
+            margin-top: 12px;
+            background: #8b5cf6;
+            color: #ffffff;
             border: none;
             border-radius: 12px;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+            transition: background 0.2s ease, transform 0.15s ease;
+            box-shadow: none;
         }
 
         .checkin-save-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(124, 58, 237, 0.4);
+            background: #7c3aed;
         }
 
         .checkin-save-btn:active {
-            transform: translateY(0);
+            transform: scale(0.99);
         }
 
         .empty-state {
@@ -1149,30 +1380,42 @@
 <body>
     <div class="container">
         <div class="header" id="pageHeader">
-            <div class="nav-controls">
-                <button class="nav-toggle-btn" onclick="toggleNavBox(event)" title="Navigation">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-                <div class="nav-box" id="navBox">
-                    <a href="opstilling_01.html" class="nav-button">Opstilling</a>
-                    <a href="dialog_01.html" class="nav-button">Dialog</a>
-                    <a href="compare_01.html" class="nav-button">Ligheder</a>
-                    <a href="bodymap_01.html" class="nav-button">BodyMap</a>
-                    <a href="logbog_01.html" class="nav-button active">Logbog</a>
-                    <a href="checkin.html" class="nav-button nav-checkin">Check in</a>
+            <div class="header-bar">
+                <div class="nav-controls">
+                    <button class="nav-toggle-btn" onclick="toggleNavBox(event)" title="Navigation">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                    <div class="nav-box" id="navBox">
+                        <a href="opstilling_01.html" class="nav-button">Opstilling</a>
+                        <a href="dialog_01.html" class="nav-button">Dialog</a>
+                        <a href="compare_01.html" class="nav-button">Ligheder</a>
+                        <a href="bodymap_01.html" class="nav-button">BodyMap</a>
+                        <a href="logbog_01.html" class="nav-button active">Logbog</a>
+                        <a href="checkin.html" class="nav-button nav-checkin">Check in</a>
+                    </div>
+                </div>
+                <div class="header-title-row">
+                    <div class="header-title-top">
+                        <img class="header-book-icon" src="imagefiles/bookikon.svg" alt="" aria-hidden="true">
+                        <h1>Logbog</h1>
+                    </div>
+                    <div class="header-book-meta-row">
+                        <button type="button" class="header-log-color-btn" id="headerLogHistoryColorBtn" title="Vælg farve for valgt dag">C</button>
+                        <span class="header-active-log-date" id="headerActiveLogDate" aria-live="polite"></span>
+                    </div>
                 </div>
             </div>
-            <h1>Logbog</h1>
         </div>
 
         <div class="content">
             <div class="log-layout">
                 <div class="log-primary">
-                    <section class="card tanker-card">
-                        <div class="card-title">
-                            <strong>TANKER</strong>
+                    <section class="card tanker-card tanker-overlay-content">
+                        <div class="tanker-title-row">
+                            <img src="imagefiles/Tree.svg" alt="" aria-hidden="true">
+                            <span class="tanker-title-text">Check-in tanker</span>
                         </div>
                         <div class="tanker-entry">
                             <textarea id="tankerEntry" readonly placeholder="Ingen tanker for denne dag"></textarea>
@@ -1184,20 +1427,26 @@
                             <div class="journal-entry">
                                 <label class="journal-title" for="logbookEntry">
                                     <span class="journal-title-content">
+                                        <img src="imagefiles/book.svg" alt="Dagbog ikon">
                                         Dagbog
-                                        <img src="imagefiles/write_log.svg" alt="Dagbog ikon">
                                     </span>
-                                    <button type="button" class="journal-copy-btn" id="journalCopyBtn">Kopier</button>
+                                    <span class="journal-title-actions">
+                                        <button type="button" class="journal-save-btn" id="journalSaveBtn">Gem</button>
+                                        <button type="button" class="journal-copy-btn" id="journalCopyBtn">Kopier</button>
+                                    </span>
                                 </label>
                                 <textarea id="logbookEntry" placeholder="Skriv dit dagbogsnotat her..."></textarea>
                             </div>
                             <div class="dreams-entry">
                                 <label class="dreams-title" for="dreamEntry">
                                     <span class="dreams-title-content">
-                                        Drømme
                                         <img src="imagefiles/moon.svg" alt="Måne ikon">
+                                        Drømme
                                     </span>
-                                    <button type="button" class="dreams-copy-btn" id="dreamsCopyBtn">Kopier</button>
+                                    <span class="dreams-title-actions">
+                                        <button type="button" class="dreams-save-btn" id="dreamsSaveBtn">Gem</button>
+                                        <button type="button" class="dreams-copy-btn" id="dreamsCopyBtn">Kopier</button>
+                                    </span>
                                 </label>
                                 <textarea id="dreamEntry" placeholder="Nedskriv dine drømme, fantasier og indskydelser ..."></textarea>
                             </div>
@@ -1206,14 +1455,16 @@
 
                     <section class="card checkins-card">
                         <div class="checkins-header">
-                            <div class="card-title">
-                                <strong>CHECKINS</strong>
+                            <div class="checkins-title-row">
+                                <span class="checkins-title-text">Check-Ins</span>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                            <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="Skift visning" title="Skift visning">
-                                <button class="checkin-days-btn" data-days="1" title="Vis 1 dag">1</button>
-                                <button class="checkin-days-btn" data-days="5" title="Vis 5 dage">5</button>
-                                <button class="checkin-days-btn" data-days="10" title="Vis 10 dage">10</button>
+                            <div class="checkins-controls">
+                                <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="Skift visning" title="Skift visning">
+                                <button type="button" class="checkin-days-btn" data-days="1" title="Vis 1 dag">1</button>
+                                <button type="button" class="checkin-days-btn" data-days="5" title="Vis 5 dage">5</button>
+                                <button type="button" class="checkin-days-btn" data-days="10" title="Vis 10 dage">10</button>
+                                <button type="button" class="checkin-days-btn" data-days="20" title="Vis 20 dage">20</button>
+                                <button type="button" class="checkin-plus-btn" id="openCheckinModal" title="Ny check-in"><span>+</span></button>
                             </div>
                         </div>
                         <div class="checkins-body" id="checkinsBody">
@@ -1230,14 +1481,15 @@
                         </div>
                     </section>
                 </div>
+            </div>
+            <div class="log-history-panel-shell" id="logHistoryPanelShell" aria-label="Historik-panel">
                 <aside class="log-history-sidebar" id="logHistorySidebar">
                     <div class="log-history-top-bar">
-                        <button class="log-collapse-toggle" onclick="toggleLogHistorySidebar()" title="Fold historik"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
+                        <h2 class="log-history-panel-title">Historik</h2>
                     </div>
                     <div class="log-history-content">
                         <div class="log-history-list" id="logHistoryList"></div>
                     </div>
-                    <button class="log-collapse-toggle log-collapse-toggle-bottom" onclick="toggleLogHistorySidebar()" title="Fold historik"><img src="imagefiles/arrow.svg" alt="Toggle"></button>
                 </aside>
             </div>
         </div>
@@ -1273,12 +1525,11 @@
 
     <script>
         const LOGBOOK_STORAGE_KEY = 'logbogData';
-        const LOG_HISTORY_COLLAPSED_KEY = 'logbog_historySidebarCollapsed';
         const BODYMAP_STORAGE_KEY = 'bodymapData';
 
         // Color presets for log history items (same as dialog collections)
         // Standard farve for alle history items
-        const DEFAULT_HISTORY_COLOR = '#b8735e'; // Varm rødlig brun som standard
+        const DEFAULT_HISTORY_COLOR = '#6366f1'; // Samme indigo som bogikon (Logbog)
         
         const LOG_HISTORY_COLOR_PRESETS = [
             '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
@@ -1448,8 +1699,8 @@
             
             const monthsToLoad = [currentMonthKey];
             
-            // If before the 7th, also load previous month
-            if (dayOfMonth <= 7) {
+            // Til og med d. 8: medtag også forrige måned (grace efter månedsskifte)
+            if (dayOfMonth <= 8) {
                 const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
                 const prevMonthKey = getMonthKey(prevMonth);
                 monthsToLoad.push(prevMonthKey);
@@ -1530,7 +1781,7 @@
                     taknem,
                     checkins: Array.isArray(day.checkins) ? day.checkins : [],
                     timestamp,
-                    color: day.color || '#b8735e'
+                    color: day.color || DEFAULT_HISTORY_COLOR
                 };
                 if (day.affirm != null && day.affirm !== '') {
                     entry.affirm = typeof day.affirm === 'string' ? day.affirm : String(day.affirm);
@@ -1651,77 +1902,57 @@
                         Object.keys(monthsIndexParsed).length > 0;
 
                     const monthsCollectionRef = userDocRef.collection('months');
-                    let monthsSnapshot = null;
                     if (!hasMonthlyStructure) {
-                        monthsSnapshot = await monthsCollectionRef.get();
-                        if (!monthsSnapshot.empty) {
+                        const probeSnap = await monthsCollectionRef.limit(1).get();
+                        if (!probeSnap.empty) {
                             hasMonthlyStructure = true;
                         }
                     }
 
                     if (hasMonthlyStructure) {
-                        const monthsToLoadSet = new Set(getMonthsToLoad());
+                        const initialMonthKeys = [...new Set(getMonthsToLoad())].sort((a, b) =>
+                            b.localeCompare(a)
+                        );
 
-                        Object.keys(monthsIndexParsed).forEach(mk => {
-                            if (getMonthLogbogCountFromIndex(mk, monthsIndexParsed) > 0) {
-                                monthsToLoadSet.add(mk);
-                            }
-                        });
+                        const monthsData = [];
+                        const loadedMonths = [];
 
-                        Object.keys(raw).forEach(key => {
-                            if (/^\d{4}-\d{2}$/.test(key)) {
-                                const monthData = raw[key] || {};
-                                if (monthHasLogbogData(monthData)) {
-                                    monthsToLoadSet.add(key);
-                                }
-                            }
-                        });
+                        for (const monthKey of initialMonthKeys) {
+                            let payload = null;
+                            const monthDataFromMain =
+                                raw[monthKey] && typeof raw[monthKey] === 'object' ? raw[monthKey] : null;
 
-                        const monthsDataMap = new Map();
-                        Array.from(monthsToLoadSet).forEach(monthKey => {
-                            const monthDataFromMain = raw[monthKey];
-                            if (monthDataFromMain) {
-                                monthsDataMap.set(monthKey, monthDataFromMain);
-                            }
-                        });
-
-                        try {
-                            if (!monthsSnapshot) {
-                                monthsSnapshot = await monthsCollectionRef.get();
+                            let monthDocSnap = null;
+                            try {
+                                monthDocSnap = await monthsCollectionRef.doc(monthKey).get();
+                            } catch (error) {
+                                console.error(`[LOAD] Error loading month doc ${monthKey}:`, error);
                             }
 
-                            monthsSnapshot.forEach(monthDoc => {
-                                const monthKey = monthDoc.id;
-                                const monthDataFromSub = monthDoc.data() || {};
-                                if (monthHasLogbogData(monthDataFromSub)) {
-                                    monthsToLoadSet.add(monthKey);
-                                }
+                            const monthDataFromSub =
+                                monthDocSnap && monthDocSnap.exists ? monthDocSnap.data() || {} : null;
 
-                                if (monthsDataMap.has(monthKey)) {
-                                    const existing = monthsDataMap.get(monthKey);
-                                    monthsDataMap.set(monthKey, {
-                                        opstilling: monthDataFromSub.opstilling || existing.opstilling,
-                                        dialog: monthDataFromSub.dialog || existing.dialog,
-                                        compare: monthDataFromSub.compare || existing.compare,
-                                        bodymap: monthDataFromSub.bodymap || existing.bodymap,
-                                        logbog: monthDataFromSub.logbog || existing.logbog
-                                    });
-                                } else {
-                                    monthsDataMap.set(monthKey, monthDataFromSub);
-                                }
-                            });
-                        } catch (error) {
-                            console.error(`[LOAD] Error loading subcollections:`, error);
+                            if (monthDataFromMain && monthDataFromSub) {
+                                payload = {
+                                    opstilling:
+                                        monthDataFromSub.opstilling || monthDataFromMain.opstilling,
+                                    dialog: monthDataFromSub.dialog || monthDataFromMain.dialog,
+                                    compare: monthDataFromSub.compare || monthDataFromMain.compare,
+                                    bodymap: monthDataFromSub.bodymap || monthDataFromMain.bodymap,
+                                    logbog: monthDataFromSub.logbog || monthDataFromMain.logbog
+                                };
+                            } else if (monthDataFromMain) {
+                                payload = monthDataFromMain;
+                            } else if (monthDataFromSub) {
+                                payload = monthDataFromSub;
+                            }
+
+                            if (payload !== null) {
+                                monthsData.push(payload);
+                                loadedMonths.push(monthKey);
+                            }
                         }
 
-                        Array.from(monthsToLoadSet).forEach(monthKey => {
-                            if (!monthsDataMap.has(monthKey) && raw[monthKey] && /^\d{4}-\d{2}$/.test(monthKey)) {
-                                monthsDataMap.set(monthKey, raw[monthKey]);
-                            }
-                        });
-
-                        const monthsToLoad = Array.from(monthsToLoadSet).sort((a, b) => b.localeCompare(a));
-                        const monthsData = monthsToLoad.map(monthKey => monthsDataMap.get(monthKey)).filter(m => m !== undefined);
                         const merged = mergeMonthlyData(monthsData);
 
                         let logbogData = merged.logbogData.length > 0 ? merged.logbogData : null;
@@ -1738,7 +1969,7 @@
                             userData: userData,
                             registreringer: registreringer,
                             monthsIndex: monthsIndexParsed,
-                            loadedMonths: monthsToLoad
+                            loadedMonths: loadedMonths
                         };
 
                         window.allUserData = data;
@@ -1808,7 +2039,7 @@
                     dreams: '',
                     checkins: [],
                     timestamp: new Date().toISOString(),
-                    color: '#b8735e'
+                    color: DEFAULT_HISTORY_COLOR
                 };
                 entries.push(entry);
                 await saveLogbookDataToFirestore(entries);
@@ -1829,7 +2060,7 @@
                     dreams: '',
                     checkins: [],
                     timestamp: new Date().toISOString(),
-                    color: '#b8735e'
+                    color: DEFAULT_HISTORY_COLOR
                 };
                 entries.push(entry);
             }
@@ -2308,8 +2539,43 @@
             return parsed.toLocaleDateString('da-DK', options).replace(/\./g, '');
         }
 
+        /** Sidehoved: "21. april 2026" */
+        function formatHeaderActiveDate(dateStr) {
+            if (!dateStr) return '';
+            const parsed = parseDanishDateTime(dateStr) || new Date(`${dateStr}T00:00:00`);
+            if (!parsed || Number.isNaN(parsed.getTime())) return dateStr;
+            const day = parsed.getDate();
+            const monthName = parsed.toLocaleDateString('da-DK', { month: 'long' });
+            const year = parsed.getFullYear();
+            return `${day}. ${monthName} ${year}`;
+        }
+
+        async function updateHeaderActiveLogDisplay() {
+            const dateEl = document.getElementById('headerActiveLogDate');
+            const colorBtn = document.getElementById('headerLogHistoryColorBtn');
+            const dateKey = activeLogDate;
+            if (dateEl) {
+                dateEl.textContent = formatHeaderActiveDate(dateKey);
+            }
+            if (!colorBtn) return;
+            colorBtn.dataset.date = dateKey || '';
+            const entries = await getLogbookData();
+            const entry = entries.find(e => e.date === dateKey);
+            let entryColor = (entry && entry.color) || DEFAULT_HISTORY_COLOR;
+            // Uafgjorte farver i modal: header matcher stadig valgt dag
+            const pending = window._pendingLogHistoryColorChanges;
+            if (pending && pending.has(dateKey)) {
+                const p = pending.get(dateKey);
+                entryColor = p === null ? DEFAULT_HISTORY_COLOR : p;
+            }
+            colorBtn.style.background = entryColor;
+            colorBtn.style.color = '#ffffff';
+        }
+
         // Track which months are expanded (by month key like "2024-11")
         const expandedMonths = new Set();
+        /** Måneder brugeren har lukket manuelt (overstyrer auto-åben indeværende/forrige) */
+        const logHistoryMonthsUserCollapsed = new Set();
 
         // Helper: Load month on-demand and merge with existing data
         async function loadMonthOnDemand(monthKey) {
@@ -2367,7 +2633,8 @@
 
         async function renderLogHistory(externalEntries = null, skipAutoScroll = false) {
             const listEl = document.getElementById('logHistoryList');
-            if (!listEl) return;
+            try {
+                if (!listEl) return;
 
             // Måneder med logbog: registreringer (web) + monthsIndex (Expo)
             let allAvailableMonths = [];
@@ -2442,7 +2709,7 @@
             // Current month is always expanded
             // Previous month is expanded if we're in the first 7 days of the current month
             const autoExpandedMonths = new Set([currentMonthKey]);
-            if (dayOfMonth <= 7) {
+            if (dayOfMonth <= 8) {
                 autoExpandedMonths.add(prevMonthKey);
             }
 
@@ -2450,9 +2717,10 @@
             for (const monthKey of sortedMonthKeys) {
                 const monthEntries = monthGroups[monthKey] || [];
                 const isCurrentOrGracePeriod = autoExpandedMonths.has(monthKey);
-                const isExpanded = isCurrentOrGracePeriod || expandedMonths.has(monthKey);
-                
-                // Count: loaded entries, ellers monthsIndex, ellers registreringer
+                const isExpanded =
+                    (autoExpandedMonths.has(monthKey) && !logHistoryMonthsUserCollapsed.has(monthKey)) ||
+                    expandedMonths.has(monthKey);
+
                 let entryCount = monthEntries.length;
                 if (entryCount === 0 && currentUser && db) {
                     const idxCount = getMonthLogbogCountFromIndex(monthKey, monthsIndexForHistory);
@@ -2472,70 +2740,77 @@
                         }
                     }
                 }
-                
-                // Skip months with 0 entries (unless it's current/grace period month)
+
                 if (entryCount === 0 && !isCurrentOrGracePeriod) {
                     continue;
                 }
 
-                // For non-current months, show a collapsible header
-                if (!isCurrentOrGracePeriod) {
-                    const monthHeader = document.createElement('div');
-                    monthHeader.className = 'log-history-month-header' + (isExpanded ? ' expanded' : '');
-                    monthHeader.dataset.monthKey = monthKey;
+                const monthHeader = document.createElement('button');
+                monthHeader.type = 'button';
+                monthHeader.className =
+                    'log-history-month-header' + (isExpanded ? ' expanded' : '');
+                monthHeader.dataset.monthKey = monthKey;
 
-                    // Parse month for display
-                    const [year, month] = monthKey.split('-');
-                    const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-                    const monthName = monthDate.toLocaleDateString('da-DK', { month: 'short' }).replace('.', '');
-                    const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+                const [year, month] = monthKey.split('-');
+                const monthDate = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+                const monthLong = monthDate.toLocaleDateString('da-DK', { month: 'long' });
+                const capitalizedMonth =
+                    monthLong.charAt(0).toUpperCase() + monthLong.slice(1);
 
-                    monthHeader.innerHTML = `
+                monthHeader.innerHTML = `
+                    <span class="log-history-month-text">
                         <span class="log-history-month-title">${capitalizedMonth} ${year}</span>
                         <span class="log-history-month-count">${entryCount} poster</span>
-                        <span class="log-history-month-arrow">${isExpanded ? '▼' : '▶'}</span>
-                    `;
+                    </span>
+                    <span class="log-history-month-arrow">${isExpanded ? '▼' : '▶'}</span>
+                `;
 
-                    monthHeader.addEventListener('click', async () => {
-                        // Remember header position relative to viewport before re-render
-                        const headerRect = monthHeader.getBoundingClientRect();
-                        const listRect = listEl.getBoundingClientRect();
-                        const offsetFromListTop = headerRect.top - listRect.top;
-                        
-                        if (expandedMonths.has(monthKey)) {
-                            expandedMonths.delete(monthKey);
+                monthHeader.addEventListener('click', async () => {
+                    const headerRect = monthHeader.getBoundingClientRect();
+                    const listRect = listEl.getBoundingClientRect();
+                    const offsetFromListTop = headerRect.top - listRect.top;
+
+                    const nowExpanded =
+                        (autoExpandedMonths.has(monthKey) &&
+                            !logHistoryMonthsUserCollapsed.has(monthKey)) ||
+                        expandedMonths.has(monthKey);
+
+                    if (nowExpanded) {
+                        if (autoExpandedMonths.has(monthKey)) {
+                            logHistoryMonthsUserCollapsed.add(monthKey);
                         } else {
+                            expandedMonths.delete(monthKey);
+                        }
+                    } else {
+                        logHistoryMonthsUserCollapsed.delete(monthKey);
+                        if (!autoExpandedMonths.has(monthKey)) {
                             expandedMonths.add(monthKey);
-                            // Load month on-demand if not already loaded
-                            await loadMonthOnDemand(monthKey);
                         }
-                        
-                        // Store scroll restore info globally so renderLogHistory can use it
-                        window._monthScrollRestore = {
-                            monthKey: monthKey,
-                            offsetFromListTop: offsetFromListTop
-                        };
-                        
-                        // Re-render with updated data
-                        const updatedEntries = await getSortedLogEntries();
-                        await renderLogHistory(updatedEntries, true);
-                        
-                        // Update checkin chart if it exists (new data may have been loaded)
-                        if (typeof renderCheckinChart === 'function') {
-                            renderCheckinChart();
-                        }
-                    });
+                        await loadMonthOnDemand(monthKey);
+                    }
 
-                    listEl.appendChild(monthHeader);
+                    window._monthScrollRestore = {
+                        monthKey: monthKey,
+                        offsetFromListTop: offsetFromListTop
+                    };
+
+                    const updatedEntries = await getSortedLogEntries();
+                    await renderLogHistory(updatedEntries, true);
+
+                    if (typeof renderCheckinChart === 'function') {
+                        renderCheckinChart();
+                    }
+                });
+
+                listEl.appendChild(monthHeader);
+
+                if (!isExpanded) {
+                    continue;
                 }
-
-                // Only render entries if expanded
-                if (!isExpanded) return;
 
                 monthEntries.forEach(entry => {
                 const item = document.createElement('div');
                 item.className = 'log-history-item';
-                // Mark item with its date so color picker can live-update styling without saving
                 if (entry.date) {
                     item.dataset.date = entry.date;
                 }
@@ -2545,61 +2820,35 @@
                     activeItemEl = item;
                 }
 
-                // Apply color if exists (matching other pages logic)
                 const entryColor = entry.color || DEFAULT_HISTORY_COLOR;
-                const baseBackground = lightenHex(entryColor, isActive ? 0.35 : 0.7);
-                item.style.backgroundColor = baseBackground;
-                item.style.borderColor = isActive ? entryColor : 'transparent';
 
-                const headerEl = document.createElement('div');
-                headerEl.className = 'log-history-item-header';
-                // Set header background to entry color (pill-shape styling)
-                headerEl.style.backgroundColor = entryColor;
-                headerEl.style.color = '#ffffff';
+                const colorBar = document.createElement('div');
+                colorBar.className = 'log-history-item-color-bar';
+                colorBar.style.backgroundColor = entryColor;
 
-                const dateLabelEl = document.createElement('div');
-                dateLabelEl.className = 'log-history-item-date';
-                dateLabelEl.textContent = formatLogHistoryDate(entry.date, { day: '2-digit', month: 'short', year: '2-digit' });
-                headerEl.appendChild(dateLabelEl);
+                const bodyEl = document.createElement('div');
+                bodyEl.className = 'log-history-item-body';
 
-                const colorBtn = document.createElement('button');
-                colorBtn.className = 'log-history-color-btn';
-                colorBtn.textContent = 'C';
-                colorBtn.title = 'Vælg farve';
-                if (entry.date) {
-                    colorBtn.dataset.date = entry.date;
-                }
-                // Make color button lighter version of entry color
-                colorBtn.style.background = lightenHex(entryColor, 0.3);
-                colorBtn.style.color = '#ffffff';
-                // Color button handlers - both touch and click for mobile compatibility
-                const handleColorClick = (e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    openLogHistoryColorPicker(entry.date);
-                };
-                
-                colorBtn.addEventListener('click', handleColorClick);
-                colorBtn.addEventListener('touchend', (e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    handleColorClick(e);
-                }, { passive: false });
-                headerEl.appendChild(colorBtn);
+                const titleEl = document.createElement('div');
+                titleEl.className = 'log-history-item-title';
+                titleEl.textContent = formatLogHistoryDate(entry.date, {
+                    day: '2-digit',
+                    month: 'short',
+                    year: '2-digit'
+                });
 
-                const weekDayEl = document.createElement('div');
-                weekDayEl.className = 'log-history-item-weekday';
-                const parsedWeekdayDate = parseDanishDateTime(entry.date) || new Date(`${entry.date}T00:00:00`);
-                let weekdayText = !parsedWeekdayDate || Number.isNaN(parsedWeekdayDate.getTime())
-                    ? formatLogHistoryDate(entry.date, { weekday: 'long' })
-                    : parsedWeekdayDate.toLocaleDateString('da-DK', { weekday: 'long' });
-                
-                // Capitalize first letter of weekday
-                weekdayText = weekdayText.charAt(0).toUpperCase() + weekdayText.slice(1);
-                
-                // Add character count to weekday line
+                const subEl = document.createElement('div');
+                subEl.className = 'log-history-item-subtitle';
+                const parsedWeekdayDate =
+                    parseDanishDateTime(entry.date) || new Date(`${entry.date}T00:00:00`);
+                let weekdayText =
+                    !parsedWeekdayDate || Number.isNaN(parsedWeekdayDate.getTime())
+                        ? formatLogHistoryDate(entry.date, { weekday: 'long' })
+                        : parsedWeekdayDate.toLocaleDateString('da-DK', { weekday: 'long' });
+                weekdayText =
+                    weekdayText.charAt(0).toUpperCase() + weekdayText.slice(1);
                 const totalChars = (entry.dagbog || '').length + (entry.dreams || '').length;
-                weekDayEl.textContent = `${weekdayText} • ${totalChars} tegn`;
+                subEl.textContent = `${weekdayText} • ${totalChars} tegn`;
 
                 const snippetEl = document.createElement('div');
                 snippetEl.className = 'log-history-item-snippet';
@@ -2607,12 +2856,15 @@
                 if (snippetSource.length === 0) {
                     snippetEl.textContent = 'Ingen noter endnu.';
                 } else {
-                    const shortened = snippetSource.length > 41 ? `${snippetSource.slice(0, 41)}…` : snippetSource;
+                    const shortened =
+                        snippetSource.length > 41
+                            ? `${snippetSource.slice(0, 41)}…`
+                            : snippetSource;
                     snippetEl.textContent = shortened;
                 }
 
-                // Removed bottom meta line with date - no longer needed
-                item.append(headerEl, weekDayEl, snippetEl);
+                bodyEl.append(titleEl, subEl, snippetEl);
+                item.append(colorBar, bodyEl);
 
                 // Shared handler function for both touch and click
                 const handleItemActivation = async (e) => {
@@ -2637,11 +2889,6 @@
                 }, { passive: true });
                 
                 item.addEventListener('touchend', (e) => {
-                    // Don't handle touches on color button - it has its own handler
-                    if (e.target.classList.contains('log-history-color-btn')) {
-                        return;
-                    }
-                    
                     // Only handle if it was a quick tap (not a scroll)
                     const touchDuration = Date.now() - touchStartTime;
                     if (touchDuration < 300) { // Quick tap, not a scroll
@@ -2665,7 +2912,14 @@
 
                 listEl.appendChild(item);
                 });
-            } // End of sortedMonthKeys for...of loop
+            }
+
+            if (listEl.children.length === 0) {
+                const emptyEl = document.createElement('div');
+                emptyEl.className = 'log-history-empty';
+                emptyEl.textContent = 'Ingen poster';
+                listEl.appendChild(emptyEl);
+            }
 
             // Handle scroll restoration for month fold/unfold
             if (window._monthScrollRestore) {
@@ -2684,6 +2938,9 @@
                         listEl.scrollTop = activeItemEl.offsetTop - listEl.offsetHeight / 2;
                     }
                 });
+            }
+            } finally {
+                await updateHeaderActiveLogDisplay();
             }
         }
 
@@ -2755,7 +3012,7 @@
             const entries = await getLogbookData();
             let entry = entries.find(item => item.date === activeLogDate);
             if (!entry) {
-                entry = { date: getLocalDateKey(), dagbog: '', dreams: '', timestamp: new Date().toISOString() };
+                entry = { date: activeLogDate, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
                 entries.push(entry);
                 // Don't save - it's a load operation, entry will be saved when user edits
             }
@@ -2951,18 +3208,6 @@
             }
         }
 
-        function toggleLogHistorySidebar() {
-            const sidebar = document.getElementById('logHistorySidebar');
-            if (!sidebar) return;
-
-            const collapsed = sidebar.classList.toggle('collapsed');
-            try {
-                localStorage.setItem(LOG_HISTORY_COLLAPSED_KEY, String(collapsed));
-            } catch (error) {
-                console.warn('Kunne ikke gemme historiktilstand:', error);
-            }
-        }
-
         function buildLogHistoryColorGrid() {
             const gridEl = document.getElementById('logHistoryColorGrid');
             if (!gridEl) return;
@@ -3039,22 +3284,15 @@
             // Live-update UI for the selected history item without saving to Firestore yet
             const item = document.querySelector(`.log-history-item[data-date="${logHistoryColorPickerTarget}"]`);
             if (item) {
-                const isActive = item.classList.contains('active');
-                const baseBackground = lightenHex(color, isActive ? 0.35 : 0.7);
-                item.style.backgroundColor = baseBackground;
-                item.style.borderColor = isActive ? color : 'transparent';
-                
-                // Update header background color
-                const headerEl = item.querySelector('.log-history-item-header');
-                if (headerEl) {
-                    headerEl.style.backgroundColor = color;
-                    headerEl.style.color = '#ffffff';
+                const bar = item.querySelector('.log-history-item-color-bar');
+                if (bar) {
+                    bar.style.backgroundColor = color;
                 }
             }
-            const colorBtn = document.querySelector(`.log-history-color-btn[data-date="${logHistoryColorPickerTarget}"]`);
-            if (colorBtn) {
-                colorBtn.style.background = lightenHex(color, 0.3);
-                colorBtn.style.color = '#ffffff';
+            const headerColorBtn = document.getElementById('headerLogHistoryColorBtn');
+            if (headerColorBtn && logHistoryColorPickerTarget === activeLogDate) {
+                headerColorBtn.style.background = color;
+                headerColorBtn.style.color = '#ffffff';
             }
             // Don't close overlay - only close when clicking outside or pressing Escape
         }
@@ -3070,22 +3308,15 @@
             // Live-update UI for the selected history item (remove color) without saving endnu
             const item = document.querySelector(`.log-history-item[data-date="${logHistoryColorPickerTarget}"]`);
             if (item) {
-                const isActive = item.classList.contains('active');
-                const baseBackground = lightenHex(DEFAULT_HISTORY_COLOR, isActive ? 0.35 : 0.7);
-                item.style.backgroundColor = baseBackground;
-                item.style.borderColor = isActive ? DEFAULT_HISTORY_COLOR : 'transparent';
-                
-                // Update header background color to default
-                const headerEl = item.querySelector('.log-history-item-header');
-                if (headerEl) {
-                    headerEl.style.backgroundColor = DEFAULT_HISTORY_COLOR;
-                    headerEl.style.color = '#ffffff';
+                const bar = item.querySelector('.log-history-item-color-bar');
+                if (bar) {
+                    bar.style.backgroundColor = DEFAULT_HISTORY_COLOR;
                 }
             }
-            const colorBtn = document.querySelector(`.log-history-color-btn[data-date="${logHistoryColorPickerTarget}"]`);
-            if (colorBtn) {
-                colorBtn.style.background = lightenHex(DEFAULT_HISTORY_COLOR, 0.3);
-                colorBtn.style.color = '#ffffff';
+            const headerColorBtn = document.getElementById('headerLogHistoryColorBtn');
+            if (headerColorBtn && logHistoryColorPickerTarget === activeLogDate) {
+                headerColorBtn.style.background = DEFAULT_HISTORY_COLOR;
+                headerColorBtn.style.color = '#ffffff';
             }
             // Don't close overlay - only close when clicking outside or pressing Escape
         }
@@ -3095,6 +3326,42 @@
         let dreamInputHandler = null;
         let logbookDebounceTimeout = null;
         let dreamDebounceTimeout = null;
+
+        async function saveJournalFieldNow() {
+            if (logbookDebounceTimeout) {
+                clearTimeout(logbookDebounceTimeout);
+                logbookDebounceTimeout = null;
+            }
+            const logbookEntryEl = document.getElementById('logbookEntry');
+            if (!logbookEntryEl) return;
+            await updateActiveLogEntry('dagbog', logbookEntryEl.value);
+            const btn = document.getElementById('journalSaveBtn');
+            if (btn) {
+                const original = btn.textContent;
+                btn.textContent = 'Gemt!';
+                setTimeout(() => {
+                    btn.textContent = original;
+                }, 1500);
+            }
+        }
+
+        async function saveDreamFieldNow() {
+            if (dreamDebounceTimeout) {
+                clearTimeout(dreamDebounceTimeout);
+                dreamDebounceTimeout = null;
+            }
+            const dreamEntryEl = document.getElementById('dreamEntry');
+            if (!dreamEntryEl) return;
+            await updateActiveLogEntry('dreams', dreamEntryEl.value);
+            const btn = document.getElementById('dreamsSaveBtn');
+            if (btn) {
+                const original = btn.textContent;
+                btn.textContent = 'Gemt!';
+                setTimeout(() => {
+                    btn.textContent = original;
+                }, 1500);
+            }
+        }
 
         function autoResizeTextarea(textarea) {
             if (!textarea) return;
@@ -3574,7 +3841,7 @@
             const parent = canvas.parentElement;
 
             const dpr = window.devicePixelRatio || 1;
-            const height = 240;
+            const height = 220;
             
             // Get parent width (chart-wrapper) - canvas should fill it completely
             const baseWidth = parent.clientWidth || parent.offsetWidth;
@@ -3609,16 +3876,16 @@
             ctx.beginPath();
             ctx.rect(0, 0, width, height);
             ctx.clip();
-            ctx.fillStyle = '#FFFBEB';
+            ctx.fillStyle = 'rgba(252, 211, 77, 0.3)';
             ctx.fillRect(0, 0, width, height / 2);
-            ctx.fillStyle = '#F0F9FF';
+            ctx.fillStyle = 'rgba(191, 219, 254, 0.3)';
             ctx.fillRect(0, height / 2, width, height / 2);
             ctx.restore();
 
             if (!data.length) {
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = '#94a3b8';
+                ctx.fillStyle = '#9ca3af';
                 ctx.font = '16px Arial';
                 ctx.fillText('Ingen check-ins endnu', width / 2, height / 2);
                 return;
@@ -3653,9 +3920,11 @@
                     const yMinLine = padding.top + chartHeight - (minVal / 100) * chartHeight;
                     const yMaxLine = padding.top + chartHeight - (maxVal / 100) * chartHeight;
 
-                    ctx.strokeStyle = '#047857';
+                    ctx.save();
+                    ctx.strokeStyle = '#10b981';
+                    ctx.globalAlpha = 0.5;
                     ctx.lineWidth = 2;
-                    ctx.setLineDash([6, 6]);
+                    ctx.setLineDash([5, 5]);
                     ctx.beginPath();
                     ctx.moveTo(0, yMaxLine);
                     ctx.lineTo(width, yMaxLine);
@@ -3664,13 +3933,14 @@
                     ctx.moveTo(0, yMinLine);
                     ctx.lineTo(width, yMinLine);
                     ctx.stroke();
+                    ctx.restore();
                     ctx.setLineDash([]);
                 }
             }
 
             // Gennemsnit: solid linje
-            ctx.strokeStyle = '#059669';
-            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(0, yAverage);
             ctx.lineTo(width, yAverage);
@@ -3688,7 +3958,7 @@
             // Draw line connecting points
             const step = chartWidth / xRange;
             ctx.strokeStyle = '#8b5cf6';
-            ctx.lineWidth = 3.5;
+            ctx.lineWidth = 3;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
             ctx.beginPath();
@@ -3791,7 +4061,7 @@
                     ctx.fillStyle = 'white';
                     ctx.fill();
                     ctx.strokeStyle = '#8b5cf6';
-                    ctx.lineWidth = 2.5;
+                    ctx.lineWidth = 2;
                     ctx.stroke();
                 } else {
                     // Filled circle - darker for single entries (size 100)
@@ -3803,24 +4073,21 @@
                 }
             });
 
-            // X-axis labels
-            ctx.fillStyle = '#475569';
-            ctx.font = '12px Arial';
+            // X-axis labels (dag: fed 14px, måned: 12px)
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
 
             labels.forEach((dateKey, index) => {
-                // Position labels at noon (kl. 12) - index + 0.5
                 const x = padding.left + (index + 0.5 - xMin) * step;
                 const dateObj = new Date(dateKey);
-                
-                // Get day and month separately for two-line display
                 const day = dateObj.toLocaleDateString('da-DK', { day: '2-digit' });
                 const month = dateObj.toLocaleDateString('da-DK', { month: 'short' }).replace('.', '');
-                
-                // Draw day on first line (inside chart area, near bottom)
-                ctx.fillText(day, x, height - 28);
-                // Draw month on second line
+
+                ctx.fillStyle = '#374151';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(day, x, height - 30);
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '12px Arial';
                 ctx.fillText(month, x, height - 14);
             });
 
@@ -4153,6 +4420,11 @@
 
             if (!modal || !closeBtn || !slider || !sliderValue || !saveBtn) return;
 
+            const syncCheckinSliderTrack = () => {
+                slider.style.setProperty('--pct', `${slider.value}%`);
+            };
+            syncCheckinSliderTrack();
+
             // Check if user can make a new check-in
             const checkIfCanMakeCheckin = async () => {
                 if (!currentUser || !db) {
@@ -4210,7 +4482,8 @@
                     }
                     modal.classList.add('show');
                     slider.value = 50;
-                    sliderValue.textContent = 50;
+                    sliderValue.textContent = '50';
+                    syncCheckinSliderTrack();
                 });
             }
 
@@ -4226,8 +4499,9 @@
                 }
             });
 
-            // Update slider value display
+            // Update slider value display and track fill
             slider.addEventListener('input', (e) => {
+                syncCheckinSliderTrack();
                 sliderValue.textContent = e.target.value;
             });
 
@@ -4262,7 +4536,7 @@
                             dreams: '',
                             checkins: [],
                             timestamp: now.toISOString(),
-                            color: '#b8735e'
+                            color: DEFAULT_HISTORY_COLOR
                         };
                         logbogData.push(entry);
                     }
@@ -4462,11 +4736,11 @@
             initCheckinDaysButtons();
             initCheckinViewToggle();
             initCheckinModal();
-            renderCheckinChart();
             
-            // 4. Load data ÉN gang
+            // 4. Load data ÉN gang (check-in graf efter cache er fyldt)
             const entries = await ensureSeedLogbookData();
             console.log('[INIT] Loaded logbook data, entries:', entries?.length || 0);
+            await renderCheckinChart();
             
             // 5. Wait for DOM to be fully rendered
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -4521,12 +4795,39 @@
                 }
             });
 
+            const headerLogColorBtn = document.getElementById('headerLogHistoryColorBtn');
+            if (headerLogColorBtn) {
+                headerLogColorBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    openLogHistoryColorPicker(activeLogDate);
+                });
+            }
+
             // Add copy button functionality
+            const journalSaveBtn = document.getElementById('journalSaveBtn');
+            if (journalSaveBtn) {
+                journalSaveBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    saveJournalFieldNow();
+                });
+            }
+
             const journalCopyBtn = document.getElementById('journalCopyBtn');
             if (journalCopyBtn) {
                 journalCopyBtn.addEventListener('click', (e) => {
                     e.stopPropagation(); // Prevent triggering the label's click
                     copyLogbookEntry();
+                });
+            }
+
+            const dreamsSaveBtn = document.getElementById('dreamsSaveBtn');
+            if (dreamsSaveBtn) {
+                dreamsSaveBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    saveDreamFieldNow();
                 });
             }
 
@@ -4562,18 +4863,6 @@
             }
 
             window.addEventListener('storage', handleLogbookStorageEvent);
-
-            const historySidebar = document.getElementById('logHistorySidebar');
-            if (historySidebar) {
-                // Default to collapsed (true) unless explicitly set to false in localStorage
-                const savedState = localStorage.getItem(LOG_HISTORY_COLLAPSED_KEY);
-                const collapsedState = savedState === null ? true : savedState === 'true';
-                if (collapsedState) {
-                    historySidebar.classList.add('collapsed');
-                } else {
-                    historySidebar.classList.remove('collapsed');
-                }
-            }
 
             window.addEventListener('resize', () => {
                 renderCheckinChart();
