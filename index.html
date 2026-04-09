@@ -404,6 +404,7 @@
             <div class="debug-overlay-content">
                 <button type="button" class="debug-button" id="debugDownloadBtn">📦 Download al data</button>
                 <button type="button" class="debug-button" id="debugRestoreBtn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">🔄 Restore fra backup</button>
+                <button type="button" class="debug-button" id="uploadUserDataBtn" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">📤 Upload userData til Firestore</button>
                 <button type="button" class="debug-button" id="restoreDecemberLogbogBtn" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">📅 GENDAN: December logbog fra backup</button>
             </div>
         </div>
@@ -999,6 +1000,114 @@ const firebaseConfig = {
                         setTimeout(() => {
                             debugRestoreBtn.textContent = '🔄 Restore fra backup';
                             debugRestoreBtn.disabled = false;
+                        }, 2000);
+                    }
+                };
+                
+                fileInput.click();
+            });
+        }
+        
+        // Upload userData to Firestore
+        const uploadUserDataBtn = document.getElementById('uploadUserDataBtn');
+        if (uploadUserDataBtn) {
+            uploadUserDataBtn.addEventListener('click', async function() {
+                if (!currentUser) {
+                    alert('Du skal være logget ind for at uploade userData');
+                    return;
+                }
+                
+                // Create file input
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json';
+                
+                fileInput.onchange = async (e) => {
+                    try {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        
+                        uploadUserDataBtn.disabled = true;
+                        uploadUserDataBtn.textContent = '⏳ Læser fil...';
+                        
+                        console.log('📂 Læser fil...');
+                        const text = await file.text();
+                        const uploadedData = JSON.parse(text);
+                        
+                        console.log('✅ Fil parsed. Struktur:', Object.keys(uploadedData));
+                        
+                        // Accept the entire file content as userData - no parsing/transformation
+                        // The file can have any structure, we just upload it as-is
+                        let userDataToUpload = uploadedData;
+                        
+                        if (!userDataToUpload || typeof userDataToUpload !== 'object') {
+                            alert('❌ Filen skal indeholde gyldig JSON data.');
+                            uploadUserDataBtn.textContent = '📤 Upload userData til Firestore';
+                            uploadUserDataBtn.disabled = false;
+                            return;
+                        }
+                        
+                        console.log('💾 Data klar til upload (hele filen):', Object.keys(userDataToUpload));
+                        
+                        // Confirm with user
+                        const confirmMsg = `Vil du overskrive userData i Firestore?\n\nDette vil overskrive den nuværende userData for ${currentUser.email}!\n\nHele filens indhold vil blive gemt som userData.\n\nBekræft for at fortsætte.`;
+                        
+                        if (!confirm(confirmMsg)) {
+                            uploadUserDataBtn.textContent = '📤 Upload userData til Firestore';
+                            uploadUserDataBtn.disabled = false;
+                            return;
+                        }
+                        
+                        uploadUserDataBtn.textContent = '⏳ Uploader...';
+                        
+                        const userDocRef = db.collection('users').doc(currentUser.uid);
+                        
+                        // Upload the entire file content as userData - no transformation
+                        // Ensure timezone exists if it's a userData-like structure, otherwise just save as-is
+                        let dataToSave = userDataToUpload;
+                        
+                        // Only add timezone if it looks like userData structure (has displayName, email, etc.)
+                        // Otherwise save exactly as uploaded
+                        if (userDataToUpload.displayName || userDataToUpload.email || userDataToUpload.profile) {
+                            dataToSave = {
+                                ...userDataToUpload,
+                                timezone: userDataToUpload.timezone || userDataToUpload.user?.profile?.timezone || detectUserTimezone()
+                            };
+                        }
+                        
+                        // Update Firestore - overwrite userData field with entire file content
+                        await userDocRef.set({
+                            userData: dataToSave,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        
+                        console.log('✅ USERDATA UPLOADED TO FIRESTORE!');
+                        
+                        // Also update localStorage if it looks like userData structure
+                        if (dataToSave.displayName || dataToSave.profile) {
+                            const dataToSaveLocal = {
+                                ...dataToSave,
+                                You: dataToSave.displayName || dataToSave.profile?.nickname || dataToSave.You || ''
+                            };
+                            localStorage.setItem('indexuserData', JSON.stringify(dataToSaveLocal));
+                            console.log('✅ UserData også opdateret i localStorage');
+                        }
+                        
+                        uploadUserDataBtn.textContent = '✅ UserData uploaded!';
+                        alert('✅ UserData er uploaded og overskrevet i Firestore!\n\nReload siden for at se ændringerne.');
+                        
+                        setTimeout(() => {
+                            uploadUserDataBtn.textContent = '📤 Upload userData til Firestore';
+                            uploadUserDataBtn.disabled = false;
+                        }, 2000);
+                        
+                    } catch (error) {
+                        console.error('❌ Upload userData fejl:', error);
+                        alert('Fejl ved upload: ' + error.message);
+                        uploadUserDataBtn.textContent = '❌ Fejl - prøv igen';
+                        setTimeout(() => {
+                            uploadUserDataBtn.textContent = '📤 Upload userData til Firestore';
+                            uploadUserDataBtn.disabled = false;
                         }, 2000);
                     }
                 };

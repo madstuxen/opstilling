@@ -379,10 +379,6 @@ Viser valg som knapper eller en slider og gemmer automatisk værdien.
 - Slider (vælg input_type=slider): min, max, step, labels.
 - Next.
 
-SAVE
-Stiller et spørgsmål og gemmer frit tekstsvar i variabel.
-- Question, Save As, Next.
-
 BRANCH
 Eksekverer regler linje for linje. Kan sætte variabler og hoppe videre.
 - Rules (én regel pr. linje), Next (fallback).
@@ -391,7 +387,6 @@ Eksekverer regler linje for linje. Kan sætte variabler og hoppe videre.
 - Læs: {{navn}} (indsætter værdi i tekst, understøtter også {{a + b}} m.m.)
 - Skriv (i regler): <<navn>>
 - Choice: Question med <<navn>> gemmer automatisk valgt værdi i navnet.
-- Save: gemmer input i Save As-variablen.
 - Test Variabler: foruddefinér værdier (én pr. linje) før du starter.
 
 === BRANCH-REGLER — SYNTAX ===
@@ -712,9 +707,9 @@ Der startes på den node, som er angivet i start_node.
 								nodes[${index}].type = this.value;
 								
 								// Clean up irrelevant fields when changing type
-								if (this.value === 'choice' || this.value === 'save') {
+								if (this.value === 'choice') {
 									// Moving to single question type
-									if (oldType !== 'choice' && oldType !== 'save') {
+									if (oldType !== 'choice') {
 										delete nodes[${index}].questions;
 									}
 								} else if (this.value === 'branch') {
@@ -728,7 +723,7 @@ Der startes på den node, som er angivet i start_node.
 									delete nodes[${index}].cases;
 								} else {
 									// Moving to all/pick/random
-									if (oldType === 'choice' || oldType === 'save') {
+									if (oldType === 'choice') {
 										delete nodes[${index}].question;
 									}
 									if (oldType === 'branch') {
@@ -737,14 +732,13 @@ Der startes på den node, som er angivet i start_node.
 								}
 								
 								// Clean up type-specific fields
-								if (this.value !== 'save') delete nodes[${index}].save_as;
 								if (this.value !== 'branch') {
 									delete nodes[${index}].cases;
 									delete nodes[${index}].check;
 									delete nodes[${index}].rules;
 								}
 								if (this.value !== 'random') delete nodes[${index}].count;
-								if (this.value === 'save' || this.value === 'branch') delete nodes[${index}].items;
+								if (this.value === 'branch') delete nodes[${index}].items;
 								
 								renderNodes();
 								updateJSON();
@@ -753,7 +747,6 @@ Der startes på den node, som er angivet i start_node.
 							<option value="pick" ${node.type === 'pick' ? 'selected' : ''}>Pick</option>
 							<option value="random" ${node.type === 'random' ? 'selected' : ''}>Random</option>
 							<option value="choice" ${node.type === 'choice' ? 'selected' : ''}>Choice</option>
-							<option value="save" ${node.type === 'save' ? 'selected' : ''}>Save</option>
 							<option value="branch" ${node.type === 'branch' ? 'selected' : ''}>Branch</option>
 						</select>
                     </div>
@@ -763,19 +756,18 @@ Der startes på den node, som er angivet i start_node.
 							<div class="field">
 							<label>${
 								node.type === 'choice' ? 'Question (du navngiver selv variablen der gemmes &lt;&lt;min_variabel&gt;&gt;)' :
-								node.type === 'save' ? 'Question (svaret er en fri tekst, den gemmes under det navn du skriver i Save As)' :
 								'Questions (tom linje mellem spørgsmål)'
 							}</label>
 							<textarea rows="5" 
-								placeholder="${(node.type === 'choice' || node.type === 'save') ? (node.type === 'choice' ? 'Hvad vil du tale om &lt;&lt;min_variabel&gt;&gt;?&#10;vises som:&#10;Hvad vil du tale om &lt;knap&gt; &lt;knap&gt; &lt;knap&gt;?' : 'Hvad vil du tale om?') : 'Spørgsmål A&#10;&#10;Spørgsmål B&#10;&#10;Spørgsmål C'}"
+								placeholder="${node.type === 'choice' ? 'Hvad vil du tale om &lt;&lt;min_variabel&gt;&gt;?&#10;vises som:&#10;Hvad vil du tale om &lt;knap&gt; &lt;knap&gt; &lt;knap&gt;?' : 'Spørgsmål A&#10;&#10;Spørgsmål B&#10;&#10;Spørgsmål C'}"
 								onchange="
-									if (nodes[${index}].type === 'choice' || nodes[${index}].type === 'save') {
+									if (nodes[${index}].type === 'choice') {
 										nodes[${index}].question = this.value;
 									} else {
 										nodes[${index}].questions = this.value.split('\\n\\n').map(q => q.trim()).filter(q => q);
 									}
 									updateJSON();
-								">${(node.type === 'choice' || node.type === 'save') ? (node.question || '') : (node.questions || []).join('\n\n')}</textarea>
+								">${node.type === 'choice' ? (node.question || '') : (node.questions || []).join('\n\n')}</textarea>
 						</div>
 					` : ''}
 					
@@ -838,10 +830,34 @@ Der startes på den node, som er angivet i start_node.
                 updateJSON();
             ">
         </div>
+        <div class="field">
+            <label>Ikon (venstre)</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" value="${(node.icons && node.icons[0]) ? node.icons[0] : ''}"
+                    onchange="
+                        if (!nodes[${index}].icons) nodes[${index}].icons = [];
+                        nodes[${index}].icons[0] = this.value;
+                        updateJSON();
+                    " placeholder="fx cloud.svg" style="flex: 1;">
+                <button type="button" class="btn btn-secondary" onclick="pickIcon(${index}, 0)">Browse</button>
+            </div>
+        </div>
+        <div class="field">
+            <label>Ikon (højre)</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="text" value="${(node.icons && node.icons[1]) ? node.icons[1] : ''}"
+                    onchange="
+                        if (!nodes[${index}].icons) nodes[${index}].icons = [];
+                        nodes[${index}].icons[1] = this.value;
+                        updateJSON();
+                    " placeholder="fx sun.svg" style="flex: 1;">
+                <button type="button" class="btn btn-secondary" onclick="pickIcon(${index}, 1)">Browse</button>
+            </div>
+        </div>
     ` : ''}
 ` : ''}
 
-					${node.type !== 'save' && node.type !== 'branch' && node.type !== 'choice' ? `
+					${node.type !== 'branch' && node.type !== 'choice' ? `
 						<div class="field">
 							<label>Items (komma-separeret eller variabel-navn. Brug {{item}} i questions)</label>
 							<input type="text" value="${Array.isArray(node.items) ? node.items.join(', ') : (node.items || '')}"
@@ -874,17 +890,19 @@ Der startes på den node, som er angivet i start_node.
                                 onchange="nodes[${index}].count = parseInt(this.value); updateJSON();">
                         </div>
                     ` : ''}
-					${node.type === 'save' ? `
-						<div class="field">
-							<label>Save As (variabelnavn)</label>
-							<input type="text" value="${node.save_as || ''}" 
-								onchange="nodes[${index}].save_as = this.value; updateJSON();"
-								placeholder="f.eks. tema">
-						</div>
+					${node.type !== 'branch' ? `
+					<div class="field">
+						<label>
+							<input type="checkbox" ${node.save ? 'checked' : ''}
+								onchange="
+									if (this.checked) nodes[${index}].save = true;
+									else delete nodes[${index}].save;
+									updateJSON();
+								" style="width: auto; margin-right: 8px;">
+							Save
+						</label>
+					</div>
 					` : ''}
-					
-					
-                    
 					<div class="field">
 						<label>Next Node (tomt = slut)</label>
 						<input type="text" value="${node.next || ''}" 
@@ -924,9 +942,7 @@ Der startes på den node, som er angivet i start_node.
 					
 					// Build type info with variable names
 					let typeInfo = node.type;
-					if (node.type === 'save' && node.save_as) {
-						typeInfo += `: ${node.save_as}`;
-					} else if (node.type === 'choice' && node.question) {
+					if (node.type === 'choice' && node.question) {
 						const match = node.question.match(/<<([^>]+)>>/);
 						if (match) typeInfo += `: ${match[1]}`;
 					} else if (node.type === 'branch' && node.check) {
@@ -982,9 +998,7 @@ Der startes på den node, som er angivet i start_node.
 					looseNodes.forEach(nodeId => {
 						const node = sessionData.nodes.find(n => n.id === nodeId);
 						let typeInfo = node.type;
-						if (node.type === 'save' && node.save_as) {
-							typeInfo += `: ${node.save_as}`;
-						} else if (node.type === 'choice' && node.question) {
+						if (node.type === 'choice' && node.question) {
 							const match = node.question.match(/<<([^>]+)>>/);
 							if (match) typeInfo += `: ${match[1]}`;
 						}
@@ -1010,11 +1024,8 @@ Der startes på den node, som er angivet i start_node.
 					}
 				} catch (e) {}
 
-				// Add save_as and choice variables
+				// Add choice variables
 				sessionData.nodes.forEach(node => {
-					if (node.type === 'save' && node.save_as) {
-						definedVars.set(node.save_as, `node: ${node.id}`);
-					}
 					if (node.type === 'choice' && node.question) {
 						const match = node.question.match(/<<([^>]+)>>/);
 						if (match) definedVars.set(match[1], `node: ${node.id}`);
@@ -1106,6 +1117,21 @@ Der startes på den node, som er angivet i start_node.
             };
             document.getElementById('jsonEditor').value = JSON.stringify(sessionData, null, 2);
         }
+		
+		function pickIcon(nodeIndex, iconIndex) {
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.style.display = 'none';
+			input.onchange = function() {
+				if (this.files && this.files.length > 0) {
+					if (!nodes[nodeIndex].icons) nodes[nodeIndex].icons = [];
+					nodes[nodeIndex].icons[iconIndex] = this.files[0].name;
+					updateJSON();
+					renderNodes();
+				}
+			};
+			input.click();
+		}
 		
 		function loadFromJSON() {
 			try {
@@ -1579,14 +1605,6 @@ Der startes på den node, som er angivet i start_node.
 			if (!input) return;
 			
 			addMessage('user', input);
-			
-			// If current question is save type, save to blackboard
-			if (currentQuestion.type === 'save' && currentQuestion.saveAs) {
-				// Try to parse as number, otherwise keep as string
-				const value = !isNaN(input) && input.trim() !== '' ? Number(input) : input;
-				engine.blackboard[currentQuestion.saveAs] = value;
-				updateTestVariables();
-			}
 			
 			currentQuestion = engine.answer(input);
 			
