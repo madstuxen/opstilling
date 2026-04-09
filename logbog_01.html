@@ -12,6 +12,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <!-- Firestore -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firestore_writes_config.js"></script>
+    <script src="firestore_write_guard.js"></script>
     <style>
         * {
             margin: 0;
@@ -562,11 +564,6 @@
             color: #374151;
         }
 
-        .activities-card {
-            background: #f5f5f8;
-            grid-column: 1 / -1;
-        }
-
         .card-title {
             font-size: 1.25rem;
             color: #1f2937;
@@ -582,137 +579,6 @@
             font-size: 1rem;
             color: #524f56;
             font-weight: 500;
-        }
-
-        .activities-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, 160px);
-            gap: 10px;
-            justify-content: flex-start;
-        }
-
-        .activity-link {
-            text-decoration: none;
-            display: block;
-        }
-
-        .activity-tile {
-            border-radius: 16px;
-            padding: 12px 14px;
-            color: white;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            width: 160px;
-            min-height: 65px;
-            text-align: left;
-        }
-
-        .activity-tile::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
-            mix-blend-mode: screen;
-            pointer-events: none;
-        }
-        
-        .activity-tile.empty::after {
-            display: none;
-        }
-
-        .activity-label {
-            flex: 0 0 auto;
-            min-width: 0;
-            font-size: 1.0rem;
-            font-weight: 600;
-            line-height: 1.2;
-            text-transform: none;
-            letter-spacing: 0.02em;
-            opacity: 1;
-        }
-
-        .activity-tile:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 18px 30px rgba(15, 23, 42, 0.25);
-        }
-
-        .activity-meta {
-            flex: 0 0 auto;
-            font-size: 0.75rem;
-            font-weight: 500;
-            opacity: 0.7;
-        }
-
-        .activity-tile.empty {
-            background: #ffffff;
-            box-shadow: none;
-            border: 3px dashed currentColor;
-            color: inherit;
-            flex-direction: row;
-            align-items: flex-start;
-            justify-content: space-between;
-        }
-
-        .activity-tile.empty .activity-content {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            flex: 0 1 auto;
-            max-width: 90px;
-        }
-
-        .activity-empty-text {
-            font-size: 0.75rem;
-            opacity: 0.7;
-            font-weight: 500;
-        }
-
-        .activity-empty-circle {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 2px solid currentColor;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            position: relative;
-            z-index: 2;
-            background: white;
-        }
-
-        .activity-empty-icon {
-            width: 15px;
-            height: 15px;
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        .activity-empty-icon::before,
-        .activity-empty-icon::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            background: currentColor;
-            border-radius: 1px;
-        }
-
-        .activity-empty-icon::before {
-            width: 15px;
-            height: 2px;
-            transform: translate(-50%, -50%);
-        }
-
-        .activity-empty-icon::after {
-            width: 2px;
-            height: 15px;
-            transform: translate(-50%, -50%);
         }
 
         .journal-grid {
@@ -853,8 +719,8 @@
             font-size: 16px; /* avoid iOS zoom on focus */
             line-height: 1.6;
             resize: none;
-            overflow-y: auto;
-            max-height: 450px;
+            overflow: hidden;
+            box-sizing: border-box;
             -webkit-appearance: none;
             appearance: none;
         }
@@ -909,7 +775,9 @@
             font-family: 'Arial', sans-serif;
             font-size: 16px;
             line-height: 1.6;
-            resize: vertical;
+            resize: none;
+            overflow: hidden;
+            box-sizing: border-box;
             background: #d1fae5;
             color: #1f2937;
             -webkit-appearance: none;
@@ -979,38 +847,6 @@
         .checkin-view-toggle:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .checkin-add-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            border: none;
-            background: white;
-            color: #7c3aed;
-            font-size: 28px;
-            font-weight: 300;
-            line-height: 1;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            overflow: visible;
-            position: relative;
-        }
-        
-        .checkin-add-btn span {
-            display: inline-block;
-            transform: scale(2);
-            transform-origin: center center;
-        }
-
-        .checkin-add-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.3);
         }
 
         .checkin-days-btn {
@@ -1334,14 +1170,6 @@
         <div class="content">
             <div class="log-layout">
                 <div class="log-primary">
-                    <section class="card activities-card">
-                        <div class="card-title">
-                            <strong>AKTIVITETER</strong>
-                            <span id="activityDateLabel">Dagens overblik</span>
-                        </div>
-                        <div class="activities-grid" id="activitiesGrid"></div>
-                    </section>
-
                     <section class="card tanker-card">
                         <div class="card-title">
                             <strong>TANKER</strong>
@@ -1383,7 +1211,6 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px;">
                             <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="Skift visning" title="Skift visning">
-                                <button class="checkin-add-btn" id="openCheckinModal" title="Tilføj check-in"><span>+</span></button>
                                 <button class="checkin-days-btn" data-days="1" title="Vis 1 dag">1</button>
                                 <button class="checkin-days-btn" data-days="5" title="Vis 5 dage">5</button>
                                 <button class="checkin-days-btn" data-days="10" title="Vis 10 dage">10</button>
@@ -1445,71 +1272,9 @@
     </div>
 
     <script>
-        const activityStyles = {
-            bodymap: {
-                gradient: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)',
-                url: 'bodymap_01.html',
-                accent: '#ec4899'
-            },
-            opstilling: {
-                gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                url: 'opstilling_01.html',
-                accent: '#10b981'
-            },
-            dialog: {
-                gradient: 'linear-gradient(135deg, #E6B94F 0%, #d97706 100%)',
-                url: 'dialog_01.html',
-                accent: '#d97706'
-            },
-            relationer: {
-                gradient: 'linear-gradient(135deg, #3368AE 0%, #1e40af 100%)',
-                url: 'compare_01.html',
-                accent: '#1e40af'
-            },
-            default: {
-                gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
-                url: '#',
-                accent: '#475569'
-            }
-        };
-
-        const mockActivities = [
-            {
-                id: 1,
-                type: 'opstilling',
-                label: 'Opstilling',
-                text: 'Familie',
-                time: '14:15',
-            },
-            {
-                id: 2,
-                type: 'dialog',
-                label: 'Dialog',
-                text: 'Far og mig',
-                time: '11:00',
-            },
-            {
-                id: 3,
-                type: 'relationer',
-                label: 'Ligheder',
-                text: 'Forskel far',
-                time: '18:45',
-            },
-            {
-                id: 4,
-                type: 'bodymap',
-                label: 'BodyMap',
-                text: 'Min krop',
-                time: '09:30',
-            }
-        ];
-
         const LOGBOOK_STORAGE_KEY = 'logbogData';
         const LOG_HISTORY_COLLAPSED_KEY = 'logbog_historySidebarCollapsed';
         const BODYMAP_STORAGE_KEY = 'bodymapData';
-        const DIALOG_STORAGE_KEY = 'dialogData';
-        const OPSTILLING_STORAGE_KEY = 'opstillingData';
-        const COMPARE_STORAGE_KEY = 'compareData';
 
         // Color presets for log history items (same as dialog collections)
         // Standard farve for alle history items
@@ -1692,6 +1457,91 @@
             
             return monthsToLoad;
         }
+
+        /** Expo/user doc: monthsIndex at root or under userData */
+        function parseMonthsIndex(raw) {
+            if (!raw || typeof raw !== 'object') return {};
+            if (raw.monthsIndex && typeof raw.monthsIndex === 'object' && !Array.isArray(raw.monthsIndex)) {
+                return raw.monthsIndex;
+            }
+            const ud = raw.userData;
+            if (ud && ud.monthsIndex && typeof ud.monthsIndex === 'object' && !Array.isArray(ud.monthsIndex)) {
+                return ud.monthsIndex;
+            }
+            return {};
+        }
+
+        function getMonthLogbogCountFromIndex(monthKey, monthsIndex) {
+            if (!monthsIndex || !monthKey) return 0;
+            const entry = monthsIndex[monthKey];
+            if (!entry || typeof entry !== 'object') return 0;
+            let n = entry.logbogCount;
+            if (n == null && entry.counts && typeof entry.counts === 'object') {
+                n = entry.counts.logbogCount;
+            }
+            if (n == null) return 0;
+            const num = typeof n === 'string' ? parseInt(n, 10) : Number(n);
+            return Number.isFinite(num) && num > 0 ? num : 0;
+        }
+
+        function monthHasLogbogData(monthData) {
+            if (!monthData || monthData.logbog == null) return false;
+            const lb = monthData.logbog;
+            if (Array.isArray(lb)) return lb.length > 0;
+            if (typeof lb === 'object') return Object.keys(lb).length > 0;
+            return false;
+        }
+
+        /**
+         * Firestore month.logbog as array (web legacy) or object keyed by YYYY-MM-DD (Expo).
+         * Maps drømme -> dreams, taknemmeligheder -> taknem for UI.
+         */
+        function normalizeLogbogFieldToEntries(logbog) {
+            if (logbog == null) return [];
+            if (Array.isArray(logbog)) {
+                return logbog
+                    .filter(e => e && typeof e === 'object')
+                    .map(e => ({ ...e }));
+            }
+            if (typeof logbog !== 'object') return [];
+            const dateKeyRe = /^\d{4}-\d{2}-\d{2}$/;
+            const out = [];
+            for (const key of Object.keys(logbog)) {
+                if (!dateKeyRe.test(key)) continue;
+                const day = logbog[key];
+                if (!day || typeof day !== 'object') continue;
+                const dateStr = typeof day.date === 'string' && dateKeyRe.test(day.date) ? day.date : key;
+                const normalizedDate = normalizeDateKey(dateStr) || dateStr;
+                let timestamp = day.timestamp;
+                if (!timestamp || typeof timestamp !== 'string') {
+                    const derived = new Date(`${normalizedDate}T00:00:00`);
+                    timestamp = Number.isNaN(derived.getTime()) ? new Date().toISOString() : derived.toISOString();
+                }
+                const dagbogStr = typeof day.dagbog === 'string' ? day.dagbog : (day.dagbog != null ? String(day.dagbog) : '');
+                const dromme = typeof day.drømme === 'string' ? day.drømme : (day.drømme != null ? String(day.drømme) : '');
+                const taknemmel = typeof day.taknemmeligheder === 'string' ? day.taknemmeligheder
+                    : (day.taknemmeligheder != null ? String(day.taknemmeligheder) : '');
+                const dreams = dromme !== '' ? dromme : (typeof day.dreams === 'string' ? day.dreams : '');
+                const taknem = taknemmel !== '' ? taknemmel : (typeof day.taknem === 'string' ? day.taknem : '');
+                const entry = {
+                    date: normalizedDate,
+                    dagbog: dagbogStr,
+                    dreams,
+                    taknem,
+                    checkins: Array.isArray(day.checkins) ? day.checkins : [],
+                    timestamp,
+                    color: day.color || '#b8735e'
+                };
+                if (day.affirm != null && day.affirm !== '') {
+                    entry.affirm = typeof day.affirm === 'string' ? day.affirm : String(day.affirm);
+                } else if (day.affirmation != null && day.affirmation !== '') {
+                    entry.affirm = typeof day.affirmation === 'string' ? day.affirmation : String(day.affirmation);
+                }
+                out.push(entry);
+            }
+            out.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+            return out;
+        }
         
         // Helper: Load data for specific month from Firestore
         async function loadMonthData(monthKey) {
@@ -1763,9 +1613,11 @@
                     merged.compareData.comparisons.push(...monthData.compare.comparisons);
                 }
                 
-                // Merge logbog
+                // Merge logbog (array = web legacy; object by date = Expo app)
                 if (Array.isArray(monthData.logbog)) {
                     merged.logbogData.push(...monthData.logbog);
+                } else if (monthData.logbog && typeof monthData.logbog === 'object') {
+                    merged.logbogData.push(...normalizeLogbogFieldToEntries(monthData.logbog));
                 }
             });
             
@@ -1790,54 +1642,62 @@
                     const doc = await userDocRef.get();
                     const raw = doc.exists ? (doc.data() || {}) : {};
                     
-                    // Check if data is in new monthly structure
                     const userData = raw.userData || {};
                     const registreringer = userData.registreringer || {};
-                    const hasMonthlyStructure = Object.keys(registreringer).length > 0 || 
-                                                 Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
-                    
+                    const monthsIndexParsed = parseMonthsIndex(raw);
+
+                    let hasMonthlyStructure = Object.keys(registreringer).length > 0 ||
+                        Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key)) ||
+                        Object.keys(monthsIndexParsed).length > 0;
+
+                    const monthsCollectionRef = userDocRef.collection('months');
+                    let monthsSnapshot = null;
+                    if (!hasMonthlyStructure) {
+                        monthsSnapshot = await monthsCollectionRef.get();
+                        if (!monthsSnapshot.empty) {
+                            hasMonthlyStructure = true;
+                        }
+                    }
+
                     if (hasMonthlyStructure) {
-                        // New monthly structure: Load from BOTH main document AND subcollections
-                        // Get months to load: current + previous (if before 7th)
-                        // registreringer is ONLY used to show counts in history panel, NOT for loading
                         const monthsToLoadSet = new Set(getMonthsToLoad());
-                        
-                        // Check main document for month-based data (e.g., "2025-11", "2025-12")
+
+                        Object.keys(monthsIndexParsed).forEach(mk => {
+                            if (getMonthLogbogCountFromIndex(mk, monthsIndexParsed) > 0) {
+                                monthsToLoadSet.add(mk);
+                            }
+                        });
+
                         Object.keys(raw).forEach(key => {
                             if (/^\d{4}-\d{2}$/.test(key)) {
-                                const monthKey = key;
-                                const monthData = raw[monthKey] || {};
-                                // Add month if it has logbog data
-                                if (Array.isArray(monthData.logbog) && monthData.logbog.length > 0) {
-                                    monthsToLoadSet.add(monthKey);
+                                const monthData = raw[key] || {};
+                                if (monthHasLogbogData(monthData)) {
+                                    monthsToLoadSet.add(key);
                                 }
                             }
                         });
-                        
-                        // Load ALL months in ONE read from subcollections
-                        const monthsDataMap = new Map(); // Use Map to merge data from both sources
-                        
-                        // First, load from main document
-                        const monthsToLoad = Array.from(monthsToLoadSet);
-                        monthsToLoad.forEach(monthKey => {
+
+                        const monthsDataMap = new Map();
+                        Array.from(monthsToLoadSet).forEach(monthKey => {
                             const monthDataFromMain = raw[monthKey];
                             if (monthDataFromMain) {
                                 monthsDataMap.set(monthKey, monthDataFromMain);
                             }
                         });
-                        
-                        // Then, load from subcollections and merge
+
                         try {
-                            const monthsCollectionRef = userDocRef.collection('months');
-                            const monthsSnapshot = await monthsCollectionRef.get();
-                            
+                            if (!monthsSnapshot) {
+                                monthsSnapshot = await monthsCollectionRef.get();
+                            }
+
                             monthsSnapshot.forEach(monthDoc => {
                                 const monthKey = monthDoc.id;
                                 const monthDataFromSub = monthDoc.data() || {};
-                                
-                                // Merge with existing data from main document, or use subcollection data
+                                if (monthHasLogbogData(monthDataFromSub)) {
+                                    monthsToLoadSet.add(monthKey);
+                                }
+
                                 if (monthsDataMap.has(monthKey)) {
-                                    // Merge: combine data from both sources
                                     const existing = monthsDataMap.get(monthKey);
                                     monthsDataMap.set(monthKey, {
                                         opstilling: monthDataFromSub.opstilling || existing.opstilling,
@@ -1849,22 +1709,26 @@
                                 } else {
                                     monthsDataMap.set(monthKey, monthDataFromSub);
                                 }
-                                
                             });
                         } catch (error) {
                             console.error(`[LOAD] Error loading subcollections:`, error);
                         }
-                        
-                        // Convert Map to array for mergeMonthlyData, preserving order from monthsToLoad
+
+                        Array.from(monthsToLoadSet).forEach(monthKey => {
+                            if (!monthsDataMap.has(monthKey) && raw[monthKey] && /^\d{4}-\d{2}$/.test(monthKey)) {
+                                monthsDataMap.set(monthKey, raw[monthKey]);
+                            }
+                        });
+
+                        const monthsToLoad = Array.from(monthsToLoadSet).sort((a, b) => b.localeCompare(a));
                         const monthsData = monthsToLoad.map(monthKey => monthsDataMap.get(monthKey)).filter(m => m !== undefined);
                         const merged = mergeMonthlyData(monthsData);
-                        
-                        // Fallback to old structure if no data found in subcollections
+
                         let logbogData = merged.logbogData.length > 0 ? merged.logbogData : null;
                         if (!logbogData && Array.isArray(raw.logbogData) && raw.logbogData.length > 0) {
                             logbogData = raw.logbogData;
                         }
-                        
+
                         const data = {
                             bodymapData: merged.bodymapData.dataIndexes.length > 0 ? merged.bodymapData : null,
                             dialogData: merged.dialogData.dialogs.length > 0 ? merged.dialogData : null,
@@ -1873,9 +1737,10 @@
                             logbogData: logbogData,
                             userData: userData,
                             registreringer: registreringer,
+                            monthsIndex: monthsIndexParsed,
                             loadedMonths: monthsToLoad
                         };
-                        
+
                         window.allUserData = data;
                         return data;
                     } else {
@@ -2253,99 +2118,6 @@
             }
         }
 
-        async function getBodymapData() {
-            // Use cached Firestore data when logged in
-            if (currentUser && db) {
-                const data = await loadAllUserData();
-                if (data && data.bodymapData) {
-                    return data.bodymapData;
-                }
-            }
-            
-            // Fallback to localStorage (for backup or when user not logged in)
-            try {
-                const raw = localStorage.getItem(BODYMAP_STORAGE_KEY);
-                if (!raw) return null;
-                const parsed = JSON.parse(raw);
-                return parsed && typeof parsed === 'object' ? parsed : null;
-            } catch (error) {
-                console.warn('Kunne ikke læse bodymapData:', error);
-                return null;
-            }
-        }
-        
-        async function getDialogData() {
-            // Use cached Firestore data when logged in
-            if (currentUser && db) {
-                const data = await loadAllUserData();
-                if (data && data.dialogData) {
-                    return data.dialogData;
-                }
-            }
-            
-            // Fallback to localStorage (for backup or when user not logged in)
-            try {
-                const raw = localStorage.getItem(DIALOG_STORAGE_KEY);
-                if (!raw) return null;
-                const parsed = JSON.parse(raw);
-                if (!parsed || typeof parsed !== 'object') return null;
-                
-                // Check if it's the new structure (has collections)
-                if (parsed.collections && Array.isArray(parsed.collections)) {
-                    return parsed; // Return new structure
-                }
-                
-                // Legacy structure - return old format for backwards compatibility
-                const sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
-                return { sessions, activeDialogId: parsed.activeDialogId || null };
-            } catch (error) {
-                console.warn('Kunne ikke læse dialogData:', error);
-                return null;
-            }
-        }
-        
-        async function getOpstillingData() {
-            // Use cached Firestore data when logged in
-            if (currentUser && db) {
-                const data = await loadAllUserData();
-                if (data && data.opstillingData) {
-                    return data.opstillingData;
-                }
-            }
-            
-            // Fallback to localStorage (for backup or when user not logged in)
-            try {
-                const raw = localStorage.getItem(OPSTILLING_STORAGE_KEY);
-                if (!raw) return null;
-                const parsed = JSON.parse(raw);
-                return parsed && typeof parsed === 'object' ? parsed : null;
-            } catch (error) {
-                console.warn('Kunne ikke læse opstillingData:', error);
-                return null;
-            }
-        }
-        
-        async function getCompareData() {
-            // Use cached Firestore data when logged in
-            if (currentUser && db) {
-                const data = await loadAllUserData();
-                if (data && data.compareData) {
-                    return data.compareData;
-                }
-            }
-            
-            // Fallback to localStorage (for backup or when user not logged in)
-            try {
-                const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
-                if (!raw) return null;
-                const parsed = JSON.parse(raw);
-                return parsed && typeof parsed === 'object' ? parsed : null;
-            } catch (error) {
-                console.warn('Kunne ikke læse compareData:', error);
-                return null;
-            }
-        }
-
         const DANISH_MONTHS = {
             januar: 0,
             februar: 1,
@@ -2427,22 +2199,6 @@
             return null;
         }
 
-        function getBodymapEntryDate(entry) {
-            if (!entry) return null;
-            if (entry.timestamp) {
-                const ts = new Date(entry.timestamp);
-                if (!Number.isNaN(ts.getTime())) {
-                    return ts;
-                }
-            }
-            return parseDanishDateTime(entry.date, entry.time);
-        }
-
-        function formatDateKey(date) {
-            if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
-            return getLocalDateKey(date);
-        }
-
         function lightenHex(hex, amount = 0.5) {
             if (!hex) return '#f2e7d2';
             const normalized = hex.replace('#', '');
@@ -2473,230 +2229,6 @@
             const newG = Math.round(g * (1 - clampAmount));
             const newB = Math.round(b * (1 - clampAmount));
             return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
-        }
-
-        function summarizeMapNames(mapNames, mapCount) {
-            if (mapNames.length === 1) {
-                return mapNames[0];
-            }
-            if (mapNames.length > 1) {
-                return mapNames.join(', ');
-            }
-            if (mapCount === 1) return '1 map';
-            if (mapCount > 1) return `${mapCount} maps`;
-            return '';
-        }
-
-        async function getBodymapActivityInfo(dateKey, allData) {
-            if (!dateKey) {
-                return { hasEntries: false };
-            }
-
-            const bodymapData = allData && allData.bodymapData ? allData.bodymapData : await getBodymapData();
-            if (!bodymapData || !Array.isArray(bodymapData.dataIndexes)) {
-                return { hasEntries: false };
-            }
-
-            const entriesForDate = [];
-            bodymapData.dataIndexes.forEach(index => {
-                const entryDate = getBodymapEntryDate(index);
-                if (!entryDate) return;
-                const normalizedDateKey = formatDateKey(entryDate);
-                if (normalizedDateKey === dateKey) {
-                    entriesForDate.push({ entry: index, timestamp: entryDate });
-                }
-            });
-
-            if (!entriesForDate.length) {
-                return { hasEntries: false };
-            }
-
-            const mapNameById = new Map();
-            if (Array.isArray(bodymapData.maps)) {
-                bodymapData.maps.forEach(map => {
-                    if (map && map.id !== undefined) {
-                        mapNameById.set(map.id, map.name || `Map ${map.id}`);
-                    }
-                });
-            }
-
-            // Sort by timestamp and get the latest entry for display
-            entriesForDate.sort((a, b) => b.timestamp - a.timestamp);
-            const latest = entriesForDate[0];
-
-            // Count unique maps (by mapId) for the day
-            const uniqueMapIds = new Set();
-            entriesForDate.forEach(wrapper => {
-                uniqueMapIds.add(wrapper.entry.mapId);
-            });
-            const mapCount = uniqueMapIds.size;
-
-            // Get the name of the latest map
-            const latestMapId = latest.entry.mapId;
-            const mapName = mapNameById.get(latestMapId) || 'BodyMap';
-            const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
-
-            return {
-                hasEntries: true,
-                displayText: mapName,
-                latestTime,
-                mapCount // Show actual count of unique maps
-            };
-        }
-
-        async function getDialogActivityInfo(dateKey, allData) {
-            if (!dateKey) {
-                return { hasEntries: false };
-            }
-
-            const dialogData = allData && allData.dialogData ? allData.dialogData : await getDialogData();
-            if (!dialogData || !Array.isArray(dialogData.dialogs)) {
-                return { hasEntries: false };
-            }
-
-            const matches = [];
-            dialogData.dialogs.forEach(dialog => {
-                const source = dialog.timestamp || dialog.updated;
-                if (!source) return;
-                const timestamp = new Date(source);
-                if (Number.isNaN(timestamp.getTime())) return;
-                const normalized = formatDateKey(timestamp);
-                if (normalized !== dateKey) return;
-                matches.push({ dialog, timestamp });
-            });
-
-            if (!matches.length) {
-                return { hasEntries: false };
-            }
-
-            matches.sort((a, b) => b.timestamp - a.timestamp);
-            const latest = matches[0];
-            const leftParticipant = latest.dialog.participants?.left || {};
-            const rightParticipant = latest.dialog.participants?.right || {};
-            let leftName = leftParticipant.name || 'Venstre';
-            let rightName = rightParticipant.name || 'Højre';
-            
-            // Truncate names to 10 characters with ".."
-            const truncateName = (name) => {
-                if (name.length > 10) {
-                    return name.substring(0, 10) + '..';
-                }
-                return name;
-            };
-            leftName = truncateName(leftName);
-            rightName = truncateName(rightName);
-            
-            const messageCount = Array.isArray(latest.dialog.messages) ? latest.dialog.messages.length : 0;
-            const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
-
-            const count = matches.length;
-            return {
-                hasEntries: true,
-                displayText: `${leftName} & ${rightName}`,
-                latestTime,
-                messageCount,
-                count
-            };
-        }
-
-        async function getOpstillingActivityInfo(dateKey, allData) {
-            if (!dateKey) {
-                return { hasEntries: false };
-            }
-
-            const opstillingData = allData && allData.opstillingData ? allData.opstillingData : await getOpstillingData();
-            if (!opstillingData || !Array.isArray(opstillingData.setups)) {
-                return { hasEntries: false };
-            }
-
-            const matches = [];
-            opstillingData.setups.forEach(setup => {
-                const source = setup.timestamp || setup.updated;
-                if (!source) return;
-                const timestamp = new Date(source);
-                if (Number.isNaN(timestamp.getTime())) return;
-                const normalized = formatDateKey(timestamp);
-                if (normalized !== dateKey) return;
-                matches.push({ setup, timestamp });
-            });
-
-            if (!matches.length) {
-                return { hasEntries: false };
-            }
-
-            // Sort by timestamp and get the latest one only
-            matches.sort((a, b) => b.timestamp - a.timestamp);
-            const latest = matches[0];
-            const setupName = latest.setup.name || 'Opstilling';
-            const partsCount = Array.isArray(latest.setup.parts) ? latest.setup.parts.length : 0;
-            const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
-
-            // Show the latest opstilling name, but count all matches
-            const count = matches.length;
-            const displayText = `${setupName}`;
-
-            return {
-                hasEntries: true,
-                displayText,
-                latestTime,
-                partsCount,
-                count // Show actual count of opstillinger on this day
-            };
-        }
-
-        async function getCompareActivityInfo(dateKey, allData) {
-            if (!dateKey) {
-                return { hasEntries: false };
-            }
-
-            const compareData = allData && allData.compareData ? allData.compareData : await getCompareData();
-            if (!compareData || !Array.isArray(compareData.comparisons)) {
-                return { hasEntries: false };
-            }
-
-            const matches = [];
-            compareData.comparisons.forEach(comparison => {
-                const source = comparison.timestamp || comparison.updated;
-                if (!source) return;
-                const timestamp = new Date(source);
-                if (Number.isNaN(timestamp.getTime())) return;
-                const normalized = formatDateKey(timestamp);
-                if (normalized !== dateKey) return;
-                matches.push({ comparison, timestamp });
-            });
-
-            if (!matches.length) {
-                return { hasEntries: false };
-            }
-
-            matches.sort((a, b) => b.timestamp - a.timestamp);
-            const latest = matches[0];
-            const leftParticipant = latest.comparison.leftParticipant || {};
-            const rightParticipant = latest.comparison.rightParticipant || {};
-            let leftName = leftParticipant.name || 'Venstre';
-            let rightName = rightParticipant.name || 'Højre';
-            
-            // Truncate names to 10 characters with ".."
-            const truncateName = (name) => {
-                if (name.length > 10) {
-                    return name.substring(0, 10) + '..';
-                }
-                return name;
-            };
-            leftName = truncateName(leftName);
-            rightName = truncateName(rightName);
-            
-            const latestTime = latest.timestamp.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' });
-
-            const count = matches.length;
-            const displayText = `${leftName} & ${rightName}`;
-
-            return {
-                hasEntries: true,
-                displayText,
-                latestTime,
-                count
-            };
         }
 
         let activeLogDate = getTodayDateKey();
@@ -2792,7 +2324,11 @@
             try {
                 // Load month data
                 const monthData = await loadMonthData(monthKey);
-                if (!monthData || !Array.isArray(monthData.logbog)) {
+                if (!monthData) {
+                    return;
+                }
+                const newEntries = normalizeLogbogFieldToEntries(monthData.logbog);
+                if (newEntries.length === 0) {
                     return;
                 }
                 
@@ -2806,8 +2342,8 @@
                 
                 // Add entries from this month (avoid duplicates)
                 const existingDates = new Set(window.allUserData.logbogData.map(e => e.date));
-                monthData.logbog.forEach(entry => {
-                    if (!existingDates.has(entry.date)) {
+                newEntries.forEach(entry => {
+                    if (entry && entry.date && !existingDates.has(entry.date)) {
                         window.allUserData.logbogData.push(entry);
                     }
                 });
@@ -2833,8 +2369,13 @@
             const listEl = document.getElementById('logHistoryList');
             if (!listEl) return;
 
-            // Get registreringer to show all available months (only for months with count > 0)
+            // Måneder med logbog: registreringer (web) + monthsIndex (Expo)
             let allAvailableMonths = [];
+            let monthsIndexForHistory = {};
+            let registreringerForHistory = {};
+            if (window.allUserData && window.allUserData.monthsIndex) {
+                monthsIndexForHistory = window.allUserData.monthsIndex;
+            }
             if (currentUser && db) {
                 try {
                     const userDocRef = db.collection('users').doc(currentUser.uid);
@@ -2842,25 +2383,29 @@
                     if (doc.exists) {
                         const raw = doc.data() || {};
                         const userData = raw.userData || {};
-                        const registreringer = userData.registreringer || {};
-                        // Filter out months with "0" logbog registreringer - they should not be shown
-                        allAvailableMonths = Object.keys(registreringer)
+                        registreringerForHistory = userData.registreringer || {};
+                        if (!monthsIndexForHistory || Object.keys(monthsIndexForHistory).length === 0) {
+                            monthsIndexForHistory = parseMonthsIndex(raw);
+                        }
+                        const fromReg = Object.keys(registreringerForHistory)
                             .filter(monthKey => {
-                                const monthReg = registreringer[monthKey];
+                                const monthReg = registreringerForHistory[monthKey];
                                 let count = 0;
                                 if (monthReg && typeof monthReg === 'object') {
-                                    // New structure: { logbog: "11", ... }
                                     count = parseInt(monthReg.logbog || '0', 10);
                                 } else if (typeof monthReg === 'string') {
-                                    // Old structure: "11" (backward compatibility)
                                     count = parseInt(monthReg, 10);
                                 }
                                 return count > 0;
-                            })
+                            });
+                        const fromIndex = Object.keys(monthsIndexForHistory).filter(mk =>
+                            getMonthLogbogCountFromIndex(mk, monthsIndexForHistory) > 0
+                        );
+                        allAvailableMonths = Array.from(new Set([...fromReg, ...fromIndex]))
                             .sort((a, b) => b.localeCompare(a));
                     }
                 } catch (error) {
-                    console.error('[LOAD] Error loading registreringer:', error);
+                    console.error('[LOAD] Error loading registreringer / monthsIndex:', error);
                 }
             }
 
@@ -2889,7 +2434,7 @@
             const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             const prevMonthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
 
-            // Combine loaded months with available months from registreringer
+            // Combine loaded months with available months (registreringer + monthsIndex)
             const allMonthKeys = new Set([...Object.keys(monthGroups), ...allAvailableMonths]);
             const sortedMonthKeys = Array.from(allMonthKeys).sort((a, b) => b.localeCompare(a));
 
@@ -2907,33 +2452,24 @@
                 const isCurrentOrGracePeriod = autoExpandedMonths.has(monthKey);
                 const isExpanded = isCurrentOrGracePeriod || expandedMonths.has(monthKey);
                 
-                // Get count from registreringer if entries not loaded yet
+                // Count: loaded entries, ellers monthsIndex, ellers registreringer
                 let entryCount = monthEntries.length;
                 if (entryCount === 0 && currentUser && db) {
-                    try {
-                        const userDocRef = db.collection('users').doc(currentUser.uid);
-                        const doc = await userDocRef.get();
-                        if (doc && doc.exists) {
-                            const raw = doc.data() || {};
-                            const userData = raw.userData || {};
-                            const registreringer = userData.registreringer || {};
-                            // Get count from registreringer (new structure: object with data types)
-                            const monthReg = registreringer[monthKey];
-                            if (monthReg) {
-                                if (typeof monthReg === 'object') {
-                                    // New structure: { logbog: "11", ... }
-                                    const countStr = monthReg.logbog;
-                                    if (countStr) {
-                                        entryCount = parseInt(countStr, 10) || 0;
-                                    }
-                                } else if (typeof monthReg === 'string') {
-                                    // Old structure: "11" (backward compatibility)
-                                    entryCount = parseInt(monthReg, 10) || 0;
+                    const idxCount = getMonthLogbogCountFromIndex(monthKey, monthsIndexForHistory);
+                    if (idxCount > 0) {
+                        entryCount = idxCount;
+                    } else {
+                        const monthReg = registreringerForHistory[monthKey];
+                        if (monthReg) {
+                            if (typeof monthReg === 'object') {
+                                const countStr = monthReg.logbog;
+                                if (countStr) {
+                                    entryCount = parseInt(countStr, 10) || 0;
                                 }
+                            } else if (typeof monthReg === 'string') {
+                                entryCount = parseInt(monthReg, 10) || 0;
                             }
                         }
-                    } catch (error) {
-                        // Ignore errors
                     }
                 }
                 
@@ -3199,9 +2735,11 @@
                 // Find entry for this date
                 const entry = logbogData.find(item => item.date === dateStr);
                 
-                // Return affirm if it exists and is not empty
-                if (entry && entry.affirm && entry.affirm !== '' && entry.affirm !== null && entry.affirm !== undefined) {
-                    return entry.affirm;
+                const rawAffirm = entry && (entry.affirm != null && entry.affirm !== ''
+                    ? entry.affirm
+                    : entry.affirmation);
+                if (rawAffirm != null && rawAffirm !== '') {
+                    return typeof rawAffirm === 'string' ? rawAffirm.trim() : String(rawAffirm).trim();
                 }
                 
                 return '';
@@ -3240,16 +2778,15 @@
                 // Get taknem value for the selected date (now async)
                 const taknem = await getTaknemForDate(activeLogDate);
                 
-                // Combine affirmation text and taknem value
+                // Tanker (affirm/affirmation fra Firestore), derefter taknemmelighed
                 let combinedText = '';
                 if (affirmationText) {
-                    combinedText = `Bekræftelse: "${affirmationText}"`;
+                    combinedText = `Tanker : "${affirmationText}"`;
                 }
                 if (taknem && taknem.trim()) {
                     if (combinedText) {
                         combinedText += '\n';
                     }
-                    // Capitalize first letter of taknem value
                     const taknemValue = taknem.trim();
                     const capitalizedTaknem = taknemValue.charAt(0).toUpperCase() + taknemValue.slice(1);
                     combinedText += `Taknemmelighed : "${capitalizedTaknem}"`;
@@ -3259,7 +2796,6 @@
                 autoResizeTextarea(tankerEntryEl);
             }
 
-            await renderActivitiesForDate(activeLogDate);
             await renderLogHistory();
             // Scroll chart to show the selected date
             scrollChartToDate(activeLogDate);
@@ -3415,21 +2951,6 @@
             }
         }
 
-        async function handleBodymapStorageEvent(event) {
-            if (event.key && event.key !== BODYMAP_STORAGE_KEY) return;
-            await renderActivitiesForDate(activeLogDate);
-        }
-
-        async function handleOpstillingStorageEvent(event) {
-            if (event.key && event.key !== OPSTILLING_STORAGE_KEY) return;
-            await renderActivitiesForDate(activeLogDate);
-        }
-
-        async function handleCompareStorageEvent(event) {
-            if (event.key && event.key !== COMPARE_STORAGE_KEY) return;
-            await renderActivitiesForDate(activeLogDate);
-        }
-
         function toggleLogHistorySidebar() {
             const sidebar = document.getElementById('logHistorySidebar');
             if (!sidebar) return;
@@ -3577,16 +3098,12 @@
 
         function autoResizeTextarea(textarea) {
             if (!textarea) return;
+            textarea.style.maxHeight = 'none';
             textarea.style.height = 'auto';
             const scrollHeight = textarea.scrollHeight;
-            const maxHeight = 450; // max-height in pixels
-            if (scrollHeight <= maxHeight) {
-                textarea.style.height = scrollHeight + 'px';
-                textarea.style.overflowY = 'hidden';
-            } else {
-                textarea.style.height = maxHeight + 'px';
-                textarea.style.overflowY = 'auto';
-            }
+            const minH = parseFloat(window.getComputedStyle(textarea).minHeight) || 0;
+            textarea.style.height = Math.max(scrollHeight, minH) + 'px';
+            textarea.style.overflowY = 'hidden';
         }
 
         async function hydrateLogbookFields() {
@@ -3704,223 +3221,6 @@
             closeNavMenu();
         });
 
-        function formatDanishDate(date) {
-            return date.toLocaleDateString('da-DK', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-        }
-
-        const CLOCK_ICON_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>';
-
-        let renderingActivities = false;
-        async function renderActivitiesForDate(dateKey) {
-            // Guard: Skip render during initial load (wait for all data to be loaded first)
-            if (!initialActivityRenderDone) {
-                return;
-            }
-            
-            // Prevent multiple simultaneous renders
-            if (renderingActivities) return;
-            renderingActivities = true;
-            
-            const normalizedKey = normalizeDateKey(dateKey) || getTodayDateKey();
-            
-            // Update activity date label
-            const activityLabel = document.getElementById('activityDateLabel');
-            if (activityLabel && normalizedKey) {
-                try {
-                    const [year, month, day] = normalizedKey.split('-');
-                    const date = new Date(year, month - 1, day);
-                    activityLabel.textContent = date.toLocaleDateString('da-DK');
-                } catch (e) {
-                    activityLabel.textContent = normalizedKey;
-                }
-            }
-            
-            const grid = document.getElementById('activitiesGrid');
-            if (!grid) {
-                renderingActivities = false;
-                return;
-            }
-
-            // Always render exactly 4 activities (opstilling, dialog, relationer, bodymap)
-            // The content changes based on whether there's data for the selected date
-            if (!mockActivities || mockActivities.length < 4) {
-                console.error('mockActivities must contain exactly 4 activities');
-                renderingActivities = false;
-                return;
-            }
-
-            // Get or create the 4 activity links (one of each type)
-            // First, ensure we only have exactly 4 links (remove any extras or duplicates)
-            const allLinks = Array.from(grid.querySelectorAll('.activity-link[data-activity-type]'));
-            const linksByType = {};
-            const expectedTypes = new Set(mockActivities.map(a => a.type));
-            const seenTypes = new Set();
-            
-            // Remove duplicates and invalid links
-            allLinks.forEach(link => {
-                const type = link.getAttribute('data-activity-type');
-                if (type && expectedTypes.has(type)) {
-                    // If we've already seen this type, remove the duplicate
-                    if (seenTypes.has(type)) {
-                        link.remove();
-                        return;
-                    }
-                    seenTypes.add(type);
-                    linksByType[type] = link;
-                } else {
-                    // Remove link if type is invalid or not in expected types
-                    link.remove();
-                }
-            });
-
-            // Process activities sequentially to handle async data loading
-            // Collect all link updates and apply them all at once
-            const linkUpdates = new Map();
-            
-            for (const activity of mockActivities) {
-                const styleConfig = activityStyles[activity.type] || activityStyles.default;
-                const accentColor = styleConfig.accent || '#475569';
-
-                // Find existing link or create new one
-                let link = linksByType[activity.type];
-                let tile;
-                
-                if (link && grid.contains(link)) {
-                    // Use existing link - find existing tile (never create new tile)
-                    tile = link.querySelector('.activity-tile');
-                    if (!tile) {
-                        // Only create tile if it truly doesn't exist (shouldn't happen normally)
-                        tile = document.createElement('article');
-                        tile.className = 'activity-tile';
-                        link.appendChild(tile);
-                    }
-                } else {
-                    // Create new link only if it doesn't exist
-                    link = document.createElement('a');
-                    link.className = 'activity-link';
-                    link.setAttribute('data-activity-type', activity.type);
-                    link.href = styleConfig.url || '#';
-
-                    tile = document.createElement('article');
-                    tile.className = 'activity-tile';
-                    link.appendChild(tile);
-                    grid.appendChild(link);
-                    linksByType[activity.type] = link; // Store for next iteration
-                }
-
-                // Store link href update to apply all at once later
-                linkUpdates.set(link, styleConfig.url || '#');
-
-                // Only clear tile content (never remove/recreate the tile element itself)
-                tile.innerHTML = '';
-                tile.className = 'activity-tile';
-                tile.style.background = styleConfig.gradient;
-                tile.style.color = '#ffffff';
-                tile.style.border = 'none';
-                tile.classList.remove('empty');
-
-                const labelEl = document.createElement('div');
-                labelEl.className = 'activity-label';
-                labelEl.textContent = activity.label || activity.type;
-
-                let isEmptyState = false;
-                let emptyTextLabel = 'Ingen aktivitet';
-                let badgeText = '';
-
-                if (activity.type === 'bodymap') {
-                    const info = await getBodymapActivityInfo(normalizedKey, window.allUserData || null);
-                    if (info.hasEntries) {
-                        const mapLabel = info.mapCount === 1 ? '1 map' : `${info.mapCount} maps`;
-                        badgeText = mapLabel;
-                    } else {
-                        isEmptyState = true;
-                        emptyTextLabel = 'Lav et map';
-                    }
-                } else if (activity.type === 'dialog') {
-                    const info = await getDialogActivityInfo(normalizedKey, window.allUserData || null);
-                    if (info.hasEntries) {
-                        const dialogLabel = info.count === 1 ? '1 dialog' : `${info.count} dialoger`;
-                        badgeText = dialogLabel;
-                    } else {
-                        isEmptyState = true;
-                        emptyTextLabel = 'Lav en dialog';
-                    }
-                } else if (activity.type === 'opstilling') {
-                    const info = await getOpstillingActivityInfo(normalizedKey, window.allUserData || null);
-                    if (info.hasEntries) {
-                        const opstillingLabel = info.count === 1 ? '1 opstilling' : `${info.count} opstillinger`;
-                        badgeText = opstillingLabel;
-                    } else {
-                        isEmptyState = true;
-                        emptyTextLabel = 'Lav en opstilling';
-                    }
-                } else if (activity.type === 'relationer') {
-                    const info = await getCompareActivityInfo(normalizedKey, window.allUserData || null);
-                    if (info.hasEntries) {
-                        const compareLabel = info.count === 1 ? '1 sammenligning' : `${info.count} sammenligninger`;
-                        badgeText = compareLabel;
-                    } else {
-                        isEmptyState = true;
-                        emptyTextLabel = 'Find ligheder';
-                    }
-                }
-
-                if (isEmptyState) {
-                    tile.classList.add('empty');
-                    tile.style.background = '#ffffff';
-                    tile.style.backgroundImage = 'none';
-                    tile.style.color = accentColor;
-                    tile.style.border = `3px dashed ${accentColor}`;
-                    tile.style.boxShadow = 'none';
-
-                    // Left side: content wrapper with label and text
-                    const contentWrapper = document.createElement('div');
-                    contentWrapper.className = 'activity-content';
-
-                    const emptyTextEl = document.createElement('div');
-                    emptyTextEl.className = 'activity-empty-text';
-                    emptyTextEl.textContent = emptyTextLabel;
-
-                    contentWrapper.append(labelEl, emptyTextEl);
-
-                    // Right side: circle with cross icon
-                    const emptyCircle = document.createElement('div');
-                    emptyCircle.className = 'activity-empty-circle';
-
-                    const emptyIcon = document.createElement('div');
-                    emptyIcon.className = 'activity-empty-icon';
-
-                    emptyCircle.appendChild(emptyIcon);
-
-                    tile.append(contentWrapper, emptyCircle);
-                } else {
-                    tile.append(labelEl);
-                    if (badgeText) {
-                        const badgeEl = document.createElement('div');
-                        badgeEl.className = 'activity-meta';
-                        if (activity.type === 'relationer') {
-                            badgeEl.innerHTML = badgeText;
-                        } else {
-                            badgeEl.textContent = badgeText;
-                        }
-                        tile.appendChild(badgeEl);
-                    }
-                }
-            }
-            
-            // Update all link hrefs at once after all activities are processed
-            linkUpdates.forEach((url, link) => {
-                link.href = url;
-            });
-            
-            renderingActivities = false;
-        }
-
         let checkinDetailedView = false; // Default to simple view
         let checkinDaysView = 5; // Default to 5 days
 
@@ -3954,9 +3254,6 @@
         // NOTE: forside_checkin_data is deprecated - now using logbogData.checkins
         window.allUserData = window.allUserData || null;
         window.allDataLoadingPromise = window.allDataLoadingPromise || null;
-        
-        // Flags for race condition protection
-        let initialActivityRenderDone = false;
         
         try {
             firebase.initializeApp(firebaseConfig);
@@ -3997,11 +3294,10 @@
                         const taknem = await getTaknemForDate(activeLogDate);
                         let combinedText = '';
                         if (affirmationText) {
-                            combinedText = `Bekræftelse: "${affirmationText}"`;
+                            combinedText = `Tanker : "${affirmationText}"`;
                         }
                         if (taknem && taknem.trim()) {
                             if (combinedText) combinedText += '\n';
-                            // Capitalize first letter of taknem value
                             const taknemValue = taknem.trim();
                             const capitalizedTaknem = taknemValue.charAt(0).toUpperCase() + taknemValue.slice(1);
                             combinedText += `Taknemmelighed : "${capitalizedTaknem}"`;
@@ -4313,9 +3609,9 @@
             ctx.beginPath();
             ctx.rect(0, 0, width, height);
             ctx.clip();
-            ctx.fillStyle = '#FCE68A';
+            ctx.fillStyle = '#FFFBEB';
             ctx.fillRect(0, 0, width, height / 2);
-            ctx.fillStyle = '#BAE6FD';
+            ctx.fillStyle = '#F0F9FF';
             ctx.fillRect(0, height / 2, width, height / 2);
             ctx.restore();
 
@@ -4348,24 +3644,37 @@
                 : 0;
             const yAverage = padding.top + chartHeight - (average / 100) * chartHeight;
 
-            // Average zone
-            const zoneThickness = 25;
-            const topZone = Math.max(padding.top, yAverage - zoneThickness);
-            const bottomZone = Math.min(padding.top + chartHeight, yAverage + zoneThickness);
+            // Min/max-linjer først når der er mindst 2 plottede punkter
+            if (data.length >= 2) {
+                const yValues = data.map(p => p.y).filter(y => typeof y === 'number' && !Number.isNaN(y));
+                if (yValues.length >= 2) {
+                    const minVal = Math.min(...yValues);
+                    const maxVal = Math.max(...yValues);
+                    const yMinLine = padding.top + chartHeight - (minVal / 100) * chartHeight;
+                    const yMaxLine = padding.top + chartHeight - (maxVal / 100) * chartHeight;
 
-            ctx.fillStyle = '#10b981';
-            ctx.beginPath();
-            ctx.rect(0, topZone, width, bottomZone - topZone);
-            ctx.fill();
+                    ctx.strokeStyle = '#047857';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([6, 6]);
+                    ctx.beginPath();
+                    ctx.moveTo(0, yMaxLine);
+                    ctx.lineTo(width, yMaxLine);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(0, yMinLine);
+                    ctx.lineTo(width, yMinLine);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
 
-            ctx.strokeStyle = '#34d399';
+            // Gennemsnit: solid linje
+            ctx.strokeStyle = '#059669';
             ctx.lineWidth = 3;
-            ctx.setLineDash([6, 6]);
             ctx.beginPath();
             ctx.moveTo(0, yAverage);
             ctx.lineTo(width, yAverage);
             ctx.stroke();
-            ctx.setLineDash([]);
 
             // Sort data by x for line drawing
             const sortedData = data.slice().sort((a, b) => a.x - b.x);
@@ -4725,7 +4034,6 @@
                 };
 
                 localStorage.setItem(BODYMAP_STORAGE_KEY, JSON.stringify(bodymapData));
-                await renderActivitiesForDate(activeLogDate);
                 console.info(`Loaded ${dataIndexes.length} indexes across ${maps.length} maps into bodymapData from debug_body.json`);
             } catch (error) {
                 console.error('Failed to load debug body data:', error);
@@ -4843,7 +4151,7 @@
             const sliderValue = document.getElementById('checkinSliderValue');
             const saveBtn = document.getElementById('saveCheckinBtn');
 
-            if (!modal || !openBtn || !closeBtn || !slider || !sliderValue || !saveBtn) return;
+            if (!modal || !closeBtn || !slider || !sliderValue || !saveBtn) return;
 
             // Check if user can make a new check-in
             const checkIfCanMakeCheckin = async () => {
@@ -4895,15 +4203,16 @@
                 return true;
             };
 
-            // Open modal
-            openBtn.addEventListener('click', async () => {
-                if (!(await checkIfCanMakeCheckin())) {
-                    return; // Don't open modal if too soon
-                }
-                modal.classList.add('show');
-                slider.value = 50;
-                sliderValue.textContent = 50;
-            });
+            if (openBtn) {
+                openBtn.addEventListener('click', async () => {
+                    if (!(await checkIfCanMakeCheckin())) {
+                        return;
+                    }
+                    modal.classList.add('show');
+                    slider.value = 50;
+                    sliderValue.textContent = 50;
+                });
+            }
 
             // Close modal
             const closeModal = () => {
@@ -4988,16 +4297,14 @@
                         // Get taknem value for the selected date (now async)
                         const taknem = await getTaknemForDate(activeLogDate);
                         
-                        // Combine affirmation text and taknem value
                         let combinedText = '';
                         if (affirmationText) {
-                            combinedText = `Bekræftelse: "${affirmationText}"`;
+                            combinedText = `Tanker : "${affirmationText}"`;
                         }
                         if (taknem && taknem.trim()) {
                             if (combinedText) {
                                 combinedText += '\n';
                             }
-                            // Capitalize first letter of taknem value
                             const taknemValue = taknem.trim();
                             const capitalizedTaknem = taknemValue.charAt(0).toUpperCase() + taknemValue.slice(1);
                             combinedText += `Taknemmelighed : "${capitalizedTaknem}"`;
@@ -5011,13 +4318,6 @@
                     alert('Kunne ikke gemme check-in. Prøv igen.');
                 }
             });
-        }
-
-        function hydrateHeaderDates() {
-            const today = new Date();
-            const activityLabel = document.getElementById('activityDateLabel');
-
-            activityLabel.textContent = today.toLocaleDateString('da-DK');
         }
 
         function copyLogbookEntry() {
@@ -5159,7 +4459,6 @@
             // 3. Load affirmations first
             await loadAffirmations();
             
-            hydrateHeaderDates();
             initCheckinDaysButtons();
             initCheckinViewToggle();
             initCheckinModal();
@@ -5180,22 +4479,7 @@
                 activeLogDate = todayKey;
             }
             
-            // 7. Load ALL activity data in parallel before first render
-            console.log('[INIT] Loading activity data in parallel...');
-            await Promise.all([
-                getBodymapData(),
-                getDialogData(),
-                getOpstillingData(),
-                getCompareData()
-            ]);
-            console.log('[INIT] All activity data loaded');
-            
-            // 8. Now render activities ONCE with all data loaded
-            await renderActivitiesForDate(activeLogDate);
-            initialActivityRenderDone = true;
-            console.log('[INIT] Initial activity render complete');
-            
-            // 9. Render history and hydrate fields
+            // 7. Render history and hydrate fields
             await renderLogHistory();
             await hydrateLogbookFields();
             
@@ -5278,9 +4562,6 @@
             }
 
             window.addEventListener('storage', handleLogbookStorageEvent);
-            window.addEventListener('storage', handleBodymapStorageEvent);
-            window.addEventListener('storage', handleOpstillingStorageEvent);
-            window.addEventListener('storage', handleCompareStorageEvent);
 
             const historySidebar = document.getElementById('logHistorySidebar');
             if (historySidebar) {
@@ -5295,7 +4576,12 @@
             }
 
             window.addEventListener('resize', () => {
-                    renderCheckinChart();
+                renderCheckinChart();
+                requestAnimationFrame(() => {
+                    autoResizeTextarea(document.getElementById('logbookEntry'));
+                    autoResizeTextarea(document.getElementById('dreamEntry'));
+                    autoResizeTextarea(document.getElementById('tankerEntry'));
+                });
             });
 
             // Initialize log history color picker
