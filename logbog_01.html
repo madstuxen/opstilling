@@ -772,6 +772,488 @@
             appearance: none;
         }
 
+        /* tankerContainer + tankerOverlayContent: samme ydre kort-farve */
+        .tanker-card,
+        .tanker-overlay-content {
+            background: #a7f3d0;
+            border-radius: 20px;
+            padding: 12px;
+            grid-column: 1 / -1;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        }
+
+        .tanker-overlay-content:not(.tanker-card) {
+            grid-column: auto;
+        }
+
+        .tanker-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .tanker-title-row img {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .tanker-title-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #065f46;
+        }
+
+        .tanker-entry {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            padding: 0;
+            background: transparent;
+        }
+
+        .tanker-entry textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Arial', sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: none;
+            overflow: hidden;
+            box-sizing: border-box;
+            background: #f0fdf4;
+            color: #14532d;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .tanker-entry textarea:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(236, 253, 245, 0.35);
+            background: #f0fdf4;
+        }
+
+        .tanker-entry textarea::placeholder {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .checkins-card {
+            padding: 8px 4px 8px 8px;
+            background: #f3f4f6;
+            border-radius: 12px;
+            box-shadow: none;
+        }
+
+        .checkins-header {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+            padding-bottom: 0;
+        }
+
+        .checkins-title-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkins-title-row img {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .checkins-title-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .checkins-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .checkin-view-toggle {
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+            margin-right: 0;
+            background: #ffffff;
+            border-radius: 6px;
+            border: 2px solid #e5e7eb;
+            padding: 5px;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: block;
+            object-fit: contain;
+        }
+
+        .checkin-view-toggle:hover {
+            background: #f9fafb;
+        }
+
+        .checkin-days-btn {
+            min-width: 36px;
+            height: auto;
+            border-radius: 6px;
+            border: 2px solid #e5e7eb;
+            background: #ffffff;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 12px;
+        }
+
+        .checkin-days-btn:hover {
+            background: #f9fafb;
+        }
+
+        .checkin-days-btn.active {
+            background: #8b5cf6;
+            border-color: #8b5cf6;
+            color: #ffffff;
+        }
+
+        .checkin-plus-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 6px;
+            background: #8b5cf6;
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1;
+            padding: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        .checkin-plus-btn span {
+            display: block;
+            margin-top: -3px;
+        }
+
+        .checkin-plus-btn:hover {
+            background: #7c3aed;
+        }
+
+        .checkin-plus-btn:active {
+            transform: scale(0.96);
+        }
+
+        .chart-tooltip {
+            position: absolute;
+            background: #1f2937;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+            z-index: 1000;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .chart-tooltip p {
+            margin: 0;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .chart-tooltip p:not(:first-child) {
+            margin-top: 4px;
+            font-weight: 600;
+            opacity: 0.95;
+        }
+
+        .collapse-btn {
+            background: #4f46e5;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0;
+            position: relative;
+        }
+
+        .collapse-btn:hover {
+            background: #4338ca;
+            transform: scale(1.1);
+        }
+
+        .collapse-btn .arrow {
+            display: inline-block;
+            transition: transform 0.3s ease;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .checkins-body {
+            max-height: none;
+            overflow: visible;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            padding: 0;
+            margin-left: 44px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            min-height: 200px;
+        }
+
+        .chart-canvas {
+            display: block;
+            width: 100%;
+            height: 220px;
+            min-height: 200px;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: none;
+        }
+
+        .checkins-side-icons {
+            position: absolute;
+            left: 1px;
+            top: -2px;
+            width: 40px;
+            height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .checkins-side-icons img {
+            width: 40px;
+            height: auto;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            padding: 12px 8px 20px;
+            flex-wrap: wrap;
+            color: #475569;
+            font-size: 0.9rem;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+        }
+
+        .checkin-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 5001;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .checkin-modal.show {
+            display: flex;
+        }
+
+        .checkin-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.25);
+            width: 90%;
+            max-width: 400px;
+            max-height: 50vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkin-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .checkin-modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .checkin-modal-close {
+            background: none;
+            border: none;
+            font-size: 64px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: color 0.2s ease;
+            overflow: visible;
+        }
+
+        .checkin-modal-close:hover {
+            color: #1f2937;
+        }
+
+        .checkin-slider-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            position: relative;
+            padding: 8px;
+            margin: 24px 0;
+        }
+
+        .checkin-slider-icon {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+        }
+
+        .checkin-slider {
+            --pct: 50%;
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+        }
+
+        .checkin-slider::-webkit-slider-runnable-track {
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #8b5cf6 0%, #8b5cf6 var(--pct, 50%), #e5e7eb var(--pct, 50%), #e5e7eb 100%);
+        }
+
+        .checkin-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 2px 6px rgba(139, 92, 246, 0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .checkin-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.08);
+        }
+
+        .checkin-slider::-moz-range-track {
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #8b5cf6 0%, #8b5cf6 var(--pct, 50%), #e5e7eb var(--pct, 50%), #e5e7eb 100%);
+        }
+
+        .checkin-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(139, 92, 246, 0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .checkin-slider::-moz-range-thumb:hover {
+            transform: scale(1.08);
+        }
+
+        .checkin-slider-value {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            color: #374151;
+            margin-top: 12px;
+        }
+
+        .checkin-save-btn {
+            width: 100%;
+            padding: 16px;
+            margin-top: 12px;
+            background: #8b5cf6;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+            box-shadow: none;
+        }
+
+        .checkin-save-btn:hover {
+            background: #7c3aed;
+        }
+
+        .checkin-save-btn:active {
+            transform: scale(0.99);
+        }
+
         .collapse-btn {
             background: #4f46e5;
             border: none;
@@ -814,6 +1296,7 @@
             <div class="header-bar">
                 <div class="logbog-minimal-nav">
                     <a href="index.html" class="logbog-nav-link" id="logbogNavHome" data-i18n="backHome">Back to home</a>
+                    <a href="checkin.html" class="logbog-nav-link" id="logbogNavCheckin" data-i18n="navCheckin">Check in</a>
                     <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
                 </div>
                 <div class="header-title-row">
@@ -832,6 +1315,16 @@
         <div class="content">
             <div class="log-layout">
                 <div class="log-primary">
+                    <section class="card tanker-card tanker-overlay-content">
+                        <div class="tanker-title-row">
+                            <img src="imagefiles/Tree.svg" alt="" aria-hidden="true">
+                            <span class="tanker-title-text" data-i18n="tankerTitle">Check-in tanker</span>
+                        </div>
+                        <div class="tanker-entry">
+                            <textarea id="tankerEntry" readonly placeholder="No thoughts for this day"></textarea>
+                        </div>
+                    </section>
+
                     <section class="card journal-card">
                         <div class="journal-grid">
                             <div class="journal-entry">
@@ -862,6 +1355,34 @@
                             </div>
                         </div>
                     </section>
+
+                    <section class="card checkins-card">
+                        <div class="checkins-header">
+                            <div class="checkins-title-row">
+                                <span class="checkins-title-text" data-i18n="checkinsTitle">Check-ins</span>
+                            </div>
+                            <div class="checkins-controls">
+                                <img class="checkin-view-toggle" id="toggleCheckinView" src="imagefiles/simpleCurve.svg" alt="" title="Toggle chart view">
+                                <button type="button" class="checkin-days-btn" data-days="1" title="Show 1 day">1</button>
+                                <button type="button" class="checkin-days-btn" data-days="5" title="Show 5 days">5</button>
+                                <button type="button" class="checkin-days-btn" data-days="10" title="Show 10 days">10</button>
+                                <button type="button" class="checkin-days-btn" data-days="20" title="Show 20 days">20</button>
+                                <button type="button" class="checkin-plus-btn" id="openCheckinModal" title="New check-in"><span>+</span></button>
+                            </div>
+                        </div>
+                        <div class="checkins-body" id="checkinsBody">
+                            <div style="position: relative;">
+                                <div class="checkins-side-icons">
+                                    <img src="imagefiles/sun.svg" alt="" style="margin-top: 10%;">
+                                    <img src="imagefiles/cloud.svg" alt="" style="margin-bottom: -10%;">
+                                </div>
+                                <div class="chart-wrapper">
+                                    <canvas class="chart-canvas" id="checkinChart"></canvas>
+                                    <div class="chart-tooltip" id="checkinTooltip" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
             <div class="log-history-panel-shell" id="logHistoryPanelShell" aria-label="History panel">
@@ -874,6 +1395,22 @@
                     </div>
                 </aside>
             </div>
+        </div>
+    </div>
+
+    <div class="checkin-modal" id="checkinModal">
+        <div class="checkin-modal-content">
+            <div class="checkin-modal-header">
+                <h2>Check-in</h2>
+                <button type="button" class="checkin-modal-close" id="closeCheckinModal" aria-label="Close">&times;</button>
+            </div>
+            <div class="checkin-slider-container">
+                <img src="imagefiles/cloud.svg" alt="" class="checkin-slider-icon checkin-slider-icon-left">
+                <input type="range" min="0" max="100" value="50" class="checkin-slider" id="checkinSlider">
+                <img src="imagefiles/sun.svg" alt="" class="checkin-slider-icon checkin-slider-icon-right">
+            </div>
+            <div class="checkin-slider-value" id="checkinSliderValue">50</div>
+            <button type="button" class="checkin-save-btn" id="saveCheckinBtn">Check-in</button>
         </div>
     </div>
 
@@ -908,7 +1445,19 @@
                 pickColor: 'Vælg farve for valgt dag',
                 removeColor: 'Fjern farve',
                 colorTitle: 'Vælg farve',
-                needLogin: 'Du skal være logget ind. Omdirigerer til login...'
+                needLogin: 'Du skal være logget ind. Omdirigerer til login...',
+                navCheckin: 'Check ind',
+                tankerTitle: 'Check-in tanker',
+                checkinsTitle: 'Check-ins',
+                tankerPlaceholder: 'Ingen tanker for denne dag',
+                checkinModalHeading: 'Check-in',
+                checkinModalSave: 'Check-in',
+                toggleChartView: 'Skift visning',
+                chartDays1: 'Vis 1 dag',
+                chartDays5: 'Vis 5 dage',
+                chartDays10: 'Vis 10 dage',
+                chartDays20: 'Vis 20 dage',
+                newCheckin: 'Ny check-in'
             },
             en: {
                 backHome: 'Back to home',
@@ -925,7 +1474,19 @@
                 pickColor: 'Pick color for selected day',
                 removeColor: 'Remove color',
                 colorTitle: 'Pick a color',
-                needLogin: 'You must be signed in. Redirecting to login...'
+                needLogin: 'You must be signed in. Redirecting to login...',
+                navCheckin: 'Check in',
+                tankerTitle: 'Check-in thoughts',
+                checkinsTitle: 'Check-ins',
+                tankerPlaceholder: 'No thoughts for this day',
+                checkinModalHeading: 'Check-in',
+                checkinModalSave: 'Check-in',
+                toggleChartView: 'Toggle chart view',
+                chartDays1: 'Show 1 day',
+                chartDays5: 'Show 5 days',
+                chartDays10: 'Show 10 days',
+                chartDays20: 'Show 20 days',
+                newCheckin: 'New check-in'
             }
         };
 
@@ -967,6 +1528,28 @@
             if (je) je.placeholder = s.placeholderJournal;
             const de = document.getElementById('dreamEntry');
             if (de) de.placeholder = s.placeholderDreams;
+            const te = document.getElementById('tankerEntry');
+            if (te) te.placeholder = s.tankerPlaceholder;
+            const mh = document.querySelector('#checkinModal .checkin-modal-header h2');
+            if (mh && s.checkinModalHeading) mh.textContent = s.checkinModalHeading;
+            const ms = document.getElementById('saveCheckinBtn');
+            if (ms && s.checkinModalSave) ms.textContent = s.checkinModalSave;
+            const tv = document.getElementById('toggleCheckinView');
+            if (tv && s.toggleChartView) tv.setAttribute('title', s.toggleChartView);
+            document.querySelectorAll('.checkin-days-btn[data-days="1"]').forEach(el => {
+                if (s.chartDays1) el.setAttribute('title', s.chartDays1);
+            });
+            document.querySelectorAll('.checkin-days-btn[data-days="5"]').forEach(el => {
+                if (s.chartDays5) el.setAttribute('title', s.chartDays5);
+            });
+            document.querySelectorAll('.checkin-days-btn[data-days="10"]').forEach(el => {
+                if (s.chartDays10) el.setAttribute('title', s.chartDays10);
+            });
+            document.querySelectorAll('.checkin-days-btn[data-days="20"]').forEach(el => {
+                if (s.chartDays20) el.setAttribute('title', s.chartDays20);
+            });
+            const ob = document.getElementById('openCheckinModal');
+            if (ob && s.newCheckin) ob.setAttribute('title', s.newCheckin);
         }
 
         // Color presets for log history items (same as dialog collections)
@@ -2033,6 +2616,10 @@
                 if (!window.allUserData.loadedMonths.includes(monthKey)) {
                     window.allUserData.loadedMonths.push(monthKey);
                 }
+
+                if (typeof renderCheckinChart === 'function') {
+                    renderCheckinChart();
+                }
                 
             } catch (error) {
                 console.error(`[LOAD] Error loading month ${monthKey} on-demand:`, error);
@@ -2204,6 +2791,10 @@
 
                     const updatedEntries = await getSortedLogEntries();
                     await renderLogHistory(updatedEntries, true);
+
+                    if (typeof renderCheckinChart === 'function') {
+                        renderCheckinChart();
+                    }
                 });
 
                 listEl.appendChild(monthHeader);
@@ -2433,7 +3024,103 @@
                 autoResizeTextarea(dreamEntryEl);
             }
 
+            const tankerEntryEl = document.getElementById('tankerEntry');
+            if (tankerEntryEl) {
+                const affirmationText = await getAffirmationTextForDate(activeLogDate);
+                const taknem = await getTaknemForDate(activeLogDate);
+                let combinedText = '';
+                if (affirmationText) {
+                    combinedText = `Tanker : "${affirmationText}"`;
+                }
+                if (taknem && taknem.trim()) {
+                    if (combinedText) {
+                        combinedText += '\n';
+                    }
+                    const taknemValue = taknem.trim();
+                    const capitalizedTaknem = taknemValue.charAt(0).toUpperCase() + taknemValue.slice(1);
+                    combinedText += `Taknemmelighed : "${capitalizedTaknem}"`;
+                }
+                tankerEntryEl.value = combinedText;
+                autoResizeTextarea(tankerEntryEl);
+            }
+
             await renderLogHistory();
+            scrollChartToDate(activeLogDate);
+        }
+
+        function scrollChartToDate(dateKey) {
+            const chartWrapper = document.querySelector('.chart-wrapper');
+            if (!chartWrapper) return;
+            
+            const canvas = document.getElementById('checkinChart');
+            if (!canvas) return;
+            
+            // Wait for chart to render, then scroll
+            requestAnimationFrame(async () => {
+                const rawData = await loadCheckinData();
+                const { labels } = processCheckinData(rawData);
+                
+                // Find the index of the selected date
+                let dateIndex = labels.findIndex(label => label === dateKey);
+                
+                if (dateIndex === -1) {
+                    // Date not found - find the closest date and scroll in the right direction
+                    const targetDate = new Date(dateKey + 'T00:00:00');
+                    if (isNaN(targetDate.getTime())) {
+                        // Invalid date, scroll to newest days (right edge)
+                        chartWrapper.scrollLeft = chartWrapper.scrollWidth - chartWrapper.clientWidth;
+                        return;
+                    }
+                    
+                    // Find closest date
+                    let closestIndex = -1;
+                    let minDiff = Infinity;
+                    labels.forEach((label, idx) => {
+                        const labelDate = new Date(label + 'T00:00:00');
+                        if (!isNaN(labelDate.getTime())) {
+                            const diff = Math.abs(targetDate - labelDate);
+                            if (diff < minDiff) {
+                                minDiff = diff;
+                                closestIndex = idx;
+                            }
+                        }
+                    });
+                    
+                    if (closestIndex === -1) {
+                        // No valid dates found, scroll to newest days
+                        chartWrapper.scrollLeft = chartWrapper.scrollWidth - chartWrapper.clientWidth;
+                        return;
+                    }
+                    
+                    // Check if we should scroll left (older) or right (newer)
+                    const closestDate = new Date(labels[closestIndex] + 'T00:00:00');
+                    if (targetDate < closestDate) {
+                        // Target is older - scroll to left edge (oldest days)
+                        chartWrapper.scrollLeft = 0;
+                        return;
+                    } else {
+                        // Target is newer - scroll to right edge (newest days)
+                        chartWrapper.scrollLeft = chartWrapper.scrollWidth - chartWrapper.clientWidth;
+                        return;
+                    }
+                }
+                
+                // Calculate x position for the date at kl. 12 (midpoint)
+                const padding = { left: 0, right: 0 };
+                const canvasWidth = parseFloat(canvas.style.width) || canvas.width / (window.devicePixelRatio || 1);
+                const chartWidth = canvasWidth - padding.left - padding.right;
+                const xMin = 0; // First day starts at index 0 (kl. 00:00)
+                const xMax = labels.length > 1 ? labels.length : 1;
+                const xRange = xMax - xMin;
+                const step = labels.length > 1 ? chartWidth / xRange : chartWidth;
+                
+                // Position at kl. 12 (dateIndex + 0.5)
+                const targetX = padding.left + ((dateIndex + 0.5) - xMin) * step;
+                
+                // Scroll so the date is at the right edge of the visible area
+                const scrollTarget = targetX - chartWrapper.clientWidth + padding.right;
+                chartWrapper.scrollLeft = Math.max(0, Math.min(scrollTarget, chartWrapper.scrollWidth - chartWrapper.clientWidth));
+            });
         }
 
         async function updateActiveLogEntry(field, value) {
@@ -2801,6 +3488,27 @@
                 if (user) {
                     await setActiveLogDate(activeLogDate);
                     await renderLogHistory();
+                    const tankerEntryEl = document.getElementById('tankerEntry');
+                    if (tankerEntryEl) {
+                        const affirmationText = await getAffirmationTextForDate(activeLogDate);
+                        const taknem = await getTaknemForDate(activeLogDate);
+                        let combinedText = '';
+                        if (affirmationText) {
+                            combinedText = `Tanker : "${affirmationText}"`;
+                        }
+                        if (taknem && taknem.trim()) {
+                            if (combinedText) combinedText += '\n';
+                            const taknemValue = taknem.trim();
+                            const capitalizedTaknem = taknemValue.charAt(0).toUpperCase() + taknemValue.slice(1);
+                            combinedText += `Taknemmelighed : "${capitalizedTaknem}"`;
+                        }
+                        tankerEntryEl.value = combinedText;
+                        autoResizeTextarea(tankerEntryEl);
+                    }
+                    if (typeof renderCheckinChart === 'function') {
+                        await loadCheckinData();
+                        renderCheckinChart();
+                    }
                 }
             });
         }
@@ -2855,6 +3563,805 @@
                 console.error('Error loading compareData from Firestore:', error);
                 return null;
             }
+        }
+
+        let checkinDetailedView = false; // Default to simple view
+        let checkinDaysView = 5; // Default to 5 days
+        let debugCheckinData = null;
+
+        async function loadCheckinData() {
+            try {
+                // If debug data is loaded, use it instead of Firestore
+                if (debugCheckinData !== null) {
+                    return processCheckinDataForDisplay(debugCheckinData);
+                }
+
+                // Always load from Firestore if user is logged in
+                if (currentUser && db) {
+                    const logbogData = await getLogbookEntries();
+                    if (logbogData !== null && Array.isArray(logbogData)) {
+                        return processLogbogDataForCheckins(logbogData);
+                    }
+                    // If Firestore fails, return empty array
+                    return [];
+                }
+
+                // User not logged in - return empty array
+                return [];
+            } catch (error) {
+                console.error('[CHECKIN] Fejl ved indlæsning af check-in data:', error);
+                return [];
+            }
+        }
+        
+        // Helper function to extract check-ins from logbogData for display
+        function processLogbogDataForCheckins(logbogData) {
+            if (!Array.isArray(logbogData)) {
+                return [];
+            }
+            
+            const allCheckins = [];
+            
+            // Extract all check-ins from all entries
+            logbogData.forEach(entry => {
+                if (!entry.date || !Array.isArray(entry.checkins)) {
+                    return;
+                }
+                
+                entry.checkins.forEach(checkin => {
+                    if (typeof checkin.status !== 'number') {
+                        return;
+                    }
+                    
+                    // Create a Date object from the date key and time
+                    // dateKey is YYYY-MM-DD, time is HH:MM
+                    let dateObj;
+                    if (checkin.time && typeof checkin.time === 'string') {
+                        // Parse time string (HH:MM)
+                        const [hours, minutes] = checkin.time.split(':').map(s => parseInt(s, 10));
+                        if (!isNaN(hours) && !isNaN(minutes)) {
+                            dateObj = new Date(entry.date + 'T' + checkin.time + ':00');
+                        } else {
+                            // Fallback if time parsing fails
+                            dateObj = new Date(entry.date + 'T12:00:00');
+                        }
+                    } else {
+                        // No time available, default to noon
+                        dateObj = new Date(entry.date + 'T12:00:00');
+                    }
+                    
+                    allCheckins.push({
+                        date: dateObj,
+                        status: Math.max(0, Math.min(100, Number(checkin.status))),
+                        dateKey: entry.date,
+                        time: checkin.time || '12:00'
+                    });
+                });
+            });
+            
+            // Sort by date (oldest first)
+            return allCheckins.sort((a, b) => a.date - b.date);
+        }
+        
+        // Helper function to process check-in data for display (LEGACY - for debug data)
+        function processCheckinDataForDisplay(parsed) {
+                if (!Array.isArray(parsed)) {
+                    return [];
+                }
+                return parsed
+                    .filter(entry => typeof entry.status === 'number')
+                    .map(entry => {
+                        const dateObj = entry.date ? new Date(entry.date) : new Date();
+                        return {
+                            date: dateObj,
+                            status: Math.max(0, Math.min(100, Number(entry.status))),
+                            dateKey: dateObj.toISOString().split('T')[0],
+                            time: dateObj.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', hour12: false })
+                        };
+                    })
+                    .sort((a, b) => a.date - b.date);
+        }
+
+        function processCheckinData(data) {
+            if (!data || !Array.isArray(data) || data.length === 0) {
+                return { data: [], labels: [], totalDays: 0 };
+            }
+
+            // Group by date
+            const groupedByDate = data.reduce((acc, entry) => {
+                if (!entry || !entry.dateKey) return acc;
+                if (!acc[entry.dateKey]) {
+                    acc[entry.dateKey] = [];
+                }
+                acc[entry.dateKey].push(entry);
+                return acc;
+            }, {});
+
+            // Get unique dates with data, sorted (oldest first for display)
+            // Always use ALL days - no filtering
+            const allUniqueDates = Object.keys(groupedByDate).sort();
+
+            if (checkinDetailedView) {
+                // Detailed view: show all entries with horizontal offset
+                const processedData = [];
+                // Process ALL days, not just the visible ones
+                allUniqueDates.forEach((dateKey, dateIndex) => {
+                    const dayEntries = groupedByDate[dateKey];
+                    const isMorning = (timeStr) => {
+                        const hour = parseInt(timeStr.split(':')[0]);
+                        return hour < 12;
+                    };
+
+                    if (dayEntries.length === 1) {
+                        // Single entry: use precise time position
+                        let timeOffset = 0.5; // Default to noon if time parsing fails
+                        if (dayEntries[0].time && typeof dayEntries[0].time === 'string') {
+                            // Handle both ':' and '.' as separators
+                            const timeParts = dayEntries[0].time.split(/[:.]/);
+                            if (timeParts.length >= 2) {
+                                const hours = parseInt(timeParts[0], 10);
+                                const minutes = parseInt(timeParts[1], 10);
+                                if (!isNaN(hours) && !isNaN(minutes)) {
+                                    const timeInHours = hours + minutes / 60;
+                                    timeOffset = timeInHours / 24;
+                                }
+                            }
+                        }
+                        processedData.push({
+                            x: dateIndex + timeOffset,
+                            y: dayEntries[0].status,
+                            date: dateKey,
+                            time: dayEntries[0].time,
+                            size: 100,
+                            originalDate: dayEntries[0].date
+                        });
+                    } else {
+                        // Multiple entries: use precise time position for each
+                        dayEntries.forEach((entry, idx) => {
+                            let timeOffset = 0.5; // Default to noon if time parsing fails
+                            if (entry.time && typeof entry.time === 'string') {
+                                // Handle both ':' and '.' as separators
+                                const timeParts = entry.time.split(/[:.]/);
+                                if (timeParts.length >= 2) {
+                                    const hours = parseInt(timeParts[0], 10);
+                                    const minutes = parseInt(timeParts[1], 10);
+                                    if (!isNaN(hours) && !isNaN(minutes)) {
+                                        const timeInHours = hours + minutes / 60;
+                                        timeOffset = timeInHours / 24;
+                                    }
+                                }
+                            }
+                            
+                            processedData.push({
+                                x: dateIndex + timeOffset,
+                                y: entry.status,
+                                date: dateKey,
+                                time: entry.time,
+                                size: 80,
+                                originalDate: entry.date
+                            });
+                        });
+                    }
+                });
+                return { data: processedData, labels: allUniqueDates, totalDays: allUniqueDates.length };
+            } else {
+                // Simple view: average per day, positioned at noon (kl. 12)
+                // Process ALL days, not just the visible ones
+                const processedData = allUniqueDates.map((dateKey, dateIndex) => {
+                    const dayEntries = groupedByDate[dateKey];
+                    const avgStatus = dayEntries.reduce((sum, e) => sum + e.status, 0) / dayEntries.length;
+                    return {
+                        x: dateIndex + 0.5, // Position at noon (kl. 12)
+                        y: Math.round(avgStatus),
+                        date: dateKey,
+                        count: dayEntries.length,
+                        size: 100,
+                        originalDate: dayEntries[0].date
+                    };
+                });
+                return { data: processedData, labels: allUniqueDates, totalDays: allUniqueDates.length };
+            }
+        }
+
+        async function renderCheckinChart() {
+            const canvas = document.getElementById('checkinChart');
+            if (!canvas) return;
+            const tooltip = document.getElementById('checkinTooltip');
+            const ctx = canvas.getContext('2d');
+            const rawData = await loadCheckinData();
+            const { data, labels, totalDays } = processCheckinData(rawData);
+            const parent = canvas.parentElement;
+
+            const dpr = window.devicePixelRatio || 1;
+            const height = 220;
+            
+            // Get parent width (chart-wrapper) - canvas should fill it completely
+            const baseWidth = parent.clientWidth || parent.offsetWidth;
+            
+            // Calculate canvas width: if we have more than checkinDaysView days, make it wider for scrolling
+            // Use totalDays (all available data) instead of labels.length (filtered data) for width calculation
+            const width = totalDays > checkinDaysView 
+                ? baseWidth * (totalDays / checkinDaysView)
+                : baseWidth;
+
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
+
+            // Auto-scroll to show active date if canvas is wider than parent
+            if (width > baseWidth) {
+                requestAnimationFrame(() => {
+                    // Scroll to active date if it exists, otherwise scroll to newest days
+                    scrollChartToDate(activeLogDate);
+                });
+            }
+
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, width, height);
+
+            const padding = { top: 0, right: 0, bottom: 0, left: 0 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, width, height);
+            ctx.clip();
+            ctx.fillStyle = 'rgba(252, 211, 77, 0.3)';
+            ctx.fillRect(0, 0, width, height / 2);
+            ctx.fillStyle = 'rgba(191, 219, 254, 0.3)';
+            ctx.fillRect(0, height / 2, width, height / 2);
+            ctx.restore();
+
+            if (!data.length) {
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = '16px Arial';
+                ctx.fillText('Ingen check-ins endnu', width / 2, height / 2);
+                return;
+            }
+
+            // Calculate average as: average of all days' averages
+            // Group raw data by date
+            const groupedByDate = rawData.reduce((acc, entry) => {
+                if (!entry || !entry.dateKey) return acc;
+                if (!acc[entry.dateKey]) {
+                    acc[entry.dateKey] = [];
+                }
+                acc[entry.dateKey].push(entry);
+                return acc;
+            }, {});
+            
+            // Calculate average per day, then average of those
+            const dayAverages = Object.values(groupedByDate).map(dayEntries => {
+                return dayEntries.reduce((sum, e) => sum + e.status, 0) / dayEntries.length;
+            });
+            const average = dayAverages.length > 0 
+                ? dayAverages.reduce((sum, avg) => sum + avg, 0) / dayAverages.length 
+                : 0;
+            const yAverage = padding.top + chartHeight - (average / 100) * chartHeight;
+
+            // Min/max-linjer først når der er mindst 2 plottede punkter
+            if (data.length >= 2) {
+                const yValues = data.map(p => p.y).filter(y => typeof y === 'number' && !Number.isNaN(y));
+                if (yValues.length >= 2) {
+                    const minVal = Math.min(...yValues);
+                    const maxVal = Math.max(...yValues);
+                    const yMinLine = padding.top + chartHeight - (minVal / 100) * chartHeight;
+                    const yMaxLine = padding.top + chartHeight - (maxVal / 100) * chartHeight;
+
+                    ctx.save();
+                    ctx.strokeStyle = '#10b981';
+                    ctx.globalAlpha = 0.5;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(0, yMaxLine);
+                    ctx.lineTo(width, yMaxLine);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(0, yMinLine);
+                    ctx.lineTo(width, yMinLine);
+                    ctx.stroke();
+                    ctx.restore();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            // Gennemsnit: solid linje
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, yAverage);
+            ctx.lineTo(width, yAverage);
+            ctx.stroke();
+
+            // Sort data by x for line drawing
+            const sortedData = data.slice().sort((a, b) => a.x - b.x);
+
+            // No padding - chart starts at kl. 00:00 of first day and ends at kl. 24:00 of last day
+            const xMin = 0; // First day starts at index 0 (kl. 00:00)
+            // Last day index is (labels.length - 1), kl. 24:00 is at (labels.length - 1) + 1.0 = labels.length
+            const xMax = labels.length;
+            const xRange = xMax - xMin;
+            
+            // Draw line connecting points
+            const step = chartWidth / xRange;
+            ctx.strokeStyle = '#8b5cf6';
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+
+            if (sortedData.length === 0) {
+                // No data, don't draw line
+            } else if (sortedData.length === 1) {
+                // Single point: draw horizontal line from first day's kl. 00:00 to end of last day (kl. 24:00)
+                const point = sortedData[0];
+                const x = padding.left + (point.x - xMin) * step;
+                const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
+                const firstDayStartX = padding.left + (0 - xMin) * step; // kl. 00:00 of first day
+                // Use the actual last day index from all labels (all available data)
+                const lastDayIndex = labels.length - 1;
+                const lastDayEndX = padding.left + ((lastDayIndex + 1.0) - xMin) * step;
+                ctx.moveTo(firstDayStartX, y);
+                ctx.lineTo(lastDayEndX, y);
+            } else {
+                // Multiple points: horizontal line to first, connect all, horizontal line from last
+                const firstPoint = sortedData[0];
+                const lastPoint = sortedData[sortedData.length - 1];
+                const firstX = padding.left + (firstPoint.x - xMin) * step;
+                const firstY = padding.top + chartHeight - (firstPoint.y / 100) * chartHeight;
+                const lastX = padding.left + (lastPoint.x - xMin) * step;
+                const lastY = padding.top + chartHeight - (lastPoint.y / 100) * chartHeight;
+
+                // Convert points to screen coordinates
+                const screenPoints = sortedData.map((point) => ({
+                    x: padding.left + (point.x - xMin) * step,
+                    y: padding.top + chartHeight - (point.y / 100) * chartHeight
+                }));
+
+                // Start with horizontal line from first day's kl. 00:00 to first point
+                const firstDayStartX = padding.left + (0 - xMin) * step; // kl. 00:00 of first day
+                ctx.moveTo(firstDayStartX, screenPoints[0].y);
+                ctx.lineTo(screenPoints[0].x, screenPoints[0].y);
+
+                // Connect all points with straight lines
+                sortedData.forEach((point, index) => {
+                    const x = padding.left + (point.x - xMin) * step;
+                    const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
+
+                    if (index === 0) {
+                        ctx.lineTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+
+                // End with horizontal line from last point to end of last day (kl. 24:00)
+                // Use the actual last day index from all labels (all available data) for proper scrolling
+                const lastDayIndex = labels.length - 1;
+                const lastDayEndX = padding.left + ((lastDayIndex + 1.0) - xMin) * step;
+                ctx.lineTo(lastDayEndX, lastY);
+            }
+            ctx.stroke();
+
+            // Draw midnight markers (kl. 24) in detailed view only
+            if (checkinDetailedView && labels.length > 0) {
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 1;
+                // Solid line (no dash)
+                
+                labels.forEach((dateKey, index) => {
+                    // Calculate x position for midnight (kl. 24) - this is at the end of each day (index + 1.0)
+                    // This represents 24:00 / 00:00 of the next day
+                    const x = padding.left + ((index + 1.0) - xMin) * step;
+                    
+                    // Draw vertical line from top to bottom of chart area
+                    ctx.beginPath();
+                    ctx.moveTo(x, padding.top);
+                    ctx.lineTo(x, padding.top + chartHeight);
+                    ctx.stroke();
+                });
+            }
+
+            // Store point positions for hover detection
+            const pointPositions = [];
+
+            // Draw points
+            sortedData.forEach((point, idx) => {
+                const x = padding.left + (point.x - xMin) * step;
+                const y = padding.top + chartHeight - (point.y / 100) * chartHeight;
+                const radius = point.size / 19;
+                const isHollow = !checkinDetailedView && point.count > 1;
+
+                // Skip if coordinates are invalid
+                if (isNaN(x) || isNaN(y) || isNaN(radius)) {
+                    return;
+                }
+
+                pointPositions.push({
+                    x, y, radius, point
+                });
+
+                if (isHollow) {
+                    // Hollow circle for multiple entries in simple view
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = 'white';
+                    ctx.fill();
+                    ctx.strokeStyle = '#8b5cf6';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else {
+                    // Filled circle - darker for single entries (size 100)
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    const isSingleEntry = point.size === 100;
+                    ctx.fillStyle = isSingleEntry ? '#6d28d9' : '#8b5cf6'; // Darker purple for single entries
+                    ctx.fill();
+                }
+            });
+
+            // X-axis labels (dag: fed 14px, måned: 12px)
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            labels.forEach((dateKey, index) => {
+                const x = padding.left + (index + 0.5 - xMin) * step;
+                const dateObj = new Date(dateKey);
+                const day = dateObj.toLocaleDateString('da-DK', { day: '2-digit' });
+                const month = dateObj.toLocaleDateString('da-DK', { month: 'short' }).replace('.', '');
+
+                ctx.fillStyle = '#374151';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(day, x, height - 30);
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '12px Arial';
+                ctx.fillText(month, x, height - 14);
+            });
+
+            // Hover functionality - remove old listeners first
+            const oldMouseMove = canvas.onmousemove;
+            const oldMouseLeave = canvas.onmouseleave;
+            canvas.onmousemove = null;
+            canvas.onmouseleave = null;
+
+            // Use a single event handler function
+            const handleMouseMove = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width) / dpr;
+                const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height) / dpr;
+
+                let hoveredPoint = null;
+                for (const pos of pointPositions) {
+                    const distance = Math.sqrt(Math.pow(mouseX - pos.x, 2) + Math.pow(mouseY - pos.y, 2));
+                    if (distance <= pos.radius + 5) {
+                        hoveredPoint = pos;
+                        break;
+                    }
+                }
+
+                if (hoveredPoint) {
+                    tooltip.style.display = 'block';
+                    if (checkinDetailedView) {
+                        // Detailed view: show time and value
+                        tooltip.innerHTML = `
+                            <p>Tid: ${hoveredPoint.point.time || 'N/A'}</p>
+                            <p>Værdi: ${hoveredPoint.point.y}</p>
+                        `;
+                    } else {
+                        // Simple view: show only value
+                        tooltip.innerHTML = `
+                            <p>Værdi: ${hoveredPoint.point.y}</p>
+                        `;
+                    }
+                    const tooltipX = e.clientX - rect.left + 10;
+                    const tooltipY = e.clientY - rect.top - 40;
+                    tooltip.style.left = `${tooltipX}px`;
+                    tooltip.style.top = `${tooltipY}px`;
+                    canvas.style.cursor = 'pointer';
+                } else {
+                    tooltip.style.display = 'none';
+                    canvas.style.cursor = 'default';
+                }
+            };
+
+            const handleMouseLeave = () => {
+                tooltip.style.display = 'none';
+                canvas.style.cursor = 'default';
+            };
+
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseleave', handleMouseLeave);
+        }
+        async function read_debug_checkin() {
+            console.warn('read_debug_checkin is a temporary debugging helper and should be removed before release.');
+            try {
+                const response = await fetch('testcheckin.json', { cache: 'no-cache' });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} ${response.statusText}`);
+                }
+                const payload = await response.json();
+                if (!Array.isArray(payload)) {
+                    throw new Error('testcheckin.json does not contain an array');
+                }
+
+                // Convert to the same format as loadCheckinData returns
+                const processedData = payload
+                    .filter(entry => entry && typeof entry === 'object' && typeof entry.status === 'number')
+                    .map(entry => {
+                        const dateObj = entry.date ? new Date(entry.date) : new Date();
+                        return {
+                            date: dateObj,
+                            status: Math.max(0, Math.min(100, Number(entry.status))),
+                            dateKey: dateObj.toISOString().split('T')[0],
+                            time: dateObj.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', hour12: false })
+                        };
+                    })
+                    .sort((a, b) => a.date - b.date);
+
+                // Store in debug variable (doesn't overwrite localStorage)
+                debugCheckinData = processedData;
+                
+                // Re-render chart with debug data
+                renderCheckinChart();
+                
+                console.info(`Loaded ${processedData.length} check-in entries from testcheckin.json (temporary, not saved to localStorage)`);
+            } catch (error) {
+                console.error('Failed to load debug check-in data:', error);
+            }
+        }
+
+        // Function to clear debug data and return to localStorage
+        function clear_debug_checkin() {
+            debugCheckinData = null;
+            renderCheckinChart();
+            console.info('Cleared debug check-in data, returning to localStorage');
+        }
+
+        function initCheckinViewToggle() {
+            // Toggle view button
+            const toggleViewBtn = document.getElementById('toggleCheckinView');
+            if (toggleViewBtn) {
+                const updateToggleButton = () => {
+                    toggleViewBtn.src = checkinDetailedView 
+                        ? 'imagefiles/simpleCurve.svg' 
+                        : 'imagefiles/detailedCurve.svg';
+                };
+                updateToggleButton();
+
+                toggleViewBtn.addEventListener('click', () => {
+                    checkinDetailedView = !checkinDetailedView;
+                    updateToggleButton();
+                    renderCheckinChart();
+                });
+            }
+        }
+
+        function initCheckinDaysButtons() {
+            const daysButtons = document.querySelectorAll('.checkin-days-btn');
+            if (!daysButtons.length) return;
+
+            // Set initial active button (5 days)
+            daysButtons.forEach(btn => {
+                const days = parseInt(btn.getAttribute('data-days'), 10);
+                if (days === checkinDaysView) {
+                    btn.classList.add('active');
+                }
+            });
+
+            daysButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const days = parseInt(btn.getAttribute('data-days'), 10);
+                    checkinDaysView = days;
+                    
+                    // If 1 day is selected, automatically enable detailed view
+                    if (days === 1) {
+                        checkinDetailedView = true;
+                        const toggleViewBtn = document.getElementById('toggleCheckinView');
+                        if (toggleViewBtn) {
+                            // Update toggle button icon to reflect detailed view
+                            toggleViewBtn.src = checkinDetailedView 
+                                ? 'imagefiles/simpleCurve.svg' 
+                                : 'imagefiles/detailedCurve.svg';
+                        }
+                    }
+                    
+                    // Update active state
+                    daysButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // Re-render chart with new days view
+                    renderCheckinChart();
+                });
+            });
+        }
+
+        function initCheckinModal() {
+            const modal = document.getElementById('checkinModal');
+            const openBtn = document.getElementById('openCheckinModal');
+            const closeBtn = document.getElementById('closeCheckinModal');
+            const slider = document.getElementById('checkinSlider');
+            const sliderValue = document.getElementById('checkinSliderValue');
+            const saveBtn = document.getElementById('saveCheckinBtn');
+
+            if (!modal || !closeBtn || !slider || !sliderValue || !saveBtn) return;
+
+            const syncCheckinSliderTrack = () => {
+                slider.style.setProperty('--pct', `${slider.value}%`);
+            };
+            syncCheckinSliderTrack();
+
+            // Check if user can make a new check-in
+            const checkIfCanMakeCheckin = async () => {
+                if (!currentUser || !db) {
+                    alert('Du skal være logget ind for at lave et check-in.');
+                    return false;
+                }
+                
+                const now = new Date();
+                
+                // Load logbogData from Firestore
+                try {
+                    const logbogData = await getLogbookEntries();
+                    if (!logbogData || !Array.isArray(logbogData)) {
+                        return true; // No data, allow check-in
+                    }
+                    
+                    // Find all check-ins from all dates and get the most recent one
+                    let allCheckins = [];
+                    logbogData.forEach(entry => {
+                        if (Array.isArray(entry.checkins) && entry.date) {
+                            entry.checkins.forEach(checkin => {
+                                if (checkin.time) {
+                                    // Create Date from date + time
+                                    const dateTimeStr = `${entry.date}T${checkin.time}:00`;
+                                    allCheckins.push(new Date(dateTimeStr));
+                                }
+                            });
+                        }
+                    });
+                    
+                    if (allCheckins.length > 0) {
+                        // Sort by date (newest first)
+                        allCheckins.sort((a, b) => b.getTime() - a.getTime());
+                        const lastCheckInDate = allCheckins[0];
+                        const timeDiff = now.getTime() - lastCheckInDate.getTime();
+                        const thirtyMinutes = 30 * 60 * 1000; // milliseconds in 30 minutes
+
+                        if (timeDiff < thirtyMinutes) {
+                            const minutesRemaining = Math.ceil((thirtyMinutes - timeDiff) / (60 * 1000));
+                            alert(`Du kan maksimalt lave et check-in i halv time. Vent venligst ${minutesRemaining} ${minutesRemaining === 1 ? 'minut' : 'minutter'} før du kan lave et nyt check-in.`);
+                            return false;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('[CHECKIN] Kunne ikke læse check-in data fra logbogData:', error);
+                }
+                
+                return true;
+            };
+
+            if (openBtn) {
+                openBtn.addEventListener('click', async () => {
+                    if (!(await checkIfCanMakeCheckin())) {
+                        return;
+                    }
+                    modal.classList.add('show');
+                    slider.value = 50;
+                    sliderValue.textContent = '50';
+                    syncCheckinSliderTrack();
+                });
+            }
+
+            // Close modal
+            const closeModal = () => {
+                modal.classList.remove('show');
+            };
+
+            closeBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // Update slider value display and track fill
+            slider.addEventListener('input', (e) => {
+                syncCheckinSliderTrack();
+                sliderValue.textContent = e.target.value;
+            });
+
+            // Save check-in
+            saveBtn.addEventListener('click', async () => {
+                if (!currentUser || !db) {
+                    alert('Du skal være logget ind for at gemme et check-in.');
+                    return;
+                }
+                
+                const status = parseInt(slider.value, 10);
+                const now = new Date();
+                
+                // Get current time in HH:MM format
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const timeStr = `${hours}:${minutes}`;
+                
+                // Get today's date key
+                const dateKey = getTodayDateKey();
+
+                try {
+                    // Load existing logbogData
+                    const logbogData = await getLogbookEntries();
+                    
+                    // Find or create entry for today
+                    let entry = logbogData.find(item => item.date === dateKey);
+                    if (!entry) {
+                        entry = {
+                            date: dateKey,
+                            dagbog: '',
+                            dreams: '',
+                            checkins: [],
+                            timestamp: now.toISOString(),
+                            color: DEFAULT_HISTORY_COLOR
+                        };
+                        logbogData.push(entry);
+                    }
+                    
+                    // Initialize checkins array if it doesn't exist
+                    if (!Array.isArray(entry.checkins)) {
+                        entry.checkins = [];
+                    }
+                    
+                    // Add new check-in to the array
+                    entry.checkins.push({
+                        time: timeStr,
+                        status: status
+                    });
+                    
+                    // Update timestamp
+                    entry.timestamp = now.toISOString();
+                    
+                    // Save to Firestore
+                    await saveLogbookDataToFirestore(logbogData);
+                    
+                    console.log(`[CHECKIN] Manual check-in saved for ${dateKey} at ${timeStr}`);
+                    
+                    closeModal();
+                    renderCheckinChart();
+                    
+                    // Update tanker field if viewing today's date
+                    const tankerEntryEl = document.getElementById('tankerEntry');
+                    if (tankerEntryEl) {
+                        // Get affirmation text for the selected date (now async)
+                        const affirmationText = await getAffirmationTextForDate(activeLogDate);
+                        // Get taknem value for the selected date (now async)
+                        const taknem = await getTaknemForDate(activeLogDate);
+                        
+                        let combinedText = '';
+                        if (affirmationText) {
+                            combinedText = `Tanker : "${affirmationText}"`;
+                        }
+                        if (taknem && taknem.trim()) {
+                            if (combinedText) {
+                                combinedText += '\n';
+                            }
+                            const taknemValue = taknem.trim();
+                            const capitalizedTaknem = taknemValue.charAt(0).toUpperCase() + taknemValue.slice(1);
+                            combinedText += `Taknemmelighed : "${capitalizedTaknem}"`;
+                        }
+                        
+                        tankerEntryEl.value = combinedText;
+                        autoResizeTextarea(tankerEntryEl);
+                    }
+                } catch (error) {
+                    console.error('[CHECKIN] Kunne ikke gemme check-in data:', error);
+                    alert('Kunne ikke gemme check-in. Prøv igen.');
+                }
+            });
         }
 
         // DEBUG HELPERS - remove before production
@@ -3172,9 +4679,14 @@
             
             // 3. Load affirmations first
             await loadAffirmations();
-            
+
+            initCheckinDaysButtons();
+            initCheckinViewToggle();
+            initCheckinModal();
+
             // 4. Load logbook data once
             const entries = await ensureSeedLogbookData();
+            await renderCheckinChart();
             console.log('[INIT] Loaded logbook data, entries:', entries?.length || 0);
             
             // 5. Wait for DOM to be fully rendered
@@ -3280,6 +4792,7 @@
                 requestAnimationFrame(() => {
                     autoResizeTextarea(document.getElementById('logbookEntry'));
                     autoResizeTextarea(document.getElementById('dreamEntry'));
+                    autoResizeTextarea(document.getElementById('tankerEntry'));
                 });
             });
 
@@ -3306,6 +4819,11 @@
                     const modal = document.getElementById('logHistoryColorPickerModal');
                     if (modal && modal.classList.contains('show')) {
                         closeLogHistoryColorPicker();
+                        return;
+                    }
+                    const checkinM = document.getElementById('checkinModal');
+                    if (checkinM && checkinM.classList.contains('show')) {
+                        checkinM.classList.remove('show');
                     }
                 }
             });
