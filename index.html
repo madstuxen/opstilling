@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="da">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
-    <title>Login - Index</title>
+    <title>Journal — web companion</title>
     <!-- Firebase App (the core Firebase SDK) - Using v8 for compatibility -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Authentication -->
@@ -21,18 +21,641 @@
             box-sizing: border-box;
         }
         
+        /*
+         * Mascot position (left side, vertically centered on the viewport).
+         * translate % is relative to the mascot box size; +52px nudges down slightly (header / optical center).
+         * Examples: --mascot-left: 2%; --mascot-translate-x: -12px; --mascot-translate-y: calc(-50% + 80px);
+         */
+        :root {
+            --mascot-left: 4%;
+            --mascot-top: 50%;
+            --mascot-translate-x: 0;
+            --mascot-translate-y: calc(-50% + 52px);
+            --mascot-scale: 1;
+            --mascot-width: 280px;
+            --landing-pad-top: 36px;
+            --landing-pad-between: 40px;
+            --landing-pad-below-stores: 52px;
+        }
+
         body {
             font-family: 'Arial', sans-serif;
             background-color: #573920;
-            background-image: url("imagefiles/migdem_en.svg");
-            background-repeat: no-repeat;
-            background-position: center center;
-            background-size: min(100vw, 887px) auto;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 0;
+        }
+
+        /* ~50/50: Me & Them graphic upper half, copy + store row lower half */
+        .site-main.landing-split {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            padding-top: 0;
+            padding-bottom: 24px;
+        }
+
+        .landing-visual {
+            flex: 1 1 50%;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--landing-pad-top) 0 var(--landing-pad-between);
+            box-sizing: border-box;
+        }
+
+        .hero-brand {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            width: 100%;
+            height: 100%;
+            max-height: 100%;
+            min-height: 0;
+        }
+
+        .hero-brand-img {
+            display: block;
+            width: 100%;
+            max-width: 887px;
+            height: auto;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .landing-copy {
+            flex: 1 1 50%;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-bottom: var(--landing-pad-below-stores);
+            box-sizing: border-box;
+        }
+
+        .landing-copy .store-row {
+            margin-bottom: 0;
+        }
+
+        .landing-copy .hero-store-lead {
+            font-size: 0.95rem;
+            margin-top: 8px;
+        }
+
+        /* Decorative mascot (Me & Them) — overlaps background; below header (z-index) */
+        .index-mascot-wrap {
+            position: fixed;
+            left: var(--mascot-left);
+            top: var(--mascot-top);
+            transform: translate(var(--mascot-translate-x), var(--mascot-translate-y)) scale(var(--mascot-scale));
+            z-index: 8;
+            width: var(--mascot-width);
+            height: var(--mascot-width);
+            max-width: 42vw;
+            pointer-events: none;
+        }
+
+        .index-mascot-wrap .figure-container {
+            position: relative;
+            left: auto;
+            top: auto;
+            transform: none;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+
+        .index-mascot-wrap .part {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .index-mascot-wrap .head {
+            position: absolute;
+            top: -74px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: #d97706;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            z-index: 5;
+        }
+
+        .index-mascot-wrap .body {
+            position: absolute;
+            top: 77px;
+            left: 50%;
+            transform: translateX(-50%);
+            transform-origin: 40px -77px;
+            transition: none !important;
+            z-index: -1;
+            pointer-events: none;
+            will-change: transform;
+            backface-visibility: hidden;
+        }
+
+        .index-mascot-wrap .torso {
+            width: 60px;
+            height: 80px;
+            background: #d97706;
+            margin: 0 auto;
+            border-radius: 30px 30px 20px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            position: relative;
+            z-index: 5;
+        }
+
+        .index-mascot-wrap .torso::after {
+            content: '';
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background: #d97706;
+            border-radius: 50%;
+        }
+
+        .index-mascot-wrap .skulder_translate_right {
+            position: absolute;
+            top: 2px;
+            left: 41px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0);
+            z-index: 3;
+        }
+
+        .index-mascot-wrap .skulder_translate_right.front-arm {
+            z-index: 15;
+        }
+
+        .index-mascot-wrap .skulder_rotate_right {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0);
+            transform-origin: center center;
+        }
+
+        .index-mascot-wrap .arm_geo_right {
+            width: 50px;
+            height: 18px;
+            background: #d97706;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -1px;
+        }
+
+        .index-mascot-wrap .albue_rotate_right {
+            position: relative;
+            top: 1px;
+            left: 34px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0);
+            transform-origin: center center;
+        }
+
+        .index-mascot-wrap .albue_geo_right {
+            position: relative;
+            top: -1px;
+            left: 1px;
+            width: 50px;
+            height: 18px;
+            background: #d97706;
+            border-radius: 9px;
+            z-index: 4;
+        }
+
+        .index-mascot-wrap .skulder_translate_left {
+            position: absolute;
+            top: 2px;
+            left: 4px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0);
+            z-index: 3;
+        }
+
+        .index-mascot-wrap .skulder_translate_left.front-arm {
+            z-index: 15;
+        }
+
+        .index-mascot-wrap .skulder_rotate_left {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0);
+            transform-origin: center center;
+        }
+
+        .index-mascot-wrap .arm_geo_left {
+            width: 50px;
+            height: 18px;
+            background: #d97706;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -34px;
+        }
+
+        .index-mascot-wrap .albue_rotate_left {
+            position: relative;
+            top: 1px;
+            left: 0px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0);
+            transform-origin: center center;
+        }
+
+        .index-mascot-wrap .albue_geo_left {
+            position: relative;
+            top: -1px;
+            left: -33px;
+            width: 50px;
+            height: 18px;
+            background: #d97706;
+            border-radius: 9px;
+            z-index: 4;
+        }
+
+        .index-mascot-wrap .hofte_translate_right {
+            position: absolute;
+            top: 68px;
+            left: 40px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0);
+        }
+
+        .index-mascot-wrap .hofte_rotate_right {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0);
+            transform-origin: center center;
+        }
+
+        .index-mascot-wrap .laar_geo_right {
+            width: 18px;
+            height: 55px;
+            background: #d97706;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -1px;
+        }
+
+        .index-mascot-wrap .knae_rotate_right {
+            position: relative;
+            top: 38px;
+            left: 1px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0);
+            transform-origin: center center;
+        }
+
+        .index-mascot-wrap .skinneben_geo_right {
+            position: relative;
+            top: -1px;
+            left: -1px;
+            width: 18px;
+            height: 50px;
+            background: #d97706;
+            border-radius: 9px;
+        }
+
+        .index-mascot-wrap .hofte_translate_left {
+            position: absolute;
+            top: 68px;
+            left: 4px;
+            width: 15px;
+            height: 15px;
+            background: rgba(59, 130, 246, 0);
+        }
+
+        .index-mascot-wrap .hofte_rotate_left {
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 68, 68, 0);
+            transform-origin: center center;
+        }
+
+        .index-mascot-wrap .laar_geo_left {
+            width: 18px;
+            height: 55px;
+            background: #d97706;
+            border-radius: 9px;
+            position: relative;
+            top: -1px;
+            left: -1px;
+        }
+
+        .index-mascot-wrap .knae_rotate_left {
+            position: relative;
+            top: 38px;
+            left: 1px;
+            width: 15px;
+            height: 15px;
+            background: rgba(16, 185, 129, 0);
+            transform-origin: center center;
+        }
+
+        .index-mascot-wrap .skinneben_geo_left {
+            position: relative;
+            top: -1px;
+            left: -1px;
+            width: 18px;
+            height: 50px;
+            background: #d97706;
+            border-radius: 9px;
+        }
+
+        @media (max-width: 640px) {
+            :root {
+                --mascot-scale: 0.75;
+                --mascot-left: 2%;
+            }
+        }
+
+        .site-header {
+            position: relative;
+            z-index: 50;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 20px;
+            padding: 14px 22px;
+            background: rgba(47, 32, 20, 0.92);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .site-header .brand {
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.1rem;
+            margin-right: auto;
+        }
+        .site-header nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 18px;
+            align-items: center;
+        }
+        .site-header nav a {
+            color: #e5e7eb;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        .site-header nav a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+        .site-header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .header-signin-btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: #fff;
+        }
+        .header-signin-btn:hover {
+            filter: brightness(1.05);
+        }
+
+        .site-main {
+            flex: 1;
+            width: 100%;
+            max-width: 880px;
+            margin: 0 auto;
+            padding: 12px 22px 40px;
+            min-height: 0;
+            color: #f9fafb;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+            position: relative;
+            z-index: 12;
+        }
+        .hero h1 {
+            font-size: clamp(1.75rem, 4vw, 2.35rem);
+            font-weight: 300;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+        .hero p.lead {
+            font-size: 1.05rem;
+            opacity: 0.95;
+            max-width: 36em;
+            margin-bottom: 22px;
+            line-height: 1.55;
+        }
+        .feature-list {
+            list-style: none;
+            margin: 20px 0 28px;
+        }
+        .feature-list li {
+            padding: 8px 0 8px 1.4em;
+            position: relative;
+            font-size: 0.98rem;
+            opacity: 0.95;
+        }
+        .feature-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #a7f3d0;
+            font-weight: 700;
+        }
+        .store-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .store-badge {
+            display: inline-block;
+            padding: 12px 20px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e5e7eb;
+            font-size: 0.9rem;
+        }
+
+        .site-footer {
+            padding: 18px 22px 22px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.75);
+            background: rgba(30, 20, 12, 0.85);
+            position: relative;
+            z-index: 12;
+        }
+
+        .site-footer-inner {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px 24px;
+            width: 100%;
+        }
+
+        .site-footer-logo-link {
+            display: inline-block;
+            line-height: 0;
+            flex-shrink: 0;
+            border-radius: 4px;
+        }
+
+        .site-footer-logo-link:focus-visible {
+            outline: 2px solid rgba(255, 255, 255, 0.9);
+            outline-offset: 4px;
+        }
+
+        .site-footer-logo {
+            height: 40px;
+            width: auto;
+            display: block;
+        }
+
+        .site-footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px 16px;
+            margin-left: auto;
+        }
+
+        .site-footer-links a {
+            color: #e5e7eb;
+            text-decoration: none;
+        }
+
+        .site-footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        .account-strip {
+            display: none;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px 16px;
+            padding: 10px 18px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            margin-top: 8px;
+            max-width: 100%;
+        }
+        .account-strip.show {
+            display: flex;
+        }
+        .account-strip .user-email {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            word-break: break-all;
+        }
+        .account-strip button {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .account-strip .btn-journal {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #fff;
+        }
+        .account-strip .btn-logout {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .oauth-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .btn-oauth-icon {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+            object-fit: contain;
+            display: block;
+        }
+        .btn-oauth-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #dadce0;
+            border-radius: 10px;
+            background: #fff;
+            color: #3c4043;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn-oauth-google:hover {
+            background: #f8f9fa;
+        }
+        .btn-oauth-apple {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            background: #000;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-oauth-apple:hover {
+            opacity: 0.88;
+        }
+        .login-divider {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin: 4px 0 12px;
+        }
+        details.email-alt-details {
+            margin-top: 8px;
+        }
+        details.email-alt-details summary {
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #4f46e5;
+            user-select: none;
+        }
+        details.email-alt-details summary:hover {
+            text-decoration: underline;
         }
         
         .login-container {
@@ -91,14 +714,14 @@
         
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
         }
         
         .login-button {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
             color: white;
             border: none;
             border-radius: 10px;
@@ -111,7 +734,7 @@
         
         .login-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35);
         }
         
         .login-button:active {
@@ -185,13 +808,92 @@
         }
         
         /* Debug Overlay Styles */
+        .login-entry-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+
+        .login-entry-overlay.show {
+            display: flex;
+        }
+
+        .login-entry-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+        }
+
+        .login-entry-panel {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 24px 28px 28px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .login-entry-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .login-entry-header h2 {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #1e1b4b;
+        }
+
+        .login-entry-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: none;
+            background: #e5e7eb;
+            color: #374151;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .login-entry-close:hover {
+            background: #d1d5db;
+            transform: scale(1.05);
+        }
+
+        .login-entry-intro {
+            font-size: 0.95rem;
+            line-height: 1.55;
+            color: #4b5563;
+            margin-bottom: 20px;
+        }
+
         .debug-overlay {
             position: fixed;
             inset: 0;
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
+            z-index: 10001;
         }
         
         .debug-overlay.show {
@@ -281,29 +983,6 @@
             transform: translateY(0);
         }
         
-        .toggle-button {
-            flex: 1;
-            padding: 12px;
-            background: #e5e7eb;
-            color: #374151;
-            border: 2px solid #d1d5db;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .toggle-button:hover {
-            background: #d1d5db;
-        }
-        
-        .toggle-button.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: transparent;
-        }
-        
         .debug-button {
             width: 100%;
             padding: 12px;
@@ -331,75 +1010,152 @@
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <h1>Login</h1>
-            <p>Log ind for at fortsætte</p>
-        </div>
-        
-        <div class="error-message" id="errorMessage"></div>
-                    
-        <!-- Login form -->
-        <form id="login-form">
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" placeholder="Email" required autocomplete="email">
+    <div class="index-mascot-wrap" aria-hidden="true">
+        <div class="figure-container">
+            <div class="part" id="indexMascotFigure">
+                <div class="body">
+                    <div class="head"></div>
+                    <div class="torso"></div>
+                    <div class="skulder_translate_left">
+                        <div class="skulder_rotate_left">
+                            <div class="arm_geo_left">
+                                <div class="albue_rotate_left">
+                                    <div class="albue_geo_left"></div>
                                 </div>
-            
-            <div class="form-group">
-                <label for="password">Adgangskode</label>
-                <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password">
                             </div>
-            
-            <!-- Toggle buttons for login/new user -->
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button type="submit" class="toggle-button active" id="showLoginBtn">Log ind</button>
-                <button type="button" class="toggle-button" id="showNewUserBtn">Ny bruger</button>
                         </div>
-        </form>
-        
-        <!-- New user form -->
-        <form id="new-user-form" style="display: none;">
-            <div class="form-group">
-                <label for="displayName">Dit kalde navn</label>
-                <input type="text" id="displayName" name="displayName" placeholder="Dit kaldenavn" required autocomplete="name">
                     </div>
-                    
-            <div class="form-group">
-                <label for="newEmail">Email</label>
-                <input type="email" id="newEmail" name="newEmail" placeholder="Email" required autocomplete="email">
+                    <div class="skulder_translate_right">
+                        <div class="skulder_rotate_right">
+                            <div class="arm_geo_right">
+                                <div class="albue_rotate_right">
+                                    <div class="albue_geo_right"></div>
                                 </div>
-            
-            <div class="form-group">
-                <label for="newPassword">Adgangskode</label>
-                <input type="password" id="newPassword" name="newPassword" placeholder="Vælg en adgangskode" required autocomplete="new-password">
                             </div>
-            
-            <div class="form-group">
-                <label for="confirmPassword">Bekræft adgangskode</label>
-                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Bekræft adgangskode" required autocomplete="new-password">
+                        </div>
                     </div>
-                    
-            <!-- Toggle buttons for login/new user -->
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button type="button" class="toggle-button" id="showLoginBtnFromNewUser">Log ind</button>
-                <button type="submit" class="toggle-button active">Opret bruger</button>
+                    <div class="hofte_translate_left">
+                        <div class="hofte_rotate_left">
+                            <div class="laar_geo_left">
+                                <div class="knae_rotate_left">
+                                    <div class="skinneben_geo_left"></div>
                                 </div>
-        </form>
-
-        <!-- Logged in section -->
-        <div class="logged-in-section" id="loggedInSection" style="display: none;">
-            <div class="user-info">
-                <strong>Du er logget ind</strong>
-                <p id="userEmail" style="margin-top: 8px; color: #6b7280; font-size: 14px;"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hofte_translate_right">
+                        <div class="hofte_rotate_right">
+                            <div class="laar_geo_right">
+                                <div class="knae_rotate_right">
+                                    <div class="skinneben_geo_right"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-            <button type="button" class="start-button" id="goToCheckinBtn" style="margin-top: 20px;">Lad os starte!</button>
-            <button type="button" class="logout-button" id="logoutButton" style="margin-top: 10px;">Log ud</button>
-            <button type="button" class="debug-button" id="openDebugBtn" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); font-size: 12px; padding: 8px 16px; margin-top: 10px;">🔧 Debug</button>
     </div>
-    
-    <!-- Debug Overlay -->
+
+    <header class="site-header">
+        <span class="brand">Journal App</span>
+        <nav aria-label="Site">
+            <a href="index.html">Home</a>
+            <a href="privacy.html">Privacy</a>
+            <a href="terms.html">Terms</a>
+            <a href="delete-account.html">Delete account</a>
+            <a href="support.html">Support</a>
+        </nav>
+        <div class="site-header-actions" id="headerGuestActions">
+            <button type="button" class="header-signin-btn" id="openLoginOverlayBtn">Logbook</button>
+        </div>
+        <div class="site-header-actions account-strip" id="headerAccountStrip" style="display: none;">
+            <span class="user-email" id="userEmail"></span>
+            <button type="button" class="btn-journal" id="goToLogbogBtn">Open journal</button>
+            <button type="button" class="btn-logout" id="logoutButton">Log out</button>
+        </div>
+    </header>
+
+    <main class="site-main landing-split">
+        <div class="landing-visual">
+            <div class="hero-brand" aria-hidden="true">
+                <img class="hero-brand-img" src="imagefiles/migdem_en.svg" alt="" width="887" height="237" decoding="async">
+            </div>
+        </div>
+        <section class="hero landing-copy">
+            <h1>Your self-development journal app</h1>
+            <p class="lead">A journaling app with inner work and coaching. Easy 5-step journal. Daily affirmations. Assignments to help you develop a better understanding of yourself and others. Web access for longer writings. Track bodily sensations. Create constellations of family and relationships. Safe storage. Password protection. And more…</p>
+            <ul class="feature-list">
+                <li>Sync with your phone (same login)</li>
+                <li>Journal and dreams in one place</li>
+                <li>Designed as an add-on — the app stays primary</li>
+            </ul>
+            <p class="lead hero-store-lead">Get the app (links coming soon):</p>
+            <div class="store-row">
+                <span class="store-badge">App Store — soon</span>
+                <span class="store-badge">Google Play — soon</span>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="site-footer-inner">
+            <a class="site-footer-logo-link" href="https://www.grafiskkooperativ.dk" target="_blank" rel="noopener noreferrer" aria-label="Grafisk Kooperativ">
+                <img class="site-footer-logo" src="imagefiles/Grr_logo_White.svg" alt="" width="346" height="213" decoding="async">
+            </a>
+            <div class="site-footer-links">
+                <a href="privacy.html">Privacy Policy</a>
+                <a href="terms.html">Terms of Service</a>
+                <a href="delete-account.html">Delete account</a>
+                <a href="support.html">Support</a>
+            </div>
+        </div>
+    </footer>
+
+    <div class="login-entry-overlay" id="loginEntryOverlay" aria-hidden="true">
+        <div class="login-entry-backdrop" id="loginEntryBackdrop"></div>
+        <div class="login-entry-panel" role="dialog" aria-modal="true" aria-labelledby="loginEntryTitle">
+            <div class="login-entry-header">
+                <h2 id="loginEntryTitle">Logbook</h2>
+                <button type="button" class="login-entry-close" id="loginEntryClose" title="Close">×</button>
+            </div>
+            <p class="login-entry-intro">Sign in with the same account as in the app. An active subscription is required. Use Google or Apple if you use those in the app.</p>
+            <div class="error-message" id="errorMessage"></div>
+            <div class="oauth-row">
+                <button type="button" class="btn-oauth-google" id="btnGoogleSignIn">
+                    <img class="btn-oauth-icon" src="imagefiles/google_logo.svg" alt="" width="22" height="22">
+                    Continue with Google
+                </button>
+                <button type="button" class="btn-oauth-apple" id="btnAppleSignIn">
+                    <img class="btn-oauth-icon" src="imagefiles/Apple_logo_white.svg" alt="" width="22" height="22">
+                    Sign in with Apple
+                </button>
+            </div>
+            <p class="login-divider">or</p>
+            <details class="email-alt-details">
+                <summary>Other sign-in options (email)</summary>
+                <form id="login-form" style="margin-top: 14px;">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="Email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="login-button" id="loginSubmitBtn">Sign in with email</button>
+                </form>
+            </details>
+        </div>
+    </div>
+
+    <div class="login-container" id="loggedInContainer" style="display: none !important;" aria-hidden="true"></div>
+
+    <!--
+      Debug / migration overlay (download backup, restore, userData upload, December logbog).
+      Not shown in the UI. While signed in, open from the browser console:
+      window.__openWebbuilderDebugTools()
+    -->
     <div class="debug-overlay" id="debugOverlay">
         <div class="debug-overlay-backdrop" id="debugOverlayBackdrop"></div>
         <div class="debug-overlay-panel">
@@ -416,8 +1172,6 @@
         </div>
     </div>
 
-</div>
-    
     <script>
         // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -443,6 +1197,45 @@ const firebaseConfig = {
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        function formatAuthError(error) {
+            const errorCode = error && error.code ? error.code : '';
+            let errorMsgText = error && error.message ? error.message : '';
+            try {
+                if (typeof errorMsgText === 'string' && errorMsgText.startsWith('{')) {
+                    const parsed = JSON.parse(errorMsgText);
+                    if (parsed.error && parsed.error.message) {
+                        errorMsgText = parsed.error.message;
+                    }
+                }
+            } catch (parseErr) { /* ignore */ }
+            let errorMsg = 'Sign-in failed. Please try again.';
+            if (errorCode === 'auth/user-not-found' ||
+                errorCode === 'auth/internal-error' ||
+                (errorMsgText && errorMsgText.includes('INVALID_LOGIN_CREDENTIALS'))) {
+                errorMsg = 'No account found or wrong password.';
+            } else if (errorCode === 'auth/wrong-password') {
+                errorMsg = 'Wrong password. Try again.';
+            } else if (errorCode === 'auth/invalid-email') {
+                errorMsg = 'Invalid email address.';
+            } else if (errorCode === 'auth/user-disabled') {
+                errorMsg = 'This account has been disabled.';
+            } else if (errorCode === 'auth/too-many-requests') {
+                errorMsg = 'Too many attempts. Try again later.';
+            } else if (errorCode === 'auth/network-request-failed') {
+                errorMsg = 'Network error. Check your connection.';
+            } else if (errorCode === 'auth/popup-closed-by-user' || errorCode === 'auth/cancelled-popup-request') {
+                errorMsg = 'Sign-in was cancelled.';
+            } else if (errorMsgText && !errorMsgText.includes('{') && !errorMsgText.includes('error')) {
+                errorMsg = errorMsgText;
+            }
+            return errorMsg;
+        }
+
+        function userDisplayLine(user) {
+            if (!user) return '';
+            return user.email || user.displayName || ('Account ' + user.uid.slice(0, 8) + '…');
+        }
+
         // Global Firestore toggle key (same as other pages)
         const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
 
@@ -461,16 +1254,18 @@ const firebaseConfig = {
         // Get DOM elements
         console.log('Getting DOM elements...');
         const loginForm = document.getElementById('login-form');
-        const newUserForm = document.getElementById('new-user-form');
         const errorMessage = document.getElementById('errorMessage');
-        const showLoginBtn = document.getElementById('showLoginBtn');
-        const showNewUserBtn = document.getElementById('showNewUserBtn');
-        const showLoginBtnFromNewUser = document.getElementById('showLoginBtnFromNewUser');
-        const loggedInSection = document.getElementById('loggedInSection');
+        const headerGuestActions = document.getElementById('headerGuestActions');
+        const headerAccountStrip = document.getElementById('headerAccountStrip');
+        const loginEntryOverlay = document.getElementById('loginEntryOverlay');
+        const loginEntryBackdrop = document.getElementById('loginEntryBackdrop');
+        const loginEntryClose = document.getElementById('loginEntryClose');
+        const openLoginOverlayBtn = document.getElementById('openLoginOverlayBtn');
+        const btnGoogleSignIn = document.getElementById('btnGoogleSignIn');
+        const btnAppleSignIn = document.getElementById('btnAppleSignIn');
         const userEmailEl = document.getElementById('userEmail');
-        const goToCheckinBtn = document.getElementById('goToCheckinBtn');
+        const goToLogbogBtn = document.getElementById('goToLogbogBtn');
         const logoutButton = document.getElementById('logoutButton');
-        const openDebugBtn = document.getElementById('openDebugBtn');
         const debugOverlay = document.getElementById('debugOverlay');
         const debugOverlayClose = document.getElementById('debugOverlayClose');
         const debugOverlayBackdrop = document.getElementById('debugOverlayBackdrop');
@@ -478,19 +1273,27 @@ const firebaseConfig = {
         const debugRestoreBtn = document.getElementById('debugRestoreBtn');
         let currentUser = null;
         
-        // Debug: Check if all elements exist
         console.log('DOM elements check:');
         console.log('loginForm:', loginForm ? 'found' : 'NOT FOUND');
-        console.log('newUserForm:', newUserForm ? 'found' : 'NOT FOUND');
         console.log('errorMessage:', errorMessage ? 'found' : 'NOT FOUND');
         
-        if (!loginForm) {
-            console.error('ERROR: login-form element not found!');
+
+        function openLoginEntryOverlay() {
+            if (!loginEntryOverlay) return;
+            loginEntryOverlay.classList.add('show');
+            loginEntryOverlay.setAttribute('aria-hidden', 'false');
+            if (errorMessage) errorMessage.classList.remove('show');
+            const emailInput = document.getElementById('email');
+            setTimeout(() => {
+                if (emailInput) emailInput.focus();
+            }, 50);
         }
-        
-        if (!newUserForm) {
-            console.error('ERROR: new-user-form element not found!');
-                        }
+
+        function closeLoginEntryOverlay() {
+            if (!loginEntryOverlay) return;
+            loginEntryOverlay.classList.remove('show');
+            loginEntryOverlay.setAttribute('aria-hidden', 'true');
+        }
 
         /**
          * Auto-detecter brugerens timezone fra browser
@@ -552,6 +1355,24 @@ const firebaseConfig = {
             }
         }
 
+        async function finishSignInAndGoToJournal(user) {
+            if (!user) return;
+            currentUser = user;
+            saveGlobalFirestoreToggle(true);
+            await loadAndSaveUserData(user);
+            if (loginForm) loginForm.reset();
+            closeLoginEntryOverlay();
+            window.location.href = 'logbog_01.html';
+        }
+
+        auth.getRedirectResult().then(async function(result) {
+            if (result && result.user) {
+                await finishSignInAndGoToJournal(result.user);
+            }
+        }).catch(function(e) {
+            console.warn('getRedirectResult:', e);
+        });
+
         // Check if user is already logged in
         auth.onAuthStateChanged(async user => {
             console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
@@ -572,238 +1393,115 @@ const firebaseConfig = {
             }
         });
 
-        // Login form submit handler
-        loginForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            console.log('Login form submitted');
-            
-            // Hide previous messages
-            errorMessage.classList.remove('show');
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            
-            console.log('Attempting login for:', email);
+        function showAuthErrorInOverlay(err) {
+            if (!errorMessage) return;
+            errorMessage.textContent = formatAuthError(err);
+            errorMessage.classList.add('show');
+        }
 
-            auth.signInWithEmailAndPassword(email, password)
-                .then(async userCredential => {
-                    console.log('Login successful!', userCredential.user);
-                    // Successful login - show logged in section
-                    currentUser = userCredential.user;
-                    // Set global_useFirestore to true on successful login
-                    saveGlobalFirestoreToggle(true);
-                    // Load and save userData to localStorage
-                    await loadAndSaveUserData(currentUser);
-                    showLoggedInSection(currentUser);
-                    // Clear form
-                    loginForm.reset();
-                })
-                .catch(error => {
-                    // Parse error message if it's JSON
-                    let errorCode = error.code || '';
-                    let errorMsgText = error.message || '';
-        
-                    // Try to parse JSON error messages
-                    try {
-                        if (typeof errorMsgText === 'string' && errorMsgText.startsWith('{')) {
-                            const parsed = JSON.parse(errorMsgText);
-                            if (parsed.error && parsed.error.message) {
-                                errorMsgText = parsed.error.message;
-                    }
-                }
-                    } catch (e) {
-                        // Not JSON, continue with original message
-                    }
-                    
-                    let errorMsg = 'Der opstod en fejl ved login';
-                    // Translate common error messages to Danish
-                    if (errorCode === 'auth/user-not-found' || 
-                        errorCode === 'auth/internal-error' || 
-                        errorMsgText.includes('INVALID_LOGIN_CREDENTIALS')) {
-                        errorMsg = 'Brugeren findes ikke eller forkert adgangskode. Tjek email og adgangskode.';
-                    } else if (errorCode === 'auth/wrong-password') {
-                        errorMsg = 'Forkert adgangskode. Prøv igen.';
-                    } else if (errorCode === 'auth/invalid-email') {
-                        errorMsg = 'Ugyldig email-adresse';
-                    } else if (errorCode === 'auth/user-disabled') {
-                        errorMsg = 'Denne bruger er deaktiveret';
-                    } else if (errorCode === 'auth/too-many-requests') {
-                        errorMsg = 'For mange mislykkede forsøg. Prøv igen senere.';
-                    } else if (errorCode === 'auth/network-request-failed') {
-                        errorMsg = 'Netværksfejl. Tjek din internetforbindelse.';
-                    } else if (errorMsgText && !errorMsgText.includes('{') && !errorMsgText.includes('error')) {
-                        // Only use error message if it's not JSON and doesn't contain error object
-                        errorMsg = errorMsgText;
-                    }
-                    errorMessage.textContent = errorMsg;
-                    errorMessage.classList.add('show');
+        if (btnGoogleSignIn) {
+            btnGoogleSignIn.addEventListener('click', function() {
+                if (errorMessage) errorMessage.classList.remove('show');
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider).then(async function(cred) {
+                    await finishSignInAndGoToJournal(cred.user);
+                }).catch(function(e) {
+                    showAuthErrorInOverlay(e);
                 });
-        });
+            });
+        }
 
-        // Show login form
+        if (btnAppleSignIn) {
+            btnAppleSignIn.addEventListener('click', function() {
+                if (errorMessage) errorMessage.classList.remove('show');
+                const provider = new firebase.auth.OAuthProvider('apple.com');
+                provider.addScope('email');
+                provider.addScope('name');
+                auth.signInWithPopup(provider).then(async function(cred) {
+                    await finishSignInAndGoToJournal(cred.user);
+                }).catch(function(e) {
+                    showAuthErrorInOverlay(e);
+                });
+            });
+        }
+
+        // Login form submit handler (email / password)
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (errorMessage) errorMessage.classList.remove('show');
+
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(async function(userCredential) {
+                        await finishSignInAndGoToJournal(userCredential.user);
+                    })
+                    .catch(function(error) {
+                        if (errorMessage) {
+                            errorMessage.textContent = formatAuthError(error);
+                            errorMessage.classList.add('show');
+                        }
+                    });
+            });
+        }
+
         function showLoginForm() {
-            loginForm.style.display = 'block';
-            newUserForm.style.display = 'none';
-            if (loggedInSection) loggedInSection.style.display = 'none';
-            errorMessage.classList.remove('show');
-            // Update toggle buttons
-            showLoginBtn.classList.add('active');
-            showNewUserBtn.classList.remove('active');
-            if (showLoginBtnFromNewUser) {
-                showLoginBtnFromNewUser.classList.remove('active');
+            closeLoginEntryOverlay();
+            if (headerGuestActions) headerGuestActions.style.display = '';
+            if (headerAccountStrip) {
+                headerAccountStrip.style.display = 'none';
+                headerAccountStrip.classList.remove('show');
             }
-            const newUserSubmitBtn = newUserForm.querySelector('button[type="submit"]');
-            if (newUserSubmitBtn) {
-                newUserSubmitBtn.classList.remove('active');
-            }
+            if (loginForm) loginForm.reset();
+            if (errorMessage) errorMessage.classList.remove('show');
         }
-        
-        // Show logged in section
+
         function showLoggedInSection(user) {
-            loginForm.style.display = 'none';
-            newUserForm.style.display = 'none';
-            if (loggedInSection) {
-                loggedInSection.style.display = 'block';
+            closeLoginEntryOverlay();
+            if (headerGuestActions) headerGuestActions.style.display = 'none';
+            if (headerAccountStrip) {
+                headerAccountStrip.style.display = 'flex';
+                headerAccountStrip.classList.add('show');
             }
-            errorMessage.classList.remove('show');
-            // Update toggle buttons
-            showLoginBtn.classList.remove('active');
-            showNewUserBtn.classList.remove('active');
-            // Show user email
+            if (errorMessage) errorMessage.classList.remove('show');
             if (userEmailEl && user) {
-                userEmailEl.textContent = user.email;
+                userEmailEl.textContent = userDisplayLine(user);
             }
         }
-        
-        // Show new user form
-        function showNewUserForm() {
-            loginForm.style.display = 'none';
-            newUserForm.style.display = 'block';
-            if (loggedInSection) loggedInSection.style.display = 'none';
-            errorMessage.classList.remove('show');
-            // Update toggle buttons
-            showLoginBtn.classList.remove('active');
-            showNewUserBtn.classList.add('active');
-            if (showLoginBtnFromNewUser) {
-                showLoginBtnFromNewUser.classList.remove('active');
-            }
-            const newUserSubmitBtn = newUserForm.querySelector('button[type="submit"]');
-            if (newUserSubmitBtn) {
-                newUserSubmitBtn.classList.add('active');
-                    }
-                }
-        
-        // Toggle between login and new user forms
-        // showLoginBtn is now a submit button, so we only handle the "Ny bruger" button click
-        showNewUserBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            showNewUserForm();
-        });
-        
-        // New user form submit handler
-        newUserForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            console.log('New user form submitted');
-            
-            // Hide previous messages
-            errorMessage.classList.remove('show');
-            
-            const displayName = document.getElementById('displayName').value.trim();
-            const email = document.getElementById('newEmail').value;
-            const password = document.getElementById('newPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            
-            // Validate display name
-            if (!displayName) {
-                errorMessage.textContent = 'Du skal indtaste dit kalde navn';
-                errorMessage.classList.add('show');
-                return;
+
+        if (openLoginOverlayBtn) {
+            openLoginOverlayBtn.addEventListener('click', function() {
+                openLoginEntryOverlay();
+            });
         }
-        
-            // Validate passwords match
-            if (password !== confirmPassword) {
-                errorMessage.textContent = 'Adgangskoderne matcher ikke';
-                errorMessage.classList.add('show');
-                return;
+        if (loginEntryClose) {
+            loginEntryClose.addEventListener('click', function() {
+                closeLoginEntryOverlay();
+            });
+        }
+        if (loginEntryBackdrop) {
+            loginEntryBackdrop.addEventListener('click', function() {
+                closeLoginEntryOverlay();
+            });
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && loginEntryOverlay && loginEntryOverlay.classList.contains('show')) {
+                closeLoginEntryOverlay();
             }
-            
-            // Validate password length
-            if (password.length < 6) {
-                errorMessage.textContent = 'Adgangskoden skal være mindst 6 tegn lang';
-                errorMessage.classList.add('show');
-                return;
-            }
-            
-            console.log('Attempting to create user:', email);
-
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    console.log('User created successfully!', userCredential.user);
-                    currentUser = userCredential.user;
-                    
-                    // Save user data (displayName, email) to Firestore in userData structure
-                    const userDoc = {
-                        userData: {
-                            displayName: displayName,
-                            email: email,
-                            timezone: detectUserTimezone() // Tilføj auto-detected timezone
-                        },
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    
-                    return db.collection('users').doc(currentUser.uid).set(userDoc, { merge: true })
-                        .then(() => {
-                            console.log('User data saved to Firestore');
-                            // Save userData to localStorage with "You" field and timezone
-                            const userData = userDoc.userData || {};
-                            const dataToSave = {
-                                ...userData,
-                                You: userData.displayName || '',
-                                timezone: userData.timezone || detectUserTimezone() // Tilføj timezone
-                            };
-                            localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
-                            console.log('UserData saved to localStorage:', dataToSave);
-                            // Set global_useFirestore to true when new user is created successfully
-                            saveGlobalFirestoreToggle(true);
-                            // Show logged in section after successful user creation and data save
-                            showLoggedInSection(currentUser);
-                            // Clear form
-                            newUserForm.reset();
-                        });
-                })
-                .catch(error => {
-                    console.error('Create user error:', error);
-                    console.error('Error code:', error.code);
-                    console.error('Error message:', error.message);
-                    let errorMsg = error.message || 'Der opstod en fejl ved oprettelse af bruger';
-                    // Translate common error messages
-                    if (error.code === 'auth/email-already-in-use') {
-                        errorMsg = 'Denne email er allerede i brug';
-                    } else if (error.code === 'auth/invalid-email') {
-                        errorMsg = 'Ugyldig email-adresse';
-                    } else if (error.code === 'auth/weak-password') {
-                        errorMsg = 'Adgangskoden er for svag';
-            }
-                    errorMessage.textContent = errorMsg;
-                    errorMessage.classList.add('show');
-                });
         });
 
-        // Go to checkin button handler
-        if (goToCheckinBtn) {
-            goToCheckinBtn.addEventListener('click', function() {
-                window.location.href = 'checkin.html';
+        if (goToLogbogBtn) {
+            goToLogbogBtn.addEventListener('click', function() {
+                window.location.href = 'logbog_01.html';
             });
         }
         
-        // Debug overlay handlers
-        if (openDebugBtn && debugOverlay) {
-            openDebugBtn.addEventListener('click', function() {
-                debugOverlay.classList.add('show');
-            });
-        }
-        
+        window.__openWebbuilderDebugTools = function() {
+            if (debugOverlay) debugOverlay.classList.add('show');
+        };
+
         if (debugOverlayClose) {
             debugOverlayClose.addEventListener('click', function() {
                 debugOverlay.classList.remove('show');
@@ -826,14 +1524,11 @@ const firebaseConfig = {
                         // Set global_useFirestore to false on logout
                         saveGlobalFirestoreToggle(false);
                         showLoginForm();
-                        // Clear forms
                         loginForm.reset();
-                        newUserForm.reset();
                     })
                     .catch(error => {
                         console.error('Error logging out:', error);
-                        errorMessage.textContent = 'Fejl ved logout: ' + error.message;
-                        errorMessage.classList.add('show');
+                        alert('Could not sign out: ' + error.message);
                     });
             });
         }
@@ -868,7 +1563,6 @@ const firebaseConfig = {
                         // Get all data fields from main document
                         allData.data.userData = data.userData || null;
                         allData.data.logbogData = data.logbogData || null;
-                        allData.data.checkinData = data.checkinData || null;
                         allData.data.dialogData = data.dialogData || null;
                         allData.data.opstillingData = data.opstillingData || null;
                         allData.data.compareData = data.compareData || null;
@@ -1295,19 +1989,302 @@ const firebaseConfig = {
             });
         }
         
-        // Auto-focus on email field and debug
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM Content Loaded');
             console.log('Login form element:', loginForm);
             console.log('Auth object:', auth);
             console.log('DB object:', db);
-            
-            // Only focus if login form is visible
-            const emailInput = document.getElementById('email');
-            if (emailInput && loginForm.style.display !== 'none') {
-                emailInput.focus();
-            }
         });
+    </script>
+    <script>
+        (function () {
+            const MASCOT_ID = 'indexMascotFigure';
+            const ANIM_BASE = 'animations';
+            let animationsLibrary = {};
+
+            /* Last keyframe of vinke.json — used until animations load (then overwritten from file). */
+            var FALLBACK_VINKE_REST_POSE = {
+                translate_x_left: -3,
+                translate_y_left: 0,
+                skulder_rot_left: -70,
+                albue_rot_left: 0,
+                translate_x: 3,
+                translate_y: 0,
+                skulder_rot: 70,
+                albue_rot: 0,
+                translate_x_left_leg: 0,
+                translate_y_left_leg: 0,
+                hofte_rot_left: 6,
+                knae_rot_left: 0,
+                translate_x_right_leg: 0,
+                translate_y_right_leg: 0,
+                hofte_rot_right: -6,
+                knae_rot_right: 0,
+                left_arm_front: false,
+                right_arm_front: false
+            };
+
+            var mascotRestPose = FALLBACK_VINKE_REST_POSE;
+
+            function poseFromVinkeLastSlide() {
+                var vinke = animationsLibrary.vinke;
+                if (!vinke || !vinke.slides || !vinke.slides.length) return;
+                var last = vinke.slides[vinke.slides.length - 1];
+                var p = {};
+                Object.keys(last).forEach(function (k) {
+                    if (k !== 'duration') p[k] = last[k];
+                });
+                mascotRestPose = p;
+            }
+
+            async function loadAnimations() {
+                const fallbackFiles = ['vinke.json', 'ballet.json', 'saturday.json', 'waveBreakD.json', 'finskdisko.json'];
+                try {
+                    const manifestResponse = await fetch(ANIM_BASE + '/manifest.json');
+                    if (manifestResponse.ok) {
+                        const manifest = await manifestResponse.json();
+                        if (manifest.files && Array.isArray(manifest.files)) {
+                            for (const fileName of manifest.files) {
+                                try {
+                                    const fileResponse = await fetch(ANIM_BASE + '/' + fileName);
+                                    if (fileResponse.ok) {
+                                        const animationData = await fileResponse.json();
+                                        const animName = fileName.replace('.json', '');
+                                        animationsLibrary[animName] = animationData;
+                                    }
+                                } catch (e) {
+                                    console.error('Failed to load animation ' + fileName + ':', e);
+                                }
+                            }
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    /* no manifest */
+                }
+                for (const fileName of fallbackFiles) {
+                    try {
+                        const fileResponse = await fetch(ANIM_BASE + '/' + fileName);
+                        if (fileResponse.ok) {
+                            const animationData = await fileResponse.json();
+                            const animName = fileName.replace('.json', '');
+                            animationsLibrary[animName] = animationData;
+                        }
+                    } catch (err) {
+                        console.error('Failed to load animation ' + fileName + ':', err);
+                    }
+                }
+            }
+
+            function applyPoseToFigure(figure) {
+                var poseData = mascotRestPose;
+                var body = figure.querySelector('.body') || figure;
+                var skulderLeft = body.querySelector('.skulder_translate_left');
+                var skulderRight = body.querySelector('.skulder_translate_right');
+                var hofteLeft = body.querySelector('.hofte_translate_left');
+                var hofteRight = body.querySelector('.hofte_translate_right');
+
+                if (skulderLeft) {
+                    skulderLeft.style.transform = 'translate(' + (poseData.translate_x_left || 0) + 'px, ' + (poseData.translate_y_left || 0) + 'px)';
+                    const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+                    if (skulderRotLeft) {
+                        skulderRotLeft.style.transform = 'rotate(' + (poseData.skulder_rot_left || 0) + 'deg)';
+                        const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+                        if (albueRotLeft) {
+                            albueRotLeft.style.transform = 'rotate(' + (poseData.albue_rot_left || 0) + 'deg)';
+                        }
+                    }
+                }
+
+                if (skulderRight) {
+                    skulderRight.style.transform = 'translate(' + (poseData.translate_x || 0) + 'px, ' + (poseData.translate_y || 0) + 'px)';
+                    const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+                    if (skulderRotRight) {
+                        skulderRotRight.style.transform = 'rotate(' + (poseData.skulder_rot || 0) + 'deg)';
+                        const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+                        if (albueRotRight) {
+                            albueRotRight.style.transform = 'rotate(' + (poseData.albue_rot || 0) + 'deg)';
+                        }
+                    }
+                }
+
+                if (hofteLeft) {
+                    hofteLeft.style.transform = 'translate(' + (poseData.translate_x_left_leg || 0) + 'px, ' + (poseData.translate_y_left_leg || 0) + 'px)';
+                    const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+                    if (hofteRotLeft) {
+                        hofteRotLeft.style.transform = 'rotate(' + (poseData.hofte_rot_left || 0) + 'deg)';
+                        const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+                        if (knaeRotLeft) {
+                            knaeRotLeft.style.transform = 'rotate(' + (poseData.knae_rot_left || 0) + 'deg)';
+                        }
+                    }
+                }
+
+                if (hofteRight) {
+                    hofteRight.style.transform = 'translate(' + (poseData.translate_x_right_leg || 0) + 'px, ' + (poseData.translate_y_right_leg || 0) + 'px)';
+                    var hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+                    if (hofteRotRight) {
+                        hofteRotRight.style.transform = 'rotate(' + (poseData.hofte_rot_right || 0) + 'deg)';
+                        var knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+                        if (knaeRotRight) {
+                            knaeRotRight.style.transform = 'rotate(' + (poseData.knae_rot_right || 0) + 'deg)';
+                        }
+                    }
+                }
+
+                if (skulderLeft) {
+                    if (poseData.left_arm_front) skulderLeft.classList.add('front-arm');
+                    else skulderLeft.classList.remove('front-arm');
+                }
+                if (skulderRight) {
+                    if (poseData.right_arm_front) skulderRight.classList.add('front-arm');
+                    else skulderRight.classList.remove('front-arm');
+                }
+            }
+
+            function applyDirectSlideData(slideData, guideFigure) {
+                const body = guideFigure.querySelector('.body') || guideFigure;
+                const skulderLeft = body.querySelector('.skulder_translate_left');
+                const skulderRight = body.querySelector('.skulder_translate_right');
+                const hofteLeft = body.querySelector('.hofte_translate_left');
+                const hofteRight = body.querySelector('.hofte_translate_right');
+
+                if (skulderLeft) {
+                    skulderLeft.style.transform = 'translate(' + (slideData.translate_x_left || 0) + 'px, ' + (slideData.translate_y_left || 0) + 'px)';
+                    const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+                    if (skulderRotLeft) {
+                        skulderRotLeft.style.transform = 'rotate(' + (slideData.skulder_rot_left || 0) + 'deg)';
+                        const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+                        if (albueRotLeft) {
+                            albueRotLeft.style.transform = 'rotate(' + (slideData.albue_rot_left || 0) + 'deg)';
+                        }
+                    }
+                }
+
+                if (skulderRight) {
+                    skulderRight.style.transform = 'translate(' + (slideData.translate_x || 0) + 'px, ' + (slideData.translate_y || 0) + 'px)';
+                    const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+                    if (skulderRotRight) {
+                        skulderRotRight.style.transform = 'rotate(' + (slideData.skulder_rot || 0) + 'deg)';
+                        const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+                        if (albueRotRight) {
+                            albueRotRight.style.transform = 'rotate(' + (slideData.albue_rot || 0) + 'deg)';
+                        }
+                    }
+                }
+
+                if (hofteLeft) {
+                    hofteLeft.style.transform = 'translate(' + (slideData.translate_x_left_leg || 0) + 'px, ' + (slideData.translate_y_left_leg || 0) + 'px)';
+                    const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+                    if (hofteRotLeft) {
+                        hofteRotLeft.style.transform = 'rotate(' + (slideData.hofte_rot_left || 0) + 'deg)';
+                        const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+                        if (knaeRotLeft) {
+                            knaeRotLeft.style.transform = 'rotate(' + (slideData.knae_rot_left || 0) + 'deg)';
+                        }
+                    }
+                }
+
+                if (hofteRight) {
+                    hofteRight.style.transform = 'translate(' + (slideData.translate_x_right_leg || 0) + 'px, ' + (slideData.translate_y_right_leg || 0) + 'px)';
+                    const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+                    if (hofteRotRight) {
+                        hofteRotRight.style.transform = 'rotate(' + (slideData.hofte_rot_right || 0) + 'deg)';
+                        const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+                        if (knaeRotRight) {
+                            knaeRotRight.style.transform = 'rotate(' + (slideData.knae_rot_right || 0) + 'deg)';
+                        }
+                    }
+                }
+
+                if (skulderLeft) {
+                    if (slideData.left_arm_front) skulderLeft.classList.add('front-arm');
+                    else skulderLeft.classList.remove('front-arm');
+                }
+                if (skulderRight) {
+                    if (slideData.right_arm_front) skulderRight.classList.add('front-arm');
+                    else skulderRight.classList.remove('front-arm');
+                }
+            }
+
+            function runAnimation(animName, onComplete) {
+                const animation = animationsLibrary[animName];
+                const guideFigure = document.getElementById(MASCOT_ID);
+                if (!animation || !animation.slides || !guideFigure) {
+                    if (onComplete) onComplete();
+                    return;
+                }
+
+                applyPoseToFigure(guideFigure);
+
+                setTimeout(function () {
+                    const body = guideFigure.querySelector('.body') || guideFigure;
+                    const animatedElements = body.querySelectorAll(
+                        '.skulder_translate_left, .skulder_rotate_left, .albue_rotate_left, ' +
+                        '.skulder_translate_right, .skulder_rotate_right, .albue_rotate_right, ' +
+                        '.hofte_translate_left, .hofte_rotate_left, .knae_rotate_left, ' +
+                        '.hofte_translate_right, .hofte_rotate_right, .knae_rotate_right'
+                    );
+
+                    animatedElements.forEach(function (el) {
+                        el.style.display = 'block';
+                    });
+
+                    var slideIndex = 0;
+
+                    function playNextSlide() {
+                        if (slideIndex < animation.slides.length) {
+                            var slide = animation.slides[slideIndex];
+                            animatedElements.forEach(function (element) {
+                                element.style.transition = 'transform ' + slide.duration + 's cubic-bezier(0.25, 0.1, 0.25, 1)';
+                            });
+                            applyDirectSlideData(slide, guideFigure);
+                            guideFigure.offsetHeight;
+                            slideIndex++;
+                            setTimeout(playNextSlide, slide.duration * 1000);
+                        } else {
+                            animatedElements.forEach(function (element) {
+                                element.style.transition = '';
+                            });
+                            setTimeout(function () {
+                                animatedElements.forEach(function (element) {
+                                    element.style.transition = 'transform 0.5s ease';
+                                });
+                                applyPoseToFigure(guideFigure);
+                                setTimeout(function () {
+                                    animatedElements.forEach(function (element) {
+                                        element.style.transition = '';
+                                    });
+                                    if (onComplete) onComplete();
+                                }, 500);
+                            }, 50);
+                        }
+                    }
+
+                    playNextSlide();
+                }, 1000);
+            }
+
+            async function initIndexMascot() {
+                await loadAnimations();
+                poseFromVinkeLastSlide();
+                var guideFigure = document.getElementById(MASCOT_ID);
+                if (!guideFigure) return;
+                applyPoseToFigure(guideFigure);
+
+                function playVinkeWithPause() {
+                    if (animationsLibrary.vinke) {
+                        runAnimation('vinke', function () {
+                            setTimeout(playVinkeWithPause, 10000);
+                        });
+                    }
+                }
+
+                setTimeout(playVinkeWithPause, 2000);
+            }
+
+            document.addEventListener('DOMContentLoaded', initIndexMascot);
+        })();
     </script>
 </body>
 </html>
