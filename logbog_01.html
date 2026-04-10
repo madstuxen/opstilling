@@ -1296,7 +1296,6 @@
             <div class="header-bar">
                 <div class="logbog-minimal-nav">
                     <a href="index.html" class="logbog-nav-link" id="logbogNavHome" data-i18n="backHome">Back to home</a>
-                    <a href="checkin.html" class="logbog-nav-link" id="logbogNavCheckin" data-i18n="navCheckin">Check in</a>
                     <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
                 </div>
                 <div class="header-title-row">
@@ -1446,7 +1445,6 @@
                 removeColor: 'Fjern farve',
                 colorTitle: 'Vælg farve',
                 needLogin: 'Du skal være logget ind. Omdirigerer til login...',
-                navCheckin: 'Check ind',
                 tankerTitle: 'Check-in tanker',
                 checkinsTitle: 'Check-ins',
                 tankerPlaceholder: 'Ingen tanker for denne dag',
@@ -1475,7 +1473,6 @@
                 removeColor: 'Remove color',
                 colorTitle: 'Pick a color',
                 needLogin: 'You must be signed in. Redirecting to login...',
-                navCheckin: 'Check in',
                 tankerTitle: 'Check-in thoughts',
                 checkinsTitle: 'Check-ins',
                 tankerPlaceholder: 'No thoughts for this day',
@@ -1734,30 +1731,81 @@
             return monthsToLoad;
         }
 
-        /** Expo/user doc: monthsIndex at root or under userData */
+        /** Expo/user doc: monthsIndex eller monthIndex, rod eller under userData */
         function parseMonthsIndex(raw) {
             if (!raw || typeof raw !== 'object') return {};
-            if (raw.monthsIndex && typeof raw.monthsIndex === 'object' && !Array.isArray(raw.monthsIndex)) {
-                return raw.monthsIndex;
-            }
-            const ud = raw.userData;
-            if (ud && ud.monthsIndex && typeof ud.monthsIndex === 'object' && !Array.isArray(ud.monthsIndex)) {
-                return ud.monthsIndex;
-            }
-            return {};
+            const pick = (v) =>
+                v && typeof v === 'object' && !Array.isArray(v) ? v : null;
+            return (
+                pick(raw.monthsIndex) ||
+                pick(raw.monthIndex) ||
+                pick((raw.userData || {}).monthsIndex) ||
+                pick((raw.userData || {}).monthIndex) ||
+                {}
+            );
         }
 
         function getMonthLogbogCountFromIndex(monthKey, monthsIndex) {
             if (!monthsIndex || !monthKey) return 0;
             const entry = monthsIndex[monthKey];
-            if (!entry || typeof entry !== 'object') return 0;
+            if (entry == null) return 0;
+
+            const numOrZero = (v) => {
+                if (v == null) return 0;
+                const num = typeof v === 'string' ? parseInt(v, 10) : Number(v);
+                return Number.isFinite(num) && num > 0 ? num : 0;
+            };
+
+            if (typeof entry === 'number' || typeof entry === 'string') {
+                return numOrZero(entry);
+            }
+            if (typeof entry !== 'object') return 0;
+
             let n = entry.logbogCount;
             if (n == null && entry.counts && typeof entry.counts === 'object') {
                 n = entry.counts.logbogCount;
             }
-            if (n == null) return 0;
-            const num = typeof n === 'string' ? parseInt(n, 10) : Number(n);
-            return Number.isFinite(num) && num > 0 ? num : 0;
+            if (n == null && entry.count != null) {
+                n = entry.count;
+            }
+            if (n == null && entry.logbog != null && typeof entry.logbog !== 'object') {
+                n = entry.logbog;
+            }
+            if (n != null) {
+                const num = numOrZero(n);
+                if (num > 0) return num;
+            }
+
+            if (Array.isArray(entry.dates) && entry.dates.length > 0) {
+                return entry.dates.length;
+            }
+            if (Array.isArray(entry.entries) && entry.entries.length > 0) {
+                return entry.entries.length;
+            }
+            if (entry.days && typeof entry.days === 'object' && !Array.isArray(entry.days)) {
+                const dayKeys = Object.keys(entry.days).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k));
+                if (dayKeys.length > 0) return dayKeys.length;
+                const anyKeys = Object.keys(entry.days);
+                if (anyKeys.length > 0) return anyKeys.length;
+            }
+            if (entry.logbog && typeof entry.logbog === 'object' && !Array.isArray(entry.logbog)) {
+                const keys = Object.keys(entry.logbog).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k));
+                if (keys.length > 0) return keys.length;
+            }
+
+            if (
+                entry.updatedAt != null ||
+                entry.lastUpdated != null ||
+                entry.lastLogDate != null ||
+                entry.hasEntries === true
+            ) {
+                return 1;
+            }
+            if (Object.keys(entry).length > 0) {
+                return 1;
+            }
+
+            return 0;
         }
 
         function monthHasLogbogData(monthData) {
@@ -2001,6 +2049,7 @@
                         return data;
                     } else {
                         // Old structure (backward compatibility)
+                        const legacyMonthsIndex = parseMonthsIndex(raw);
                         const data = {
                             bodymapData: raw.bodymapData || null,
                             dialogData: raw.dialogData || null,
@@ -2008,7 +2057,8 @@
                             compareData: raw.compareData || null,
                             logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
                             // forside_checkin_data is deprecated - kept for migration compatibility only
-                            forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null
+                            forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null,
+                            monthsIndex: Object.keys(legacyMonthsIndex).length > 0 ? legacyMonthsIndex : undefined
                         };
                         window.allUserData = data;
                         return data;
