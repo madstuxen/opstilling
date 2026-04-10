@@ -1254,6 +1254,75 @@
             transform: scale(0.99);
         }
 
+        .idle-logout-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 6000;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .idle-logout-modal.show {
+            display: flex;
+        }
+
+        .idle-logout-modal-content {
+            background: #fdf8f0;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .idle-logout-modal-content h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .idle-logout-modal-content p {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.45;
+            color: #374151;
+        }
+
+        .idle-logout-countdown {
+            font-weight: 600;
+            color: #573920;
+        }
+
+        .idle-logout-stay-btn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 4px;
+            background: #573920;
+            color: #fdf8f0;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        .idle-logout-stay-btn:hover {
+            background: #6d4c2e;
+        }
+
+        .idle-logout-stay-btn:active {
+            transform: scale(0.99);
+        }
+
         .collapse-btn {
             background: #4f46e5;
             border: none;
@@ -1424,6 +1493,15 @@
         </div>
     </div>
 
+    <div class="idle-logout-modal" id="idleLogoutModal" role="alertdialog" aria-modal="true" aria-labelledby="idleLogoutTitle" aria-describedby="idleLogoutIntro idleLogoutCountdown">
+        <div class="idle-logout-modal-content">
+            <h2 id="idleLogoutTitle">Signing out soon</h2>
+            <p id="idleLogoutIntro">You have been inactive for 7 minutes.</p>
+            <p class="idle-logout-countdown" id="idleLogoutCountdown">You will be signed out in 30 seconds.</p>
+            <button type="button" class="idle-logout-stay-btn" id="idleLogoutStayBtn">Stay signed in</button>
+        </div>
+    </div>
+
     <script>
         const LOGBOOK_STORAGE_KEY = 'logbogData';
         const BODYMAP_STORAGE_KEY = 'bodymapData';
@@ -1455,7 +1533,11 @@
                 chartDays5: 'Vis 5 dage',
                 chartDays10: 'Vis 10 dage',
                 chartDays20: 'Vis 20 dage',
-                newCheckin: 'Ny check-in'
+                newCheckin: 'Ny check-in',
+                idleLogoutTitle: 'Du logges snart ud',
+                idleLogoutIntro: 'Du har været inaktiv i 7 minutter.',
+                idleLogoutSecondsLeft: 'Du logges ud om {seconds} sekunder.',
+                idleLogoutStay: 'Bliv logget ind'
             },
             en: {
                 backHome: 'Back to home',
@@ -1483,7 +1565,11 @@
                 chartDays5: 'Show 5 days',
                 chartDays10: 'Show 10 days',
                 chartDays20: 'Show 20 days',
-                newCheckin: 'New check-in'
+                newCheckin: 'New check-in',
+                idleLogoutTitle: 'Signing out soon',
+                idleLogoutIntro: 'You have been inactive for 7 minutes.',
+                idleLogoutSecondsLeft: 'You will be signed out in {seconds} seconds.',
+                idleLogoutStay: 'Stay signed in'
             }
         };
 
@@ -1547,6 +1633,135 @@
             });
             const ob = document.getElementById('openCheckinModal');
             if (ob && s.newCheckin) ob.setAttribute('title', s.newCheckin);
+            syncIdleLogoutModalI18n();
+        }
+
+        const IDLE_LOGOUT_MS = 7 * 60 * 1000;
+        const IDLE_LOGOUT_AFTER_WARNING_MS = 30 * 1000;
+
+        const idleLogoutTimers = {
+            idleTimerId: null,
+            logoutTimerId: null,
+            countdownIntervalId: null,
+            warningVisible: false,
+            remainingSeconds: 30
+        };
+
+        function updateIdleLogoutCountdownText(seconds) {
+            const el = document.getElementById('idleLogoutCountdown');
+            if (!el) return;
+            const s = getLogbogStrings();
+            el.textContent = s.idleLogoutSecondsLeft.replace('{seconds}', String(seconds));
+        }
+
+        function syncIdleLogoutModalI18n() {
+            const s = getLogbogStrings();
+            const title = document.getElementById('idleLogoutTitle');
+            const intro = document.getElementById('idleLogoutIntro');
+            const stay = document.getElementById('idleLogoutStayBtn');
+            if (title) title.textContent = s.idleLogoutTitle;
+            if (intro) intro.textContent = s.idleLogoutIntro;
+            if (stay) stay.textContent = s.idleLogoutStay;
+            if (!idleLogoutTimers.warningVisible) {
+                updateIdleLogoutCountdownText(Math.ceil(IDLE_LOGOUT_AFTER_WARNING_MS / 1000));
+            } else {
+                updateIdleLogoutCountdownText(idleLogoutTimers.remainingSeconds);
+            }
+        }
+
+        function clearIdleLogoutTimers() {
+            if (idleLogoutTimers.idleTimerId !== null) {
+                clearTimeout(idleLogoutTimers.idleTimerId);
+                idleLogoutTimers.idleTimerId = null;
+            }
+            if (idleLogoutTimers.logoutTimerId !== null) {
+                clearTimeout(idleLogoutTimers.logoutTimerId);
+                idleLogoutTimers.logoutTimerId = null;
+            }
+            if (idleLogoutTimers.countdownIntervalId !== null) {
+                clearInterval(idleLogoutTimers.countdownIntervalId);
+                idleLogoutTimers.countdownIntervalId = null;
+            }
+            idleLogoutTimers.warningVisible = false;
+            const modal = document.getElementById('idleLogoutModal');
+            if (modal) modal.classList.remove('show');
+        }
+
+        function performIdleLogout() {
+            clearIdleLogoutTimers();
+            if (!auth) {
+                window.location.href = 'index.html';
+                return;
+            }
+            auth.signOut().then(function() {
+                window.location.href = 'index.html';
+            }).catch(function(err) {
+                console.error(err);
+                window.location.href = 'index.html';
+            });
+        }
+
+        function showIdleWarningAndStartCountdown() {
+            idleLogoutTimers.warningVisible = true;
+            idleLogoutTimers.remainingSeconds = Math.ceil(IDLE_LOGOUT_AFTER_WARNING_MS / 1000);
+            const modal = document.getElementById('idleLogoutModal');
+            syncIdleLogoutModalI18n();
+            if (modal) modal.classList.add('show');
+            updateIdleLogoutCountdownText(idleLogoutTimers.remainingSeconds);
+
+            idleLogoutTimers.logoutTimerId = window.setTimeout(function() {
+                performIdleLogout();
+            }, IDLE_LOGOUT_AFTER_WARNING_MS);
+
+            idleLogoutTimers.countdownIntervalId = window.setInterval(function() {
+                idleLogoutTimers.remainingSeconds -= 1;
+                if (idleLogoutTimers.remainingSeconds < 1) {
+                    if (idleLogoutTimers.countdownIntervalId !== null) {
+                        clearInterval(idleLogoutTimers.countdownIntervalId);
+                        idleLogoutTimers.countdownIntervalId = null;
+                    }
+                    return;
+                }
+                updateIdleLogoutCountdownText(idleLogoutTimers.remainingSeconds);
+            }, 1000);
+        }
+
+        function startIdleLogoutWatch() {
+            if (idleLogoutTimers.idleTimerId !== null) {
+                clearTimeout(idleLogoutTimers.idleTimerId);
+                idleLogoutTimers.idleTimerId = null;
+            }
+            idleLogoutTimers.idleTimerId = window.setTimeout(function() {
+                idleLogoutTimers.idleTimerId = null;
+                showIdleWarningAndStartCountdown();
+            }, IDLE_LOGOUT_MS);
+        }
+
+        function resetIdleSessionFromActivity() {
+            clearIdleLogoutTimers();
+            startIdleLogoutWatch();
+        }
+
+        function onIdleLogoutActivity() {
+            if (idleLogoutTimers.warningVisible) {
+                resetIdleSessionFromActivity();
+                return;
+            }
+            startIdleLogoutWatch();
+        }
+
+        function initIdleLogout() {
+            const stayBtn = document.getElementById('idleLogoutStayBtn');
+            if (stayBtn) {
+                stayBtn.addEventListener('click', function() {
+                    resetIdleSessionFromActivity();
+                });
+            }
+            const events = ['mousemove', 'keydown', 'touchstart', 'click'];
+            events.forEach(function(eventName) {
+                window.addEventListener(eventName, onIdleLogoutActivity, { passive: true });
+            });
+            startIdleLogoutWatch();
         }
 
         // Color presets for log history items (same as dialog collections)
@@ -4742,9 +4957,12 @@
 
             applyLogbogLocale(logbogLocale);
 
+            initIdleLogout();
+
             const logbogLogoutBtn = document.getElementById('logbogLogoutBtn');
             if (logbogLogoutBtn && auth) {
                 logbogLogoutBtn.addEventListener('click', function() {
+                    clearIdleLogoutTimers();
                     auth.signOut().then(function() {
                         window.location.href = 'index.html';
                     }).catch(function(err) {
