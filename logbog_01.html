@@ -1975,6 +1975,7 @@
                         Object.keys(monthsIndexParsed).length > 0;
 
                     const monthsCollectionRef = userDocRef.collection('months');
+                    let monthsSnapshot = null;
                     if (!hasMonthlyStructure) {
                         const probeSnap = await monthsCollectionRef.limit(1).get();
                         if (!probeSnap.empty) {
@@ -1983,50 +1984,76 @@
                     }
 
                     if (hasMonthlyStructure) {
-                        const initialMonthKeys = [...new Set(getMonthsToLoad())].sort((a, b) =>
-                            b.localeCompare(a)
-                        );
+                        // Som 57b3d0c: alle måneder med logbog (index + user-doc + months-subcollection),
+                        // plus getMonthsToLoad() (indeværende/forrige) som altid er med.
+                        const monthsToLoadSet = new Set(getMonthsToLoad());
 
-                        const monthsData = [];
-                        const loadedMonths = [];
+                        Object.keys(monthsIndexParsed).forEach((mk) => {
+                            if (getMonthLogbogCountFromIndex(mk, monthsIndexParsed) > 0) {
+                                monthsToLoadSet.add(mk);
+                            }
+                        });
 
-                        for (const monthKey of initialMonthKeys) {
-                            let payload = null;
-                            const monthDataFromMain =
-                                raw[monthKey] && typeof raw[monthKey] === 'object' ? raw[monthKey] : null;
+                        Object.keys(raw).forEach((key) => {
+                            if (/^\d{4}-\d{2}$/.test(key)) {
+                                const monthData = raw[key] || {};
+                                if (monthHasLogbogData(monthData)) {
+                                    monthsToLoadSet.add(key);
+                                }
+                            }
+                        });
 
-                            let monthDocSnap = null;
-                            try {
-                                monthDocSnap = await monthsCollectionRef.doc(monthKey).get();
-                            } catch (error) {
-                                console.error(`[LOAD] Error loading month doc ${monthKey}:`, error);
+                        const monthsDataMap = new Map();
+                        Array.from(monthsToLoadSet).forEach((monthKey) => {
+                            const monthDataFromMain = raw[monthKey];
+                            if (monthDataFromMain) {
+                                monthsDataMap.set(monthKey, monthDataFromMain);
+                            }
+                        });
+
+                        try {
+                            if (!monthsSnapshot) {
+                                monthsSnapshot = await monthsCollectionRef.get();
                             }
 
-                            const monthDataFromSub =
-                                monthDocSnap && monthDocSnap.exists ? monthDocSnap.data() || {} : null;
+                            monthsSnapshot.forEach((monthDoc) => {
+                                const monthKey = monthDoc.id;
+                                const monthDataFromSub = monthDoc.data() || {};
+                                if (monthHasLogbogData(monthDataFromSub)) {
+                                    monthsToLoadSet.add(monthKey);
+                                }
 
-                            if (monthDataFromMain && monthDataFromSub) {
-                                payload = {
-                                    opstilling:
-                                        monthDataFromSub.opstilling || monthDataFromMain.opstilling,
-                                    dialog: monthDataFromSub.dialog || monthDataFromMain.dialog,
-                                    compare: monthDataFromSub.compare || monthDataFromMain.compare,
-                                    bodymap: monthDataFromSub.bodymap || monthDataFromMain.bodymap,
-                                    logbog: monthDataFromSub.logbog || monthDataFromMain.logbog
-                                };
-                            } else if (monthDataFromMain) {
-                                payload = monthDataFromMain;
-                            } else if (monthDataFromSub) {
-                                payload = monthDataFromSub;
-                            }
-
-                            if (payload !== null) {
-                                monthsData.push(payload);
-                                loadedMonths.push(monthKey);
-                            }
+                                if (monthsDataMap.has(monthKey)) {
+                                    const existing = monthsDataMap.get(monthKey);
+                                    monthsDataMap.set(monthKey, {
+                                        opstilling: monthDataFromSub.opstilling || existing.opstilling,
+                                        dialog: monthDataFromSub.dialog || existing.dialog,
+                                        compare: monthDataFromSub.compare || existing.compare,
+                                        bodymap: monthDataFromSub.bodymap || existing.bodymap,
+                                        logbog: monthDataFromSub.logbog || existing.logbog
+                                    });
+                                } else {
+                                    monthsDataMap.set(monthKey, monthDataFromSub);
+                                }
+                            });
+                        } catch (error) {
+                            console.error('[LOAD] Error loading months subcollection:', error);
                         }
 
+                        Array.from(monthsToLoadSet).forEach((monthKey) => {
+                            if (!monthsDataMap.has(monthKey) && raw[monthKey] && /^\d{4}-\d{2}$/.test(monthKey)) {
+                                monthsDataMap.set(monthKey, raw[monthKey]);
+                            }
+                        });
+
+                        const monthsToLoad = Array.from(monthsToLoadSet).sort((a, b) => b.localeCompare(a));
+                        const monthsData = monthsToLoad
+                            .map((monthKey) => monthsDataMap.get(monthKey))
+                            .filter((m) => m !== undefined);
                         const merged = mergeMonthlyData(monthsData);
+
+                        // Kun måneder med faktisk hentet month-payload — ellers blokerer loadMonthOnDemand forkert
+                        const loadedMonths = monthsToLoad.filter((mk) => monthsDataMap.has(mk));
 
                         let logbogData = merged.logbogData.length > 0 ? merged.logbogData : null;
                         if (!logbogData && Array.isArray(raw.logbogData) && raw.logbogData.length > 0) {
