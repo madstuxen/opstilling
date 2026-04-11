@@ -1847,8 +1847,8 @@
             
             const monthsToLoad = [currentMonthKey];
             
-            // If before the 7th, also load previous month
-            if (dayOfMonth <= 7) {
+            // Før d. 8: medtag også forrige måned (samme som logbog_01.html / app)
+            if (dayOfMonth < 8) {
                 const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
                 const prevMonthKey = getMonthKey(prevMonth);
                 monthsToLoad.push(prevMonthKey);

@@ -420,6 +420,16 @@
             margin-bottom: 8px;
         }
 
+        .log-history-month-header--loading {
+            opacity: 0.88;
+        }
+
+        .log-history-month-loading {
+            padding: 8px 12px 12px;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
+        }
+
         .log-history-month-text {
             flex: 1;
             min-width: 0;
@@ -1936,8 +1946,8 @@
             
             const monthsToLoad = [currentMonthKey];
             
-            // Til og med d. 8: medtag også forrige måned (grace efter månedsskifte)
-            if (dayOfMonth <= 8) {
+            // Før d. 8: medtag også forrige måned (samme som app: dag 1–7)
+            if (dayOfMonth < 8) {
                 const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
                 const prevMonthKey = getMonthKey(prevMonth);
                 monthsToLoad.push(prevMonthKey);
@@ -1946,12 +1956,14 @@
             return monthsToLoad;
         }
 
-        /** Expo/user doc: monthsIndex eller monthIndex, rod eller under userData */
+        /** App: users/{uid}.user.monthsIndex; også rod, userData eller monthIndex (legacy) */
         function parseMonthsIndex(raw) {
             if (!raw || typeof raw !== 'object') return {};
             const pick = (v) =>
                 v && typeof v === 'object' && !Array.isArray(v) ? v : null;
             return (
+                pick((raw.user || {}).monthsIndex) ||
+                pick((raw.user || {}).monthIndex) ||
                 pick(raw.monthsIndex) ||
                 pick(raw.monthIndex) ||
                 pick((raw.userData || {}).monthsIndex) ||
@@ -2190,7 +2202,6 @@
                         Object.keys(monthsIndexParsed).length > 0;
 
                     const monthsCollectionRef = userDocRef.collection('months');
-                    let monthsSnapshot = null;
                     if (!hasMonthlyStructure) {
                         const probeSnap = await monthsCollectionRef.limit(1).get();
                         if (!probeSnap.empty) {
@@ -2199,76 +2210,16 @@
                     }
 
                     if (hasMonthlyStructure) {
-                        // Som 57b3d0c: alle måneder med logbog (index + user-doc + months-subcollection),
-                        // plus getMonthsToLoad() (indeværende/forrige) som altid er med.
-                        const monthsToLoadSet = new Set(getMonthsToLoad());
-
-                        Object.keys(monthsIndexParsed).forEach((mk) => {
-                            if (getMonthLogbogCountFromIndex(mk, monthsIndexParsed) > 0) {
-                                monthsToLoadSet.add(mk);
-                            }
-                        });
-
-                        Object.keys(raw).forEach((key) => {
-                            if (/^\d{4}-\d{2}$/.test(key)) {
-                                const monthData = raw[key] || {};
-                                if (monthHasLogbogData(monthData)) {
-                                    monthsToLoadSet.add(key);
-                                }
-                            }
-                        });
-
-                        const monthsDataMap = new Map();
-                        Array.from(monthsToLoadSet).forEach((monthKey) => {
-                            const monthDataFromMain = raw[monthKey];
-                            if (monthDataFromMain) {
-                                monthsDataMap.set(monthKey, monthDataFromMain);
-                            }
-                        });
-
-                        try {
-                            if (!monthsSnapshot) {
-                                monthsSnapshot = await monthsCollectionRef.get();
-                            }
-
-                            monthsSnapshot.forEach((monthDoc) => {
-                                const monthKey = monthDoc.id;
-                                const monthDataFromSub = monthDoc.data() || {};
-                                if (monthHasLogbogData(monthDataFromSub)) {
-                                    monthsToLoadSet.add(monthKey);
-                                }
-
-                                if (monthsDataMap.has(monthKey)) {
-                                    const existing = monthsDataMap.get(monthKey);
-                                    monthsDataMap.set(monthKey, {
-                                        opstilling: monthDataFromSub.opstilling || existing.opstilling,
-                                        dialog: monthDataFromSub.dialog || existing.dialog,
-                                        compare: monthDataFromSub.compare || existing.compare,
-                                        bodymap: monthDataFromSub.bodymap || existing.bodymap,
-                                        logbog: monthDataFromSub.logbog || existing.logbog
-                                    });
-                                } else {
-                                    monthsDataMap.set(monthKey, monthDataFromSub);
-                                }
-                            });
-                        } catch (error) {
-                            console.error('[LOAD] Error loading months subcollection:', error);
-                        }
-
-                        Array.from(monthsToLoadSet).forEach((monthKey) => {
-                            if (!monthsDataMap.has(monthKey) && raw[monthKey] && /^\d{4}-\d{2}$/.test(monthKey)) {
-                                monthsDataMap.set(monthKey, raw[monthKey]);
-                            }
-                        });
-
-                        const monthsToLoad = Array.from(monthsToLoadSet).sort((a, b) => b.localeCompare(a));
-                        const monthsData = monthsToLoad
-                            .map((monthKey) => monthsDataMap.get(monthKey))
-                            .filter((m) => m !== undefined);
+                        // monthsIndex + registreringer (user-doc) driver history-overblik.
+                        // Fuld månedspayload hentes kun for vinduesmåneder; øvrige måneder via loadMonthOnDemand.
+                        const contentMonthKeys = getMonthsToLoad().sort((a, b) => b.localeCompare(a));
+                        const monthsDataResults = await Promise.all(
+                            contentMonthKeys.map((monthKey) => loadMonthData(monthKey))
+                        );
+                        const monthsData = monthsDataResults.filter((m) => m != null);
                         const merged = mergeMonthlyData(monthsData);
 
-                        // Kun måneder med faktisk hentet month-payload — ellers blokerer loadMonthOnDemand forkert
-                        const loadedMonths = monthsToLoad.filter((mk) => monthsDataMap.has(mk));
+                        const loadedMonths = contentMonthKeys.filter((mk, i) => monthsDataResults[i] != null);
 
                         let logbogData = merged.logbogData.length > 0 ? merged.logbogData : null;
                         if (!logbogData && Array.isArray(raw.logbogData) && raw.logbogData.length > 0) {
@@ -2861,13 +2812,20 @@
 
         // Track which months are expanded (by month key like "2024-11")
         const expandedMonths = new Set();
-        /** Måneder brugeren har lukket manuelt (overstyrer auto-åben indeværende/forrige) */
-        const logHistoryMonthsUserCollapsed = new Set();
+        let lastLogHistoryAuthUid = null;
+        /** Under måneds-fetch (collapsed header viser loading) */
+        const logHistoryLoadingMonths = new Set();
+        /** Auto-/manuel load fejlede (undgå uendelig auto-retry) */
+        const logHistoryLoadFailedMonths = new Set();
+        if (typeof window._logHistoryDefaultExpandDone === 'undefined') {
+            window._logHistoryDefaultExpandDone = false;
+        }
 
         // Helper: Load month on-demand and merge with existing data
         async function loadMonthOnDemand(monthKey) {
             if (!currentUser || !db) return;
-            
+            logHistoryLoadFailedMonths.delete(monthKey);
+
             // Check if month is already loaded
             if (window.allUserData && window.allUserData.loadedMonths && 
                 window.allUserData.loadedMonths.includes(monthKey)) {
@@ -2878,30 +2836,27 @@
                 // Load month data
                 const monthData = await loadMonthData(monthKey);
                 if (!monthData) {
+                    logHistoryLoadFailedMonths.add(monthKey);
                     return;
                 }
                 const newEntries = normalizeLogbogFieldToEntries(monthData.logbog);
-                if (newEntries.length === 0) {
-                    return;
-                }
-                
-                // Merge with existing data
+
                 if (!window.allUserData) {
                     window.allUserData = { logbogData: [] };
                 }
                 if (!Array.isArray(window.allUserData.logbogData)) {
                     window.allUserData.logbogData = [];
                 }
-                
-                // Add entries from this month (avoid duplicates)
-                const existingDates = new Set(window.allUserData.logbogData.map(e => e.date));
-                newEntries.forEach(entry => {
-                    if (entry && entry.date && !existingDates.has(entry.date)) {
-                        window.allUserData.logbogData.push(entry);
-                    }
-                });
-                
-                // Update loadedMonths
+
+                if (newEntries.length > 0) {
+                    const existingDates = new Set(window.allUserData.logbogData.map(e => e.date));
+                    newEntries.forEach(entry => {
+                        if (entry && entry.date && !existingDates.has(entry.date)) {
+                            window.allUserData.logbogData.push(entry);
+                        }
+                    });
+                }
+
                 if (!window.allUserData.loadedMonths) {
                     window.allUserData.loadedMonths = [];
                 }
@@ -2909,12 +2864,13 @@
                     window.allUserData.loadedMonths.push(monthKey);
                 }
 
-                if (typeof renderCheckinChart === 'function') {
+                if (newEntries.length > 0 && typeof renderCheckinChart === 'function') {
                     renderCheckinChart();
                 }
                 
             } catch (error) {
                 console.error(`[LOAD] Error loading month ${monthKey} on-demand:`, error);
+                logHistoryLoadFailedMonths.add(monthKey);
             }
         }
 
@@ -2923,43 +2879,23 @@
             try {
                 if (!listEl) return;
 
-            // Måneder med logbog: registreringer (web) + monthsIndex (Expo)
-            let allAvailableMonths = [];
             let monthsIndexForHistory = {};
-            let registreringerForHistory = {};
-            if (window.allUserData && window.allUserData.monthsIndex) {
+            if (window.allUserData && window.allUserData.monthsIndex && typeof window.allUserData.monthsIndex === 'object') {
                 monthsIndexForHistory = window.allUserData.monthsIndex;
             }
-            if (currentUser && db) {
+            if (
+                (!monthsIndexForHistory || Object.keys(monthsIndexForHistory).length === 0) &&
+                currentUser &&
+                db
+            ) {
                 try {
                     const userDocRef = db.collection('users').doc(currentUser.uid);
                     const doc = await userDocRef.get();
                     if (doc.exists) {
-                        const raw = doc.data() || {};
-                        const userData = raw.userData || {};
-                        registreringerForHistory = userData.registreringer || {};
-                        if (!monthsIndexForHistory || Object.keys(monthsIndexForHistory).length === 0) {
-                            monthsIndexForHistory = parseMonthsIndex(raw);
-                        }
-                        const fromReg = Object.keys(registreringerForHistory)
-                            .filter(monthKey => {
-                                const monthReg = registreringerForHistory[monthKey];
-                                let count = 0;
-                                if (monthReg && typeof monthReg === 'object') {
-                                    count = parseInt(monthReg.logbog || '0', 10);
-                                } else if (typeof monthReg === 'string') {
-                                    count = parseInt(monthReg, 10);
-                                }
-                                return count > 0;
-                            });
-                        const fromIndex = Object.keys(monthsIndexForHistory).filter(mk =>
-                            getMonthLogbogCountFromIndex(mk, monthsIndexForHistory) > 0
-                        );
-                        allAvailableMonths = Array.from(new Set([...fromReg, ...fromIndex]))
-                            .sort((a, b) => b.localeCompare(a));
+                        monthsIndexForHistory = parseMonthsIndex(doc.data() || {});
                     }
                 } catch (error) {
-                    console.error('[LOAD] Error loading registreringer / monthsIndex:', error);
+                    console.error('[LOAD] Error loading monthsIndex for history:', error);
                 }
             }
 
@@ -2968,74 +2904,50 @@
 
             let activeItemEl = null;
 
-            // Group entries by month
             const monthGroups = {};
             entries.forEach(entry => {
                 if (!entry.date) return;
-                const monthKey = entry.date.substring(0, 7); // "YYYY-MM"
-                if (!monthGroups[monthKey]) {
-                    monthGroups[monthKey] = [];
+                const mk = entry.date.substring(0, 7);
+                if (!monthGroups[mk]) {
+                    monthGroups[mk] = [];
                 }
-                monthGroups[monthKey].push(entry);
+                monthGroups[mk].push(entry);
             });
 
-            // Get current date info
             const now = new Date();
             const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            const dayOfMonth = now.getDate();
-            
-            // Calculate previous month key
-            const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const prevMonthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
 
-            // Combine loaded months with available months (registreringer + monthsIndex)
-            const allMonthKeys = new Set([...Object.keys(monthGroups), ...allAvailableMonths]);
-            const sortedMonthKeys = Array.from(allMonthKeys).sort((a, b) => b.localeCompare(a));
+            const sortedMonthKeys = Object.keys(monthsIndexForHistory)
+                .filter((mk) => getMonthLogbogCountFromIndex(mk, monthsIndexForHistory) > 0)
+                .sort((a, b) => b.localeCompare(a));
 
-            // Determine which months should show expanded by default
-            // Current month is always expanded
-            // Previous month is expanded if we're in the first 7 days of the current month
-            const autoExpandedMonths = new Set([currentMonthKey]);
-            if (dayOfMonth <= 8) {
-                autoExpandedMonths.add(prevMonthKey);
+            if (!window._logHistoryDefaultExpandDone && sortedMonthKeys.length > 0) {
+                window._logHistoryDefaultExpandDone = true;
+                const defaultKey = sortedMonthKeys.includes(currentMonthKey)
+                    ? currentMonthKey
+                    : sortedMonthKeys[0];
+                expandedMonths.add(defaultKey);
             }
 
-            // Render each month group
+            const loadedMonthsArr =
+                window.allUserData && Array.isArray(window.allUserData.loadedMonths)
+                    ? window.allUserData.loadedMonths
+                    : [];
+
             for (const monthKey of sortedMonthKeys) {
-                const monthEntries = monthGroups[monthKey] || [];
-                const isCurrentOrGracePeriod = autoExpandedMonths.has(monthKey);
-                const isExpanded =
-                    (autoExpandedMonths.has(monthKey) && !logHistoryMonthsUserCollapsed.has(monthKey)) ||
-                    expandedMonths.has(monthKey);
-
-                let entryCount = monthEntries.length;
-                if (entryCount === 0 && currentUser && db) {
-                    const idxCount = getMonthLogbogCountFromIndex(monthKey, monthsIndexForHistory);
-                    if (idxCount > 0) {
-                        entryCount = idxCount;
-                    } else {
-                        const monthReg = registreringerForHistory[monthKey];
-                        if (monthReg) {
-                            if (typeof monthReg === 'object') {
-                                const countStr = monthReg.logbog;
-                                if (countStr) {
-                                    entryCount = parseInt(countStr, 10) || 0;
-                                }
-                            } else if (typeof monthReg === 'string') {
-                                entryCount = parseInt(monthReg, 10) || 0;
-                            }
-                        }
-                    }
-                }
-
-                if (entryCount === 0 && !isCurrentOrGracePeriod) {
-                    continue;
-                }
+                const indexCount = getMonthLogbogCountFromIndex(monthKey, monthsIndexForHistory);
+                const isExpanded = expandedMonths.has(monthKey);
+                const isLoaded = loadedMonthsArr.includes(monthKey);
+                const monthEntries = (monthGroups[monthKey] || []).filter(
+                    (e) => e && e.date && e.date.startsWith(monthKey)
+                );
 
                 const monthHeader = document.createElement('button');
                 monthHeader.type = 'button';
                 monthHeader.className =
-                    'log-history-month-header' + (isExpanded ? ' expanded' : '');
+                    'log-history-month-header' +
+                    (isExpanded ? ' expanded' : '') +
+                    (logHistoryLoadingMonths.has(monthKey) ? ' log-history-month-header--loading' : '');
                 monthHeader.dataset.monthKey = monthKey;
 
                 const [year, month] = monthKey.split('-');
@@ -3044,10 +2956,12 @@
                 const capitalizedMonth =
                     monthLong.charAt(0).toUpperCase() + monthLong.slice(1);
 
+                const loadingEllipsis = logHistoryLoadingMonths.has(monthKey) ? ' …' : '';
+
                 monthHeader.innerHTML = `
                     <span class="log-history-month-text">
                         <span class="log-history-month-title">${capitalizedMonth} ${year}</span>
-                        <span class="log-history-month-count">${entryCount} poster</span>
+                        <span class="log-history-month-count">${indexCount} poster${loadingEllipsis}</span>
                     </span>
                     <span class="log-history-month-arrow">${isExpanded ? '▼' : '▶'}</span>
                 `;
@@ -3057,33 +2971,42 @@
                     const listRect = listEl.getBoundingClientRect();
                     const offsetFromListTop = headerRect.top - listRect.top;
 
-                    const nowExpanded =
-                        (autoExpandedMonths.has(monthKey) &&
-                            !logHistoryMonthsUserCollapsed.has(monthKey)) ||
-                        expandedMonths.has(monthKey);
-
-                    if (nowExpanded) {
-                        if (autoExpandedMonths.has(monthKey)) {
-                            logHistoryMonthsUserCollapsed.add(monthKey);
-                        } else {
-                            expandedMonths.delete(monthKey);
+                    if (expandedMonths.has(monthKey)) {
+                        expandedMonths.delete(monthKey);
+                        window._monthScrollRestore = {
+                            monthKey: monthKey,
+                            offsetFromListTop: offsetFromListTop
+                        };
+                        const updatedEntries = await getSortedLogEntries();
+                        await renderLogHistory(updatedEntries, true);
+                        if (typeof renderCheckinChart === 'function') {
+                            renderCheckinChart();
                         }
-                    } else {
-                        logHistoryMonthsUserCollapsed.delete(monthKey);
-                        if (!autoExpandedMonths.has(monthKey)) {
-                            expandedMonths.add(monthKey);
-                        }
-                        await loadMonthOnDemand(monthKey);
+                        return;
                     }
 
+                    const wasLoaded =
+                        window.allUserData &&
+                        Array.isArray(window.allUserData.loadedMonths) &&
+                        window.allUserData.loadedMonths.includes(monthKey);
+
+                    if (!wasLoaded) {
+                        logHistoryLoadingMonths.add(monthKey);
+                        await renderLogHistory(await getSortedLogEntries(), true);
+                        try {
+                            await loadMonthOnDemand(monthKey);
+                        } finally {
+                            logHistoryLoadingMonths.delete(monthKey);
+                        }
+                    }
+
+                    expandedMonths.add(monthKey);
                     window._monthScrollRestore = {
                         monthKey: monthKey,
                         offsetFromListTop: offsetFromListTop
                     };
-
                     const updatedEntries = await getSortedLogEntries();
                     await renderLogHistory(updatedEntries, true);
-
                     if (typeof renderCheckinChart === 'function') {
                         renderCheckinChart();
                     }
@@ -3092,6 +3015,38 @@
                 listEl.appendChild(monthHeader);
 
                 if (!isExpanded) {
+                    continue;
+                }
+
+                if (
+                    isExpanded &&
+                    !isLoaded &&
+                    !logHistoryLoadingMonths.has(monthKey) &&
+                    !logHistoryLoadFailedMonths.has(monthKey)
+                ) {
+                    logHistoryLoadingMonths.add(monthKey);
+                    loadMonthOnDemand(monthKey)
+                        .finally(() => {
+                            logHistoryLoadingMonths.delete(monthKey);
+                            renderLogHistory(null, true).catch(() => {});
+                        });
+                }
+
+                if (!isLoaded) {
+                    const waitEl = document.createElement('div');
+                    waitEl.className = 'log-history-empty log-history-month-loading';
+                    waitEl.textContent = logHistoryLoadFailedMonths.has(monthKey)
+                        ? 'Kunne ikke indlæse. Tryk på måneden for at prøve igen.'
+                        : 'Indlæser…';
+                    listEl.appendChild(waitEl);
+                    continue;
+                }
+
+                if (monthEntries.length === 0) {
+                    const emptyMonthEl = document.createElement('div');
+                    emptyMonthEl.className = 'log-history-empty';
+                    emptyMonthEl.textContent = 'Ingen poster i denne måned.';
+                    listEl.appendChild(emptyMonthEl);
                     continue;
                 }
 
@@ -3766,6 +3721,18 @@
         if (auth) {
             auth.onAuthStateChanged(async user => {
                 currentUser = user;
+
+                if (user) {
+                    if (lastLogHistoryAuthUid !== user.uid) {
+                        lastLogHistoryAuthUid = user.uid;
+                        expandedMonths.clear();
+                        logHistoryLoadFailedMonths.clear();
+                        logHistoryLoadingMonths.clear();
+                        window._logHistoryDefaultExpandDone = false;
+                    }
+                } else {
+                    lastLogHistoryAuthUid = null;
+                }
                 
                 // Mark auth as ready and resolve promise
                 if (!authStateReady) {
@@ -4145,14 +4112,15 @@
                     const yMaxLine = padding.top + chartHeight - (maxVal / 100) * chartHeight;
 
                     ctx.save();
-                    ctx.strokeStyle = '#10b981';
                     ctx.globalAlpha = 0.5;
                     ctx.lineWidth = 2;
                     ctx.setLineDash([5, 5]);
+                    ctx.strokeStyle = '#ca8a04';
                     ctx.beginPath();
                     ctx.moveTo(0, yMaxLine);
                     ctx.lineTo(width, yMaxLine);
                     ctx.stroke();
+                    ctx.strokeStyle = '#2563eb';
                     ctx.beginPath();
                     ctx.moveTo(0, yMinLine);
                     ctx.lineTo(width, yMinLine);
