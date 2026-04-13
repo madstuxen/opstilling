@@ -45,6 +45,8 @@
             color: white;
             padding: 16px 24px;
             padding-top: calc(env(safe-area-inset-top) + 16px);
+            /* Samme højre kant som journal/check-ins: content padding (10px) + plads til fast history (220px) */
+            padding-right: calc(10px + 220px + env(safe-area-inset-right, 0px));
             display: flex;
             align-items: center;
             justify-content: flex-start;
@@ -139,19 +141,8 @@
             flex-shrink: 0;
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
+            align-items: flex-end;
             gap: 8px;
-        }
-
-        .logbog-nav-link {
-            color: #e5e7eb;
-            font-size: 0.9rem;
-            font-weight: 500;
-            text-decoration: underline;
-        }
-
-        .logbog-nav-link:hover {
-            color: #fff;
         }
 
         .logbog-nav-logout {
@@ -280,10 +271,14 @@
             color: #999999;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 500px) {
             .log-layout {
                 flex-direction: column;
                 padding-right: 0;
+            }
+
+            .header {
+                padding-right: calc(10px + env(safe-area-inset-right, 0px));
             }
 
             .log-history-panel-shell {
@@ -295,7 +290,7 @@
             }
         }
 
-        @media (min-width: 901px) {
+        @media (min-width: 501px) {
             .log-history-panel-title {
                 font-size: 20px;
                 line-height: 24px;
@@ -867,7 +862,7 @@
         }
 
         .checkins-card {
-            padding: 8px 4px 8px 8px;
+            padding: 8px 4px 8px 12px;
             background: #f3f4f6;
             border-radius: 12px;
             box-shadow: none;
@@ -1017,10 +1012,15 @@
             overflow: visible;
         }
 
+        .checkins-chart-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         .chart-wrapper {
             position: relative;
             padding: 0;
-            margin-left: 44px;
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
@@ -1040,23 +1040,18 @@
             box-shadow: none;
         }
 
-        .checkins-side-icons {
-            position: absolute;
-            left: 1px;
-            top: -2px;
-            width: 40px;
-            height: 220px;
+        .checkins-cloud-below {
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
+            padding: 4px 0 0;
             pointer-events: none;
-            z-index: 10;
         }
 
-        .checkins-side-icons img {
+        .checkins-cloud-below img {
             width: 40px;
-            height: auto;
+            height: 40px;
+            object-fit: contain;
         }
 
         .chart-legend {
@@ -1376,10 +1371,6 @@
     <div class="container">
         <div class="header" id="pageHeader">
             <div class="header-bar">
-                <div class="logbog-minimal-nav">
-                    <a href="index.html" class="logbog-nav-link" id="logbogNavHome" data-i18n="backHome">Back to home</a>
-                    <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
-                </div>
                 <div class="header-title-row">
                     <div class="header-title-top">
                         <img class="header-book-icon" src="imagefiles/bookikon.svg" alt="" aria-hidden="true">
@@ -1389,6 +1380,10 @@
                         <button type="button" class="header-log-color-btn" id="headerLogHistoryColorBtn" data-i18n-attr-title="pickColor" title="Pick color for selected day">C</button>
                         <span class="header-active-log-date" id="headerActiveLogDate" aria-live="polite"></span>
                     </div>
+                </div>
+                <div class="logbog-minimal-nav">
+                    <button type="button" class="logbog-nav-logout" id="logbogNavHomeBtn" data-i18n="backHome">Back to home</button>
+                    <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
                 </div>
             </div>
         </div>
@@ -1440,6 +1435,7 @@
                     <section class="card checkins-card">
                         <div class="checkins-header">
                             <div class="checkins-title-row">
+                                <img src="imagefiles/sun.svg" alt="" aria-hidden="true">
                                 <span class="checkins-title-text" data-i18n="checkinsTitle">Check-ins</span>
                             </div>
                             <div class="checkins-controls">
@@ -1451,14 +1447,13 @@
                             </div>
                         </div>
                         <div class="checkins-body" id="checkinsBody">
-                            <div style="position: relative;">
-                                <div class="checkins-side-icons">
-                                    <img src="imagefiles/sun.svg" alt="" style="margin-top: 10%;">
-                                    <img src="imagefiles/cloud.svg" alt="" style="margin-bottom: -10%;">
-                                </div>
+                            <div class="checkins-chart-stack">
                                 <div class="chart-wrapper">
                                     <canvas class="chart-canvas" id="checkinChart"></canvas>
                                     <div class="chart-tooltip" id="checkinTooltip" style="display: none;"></div>
+                                </div>
+                                <div class="checkins-cloud-below" aria-hidden="true">
+                                    <img src="imagefiles/cloud.svg" alt="">
                                 </div>
                             </div>
                         </div>
@@ -1549,7 +1544,20 @@
                 idleLogoutIntro: 'Du har været inaktiv i 7 minutter.',
                 idleLogoutSecondsLeft: 'Du logges ud om {seconds} sekunder.',
                 idleLogoutStay: 'Bliv logget ind',
-                idleLogoutSigningOut: 'Logger ud…'
+                idleLogoutSigningOut: 'Logger ud…',
+                historyPostCountOne: '1 post',
+                historyPostCountMany: '{count} poster',
+                historyEmptyMonth: 'Ingen poster i denne måned.',
+                historyEmptyList: 'Ingen poster',
+                historyLoading: 'Indlæser…',
+                historyLoadFailed: 'Kunne ikke indlæse. Tryk på måneden for at prøve igen.',
+                historyWeekdayChars: '{weekday} • {count} tegn',
+                historyNoNotesYet: 'Ingen noter endnu.',
+                checkinChartEmpty: 'Ingen check-ins endnu',
+                checkinTooltipTime: 'Tid',
+                checkinTooltipValue: 'Værdi',
+                checkinTooltipNA: '—',
+                checkinSaveError: 'Kunne ikke gemme check-in. Prøv igen.'
             },
             en: {
                 backHome: 'Back to home',
@@ -1582,22 +1590,72 @@
                 idleLogoutIntro: 'You have been inactive for 7 minutes.',
                 idleLogoutSecondsLeft: 'You will be signed out in {seconds} seconds.',
                 idleLogoutStay: 'Stay signed in',
-                idleLogoutSigningOut: 'Signing out…'
+                idleLogoutSigningOut: 'Signing out…',
+                historyPostCountOne: '1 entry',
+                historyPostCountMany: '{count} entries',
+                historyEmptyMonth: 'No entries this month.',
+                historyEmptyList: 'No entries',
+                historyLoading: 'Loading…',
+                historyLoadFailed: 'Could not load. Tap the month to try again.',
+                historyWeekdayChars: '{weekday} • {count} characters',
+                historyNoNotesYet: 'No notes yet.',
+                checkinChartEmpty: 'No check-ins yet',
+                checkinTooltipTime: 'Time',
+                checkinTooltipValue: 'Value',
+                checkinTooltipNA: 'N/A',
+                checkinSaveError: 'Could not save check-in. Please try again.'
             }
         };
 
         let logbogLocale = 'en';
 
+        /**
+         * App: language often lives on the user document root: user.profile.language
+         * (sibling to userData, not inside userData).
+         */
+        function languageCodeFromProfile(profile) {
+            if (!profile || typeof profile !== 'object') return '';
+            const v = profile.language || profile.Language || profile.locale || profile.Locale;
+            return v != null ? String(v).trim() : '';
+        }
+
+        function normalizeLanguageCode(code) {
+            let c = (code == null ? '' : String(code)).toLowerCase().trim();
+            if (c === 'eg' || c === 'eng' || c === 'english') c = 'en';
+            if (c.startsWith('da')) return 'da';
+            if (c.startsWith('en')) return 'en';
+            return 'en';
+        }
+
+        function resolveLocaleFromUserDataObject(ud) {
+            if (!ud || typeof ud !== 'object') return 'en';
+            const raw = (
+                ud.language ||
+                ud.locale ||
+                ud.lang ||
+                languageCodeFromProfile(ud.profile) ||
+                (ud.user && languageCodeFromProfile(ud.user.profile)) ||
+                (ud.User && languageCodeFromProfile(ud.User.profile)) ||
+                ''
+            ).toString().toLowerCase().trim();
+            return normalizeLanguageCode(raw);
+        }
+
+        /** Full users/{uid} document: check root user.map first, then userData. */
+        function resolveLocaleFromFirestoreUserDoc(docData) {
+            if (!docData || typeof docData !== 'object') return 'en';
+            const fromRootUser = docData.user && languageCodeFromProfile(docData.user.profile);
+            if (fromRootUser) return normalizeLanguageCode(fromRootUser);
+            const ud = docData.userData;
+            if (ud && typeof ud === 'object') return resolveLocaleFromUserDataObject(ud);
+            return 'en';
+        }
+
         function resolveLocaleFromUserData() {
             try {
                 const raw = localStorage.getItem('indexuserData');
                 if (!raw) return 'en';
-                const ud = JSON.parse(raw);
-                let code = (ud.language || ud.locale || ud.lang || '').toString().toLowerCase();
-                if (code === 'eg' || code === 'eng' || code === 'english') code = 'en';
-                if (code.startsWith('da')) return 'da';
-                if (code.startsWith('en')) return 'en';
-                return 'en';
+                return resolveLocaleFromUserDataObject(JSON.parse(raw));
             } catch (e) {
                 return 'en';
             }
@@ -1605,6 +1663,25 @@
 
         function getLogbogStrings() {
             return LOGBOG_I18N[logbogLocale] || LOGBOG_I18N.en;
+        }
+
+        function getLogbogIntlLocale() {
+            return logbogLocale === 'da' ? 'da-DK' : 'en-GB';
+        }
+
+        function formatHistoryPostCountLabel(count, loadingSuffix) {
+            const n = Number(count) || 0;
+            const s = getLogbogStrings();
+            const suffix = loadingSuffix || '';
+            const label = n === 1 ? s.historyPostCountOne : s.historyPostCountMany.replace('{count}', String(n));
+            return label + suffix;
+        }
+
+        function formatHistorySubtitleWeekdayChars(weekdayText, charCount) {
+            const s = getLogbogStrings();
+            return s.historyWeekdayChars
+                .replace('{weekday}', weekdayText)
+                .replace('{count}', String(charCount));
         }
 
         function applyLogbogLocale(locale) {
@@ -1920,20 +1997,41 @@
         function getLocalDateKey(date = null) {
             const d = date ? new Date(date) : new Date();
             if (isNaN(d.getTime())) return null;
-            
+
             const timezone = getUserTimezone();
-            
-            // Konverter til lokal tid ved at formatere med da-DK locale og brugerens timezone
-            const localDateStr = d.toLocaleDateString('da-DK', {
-                timeZone: timezone,
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            });
-            
-            // Format er "DD.MM.YYYY" - konverter til "YYYY-MM-DD"
-            const [day, month, year] = localDateStr.split('.');
-            return `${year}-${month}-${day}`;
+            try {
+                const formatted = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: timezone,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).format(d);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(formatted)) {
+                    return formatted;
+                }
+                const parts = new Intl.DateTimeFormat('en-US', {
+                    timeZone: timezone,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).formatToParts(d);
+                const y = parts.find((p) => p.type === 'year')?.value;
+                const m = parts.find((p) => p.type === 'month')?.value;
+                const day = parts.find((p) => p.type === 'day')?.value;
+                if (y && m && day) {
+                    return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                }
+            } catch (e) {
+                console.warn('getLocalDateKey:', e);
+            }
+            const fallback = date ? new Date(date) : new Date();
+            if (!isNaN(fallback.getTime())) {
+                const y = fallback.getFullYear();
+                const m = String(fallback.getMonth() + 1).padStart(2, '0');
+                const day = String(fallback.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
+            }
+            return null;
         }
 
         function getTodayDateKey() {
@@ -2917,18 +3015,17 @@
         function formatLogHistoryDate(dateStr, options) {
             const parsed = parseDanishDateTime(dateStr) || new Date(`${dateStr}T00:00:00`);
             if (!parsed || Number.isNaN(parsed.getTime())) return dateStr;
-            return parsed.toLocaleDateString('da-DK', options).replace(/\./g, '');
+            const loc = getLogbogIntlLocale();
+            return parsed.toLocaleDateString(loc, options).replace(/\./g, '');
         }
 
-        /** Sidehoved: "21. april 2026" */
+        /** Sidehoved: lang dato efter brugerens UI-locale */
         function formatHeaderActiveDate(dateStr) {
             if (!dateStr) return '';
             const parsed = parseDanishDateTime(dateStr) || new Date(`${dateStr}T00:00:00`);
             if (!parsed || Number.isNaN(parsed.getTime())) return dateStr;
-            const day = parsed.getDate();
-            const monthName = parsed.toLocaleDateString('da-DK', { month: 'long' });
-            const year = parsed.getFullYear();
-            return `${day}. ${monthName} ${year}`;
+            const loc = getLogbogIntlLocale();
+            return parsed.toLocaleDateString(loc, { day: 'numeric', month: 'long', year: 'numeric' });
         }
 
         async function updateHeaderActiveLogDisplay() {
@@ -3095,16 +3192,18 @@
 
                 const [year, month] = monthKey.split('-');
                 const monthDate = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
-                const monthLong = monthDate.toLocaleDateString('da-DK', { month: 'long' });
+                const intlLoc = getLogbogIntlLocale();
+                const monthLong = monthDate.toLocaleDateString(intlLoc, { month: 'long' });
                 const capitalizedMonth =
                     monthLong.charAt(0).toUpperCase() + monthLong.slice(1);
 
                 const loadingEllipsis = logHistoryLoadingMonths.has(monthKey) ? ' …' : '';
+                const postCountLabel = formatHistoryPostCountLabel(indexCount, loadingEllipsis);
 
                 monthHeader.innerHTML = `
                     <span class="log-history-month-text">
                         <span class="log-history-month-title">${capitalizedMonth} ${year}</span>
-                        <span class="log-history-month-count">${indexCount} poster${loadingEllipsis}</span>
+                        <span class="log-history-month-count">${postCountLabel}</span>
                     </span>
                     <span class="log-history-month-arrow">${isExpanded ? '▼' : '▶'}</span>
                 `;
@@ -3178,9 +3277,10 @@
                 if (!isLoaded) {
                     const waitEl = document.createElement('div');
                     waitEl.className = 'log-history-empty log-history-month-loading';
+                    const hs = getLogbogStrings();
                     waitEl.textContent = logHistoryLoadFailedMonths.has(monthKey)
-                        ? 'Kunne ikke indlæse. Tryk på måneden for at prøve igen.'
-                        : 'Indlæser…';
+                        ? hs.historyLoadFailed
+                        : hs.historyLoading;
                     listEl.appendChild(waitEl);
                     continue;
                 }
@@ -3188,7 +3288,7 @@
                 if (monthEntries.length === 0) {
                     const emptyMonthEl = document.createElement('div');
                     emptyMonthEl.className = 'log-history-empty';
-                    emptyMonthEl.textContent = 'Ingen poster i denne måned.';
+                    emptyMonthEl.textContent = getLogbogStrings().historyEmptyMonth;
                     listEl.appendChild(emptyMonthEl);
                     continue;
                 }
@@ -3229,17 +3329,17 @@
                 let weekdayText =
                     !parsedWeekdayDate || Number.isNaN(parsedWeekdayDate.getTime())
                         ? formatLogHistoryDate(entry.date, { weekday: 'long' })
-                        : parsedWeekdayDate.toLocaleDateString('da-DK', { weekday: 'long' });
+                        : parsedWeekdayDate.toLocaleDateString(getLogbogIntlLocale(), { weekday: 'long' });
                 weekdayText =
                     weekdayText.charAt(0).toUpperCase() + weekdayText.slice(1);
                 const totalChars = (entry.dagbog || '').length + (entry.dreams || '').length;
-                subEl.textContent = `${weekdayText} • ${totalChars} tegn`;
+                subEl.textContent = formatHistorySubtitleWeekdayChars(weekdayText, totalChars);
 
                 const snippetEl = document.createElement('div');
                 snippetEl.className = 'log-history-item-snippet';
                 const snippetSource = (entry.dagbog || entry.dreams || '').trim();
                 if (snippetSource.length === 0) {
-                    snippetEl.textContent = 'Ingen noter endnu.';
+                    snippetEl.textContent = getLogbogStrings().historyNoNotesYet;
                 } else {
                     const shortened =
                         snippetSource.length > 41
@@ -3302,7 +3402,7 @@
             if (listEl.children.length === 0) {
                 const emptyEl = document.createElement('div');
                 emptyEl.className = 'log-history-empty';
-                emptyEl.textContent = 'Ingen poster';
+                emptyEl.textContent = getLogbogStrings().historyEmptyList;
                 listEl.appendChild(emptyEl);
             }
 
@@ -3935,6 +4035,7 @@
                 if (!Array.isArray(parsed)) {
                     return [];
                 }
+                const timeLoc = getLogbogIntlLocale();
                 return parsed
                     .filter(entry => typeof entry.status === 'number')
                     .map(entry => {
@@ -3943,7 +4044,7 @@
                             date: dateObj,
                             status: Math.max(0, Math.min(100, Number(entry.status))),
                             dateKey: dateObj.toISOString().split('T')[0],
-                            time: dateObj.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', hour12: false })
+                            time: dateObj.toLocaleTimeString(timeLoc, { hour: '2-digit', minute: '2-digit', hour12: false })
                         };
                     })
                     .sort((a, b) => a.date - b.date);
@@ -4106,7 +4207,7 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#9ca3af';
                 ctx.font = '16px Arial';
-                ctx.fillText('Ingen check-ins endnu', width / 2, height / 2);
+                ctx.fillText(getLogbogStrings().checkinChartEmpty, width / 2, height / 2);
                 return;
             }
 
@@ -4300,11 +4401,12 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'top';
 
+            const chartDateLoc = getLogbogIntlLocale();
             labels.forEach((dateKey, index) => {
                 const x = padding.left + (index + 0.5 - xMin) * step;
                 const dateObj = new Date(dateKey);
-                const day = dateObj.toLocaleDateString('da-DK', { day: '2-digit' });
-                const month = dateObj.toLocaleDateString('da-DK', { month: 'short' }).replace('.', '');
+                const day = dateObj.toLocaleDateString(chartDateLoc, { day: '2-digit' });
+                const month = dateObj.toLocaleDateString(chartDateLoc, { month: 'short' }).replace(/\./g, '');
 
                 ctx.fillStyle = '#374151';
                 ctx.font = 'bold 14px Arial';
@@ -4337,16 +4439,16 @@
 
                 if (hoveredPoint) {
                     tooltip.style.display = 'block';
+                    const ts = getLogbogStrings();
+                    const timeVal = hoveredPoint.point.time || ts.checkinTooltipNA;
                     if (checkinDetailedView) {
-                        // Detailed view: show time and value
                         tooltip.innerHTML = `
-                            <p>Tid: ${hoveredPoint.point.time || 'N/A'}</p>
-                            <p>Værdi: ${hoveredPoint.point.y}</p>
+                            <p>${ts.checkinTooltipTime}: ${timeVal}</p>
+                            <p>${ts.checkinTooltipValue}: ${hoveredPoint.point.y}</p>
                         `;
                     } else {
-                        // Simple view: show only value
                         tooltip.innerHTML = `
-                            <p>Værdi: ${hoveredPoint.point.y}</p>
+                            <p>${ts.checkinTooltipValue}: ${hoveredPoint.point.y}</p>
                         `;
                     }
                     const tooltipX = e.clientX - rect.left + 10;
@@ -4381,6 +4483,7 @@
                 }
 
                 // Convert to the same format as loadCheckinData returns
+                const debugTimeLoc = getLogbogIntlLocale();
                 const processedData = payload
                     .filter(entry => entry && typeof entry === 'object' && typeof entry.status === 'number')
                     .map(entry => {
@@ -4389,7 +4492,7 @@
                             date: dateObj,
                             status: Math.max(0, Math.min(100, Number(entry.status))),
                             dateKey: dateObj.toISOString().split('T')[0],
-                            time: dateObj.toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit', hour12: false })
+                            time: dateObj.toLocaleTimeString(debugTimeLoc, { hour: '2-digit', minute: '2-digit', hour12: false })
                         };
                     })
                     .sort((a, b) => a.date - b.date);
@@ -4569,7 +4672,7 @@
                     }
                 } catch (error) {
                     console.error('[CHECKIN] Kunne ikke gemme check-in data:', error);
-                    alert('Kunne ikke gemme check-in. Prøv igen.');
+                    alert(getLogbogStrings().checkinSaveError);
                 }
             });
         }
@@ -4886,9 +4989,41 @@
                 return;
             }
 
+            // Locale from Firestore: user.profile.language lives on doc root (sibling to userData)
+            if (db) {
+                try {
+                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                    if (userDoc.exists) {
+                        const docData = userDoc.data() || {};
+                        logbogLocale = resolveLocaleFromFirestoreUserDoc(docData);
+                        try {
+                            const prevRaw = localStorage.getItem('indexuserData');
+                            const prev = prevRaw ? JSON.parse(prevRaw) : {};
+                            const freshUd = docData.userData && typeof docData.userData === 'object' ? docData.userData : {};
+                            const mergedLs = { ...prev, ...freshUd };
+                            if (docData.user && typeof docData.user === 'object') {
+                                mergedLs.user = docData.user;
+                            }
+                            localStorage.setItem('indexuserData', JSON.stringify(mergedLs));
+                        } catch (mergeErr) { /* ignore */ }
+                    }
+                } catch (e) {
+                    console.warn('Could not refresh locale from Firestore:', e);
+                }
+            }
+
             applyLogbogLocale(logbogLocale);
+            await updateHeaderActiveLogDisplay();
 
             initIdleLogout();
+
+            const logbogNavHomeBtn = document.getElementById('logbogNavHomeBtn');
+            if (logbogNavHomeBtn) {
+                logbogNavHomeBtn.addEventListener('click', function() {
+                    clearIdleLogoutTimers();
+                    window.location.href = 'index.html';
+                });
+            }
 
             const logbogLogoutBtn = document.getElementById('logbogLogoutBtn');
             if (logbogLogoutBtn && auth) {

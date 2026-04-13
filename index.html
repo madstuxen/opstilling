@@ -1341,19 +1341,25 @@ const firebaseConfig = {
                     
                     // Save to localStorage
                     if (userData) {
-                        // Add "You" field and ensure timezone exists
+                        // Add "You" field and ensure timezone exists; include root user.map (profile.language lives there)
                         const dataToSave = {
                             ...userData,
                             You: userData.displayName || '',
                             timezone: userData.timezone || detectUserTimezone() // Tilføj timezone
                         };
+                        if (data.user && typeof data.user === 'object') {
+                            dataToSave.user = data.user;
+                        }
                         localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
                         console.log('UserData saved to localStorage:', dataToSave);
                     } else {
-                        // If userData doesn't exist, create empty object with timezone
+                        // If userData doesn't exist, create empty object with timezone (still copy root user for profile.language)
                         const dataToSave = {
                             timezone: detectUserTimezone()
                         };
+                        if (data.user && typeof data.user === 'object') {
+                            dataToSave.user = data.user;
+                        }
                         localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
                         console.log('Empty userData created in localStorage with timezone');
                     }
