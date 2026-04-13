@@ -1315,6 +1315,27 @@
             transform: scale(0.99);
         }
 
+        .idle-logout-blocking {
+            position: fixed;
+            inset: 0;
+            z-index: 7000;
+            background: #fdf8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            box-sizing: border-box;
+            padding: 24px;
+        }
+
+        .idle-logout-blocking-msg {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+            text-align: center;
+        }
+
         .collapse-btn {
             background: #4f46e5;
             border: none;
@@ -1527,7 +1548,8 @@
                 idleLogoutTitle: 'Du logges snart ud',
                 idleLogoutIntro: 'Du har været inaktiv i 7 minutter.',
                 idleLogoutSecondsLeft: 'Du logges ud om {seconds} sekunder.',
-                idleLogoutStay: 'Bliv logget ind'
+                idleLogoutStay: 'Bliv logget ind',
+                idleLogoutSigningOut: 'Logger ud…'
             },
             en: {
                 backHome: 'Back to home',
@@ -1559,7 +1581,8 @@
                 idleLogoutTitle: 'Signing out soon',
                 idleLogoutIntro: 'You have been inactive for 7 minutes.',
                 idleLogoutSecondsLeft: 'You will be signed out in {seconds} seconds.',
-                idleLogoutStay: 'Stay signed in'
+                idleLogoutStay: 'Stay signed in',
+                idleLogoutSigningOut: 'Signing out…'
             }
         };
 
@@ -1677,7 +1700,24 @@
             if (modal) modal.classList.remove('show');
         }
 
+        function showIdleLogoutBlockingOverlay() {
+            if (document.getElementById('idleLogoutBlockingOverlay')) return;
+            const s = getLogbogStrings();
+            const div = document.createElement('div');
+            div.id = 'idleLogoutBlockingOverlay';
+            div.className = 'idle-logout-blocking';
+            div.setAttribute('role', 'status');
+            div.setAttribute('aria-live', 'polite');
+            const p = document.createElement('p');
+            p.className = 'idle-logout-blocking-msg';
+            p.textContent = s.idleLogoutSigningOut || 'Signing out…';
+            div.appendChild(p);
+            document.body.appendChild(div);
+        }
+
         function performIdleLogout() {
+            showIdleLogoutBlockingOverlay();
+            document.body.style.overflow = 'hidden';
             clearIdleLogoutTimers();
             if (!auth) {
                 window.location.href = 'index.html';
@@ -1734,7 +1774,6 @@
 
         function onIdleLogoutActivity() {
             if (idleLogoutTimers.warningVisible) {
-                resetIdleSessionFromActivity();
                 return;
             }
             startIdleLogoutWatch();
@@ -3667,7 +3706,7 @@
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCl6ZYtkfYx3kFF9329eGpeazsmJAPMKzA",
-            authDomain: "relationer-fe5fe.firebaseapp.com",
+            authDomain: "auth.me-and-them.com",
             projectId: "relationer-fe5fe",
             storageBucket: "relationer-fe5fe.firebasestorage.app",
             messagingSenderId: "156720560629",
