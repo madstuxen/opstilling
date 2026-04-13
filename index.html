@@ -22,15 +22,13 @@
         }
         
         /*
-         * Mascot position (left side, vertically centered on the viewport).
-         * translate % is relative to the mascot box size; +52px nudges down slightly (header / optical center).
-         * Examples: --mascot-left: 2%; --mascot-translate-x: -12px; --mascot-translate-y: calc(-50% + 80px);
+         * Mascot: fixed, left side of viewport; vertically centered (translateY -50% = half mascot box height).
          */
         :root {
             --mascot-left: 4%;
             --mascot-top: 50%;
             --mascot-translate-x: 0;
-            --mascot-translate-y: calc(-50% + 52px);
+            --mascot-translate-y: -50%;
             --mascot-scale: 1;
             --mascot-width: 280px;
             --landing-pad-top: 36px;
@@ -42,10 +40,16 @@
             font-family: 'Arial', sans-serif;
             background-color: #573920;
             min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Flex lives here so .index-mascot-wrap (sibling) is not a flex item — fixed stays viewport-locked in Safari/WebKit */
+        .site-layout {
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: stretch;
-            padding: 0;
         }
 
         /* ~50/50: Me & Them graphic upper half, copy + store row lower half */
@@ -107,11 +111,13 @@
             margin-top: 8px;
         }
 
-        /* Decorative mascot (Me & Them) — overlaps background; below header (z-index) */
+        /* Decorative mascot — fixed to viewport; left edge; vertically centered */
         .index-mascot-wrap {
             position: fixed;
             left: var(--mascot-left);
             top: var(--mascot-top);
+            right: auto;
+            bottom: auto;
             transform: translate(var(--mascot-translate-x), var(--mascot-translate-y)) scale(var(--mascot-scale));
             z-index: 8;
             width: var(--mascot-width);
@@ -1133,6 +1139,7 @@
         </div>
     </div>
 
+    <div class="site-layout">
     <header class="site-header">
         <span class="brand">Journal App</span>
         <nav aria-label="Site">
@@ -2545,6 +2552,7 @@ const firebaseConfig = {
             document.addEventListener('DOMContentLoaded', initIndexMascot);
         })();
     </script>
+    </div>
 </body>
 </html>
 

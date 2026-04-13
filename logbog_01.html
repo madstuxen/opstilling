@@ -526,23 +526,6 @@
             box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
         }
 
-        .log-history-remove-color-btn {
-            padding: 8px 16px;
-            background: #f3f4f6;
-            color: #6b7280;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .log-history-remove-color-btn:hover {
-            background: #e5e7eb;
-            color: #374151;
-        }
-
         .card-title {
             font-size: 20px;
             font-weight: 600;
@@ -634,30 +617,60 @@
         .journal-save-btn,
         .dreams-save-btn {
             padding: 8px 14px;
-            color: #ecfdf5;
+            color: #fff;
             border: none;
             border-radius: 8px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.2s ease, filter 0.2s ease, color 0.2s ease;
             text-align: center;
             display: block;
             text-transform: none;
             letter-spacing: normal;
             box-shadow: none;
-            background: #22c55e;
         }
 
         .journal-save-btn:hover,
         .dreams-save-btn:hover {
-            background: #16a34a;
             color: #ffffff;
         }
 
         .journal-save-btn:active,
         .dreams-save-btn:active {
             transform: translateY(0);
+        }
+
+        .journal-save-btn.save-field--saved,
+        .dreams-save-btn.save-field--saved {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: #fff;
+            cursor: default;
+        }
+
+        .journal-save-btn.save-field--saved:disabled,
+        .dreams-save-btn.save-field--saved:disabled {
+            opacity: 1;
+            cursor: default;
+        }
+
+        .journal-save-btn.save-field--saved:disabled:hover,
+        .dreams-save-btn.save-field--saved:disabled:hover {
+            filter: none;
+            color: #fff;
+        }
+
+        .journal-save-btn.save-field--dirty,
+        .dreams-save-btn.save-field--dirty {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .journal-save-btn.save-field--dirty:hover,
+        .dreams-save-btn.save-field--dirty:hover {
+            filter: brightness(1.06);
+            color: #fff;
         }
 
         .journal-copy-btn {
@@ -943,37 +956,6 @@
             background: #8b5cf6;
             border-color: #8b5cf6;
             color: #ffffff;
-        }
-
-        .checkin-plus-btn {
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: 6px;
-            background: #8b5cf6;
-            color: #ffffff;
-            font-size: 24px;
-            font-weight: 700;
-            line-height: 1;
-            padding: 0;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s ease, transform 0.15s ease;
-        }
-
-        .checkin-plus-btn span {
-            display: block;
-            margin-top: -3px;
-        }
-
-        .checkin-plus-btn:hover {
-            background: #7c3aed;
-        }
-
-        .checkin-plus-btn:active {
-            transform: scale(0.96);
         }
 
         .chart-tooltip {
@@ -1412,7 +1394,7 @@
                                         <span data-i18n="journal">Journal</span>
                                     </span>
                                     <span class="journal-title-actions">
-                                        <button type="button" class="journal-save-btn" id="journalSaveBtn" data-i18n="save">Save</button>
+                                        <button type="button" class="journal-save-btn save-field--saved" id="journalSaveBtn" disabled aria-disabled="true">Saved!</button>
                                         <button type="button" class="journal-copy-btn" id="journalCopyBtn" data-i18n="copy">Copy</button>
                                     </span>
                                 </label>
@@ -1425,7 +1407,7 @@
                                         <span data-i18n="dreams">Dreams</span>
                                     </span>
                                     <span class="dreams-title-actions">
-                                        <button type="button" class="dreams-save-btn" id="dreamsSaveBtn" data-i18n="save">Save</button>
+                                        <button type="button" class="dreams-save-btn save-field--saved" id="dreamsSaveBtn" disabled aria-disabled="true">Saved!</button>
                                         <button type="button" class="dreams-copy-btn" id="dreamsCopyBtn" data-i18n="copy">Copy</button>
                                     </span>
                                 </label>
@@ -1445,7 +1427,6 @@
                                 <button type="button" class="checkin-days-btn" data-days="5" title="Show 5 days">5</button>
                                 <button type="button" class="checkin-days-btn" data-days="10" title="Show 10 days">10</button>
                                 <button type="button" class="checkin-days-btn" data-days="20" title="Show 20 days">20</button>
-                                <button type="button" class="checkin-plus-btn" id="openCheckinModal" title="New check-in"><span>+</span></button>
                             </div>
                         </div>
                         <div class="checkins-body" id="checkinsBody">
@@ -1499,7 +1480,6 @@
                 <h3 data-i18n="colorTitle">Pick a color</h3>
             </div>
             <div class="log-history-color-grid" id="logHistoryColorGrid"></div>
-            <button class="log-history-remove-color-btn" id="logHistoryRemoveColorBtn" data-i18n="removeColor">Remove color</button>
         </div>
     </div>
 
@@ -1525,12 +1505,13 @@
                 journal: 'Dagbog',
                 dreams: 'Drømme',
                 save: 'Gem',
+                savedLabel: 'Gemt',
+                saveBeforeClose: 'Gem inden luk',
                 copy: 'Kopier',
                 copied: 'Kopieret!',
                 placeholderJournal: 'Skriv dit dagbogsnotat her...',
                 placeholderDreams: 'Nedskriv dine drømme, fantasier og indskydelser ...',
                 pickColor: 'Vælg farve for valgt dag',
-                removeColor: 'Fjern farve',
                 colorTitle: 'Vælg farve',
                 needLogin: 'Du skal være logget ind. Omdirigerer til login...',
                 tankerTitle: 'Check-in tanker',
@@ -1543,7 +1524,6 @@
                 chartDays5: 'Vis 5 dage',
                 chartDays10: 'Vis 10 dage',
                 chartDays20: 'Vis 20 dage',
-                newCheckin: 'Ny check-in',
                 idleLogoutTitle: 'Du logges snart ud',
                 idleLogoutIntro: 'Du har været inaktiv i 7 minutter.',
                 idleLogoutSecondsLeft: 'Du logges ud om {seconds} sekunder.',
@@ -1557,12 +1537,13 @@
                 journal: 'Journal',
                 dreams: 'Dreams',
                 save: 'Save',
+                savedLabel: 'Saved!',
+                saveBeforeClose: 'Save before leaving',
                 copy: 'Copy',
                 copied: 'Copied!',
                 placeholderJournal: 'Write your journal entry here...',
                 placeholderDreams: 'Write down dreams and impressions...',
                 pickColor: 'Pick color for selected day',
-                removeColor: 'Remove color',
                 colorTitle: 'Pick a color',
                 needLogin: 'You must be signed in. Redirecting to login...',
                 tankerTitle: 'Check-in thoughts',
@@ -1575,7 +1556,6 @@
                 chartDays5: 'Show 5 days',
                 chartDays10: 'Show 10 days',
                 chartDays20: 'Show 20 days',
-                newCheckin: 'New check-in',
                 idleLogoutTitle: 'Signing out soon',
                 idleLogoutIntro: 'You have been inactive for 7 minutes.',
                 idleLogoutSecondsLeft: 'You will be signed out in {seconds} seconds.',
@@ -1641,9 +1621,9 @@
             document.querySelectorAll('.checkin-days-btn[data-days="20"]').forEach(el => {
                 if (s.chartDays20) el.setAttribute('title', s.chartDays20);
             });
-            const ob = document.getElementById('openCheckinModal');
-            if (ob && s.newCheckin) ob.setAttribute('title', s.newCheckin);
             syncIdleLogoutModalI18n();
+            updateJournalSaveButtonAppearance();
+            updateDreamsSaveButtonAppearance();
         }
 
         const IDLE_LOGOUT_MS = 7 * 60 * 1000;
@@ -1826,7 +1806,7 @@
                 return null;
             }
             
-            // Reference date (1. januar 2024) - same as checkin.html
+            // Reference date (1. januar 2024)
             const referenceDate = new Date('2024-01-01');
             
             // Set both dates to midnight for accurate day calculation
@@ -2295,37 +2275,6 @@
             return [];
         }
         
-        // Helper: Get or create a logbog entry for a specific date
-        async function getOrCreateLogbogEntry(dateKey) {
-            const entries = await getLogbookEntries();
-            let entry = entries.find(item => item.date === dateKey);
-            
-            if (!entry) {
-                entry = {
-                    date: dateKey,
-                    dagbog: '',
-                    dreams: '',
-                    checkins: [],
-                    timestamp: new Date().toISOString(),
-                    color: DEFAULT_HISTORY_COLOR
-                };
-                entries.push(entry);
-                await saveLogbookDataToFirestore(entries);
-            }
-            
-            return entry;
-        }
-        
-        // Helper: Get or create month data structure
-        function getOrCreateMonthData(monthKey) {
-            return {
-                bodymap: { dataIndexes: [] },
-                compare: { comparisons: [] },
-                logbog: [],
-                opstilling: { setups: [] }
-            };
-        }
-        
         // Helper: Update registreringer with count for a specific data type and month
         // dataType: 'logbog', 'bodymap', 'compare', 'opstilling', 'dialog'
         // count: number of entries
@@ -2373,89 +2322,243 @@
                 console.error('[SAVE] Error updating registreringer:', error);
             }
         }
-        
-        // Save logbook data to Firestore (monthly structure)
-        async function saveLogbookDataToFirestore(entries) {
-            if (!currentUser || !db) return false;
-            
-            // 🛡️ CRITICAL SAFETY CHECK: Prevent data loss from empty saves
-            if (!entries || !Array.isArray(entries) || entries.length === 0) {
-                console.error('🚨 CRITICAL: Attempted to save empty logbookData!');
-                console.error('This would DELETE ALL DATA. Save blocked!');
-                console.trace();
-                alert('FEJL: Forsøgte at gemme tom data! Dette er blokeret for at beskytte dine data. Reload siden.');
-                return false;
+
+        function deepMergeDayPatchFields(day, patch) {
+            const d = day && typeof day === 'object' ? { ...day } : {};
+            if (Object.prototype.hasOwnProperty.call(patch, 'dagbog')) d.dagbog = patch.dagbog;
+            if (Object.prototype.hasOwnProperty.call(patch, 'dreams')) d.dreams = patch.dreams;
+            if (Object.prototype.hasOwnProperty.call(patch, 'color')) {
+                if (patch.color === null) delete d.color;
+                else d.color = patch.color;
             }
-            
-            try {
-                const userDocRef = db.collection('users').doc(currentUser.uid);
-                const doc = await userDocRef.get();
-                const raw = doc.exists ? (doc.data() || {}) : {};
-                
-                // Check if data is in new monthly structure
-                const userData = raw.userData || {};
-                const registreringer = userData.registreringer || {};
-                const hasMonthlyStructure = Object.keys(registreringer).length > 0 || 
-                                             Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
-                
-                if (hasMonthlyStructure) {
-                    // New monthly structure: Group entries by month and save to subcollections
-                    const entriesByMonth = {};
-                    entries.forEach(entry => {
-                        if (!entry.date) return;
-                        const monthKey = entry.date.substring(0, 7); // YYYY-MM
-                        if (!entriesByMonth[monthKey]) {
-                            entriesByMonth[monthKey] = [];
-                        }
-                        entriesByMonth[monthKey].push(entry);
-                    });
-                    
-                    // Save each month to subcollections
-                    for (const [monthKey, monthEntries] of Object.entries(entriesByMonth)) {
-                        const monthDocRef = userDocRef.collection('months').doc(monthKey);
-                        
-                        // Load existing month data or create new
-                        const monthDoc = await monthDocRef.get();
-                        const existingMonthData = monthDoc.exists ? (monthDoc.data() || {}) : {};
-                        
-                        // Get old count before updating
-                        const oldCount = existingMonthData.logbog ? existingMonthData.logbog.length : 0;
-                        const newCount = monthEntries.length;
-                        
-                        // Update logbog array for this month
-                        existingMonthData.logbog = monthEntries;
-                        
-                        // Save to subcollection
-                        await monthDocRef.set(existingMonthData, { merge: true });
-                        
-                        // Only update registreringer if count changed
-                        if (oldCount !== newCount) {
-                            await updateRegistreringer(monthKey, 'logbog', newCount);
-                        }
-                    }
-                    
-                    // Update cache
-                    if (window.allUserData) {
-                        window.allUserData.logbogData = entries;
-                    }
-                    
-                    console.log('[SAVE] Success - saved to monthly subcollections');
-                    return true;
-                } else {
-                    // Old structure (backward compatibility)
-                    await userDocRef.set({
-                        logbogData: entries,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                    
-                    console.log('[SAVE] Success - saved to old structure');
-                    return true;
+            return d;
+        }
+
+        function mergeDayAppendCheckin(day, checkin, nowIso) {
+            const d = day && typeof day === 'object' ? { ...day } : {};
+            const prev = Array.isArray(d.checkins) ? d.checkins : [];
+            d.checkins = [...prev, checkin];
+            d.timestamp = nowIso;
+            return d;
+        }
+
+        /**
+         * Muterer én dag i rå month.logbog (array eller dato-objekt). Kalder mutator(day) → ny day; null afbryder.
+         */
+        function mutateRawLogbogDay(rawLogbog, dateKey, mutator) {
+            if (rawLogbog == null) return null;
+            if (Array.isArray(rawLogbog)) {
+                const arr = rawLogbog.map(e => (e && typeof e === 'object' ? { ...e } : e));
+                for (let i = 0; i < arr.length; i++) {
+                    const e = arr[i];
+                    if (!e || typeof e !== 'object') continue;
+                    const ed = normalizeDateKey(e.date) || e.date;
+                    if (ed !== dateKey) continue;
+                    const next = mutator(e);
+                    if (!next) return null;
+                    arr[i] = next;
+                    return { ok: true, logbog: arr };
                 }
+                return null;
+            }
+            if (typeof rawLogbog === 'object') {
+                const obj = {};
+                for (const k of Object.keys(rawLogbog)) {
+                    const v = rawLogbog[k];
+                    obj[k] = v && typeof v === 'object' ? { ...v } : v;
+                }
+                const dateKeyRe = /^\d{4}-\d{2}-\d{2}$/;
+                for (const key of Object.keys(obj)) {
+                    const day = obj[key];
+                    if (!day || typeof day !== 'object') continue;
+                    const dateStr = typeof day.date === 'string' && dateKeyRe.test(day.date) ? day.date : key;
+                    const dk = normalizeDateKey(dateStr) || dateStr;
+                    if (dk !== dateKey) continue;
+                    const next = mutator(day);
+                    if (!next) return null;
+                    obj[key] = next;
+                    return { ok: true, logbog: obj };
+                }
+                return null;
+            }
+            return null;
+        }
+
+        function patchLogbogDataCache(dateKey, patch) {
+            if (!window.allUserData || !Array.isArray(window.allUserData.logbogData)) return;
+            const idx = window.allUserData.logbogData.findIndex(e => {
+                if (!e || typeof e !== 'object') return false;
+                const d = normalizeDateKey(e.date) || e.date;
+                return d === dateKey;
+            });
+            if (idx === -1) return;
+            const ent = { ...window.allUserData.logbogData[idx] };
+            if (Object.prototype.hasOwnProperty.call(patch, 'dagbog')) ent.dagbog = patch.dagbog;
+            if (Object.prototype.hasOwnProperty.call(patch, 'dreams')) ent.dreams = patch.dreams;
+            if (Object.prototype.hasOwnProperty.call(patch, 'color')) {
+                if (patch.color === null) delete ent.color;
+                else ent.color = patch.color;
+            }
+            window.allUserData.logbogData[idx] = ent;
+        }
+
+        function appendCheckinInCache(dateKey, checkin, nowIso) {
+            if (!window.allUserData || !Array.isArray(window.allUserData.logbogData)) return;
+            const ent = window.allUserData.logbogData.find(e => {
+                if (!e || typeof e !== 'object') return false;
+                const d = normalizeDateKey(e.date) || e.date;
+                return d === dateKey;
+            });
+            if (!ent) return;
+            if (!Array.isArray(ent.checkins)) ent.checkins = [];
+            ent.checkins = [...ent.checkins, checkin];
+            ent.timestamp = nowIso;
+        }
+
+        async function detectFirestoreMonthlyLayout() {
+            if (!currentUser || !db) return false;
+            const userDocRef = db.collection('users').doc(currentUser.uid);
+            const doc = await userDocRef.get();
+            const raw = doc.exists ? (doc.data() || {}) : {};
+            const userData = raw.userData || {};
+            const registreringer = userData.registreringer || {};
+            let hasMonthlyStructure = Object.keys(registreringer).length > 0 ||
+                Object.keys(raw).some(key => /^\d{4}-\d{2}$/.test(key));
+            if (!hasMonthlyStructure) {
+                const probeSnap = await userDocRef.collection('months').limit(1).get();
+                if (!probeSnap.empty) hasMonthlyStructure = true;
+            }
+            return hasMonthlyStructure;
+        }
+
+        /**
+         * Opdaterer kun dagbog/drømme/farve for én eksisterende dato. Opretter aldrig ny dag. Bevarer month.logbog som array eller objekt.
+         */
+        async function saveLogbogDayPatchToFirestore(dateKey, patch) {
+            if (!currentUser || !db) return false;
+            const dk = normalizeDateKey(dateKey) || dateKey;
+            if (!dk || !/^\d{4}-\d{2}-\d{2}$/.test(dk)) return false;
+            const hasPatch = ['dagbog', 'dreams', 'color'].some(k => Object.prototype.hasOwnProperty.call(patch, k));
+            if (!hasPatch) return false;
+
+            const userDocRef = db.collection('users').doc(currentUser.uid);
+            const hasMonthlyStructure = await detectFirestoreMonthlyLayout();
+
+            try {
+                if (hasMonthlyStructure) {
+                    const monthKey = dk.substring(0, 7);
+                    const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                    const ok = await db.runTransaction(function (transaction) {
+                        return transaction.get(monthDocRef).then(function (snap) {
+                            if (!snap.exists) return false;
+                            const data = snap.data() || {};
+                            const lb = data.logbog;
+                            const result = mutateRawLogbogDay(lb, dk, function (day) {
+                                return deepMergeDayPatchFields(day, patch);
+                            });
+                            if (!result || !result.ok) return false;
+                            transaction.set(monthDocRef, { logbog: result.logbog }, { merge: true });
+                            return true;
+                        });
+                    });
+                    if (ok) patchLogbogDataCache(dk, patch);
+                    return ok;
+                }
+
+                const ok = await db.runTransaction(function (transaction) {
+                    return transaction.get(userDocRef).then(function (snap) {
+                        if (!snap.exists) return false;
+                        const data = snap.data() || {};
+                        const arr = Array.isArray(data.logbogData) ? data.logbogData.map(e => (e && typeof e === 'object' ? { ...e } : e)) : null;
+                        if (!arr) return false;
+                        let found = false;
+                        for (let i = 0; i < arr.length; i++) {
+                            const e = arr[i];
+                            if (!e || typeof e !== 'object') continue;
+                            const ed = normalizeDateKey(e.date) || e.date;
+                            if (ed !== dk) continue;
+                            arr[i] = deepMergeDayPatchFields(e, patch);
+                            found = true;
+                            break;
+                        }
+                        if (!found) return false;
+                        transaction.set(userDocRef, {
+                            logbogData: arr,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        return true;
+                    });
+                });
+                if (ok) patchLogbogDataCache(dk, patch);
+                return ok;
             } catch (error) {
-                console.error('[SAVE] Error:', error);
+                console.error('[SAVE] saveLogbogDayPatchToFirestore:', error);
                 return false;
             }
         }
+
+        /** Tilføjer check-in kun hvis dagen allerede findes i logbog (opretter aldrig ny dag). */
+        async function appendCheckinToExistingDayInFirestore(dateKey, checkin, nowIso) {
+            if (!currentUser || !db) return false;
+            const dk = normalizeDateKey(dateKey) || dateKey;
+            if (!dk || !/^\d{4}-\d{2}-\d{2}$/.test(dk)) return false;
+
+            const userDocRef = db.collection('users').doc(currentUser.uid);
+            const hasMonthlyStructure = await detectFirestoreMonthlyLayout();
+
+            try {
+                if (hasMonthlyStructure) {
+                    const monthKey = dk.substring(0, 7);
+                    const monthDocRef = userDocRef.collection('months').doc(monthKey);
+                    const ok = await db.runTransaction(function (transaction) {
+                        return transaction.get(monthDocRef).then(function (snap) {
+                            if (!snap.exists) return false;
+                            const data = snap.data() || {};
+                            const lb = data.logbog;
+                            const result = mutateRawLogbogDay(lb, dk, function (day) {
+                                return mergeDayAppendCheckin(day, checkin, nowIso);
+                            });
+                            if (!result || !result.ok) return false;
+                            transaction.set(monthDocRef, { logbog: result.logbog }, { merge: true });
+                            return true;
+                        });
+                    });
+                    if (ok) appendCheckinInCache(dk, checkin, nowIso);
+                    return ok;
+                }
+
+                const ok = await db.runTransaction(function (transaction) {
+                    return transaction.get(userDocRef).then(function (snap) {
+                        if (!snap.exists) return false;
+                        const data = snap.data() || {};
+                        const arr = Array.isArray(data.logbogData) ? data.logbogData.map(e => (e && typeof e === 'object' ? { ...e } : e)) : null;
+                        if (!arr) return false;
+                        let found = false;
+                        for (let i = 0; i < arr.length; i++) {
+                            const e = arr[i];
+                            if (!e || typeof e !== 'object') continue;
+                            const ed = normalizeDateKey(e.date) || e.date;
+                            if (ed !== dk) continue;
+                            arr[i] = mergeDayAppendCheckin(e, checkin, nowIso);
+                            found = true;
+                            break;
+                        }
+                        if (!found) return false;
+                        transaction.set(userDocRef, {
+                            logbogData: arr,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                        return true;
+                    });
+                });
+                if (ok) appendCheckinInCache(dk, checkin, nowIso);
+                return ok;
+            } catch (error) {
+                console.error('[SAVE] appendCheckinToExistingDayInFirestore:', error);
+                return false;
+            }
+        }
+        
 
         async function getLogbookData(forceRefresh = false) {
             if (currentUser && db) {
@@ -2547,44 +2650,6 @@
 
         async function ensureSeedLogbookData() {
             return await getLogbookData();
-        }
-
-        async function saveLogbookData(entries) {
-            if (!currentUser || !db) {
-                console.error('[SAVE] User not logged in - cannot save data');
-                // Still save to localStorage as backup
-                try {
-                    localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
-                } catch (error) {
-                    console.error('Kunne ikke gemme logbogData:', error);
-                }
-                return;
-            }
-            
-            // 🛡️ CRITICAL SAFETY CHECK: Prevent data loss from empty saves
-            if (!entries || !Array.isArray(entries) || entries.length === 0) {
-                console.error('🚨 CRITICAL: Attempted to save empty or invalid logbookData!');
-                console.error('This would DELETE ALL DATA. Save blocked!');
-                console.trace(); // Show call stack
-                alert('FEJL: Forsøgte at gemme tom data! Dette er blokeret for at beskytte dine data. Reload siden.');
-                return;
-            }
-            
-            try {
-                await saveLogbookDataToFirestore(entries);
-                // Update cache directly without reading from Firestore
-                if (window.allUserData) {
-                    window.allUserData.logbogData = entries;
-                }
-                // Also save to localStorage as backup
-                try {
-                    localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(entries));
-                } catch (error) {
-                    console.warn('Kunne ikke gemme logbogData til localStorage som backup:', error);
-                }
-            } catch (error) {
-                console.error('[SAVE] Error saving to Firestore:', error);
-            }
         }
 
         const DANISH_MONTHS = {
@@ -2702,42 +2767,81 @@
 
         let activeLogDate = getTodayDateKey();
 
-        async function upsertLogbookEntry(dateKey, partial) {
-            const entries = await getLogbookData();
-            let entry = entries.find(item => item.date === dateKey);
-            if (!entry) {
-                entry = { date: dateKey, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
-                entries.push(entry);
-            }
+        /** Sidst synkroniserede tekst (efter load/gem) — til dirty-check pr. felt */
+        let lastSavedDagbogSnapshot = '';
+        let lastSavedDreamsSnapshot = '';
 
-            Object.assign(entry, partial);
-            await saveLogbookData(entries);
-            return entry;
+        function normalizeLogFieldText(s) {
+            return (s == null ? '' : String(s)).replace(/\r\n/g, '\n');
+        }
+
+        function isJournalFieldDirty() {
+            const el = document.getElementById('logbookEntry');
+            if (!el) return false;
+            return normalizeLogFieldText(el.value) !== normalizeLogFieldText(lastSavedDagbogSnapshot);
+        }
+
+        function isDreamsFieldDirty() {
+            const el = document.getElementById('dreamEntry');
+            if (!el) return false;
+            return normalizeLogFieldText(el.value) !== normalizeLogFieldText(lastSavedDreamsSnapshot);
+        }
+
+        function isAnyJournalOrDreamsDirty() {
+            return isJournalFieldDirty() || isDreamsFieldDirty();
+        }
+
+        function updateJournalSaveButtonAppearance() {
+            const btn = document.getElementById('journalSaveBtn');
+            const ta = document.getElementById('logbookEntry');
+            if (!btn || !ta) return;
+            const s = getLogbogStrings();
+            const dirty = normalizeLogFieldText(ta.value) !== normalizeLogFieldText(lastSavedDagbogSnapshot);
+            btn.classList.remove('save-field--saved', 'save-field--dirty');
+            if (dirty) {
+                btn.classList.add('save-field--dirty');
+                btn.textContent = s.saveBeforeClose || s.save;
+                btn.disabled = false;
+                btn.removeAttribute('aria-disabled');
+            } else {
+                btn.classList.add('save-field--saved');
+                btn.textContent = s.savedLabel || s.save;
+                btn.disabled = true;
+                btn.setAttribute('aria-disabled', 'true');
+            }
+        }
+
+        function updateDreamsSaveButtonAppearance() {
+            const btn = document.getElementById('dreamsSaveBtn');
+            const ta = document.getElementById('dreamEntry');
+            if (!btn || !ta) return;
+            const s = getLogbogStrings();
+            const dirty = normalizeLogFieldText(ta.value) !== normalizeLogFieldText(lastSavedDreamsSnapshot);
+            btn.classList.remove('save-field--saved', 'save-field--dirty');
+            if (dirty) {
+                btn.classList.add('save-field--dirty');
+                btn.textContent = s.saveBeforeClose || s.save;
+                btn.disabled = false;
+                btn.removeAttribute('aria-disabled');
+            } else {
+                btn.classList.add('save-field--saved');
+                btn.textContent = s.savedLabel || s.save;
+                btn.disabled = true;
+                btn.setAttribute('aria-disabled', 'true');
+            }
+        }
+
+        function syncJournalDreamSnapshotsFromTextareas() {
+            const je = document.getElementById('logbookEntry');
+            const de = document.getElementById('dreamEntry');
+            lastSavedDagbogSnapshot = je ? normalizeLogFieldText(je.value) : '';
+            lastSavedDreamsSnapshot = de ? normalizeLogFieldText(de.value) : '';
+            updateJournalSaveButtonAppearance();
+            updateDreamsSaveButtonAppearance();
         }
 
         async function getSortedLogEntries() {
             const entries = await getLogbookData();
-
-            // Ensure there is always an entry for "i dag" (kun i memory, ingen auto-save)
-            try {
-                const todayKey = getTodayDateKey();
-                const hasToday = entries.some(entry => {
-                    if (!entry || typeof entry !== 'object') return false;
-                    const normalized = normalizeDateKey(entry.date);
-                    return normalized === todayKey;
-                });
-
-                if (!hasToday && todayKey) {
-                    entries.push({
-                        date: todayKey,
-                        dagbog: '',
-                        dreams: '',
-                        timestamp: new Date().toISOString()
-                    });
-                }
-            } catch (e) {
-                console.warn('Kunne ikke sikre dagens logbog entry:', e);
-            }
 
             // Ensure all entries have valid dates and filter out any invalid entries
             const validEntries = entries.filter(entry => {
@@ -3252,22 +3356,17 @@
             const normalizedKey = normalizeDateKey(dateKey) || getTodayDateKey();
             activeLogDate = normalizedKey;
             const entries = await getLogbookData();
-            let entry = entries.find(item => item.date === activeLogDate);
-            if (!entry) {
-                entry = { date: activeLogDate, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
-                entries.push(entry);
-                // Don't save - it's a load operation, entry will be saved when user edits
-            }
+            const entry = entries.find(item => item.date === activeLogDate);
 
             const logbookEntryEl = document.getElementById('logbookEntry');
             const dreamEntryEl = document.getElementById('dreamEntry');
             
             if (logbookEntryEl) {
-                logbookEntryEl.value = entry.dagbog || '';
+                logbookEntryEl.value = entry ? (entry.dagbog || '') : '';
                 autoResizeTextarea(logbookEntryEl);
             }
             if (dreamEntryEl) {
-                dreamEntryEl.value = entry.dreams || '';
+                dreamEntryEl.value = entry ? (entry.dreams || '') : '';
                 autoResizeTextarea(dreamEntryEl);
             }
 
@@ -3293,6 +3392,7 @@
 
             await renderLogHistory();
             scrollChartToDate(activeLogDate);
+            syncJournalDreamSnapshotsFromTextareas();
         }
 
         function scrollChartToDate(dateKey) {
@@ -3370,50 +3470,6 @@
             });
         }
 
-        async function updateActiveLogEntry(field, value) {
-            let entries = await getLogbookData();
-            
-            // SAFETY CHECK: If entries is empty but we should have data, try to reload
-            if (!entries || entries.length === 0) {
-                console.error('⚠️ WARNING: entries array is empty! This could overwrite data.');
-                console.log('Attempting to reload data from Firestore...');
-                window.allUserData = null; // Clear cache to force reload
-                entries = await getLogbookData();
-                if (!entries || entries.length === 0) {
-                    console.error('❌ Still no data after reload. NOT SAVING to prevent data loss!');
-                    alert('FEJL: Kunne ikke indlæse logbog data. Gem ikke for at undgå datatab!');
-                    return;
-                }
-                console.log('✅ Data reloaded successfully, proceeding with save...');
-            }
-            
-            let entry = entries.find(item => item.date === activeLogDate);
-            if (!entry) {
-                // BUG FIX: Use activeLogDate instead of getLocalDateKey()!
-                entry = { date: activeLogDate, dagbog: '', dreams: '', timestamp: new Date().toISOString() };
-                entries.push(entry);
-            }
-            entry[field] = value;
-            await saveLogbookData(entries);
-            // Pass entries to renderLogHistory to avoid another getLogbookData() call
-            const sortedEntries = entries.slice().sort((a, b) => {
-                // Use date as primary sort key (YYYY-MM-DD format)
-                const dateA = a.date || '';
-                const dateB = b.date || '';
-                
-                // Compare dates as strings (YYYY-MM-DD sorts correctly)
-                if (dateB !== dateA) {
-                    return dateB.localeCompare(dateA); // newer first
-                }
-                
-                // If dates are equal, use timestamp as tiebreaker
-                const tb = new Date(b.timestamp || `${b.date}T00:00:00`).getTime();
-                const ta = new Date(a.timestamp || `${a.date}T00:00:00`).getTime();
-                return tb - ta;
-            });
-            await renderLogHistory(sortedEntries);
-        }
-
         async function refreshActiveLogEntry(externalEntries) {
             const logbookEntryEl = document.getElementById('logbookEntry');
             const dreamEntryEl = document.getElementById('dreamEntry');
@@ -3426,10 +3482,14 @@
             if (document.activeElement !== logbookEntryEl) {
                 logbookEntryEl.value = entry.dagbog || '';
                 autoResizeTextarea(logbookEntryEl);
+                lastSavedDagbogSnapshot = normalizeLogFieldText(logbookEntryEl.value);
+                updateJournalSaveButtonAppearance();
             }
             if (document.activeElement !== dreamEntryEl) {
                 dreamEntryEl.value = entry.dreams || '';
                 autoResizeTextarea(dreamEntryEl);
+                lastSavedDreamsSnapshot = normalizeLogFieldText(dreamEntryEl.value);
+                updateDreamsSaveButtonAppearance();
             }
         }
 
@@ -3467,41 +3527,16 @@
         }
 
         async function closeLogHistoryColorPicker() {
-            // Save any pending color changes when picker closes
+            // Save any pending color changes when picker closes (kun eksisterende dage på serveren)
             if (window._pendingLogHistoryColorChanges && window._pendingLogHistoryColorChanges.size > 0) {
-                const entries = await getLogbookData();
-                let hasChanges = false;
-                window._pendingLogHistoryColorChanges.forEach((color, dateKey) => {
-                    const entry = entries.find(e => e.date === dateKey);
-                    if (entry) {
-                        if (color === null) {
-                            delete entry.color;
-                        } else {
-                            entry.color = color;
-                        }
-                        hasChanges = true;
-                    }
-                });
-                if (hasChanges) {
-                    await saveLogbookData(entries);
-                    const sortedEntries = entries.slice().sort((a, b) => {
-                        // Use date as primary sort key (YYYY-MM-DD format)
-                        const dateA = a.date || '';
-                        const dateB = b.date || '';
-                        
-                        // Compare dates as strings (YYYY-MM-DD sorts correctly)
-                        if (dateB !== dateA) {
-                            return dateB.localeCompare(dateA); // newer first
-                        }
-                        
-                        // If dates are equal, use timestamp as tiebreaker
-                        const tb = new Date(b.timestamp || `${b.date}T00:00:00`).getTime();
-                        const ta = new Date(a.timestamp || `${a.date}T00:00:00`).getTime();
-                        return tb - ta;
-                    });
-                    await renderLogHistory(sortedEntries);
-                }
+                const pending = Array.from(window._pendingLogHistoryColorChanges.entries());
                 window._pendingLogHistoryColorChanges.clear();
+                for (const [dateKey, color] of pending) {
+                    const patch = color === null ? { color: null } : { color };
+                    await saveLogbogDayPatchToFirestore(dateKey, patch);
+                }
+                const sortedEntries = await getSortedLogEntries();
+                await renderLogHistory(sortedEntries);
             }
             logHistoryColorPickerTarget = null;
             const modal = document.getElementById('logHistoryColorPickerModal');
@@ -3534,30 +3569,6 @@
             // Don't close overlay - only close when clicking outside or pressing Escape
         }
 
-        function removeLogHistoryColor() {
-            if (!logHistoryColorPickerTarget) return;
-            // Store color removal - will be saved when picker closes
-            if (!window._pendingLogHistoryColorChanges) {
-                window._pendingLogHistoryColorChanges = new Map();
-            }
-            window._pendingLogHistoryColorChanges.set(logHistoryColorPickerTarget, null);
-            
-            // Live-update UI for the selected history item (remove color) without saving endnu
-            const item = document.querySelector(`.log-history-item[data-date="${logHistoryColorPickerTarget}"]`);
-            if (item) {
-                const bar = item.querySelector('.log-history-item-color-bar');
-                if (bar) {
-                    bar.style.backgroundColor = DEFAULT_HISTORY_COLOR;
-                }
-            }
-            const headerColorBtn = document.getElementById('headerLogHistoryColorBtn');
-            if (headerColorBtn && logHistoryColorPickerTarget === activeLogDate) {
-                headerColorBtn.style.background = DEFAULT_HISTORY_COLOR;
-                headerColorBtn.style.color = '#ffffff';
-            }
-            // Don't close overlay - only close when clicking outside or pressing Escape
-        }
-
         // Store handlers to prevent listener accumulation
         let logbookInputHandler = null;
         let dreamInputHandler = null;
@@ -3571,14 +3582,13 @@
             }
             const logbookEntryEl = document.getElementById('logbookEntry');
             if (!logbookEntryEl) return;
-            await updateActiveLogEntry('dagbog', logbookEntryEl.value);
-            const btn = document.getElementById('journalSaveBtn');
-            if (btn) {
-                const original = btn.textContent;
-                btn.textContent = 'Gemt!';
-                setTimeout(() => {
-                    btn.textContent = original;
-                }, 1500);
+            if (!isJournalFieldDirty()) return;
+            const ok = await saveLogbogDayPatchToFirestore(activeLogDate, { dagbog: logbookEntryEl.value });
+            if (ok) {
+                lastSavedDagbogSnapshot = normalizeLogFieldText(logbookEntryEl.value);
+                updateJournalSaveButtonAppearance();
+                const sortedEntries = await getSortedLogEntries();
+                await renderLogHistory(sortedEntries);
             }
         }
 
@@ -3589,14 +3599,13 @@
             }
             const dreamEntryEl = document.getElementById('dreamEntry');
             if (!dreamEntryEl) return;
-            await updateActiveLogEntry('dreams', dreamEntryEl.value);
-            const btn = document.getElementById('dreamsSaveBtn');
-            if (btn) {
-                const original = btn.textContent;
-                btn.textContent = 'Gemt!';
-                setTimeout(() => {
-                    btn.textContent = original;
-                }, 1500);
+            if (!isDreamsFieldDirty()) return;
+            const ok = await saveLogbogDayPatchToFirestore(activeLogDate, { dreams: dreamEntryEl.value });
+            if (ok) {
+                lastSavedDreamsSnapshot = normalizeLogFieldText(dreamEntryEl.value);
+                updateDreamsSaveButtonAppearance();
+                const sortedEntries = await getSortedLogEntries();
+                await renderLogHistory(sortedEntries);
             }
         }
 
@@ -3633,35 +3642,15 @@
                 dreamDebounceTimeout = null;
             }
             
-            // Create new handlers with debounce (3 seconds)
+            // Auto-resize + opdater Gem-knap (grøn Gemt / blå Gem inden luk)
             logbookInputHandler = () => {
                 autoResizeTextarea(logbookEntryEl);
-                
-                // Clear previous timeout
-                if (logbookDebounceTimeout) {
-                    clearTimeout(logbookDebounceTimeout);
-                }
-                
-                // Debounce: wait 3 seconds after last input
-                logbookDebounceTimeout = setTimeout(async () => {
-                    await updateActiveLogEntry('dagbog', logbookEntryEl.value);
-                    logbookDebounceTimeout = null;
-                }, 3000);
+                updateJournalSaveButtonAppearance();
             };
             
             dreamInputHandler = () => {
                 autoResizeTextarea(dreamEntryEl);
-                
-                // Clear previous timeout
-                if (dreamDebounceTimeout) {
-                    clearTimeout(dreamDebounceTimeout);
-                }
-                
-                // Debounce: wait 3 seconds after last input
-                dreamDebounceTimeout = setTimeout(async () => {
-                    await updateActiveLogEntry('dreams', dreamEntryEl.value);
-                    dreamDebounceTimeout = null;
-                }, 3000);
+                updateDreamsSaveButtonAppearance();
             };
 
             // Add new listeners
@@ -4130,13 +4119,16 @@
                 }
             }
 
-            // Gennemsnit: solid linje
-            ctx.strokeStyle = '#10b981';
+            // Gennemsnit: stiplet linje, samme farve som graf-linjen (#8b5cf6)
+            ctx.save();
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = '#8b5cf6';
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(0, yAverage);
             ctx.lineTo(width, yAverage);
             ctx.stroke();
+            ctx.restore();
 
             // Sort data by x for line drawing
             const sortedData = data.slice().sort((a, b) => a.x - b.x);
@@ -4442,7 +4434,6 @@
 
         function initCheckinModal() {
             const modal = document.getElementById('checkinModal');
-            const openBtn = document.getElementById('openCheckinModal');
             const closeBtn = document.getElementById('closeCheckinModal');
             const slider = document.getElementById('checkinSlider');
             const sliderValue = document.getElementById('checkinSliderValue');
@@ -4454,68 +4445,6 @@
                 slider.style.setProperty('--pct', `${slider.value}%`);
             };
             syncCheckinSliderTrack();
-
-            // Check if user can make a new check-in
-            const checkIfCanMakeCheckin = async () => {
-                if (!currentUser || !db) {
-                    alert('Du skal være logget ind for at lave et check-in.');
-                    return false;
-                }
-                
-                const now = new Date();
-                
-                // Load logbogData from Firestore
-                try {
-                    const logbogData = await getLogbookEntries();
-                    if (!logbogData || !Array.isArray(logbogData)) {
-                        return true; // No data, allow check-in
-                    }
-                    
-                    // Find all check-ins from all dates and get the most recent one
-                    let allCheckins = [];
-                    logbogData.forEach(entry => {
-                        if (Array.isArray(entry.checkins) && entry.date) {
-                            entry.checkins.forEach(checkin => {
-                                if (checkin.time) {
-                                    // Create Date from date + time
-                                    const dateTimeStr = `${entry.date}T${checkin.time}:00`;
-                                    allCheckins.push(new Date(dateTimeStr));
-                                }
-                            });
-                        }
-                    });
-                    
-                    if (allCheckins.length > 0) {
-                        // Sort by date (newest first)
-                        allCheckins.sort((a, b) => b.getTime() - a.getTime());
-                        const lastCheckInDate = allCheckins[0];
-                        const timeDiff = now.getTime() - lastCheckInDate.getTime();
-                        const thirtyMinutes = 30 * 60 * 1000; // milliseconds in 30 minutes
-
-                        if (timeDiff < thirtyMinutes) {
-                            const minutesRemaining = Math.ceil((thirtyMinutes - timeDiff) / (60 * 1000));
-                            alert(`Du kan maksimalt lave et check-in i halv time. Vent venligst ${minutesRemaining} ${minutesRemaining === 1 ? 'minut' : 'minutter'} før du kan lave et nyt check-in.`);
-                            return false;
-                        }
-                    }
-                } catch (error) {
-                    console.warn('[CHECKIN] Kunne ikke læse check-in data fra logbogData:', error);
-                }
-                
-                return true;
-            };
-
-            if (openBtn) {
-                openBtn.addEventListener('click', async () => {
-                    if (!(await checkIfCanMakeCheckin())) {
-                        return;
-                    }
-                    modal.classList.add('show');
-                    slider.value = 50;
-                    sliderValue.textContent = '50';
-                    syncCheckinSliderTrack();
-                });
-            }
 
             // Close modal
             const closeModal = () => {
@@ -4554,40 +4483,22 @@
                 const dateKey = getTodayDateKey();
 
                 try {
-                    // Load existing logbogData
                     const logbogData = await getLogbookEntries();
-                    
-                    // Find or create entry for today
-                    let entry = logbogData.find(item => item.date === dateKey);
+                    const entry = logbogData.find(item => item.date === dateKey);
                     if (!entry) {
-                        entry = {
-                            date: dateKey,
-                            dagbog: '',
-                            dreams: '',
-                            checkins: [],
-                            timestamp: now.toISOString(),
-                            color: DEFAULT_HISTORY_COLOR
-                        };
-                        logbogData.push(entry);
+                        closeModal();
+                        return;
                     }
-                    
-                    // Initialize checkins array if it doesn't exist
-                    if (!Array.isArray(entry.checkins)) {
-                        entry.checkins = [];
-                    }
-                    
-                    // Add new check-in to the array
-                    entry.checkins.push({
+
+                    const saved = await appendCheckinToExistingDayInFirestore(dateKey, {
                         time: timeStr,
                         status: status
-                    });
-                    
-                    // Update timestamp
-                    entry.timestamp = now.toISOString();
-                    
-                    // Save to Firestore
-                    await saveLogbookDataToFirestore(logbogData);
-                    
+                    }, now.toISOString());
+                    if (!saved) {
+                        closeModal();
+                        return;
+                    }
+
                     console.log(`[CHECKIN] Manual check-in saved for ${dateKey} at ${timeStr}`);
                     
                     closeModal();
@@ -4648,21 +4559,34 @@
                         };
                     });
 
-                // Save to Firestore if user is logged in, otherwise localStorage
                 if (currentUser && db) {
-                    await saveLogbookDataToFirestore(normalizedEntries);
+                    let applied = 0;
+                    for (const e of normalizedEntries) {
+                        const ok = await saveLogbogDayPatchToFirestore(e.date, {
+                            dagbog: e.dagbog,
+                            dreams: e.dreams
+                        });
+                        if (ok) applied++;
+                    }
+                    console.info(`[DEBUG] Patched ${applied}/${normalizedEntries.length} eksisterende dage (opretter aldrig nye).`);
+                    window.allUserData = null;
+                    await loadAllUserData(true);
                 }
-                localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(normalizedEntries));
+                try {
+                    const merged = await getSortedLogEntries();
+                    localStorage.setItem(LOGBOOK_STORAGE_KEY, JSON.stringify(merged));
+                } catch (e) {
+                    console.warn('[DEBUG] Kunne ikke opdatere localStorage:', e);
+                }
 
                 const sorted = normalizedEntries.slice().sort((a, b) => {
-                    // Use date as primary sort key (YYYY-MM-DD format)
                     const dateA = a.date || '';
                     const dateB = b.date || '';
-                    return dateB.localeCompare(dateA); // newer first
+                    return dateB.localeCompare(dateA);
                 });
                 const latestDate = sorted.length ? sorted[0].date : getTodayDateKey();
                 await setActiveLogDate(latestDate);
-                console.info(`Loaded ${normalizedEntries.length} entries into logbogData from debug_logbog.json`);
+                console.info(`Processed ${normalizedEntries.length} rækker fra debug_logbog.json`);
             } catch (error) {
                 console.error('Failed to load debug log data:', error);
             }
@@ -5062,7 +4986,6 @@
             // Initialize log history color picker
             buildLogHistoryColorGrid();
             const logHistoryColorPickerModal = document.getElementById('logHistoryColorPickerModal');
-            const logHistoryRemoveColorBtn = document.getElementById('logHistoryRemoveColorBtn');
             
             if (logHistoryColorPickerModal) {
                 logHistoryColorPickerModal.addEventListener('click', (e) => {
@@ -5072,9 +4995,12 @@
                 });
             }
 
-            if (logHistoryRemoveColorBtn) {
-                logHistoryRemoveColorBtn.addEventListener('click', removeLogHistoryColor);
-            }
+            window.addEventListener('beforeunload', (e) => {
+                if (isAnyJournalOrDreamsDirty()) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
 
             // Close color picker on Escape key
             document.addEventListener('keydown', (e) => {
