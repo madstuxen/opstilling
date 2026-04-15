@@ -1388,13 +1388,14 @@ const firebaseConfig = {
             window.location.href = 'logbog_01.html';
         }
 
-        auth.getRedirectResult().then(async function(result) {
-            if (result && result.user) {
-                await finishSignInAndGoToJournal(result.user);
-            }
-        }).catch(function(e) {
-            console.warn('getRedirectResult:', e);
-        });
+        // getRedirectResult — midlertidigt udkommenteret til test (redirect-flow bruges ikke med signInWithPopup)
+        // auth.getRedirectResult().then(async function(result) {
+        //     if (result && result.user) {
+        //         await finishSignInAndGoToJournal(result.user);
+        //     }
+        // }).catch(function(e) {
+        //     console.warn('getRedirectResult:', e);
+        // });
 
         // Check if user is already logged in
         auth.onAuthStateChanged(async user => {
