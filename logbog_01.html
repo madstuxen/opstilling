@@ -11,6 +11,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <!-- Firestore -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Firebase Functions -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
     <script src="firestore_writes_config.js"></script>
     <script src="firestore_write_guard.js"></script>
     <style>
@@ -1331,6 +1333,126 @@
             text-align: center;
         }
 
+        .recover-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5200;
+            padding: 20px;
+        }
+
+        .recover-modal.show {
+            display: flex;
+        }
+
+        .recover-modal-content {
+            width: min(760px, 100%);
+            max-height: 88vh;
+            overflow-y: auto;
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+        }
+
+        .recover-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 16px 18px;
+            background: #573920;
+            color: #ffffff;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .recover-modal-header h2 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
+        .recover-modal-close {
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+
+        .recover-modal-close:hover {
+            background: rgba(255, 255, 255, 0.32);
+        }
+
+        .recover-modal-body {
+            padding: 16px 18px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .recover-warning {
+            margin: 0;
+            color: #111827;
+            line-height: 1.45;
+            font-size: 0.95rem;
+        }
+
+        .recover-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .recover-btn {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .recover-btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .recover-btn-download {
+            background: #2563eb;
+        }
+
+        .recover-btn-upload {
+            background: #7c3aed;
+        }
+
+        .recover-file-input {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 9px;
+            font-size: 0.92rem;
+        }
+
+        .recover-status {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #374151;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 10px 12px;
+            min-height: 40px;
+            white-space: pre-wrap;
+        }
+
         .collapse-btn {
             background: #4f46e5;
             border: none;
@@ -1383,6 +1505,7 @@
                 </div>
                 <div class="logbog-minimal-nav">
                     <button type="button" class="logbog-nav-logout" id="logbogNavHomeBtn" data-i18n="backHome">Back to home</button>
+                    <button type="button" class="logbog-nav-logout" id="logbogRecoverBtn">Recover</button>
                     <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
                 </div>
             </div>
@@ -1496,6 +1619,28 @@
                 <h3 data-i18n="colorTitle">Pick a color</h3>
             </div>
             <div class="log-history-color-grid" id="logHistoryColorGrid"></div>
+        </div>
+    </div>
+
+    <div class="recover-modal" id="recoverModal" role="dialog" aria-modal="true" aria-labelledby="recoverModalTitle">
+        <div class="recover-modal-content" onclick="event.stopPropagation()">
+            <div class="recover-modal-header">
+                <h2 id="recoverModalTitle">Recover</h2>
+                <button type="button" class="recover-modal-close" id="recoverModalClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="recover-modal-body">
+                <p class="recover-warning">
+                    Warning: Use this only for account migration/recovery. Download gives you a JSON backup of your journal structure
+                    (`user.monthsIndex` and `months`). Upload merges that backup into your currently logged-in account. This can
+                    overwrite existing day/month content if keys overlap. Keep your backup file private.
+                </p>
+                <div class="recover-actions">
+                    <button type="button" class="recover-btn recover-btn-download" id="recoverDownloadBtn">Download my data</button>
+                    <button type="button" class="recover-btn recover-btn-upload" id="recoverUploadBtn">Upload data</button>
+                </div>
+                <input class="recover-file-input" id="recoverFileInput" type="file" accept="application/json,.json">
+                <pre class="recover-status" id="recoverStatus" aria-live="polite"></pre>
+            </div>
         </div>
     </div>
 
@@ -3817,6 +3962,9 @@
         // Initialize Firebase
         let auth = null;
         let db = null;
+        let fns = null;
+        let exportJournalCallable = null;
+        let importJournalCallable = null;
         let currentUser = null;
         
         // Global cache of all user-related Firestore data (shared via window)
@@ -3835,8 +3983,58 @@
             firebase.initializeApp(firebaseConfig);
             auth = firebase.auth();
             db = firebase.firestore();
+            fns = firebase.app().functions('europe-west4');
+            exportJournalCallable = fns.httpsCallable('exportJournalData');
+            importJournalCallable = fns.httpsCallable('importJournalData');
         } catch (error) {
             console.error('Firebase initialization error:', error);
+        }
+
+        const RECOVER_ERROR_MESSAGES = {
+            'permission-denied': 'Handling afvist: premium + kontoalderkrav er ikke opfyldt.',
+            'resource-exhausted': 'Du kan kun eksportere hver 3. måned.',
+            'unauthenticated': 'Du skal være logget ind.',
+            'invalid-argument': 'Ugyldigt filformat til import.',
+            'not-found': 'Cloud Function ikke fundet. Tjek region/deploy.',
+            'unavailable': 'Cloud Function er ikke tilgængelig lige nu.'
+        };
+
+        function setRecoverStatus(msg) {
+            const statusEl = document.getElementById('recoverStatus');
+            if (statusEl) statusEl.textContent = msg || '';
+        }
+
+        function mapRecoverError(err) {
+            const detailsCode = err && err.details && err.details.code ? String(err.details.code) : '';
+            if (detailsCode && RECOVER_ERROR_MESSAGES[detailsCode]) return RECOVER_ERROR_MESSAGES[detailsCode];
+            const code = err && err.code ? String(err.code).replace('functions/', '') : '';
+            if (code && RECOVER_ERROR_MESSAGES[code]) return RECOVER_ERROR_MESSAGES[code];
+            return (err && err.message) ? err.message : 'Ukendt fejl';
+        }
+
+        function triggerRecoverDownload(filename, data) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function openRecoverModal() {
+            const modal = document.getElementById('recoverModal');
+            if (!modal) return;
+            modal.classList.add('show');
+            setRecoverStatus('Klar til recovery.');
+        }
+
+        function closeRecoverModal() {
+            const modal = document.getElementById('recoverModal');
+            if (!modal) return;
+            modal.classList.remove('show');
         }
         
         // Check auth state - create a promise that resolves when auth state is determined
@@ -5025,6 +5223,13 @@
                 });
             }
 
+            const logbogRecoverBtn = document.getElementById('logbogRecoverBtn');
+            if (logbogRecoverBtn) {
+                logbogRecoverBtn.addEventListener('click', function() {
+                    openRecoverModal();
+                });
+            }
+
             const logbogLogoutBtn = document.getElementById('logbogLogoutBtn');
             if (logbogLogoutBtn && auth) {
                 logbogLogoutBtn.addEventListener('click', function() {
@@ -5035,6 +5240,91 @@
                         console.error(err);
                         window.location.href = 'index.html';
                     });
+                });
+            }
+
+            const recoverModal = document.getElementById('recoverModal');
+            const recoverModalClose = document.getElementById('recoverModalClose');
+            const recoverDownloadBtn = document.getElementById('recoverDownloadBtn');
+            const recoverUploadBtn = document.getElementById('recoverUploadBtn');
+            const recoverFileInput = document.getElementById('recoverFileInput');
+
+            if (recoverModal) {
+                recoverModal.addEventListener('click', function(e) {
+                    if (e.target === recoverModal) {
+                        closeRecoverModal();
+                    }
+                });
+            }
+            if (recoverModalClose) {
+                recoverModalClose.addEventListener('click', function() {
+                    closeRecoverModal();
+                });
+            }
+
+            if (recoverDownloadBtn) {
+                recoverDownloadBtn.addEventListener('click', async function() {
+                    if (!currentUser) {
+                        setRecoverStatus('Du skal være logget ind.');
+                        return;
+                    }
+                    if (!exportJournalCallable) {
+                        setRecoverStatus('Export function er ikke initialiseret.');
+                        return;
+                    }
+                    recoverDownloadBtn.disabled = true;
+                    setRecoverStatus('Henter backup fra server...');
+                    try {
+                        const res = await exportJournalCallable();
+                        const payload = res && res.data ? res.data : {};
+                        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+                        triggerRecoverDownload(`journal-export-${stamp}.json`, payload);
+                        setRecoverStatus('Download klar.');
+                    } catch (err) {
+                        console.error('[RECOVER] Export failed:', err);
+                        setRecoverStatus('Fejl ved download: ' + mapRecoverError(err));
+                    } finally {
+                        recoverDownloadBtn.disabled = false;
+                    }
+                });
+            }
+
+            if (recoverUploadBtn) {
+                recoverUploadBtn.addEventListener('click', async function() {
+                    if (!currentUser) {
+                        setRecoverStatus('Du skal være logget ind.');
+                        return;
+                    }
+                    if (!importJournalCallable) {
+                        setRecoverStatus('Import function er ikke initialiseret.');
+                        return;
+                    }
+                    const file = recoverFileInput && recoverFileInput.files ? recoverFileInput.files[0] : null;
+                    if (!file) {
+                        setRecoverStatus('Vælg først en JSON fil.');
+                        return;
+                    }
+                    recoverUploadBtn.disabled = true;
+                    setRecoverStatus('Læser fil...');
+                    try {
+                        const text = await file.text();
+                        const json = JSON.parse(text);
+                        setRecoverStatus('Uploader til server...');
+                        const res = await importJournalCallable(json);
+                        const result = res && res.data ? res.data : {};
+                        const monthsWritten = result.monthsWritten != null ? result.monthsWritten : 0;
+                        const monthsReceived = result.monthsReceived != null ? result.monthsReceived : 0;
+                        setRecoverStatus(`Upload færdig. monthsWritten=${monthsWritten}, monthsReceived=${monthsReceived}`);
+                    } catch (err) {
+                        if (err instanceof SyntaxError) {
+                            setRecoverStatus('Filen er ikke gyldig JSON.');
+                        } else {
+                            console.error('[RECOVER] Import failed:', err);
+                            setRecoverStatus('Fejl ved upload: ' + mapRecoverError(err));
+                        }
+                    } finally {
+                        recoverUploadBtn.disabled = false;
+                    }
                 });
             }
             
@@ -5179,6 +5469,11 @@
             // Close color picker on Escape key
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
+                    const recoverM = document.getElementById('recoverModal');
+                    if (recoverM && recoverM.classList.contains('show')) {
+                        closeRecoverModal();
+                        return;
+                    }
                     const modal = document.getElementById('logHistoryColorPickerModal');
                     if (modal && modal.classList.contains('show')) {
                         closeLogHistoryColorPicker();

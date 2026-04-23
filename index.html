@@ -111,6 +111,79 @@
             margin-top: 8px;
         }
 
+        .landing-copy-with-cards {
+            position: relative;
+            flex: 1 1 50%;
+            min-height: 180px;
+            display: flex;
+            align-items: flex-start;
+            gap: 28px;
+            width: 100%;
+        }
+
+        .landing-copy-with-cards .landing-copy {
+            position: relative;
+            z-index: 3;
+            flex: 1 1 0;
+            min-width: 0;
+            padding-bottom: var(--landing-pad-below-stores);
+        }
+
+        .card-hand {
+            --spread: 84px;
+            --card-width: clamp(134px, 12.2vw, 180px);
+            --card-height: clamp(247px, 22.9vw, 326px);
+            position: absolute;
+            top: -44px;
+            right: -200px;
+            width: clamp(300px, 38.4vw, 468px);
+            height: clamp(307px, 37.4vw, 422px);
+            pointer-events: auto;
+            z-index: 4;
+        }
+
+        .card {
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            width: var(--card-width);
+            height: var(--card-height);
+            border-radius: 12px;
+            object-fit: cover;
+            object-position: center top;
+            box-shadow: 0 12px 26px rgba(0, 0, 0, 0.34);
+            transform-origin: 50% 100%;
+            transform: translateX(calc(-50% + (((var(--n) - 1) / 2 - var(--i)) * 22px)))
+                       rotate(calc((((var(--n) - 1) / 2) - var(--i)) * 2.2deg));
+            transition: transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 420ms ease;
+            will-change: transform;
+            z-index: calc(100 + var(--i));
+            outline: 2px solid #d97706;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+            .card-hand:hover .card {
+                transform: translateX(calc(-50% + (((var(--n) - 1) / 2 - var(--i)) * var(--spread))))
+                           rotate(calc((((var(--n) - 1) / 2) - var(--i)) * 7deg))
+                           translateY(-8px);
+                box-shadow: 0 17px 34px rgba(0, 0, 0, 0.38);
+            }
+        }
+
+        @media (hover: none), (pointer: coarse) {
+            .card-hand {
+                pointer-events: auto;
+            }
+
+            .card-hand .card {
+                transform: translateX(calc(-50% + (((var(--n) - 1) / 2 - var(--i)) * var(--spread))))
+                           rotate(calc((((var(--n) - 1) / 2) - var(--i)) * 7deg))
+                           translateY(-8px);
+                box-shadow: 0 17px 34px rgba(0, 0, 0, 0.38);
+                pointer-events: none;
+            }
+        }
+
         /* Decorative mascot — fixed to viewport; left edge; vertically centered */
         .index-mascot-wrap {
             position: fixed;
@@ -393,6 +466,28 @@
                 --mascot-scale: 0.75;
                 --mascot-left: 2%;
             }
+
+            .landing-copy-with-cards {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 18px;
+            }
+
+            .landing-copy-with-cards .landing-copy {
+                flex-basis: auto;
+                min-width: 0;
+            }
+
+            .card-hand {
+                position: relative;
+                top: auto;
+                right: auto;
+                width: 100%;
+                max-width: 456px;
+                min-height: 300px;
+                margin: 0 auto;
+                align-self: center;
+            }
         }
 
         .site-header {
@@ -406,25 +501,29 @@
             background: rgba(47, 32, 20, 0.92);
             border-bottom: 1px solid rgba(255, 255, 255, 0.12);
         }
+        .site-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-right: auto;
+        }
         .site-header .brand {
             font-weight: 700;
             color: #fff;
             font-size: 1.1rem;
-            margin-right: auto;
         }
-        .site-header nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px 18px;
-            align-items: center;
+        .site-header .header-divider {
+            width: 1px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.8);
         }
-        .site-header nav a {
+        .site-header-left a {
             color: #e5e7eb;
             text-decoration: none;
             font-size: 0.95rem;
             font-weight: 500;
         }
-        .site-header nav a:hover {
+        .site-header-left a:hover {
             color: #fff;
             text-decoration: underline;
         }
@@ -1071,14 +1170,11 @@
 
     <div class="site-layout">
     <header class="site-header">
-        <span class="brand">Journal App</span>
-        <nav aria-label="Site">
+        <div class="site-header-left">
+            <span class="brand">Journal App</span>
+            <span class="header-divider" aria-hidden="true"></span>
             <a href="index.html">Home</a>
-            <a href="privacy.html">Privacy</a>
-            <a href="terms.html">Terms</a>
-            <a href="delete-account.html">Delete account</a>
-            <a href="support.html">Support</a>
-        </nav>
+        </div>
         <div class="site-header-actions" id="headerGuestActions">
             <button type="button" class="header-signin-btn" id="openLoginOverlayBtn">Logbook</button>
         </div>
@@ -1095,22 +1191,32 @@
                 <img class="hero-brand-img" src="imagefiles/migdem_en.svg" alt="" width="887" height="237" decoding="async">
             </div>
         </div>
-        <section class="hero landing-copy">
-            <h1>Your self-development journal app</h1>
-            <p class="lead">A journaling app with inner work and coaching. Easy 5-step journal. Daily affirmations. Assignments to help you develop a better understanding of yourself and others. Web access for longer writings. Track bodily sensations. Create constellations of family and relationships. Safe storage. Password protection. And more…</p>
-            <ul class="feature-list">
-                <li>Sync with your phone (same login)</li>
-                <li>Journal and dreams in one place</li>
-                <li>Designed as an add-on — the app stays primary</li>
-            </ul>
-            <p class="lead hero-store-lead">Get the app (coming soon):</p>
-            <div class="store-row">
-                <span class="store-badge-img-wrap" aria-label="App Store — coming soon">
-                    <img class="store-badge-img" src="imagefiles/appstoreBlack.svg" alt="" width="144" height="48" decoding="async">
-                </span>
-                <span class="store-badge-img-wrap" aria-label="Google Play — coming soon">
-                    <img class="store-badge-img" src="imagefiles/googlePlayblack.svg" alt="" width="144" height="48" decoding="async">
-                </span>
+        <section class="hero landing-copy-with-cards">
+            <div class="landing-copy">
+                <h1>Your self-development journal app</h1>
+                <p class="lead">A journaling app with inner work in snack-size portions - with a coaching approach to assist you along the way. Write your thoughts, dreams and bodily sensations. Take exercises that help you grow and deepen your understanding of yourself and the people around you. Track how you feel over time and begin to notice what your body already knows. Over time you train your ability to see yourself from the outside and others from the inside.</p>
+                <ul class="feature-list">
+                    <li>Secure and password protected — no tracking, no ads, delete your data any time</li>
+                    <li>Start on your phone, continue writing on the web</li>
+                    <li>5-step guided journaling makes it easy to get started</li>
+                </ul>
+                <p class="lead hero-store-lead">Get the app (coming soon):</p>
+                <div class="store-row">
+                    <span class="store-badge-img-wrap" aria-label="App Store — coming soon">
+                        <img class="store-badge-img" src="imagefiles/appstoreBlack.svg" alt="" width="144" height="48" decoding="async">
+                    </span>
+                    <span class="store-badge-img-wrap" aria-label="Google Play — coming soon">
+                        <img class="store-badge-img" src="imagefiles/googlePlayblack.svg" alt="" width="144" height="48" decoding="async">
+                    </span>
+                </div>
+            </div>
+            <div class="card-hand" aria-hidden="true">
+                <img src="imagefiles/cards/opstilling_en.jpg" class="card" style="--i:0;--n:6;" alt="" decoding="async">
+                <img src="imagefiles/cards/spejling_en.jpg" class="card" style="--i:1;--n:6;" alt="" decoding="async">
+                <img src="imagefiles/cards/dialog_en.jpg" class="card" style="--i:2;--n:6;" alt="" decoding="async">
+                <img src="imagefiles/cards/bodymap_en.jpg" class="card" style="--i:3;--n:6;" alt="" decoding="async">
+                <img src="imagefiles/cards/logbog_top_en.jpg" class="card" style="--i:4;--n:6;" alt="" decoding="async">
+                <img src="imagefiles/cards/forside_en.jpg" class="card" style="--i:5;--n:6;" alt="" decoding="async">
             </div>
         </section>
     </main>
