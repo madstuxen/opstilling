@@ -4028,12 +4028,37 @@
             if (statusEl) statusEl.textContent = msg || '';
         }
 
+        function formatFriendlyRecoverDate(isoString) {
+            const date = new Date(isoString);
+            if (Number.isNaN(date.getTime())) return null;
+            return new Intl.DateTimeFormat('en-GB', {
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).format(date);
+        }
+
         function mapRecoverError(err) {
+            const detailsMessage = err && err.details && err.details.message ? String(err.details.message) : '';
+            const rawMessage = err && err.message ? String(err.message) : '';
+            const cooldownSource = detailsMessage || rawMessage;
+            const cooldownMatch = cooldownSource.match(/next export is available after\s+([0-9TZ:.\-]+)\.?/i);
+            if (cooldownMatch && cooldownMatch[1]) {
+                const friendlyDate = formatFriendlyRecoverDate(cooldownMatch[1]);
+                if (friendlyDate) {
+                    return `Export cooldown active. Next export available on ${friendlyDate}.`;
+                }
+            }
+
             const detailsCode = err && err.details && err.details.code ? String(err.details.code) : '';
             if (detailsCode && RECOVER_ERROR_MESSAGES[detailsCode]) return RECOVER_ERROR_MESSAGES[detailsCode];
             const code = err && err.code ? String(err.code).replace('functions/', '') : '';
             if (code && RECOVER_ERROR_MESSAGES[code]) return RECOVER_ERROR_MESSAGES[code];
-            return (err && err.message) ? err.message : 'Unknown error';
+            return rawMessage || 'Unknown error';
         }
 
         function triggerRecoverDownload(filename, data) {
