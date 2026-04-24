@@ -162,6 +162,10 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
+        #logbogRecoverBtn {
+            color: #111111;
+        }
+
         .content {
             padding: 10px;
             padding-right: 10px;
@@ -1411,6 +1415,20 @@
             align-items: center;
         }
 
+        .recover-terms {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 2px 0 2px;
+            color: #b45309;
+            line-height: 1.4;
+            font-size: 0.9rem;
+        }
+
+        .recover-terms input[type="checkbox"] {
+            margin-top: 2px;
+        }
+
         .recover-btn {
             border: none;
             border-radius: 10px;
@@ -1505,8 +1523,8 @@
                 </div>
                 <div class="logbog-minimal-nav">
                     <button type="button" class="logbog-nav-logout" id="logbogNavHomeBtn" data-i18n="backHome">Back to home</button>
-                    <button type="button" class="logbog-nav-logout" id="logbogRecoverBtn">Recover</button>
                     <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
+                    <button type="button" class="logbog-nav-logout" id="logbogRecoverBtn">Recover</button>
                 </div>
             </div>
         </div>
@@ -1630,13 +1648,19 @@
             </div>
             <div class="recover-modal-body">
                 <p class="recover-warning">
-                    Warning: Use this only for account migration/recovery. Download gives you a JSON backup of your journal structure
-                    (`user.monthsIndex` and `months`). Upload merges that backup into your currently logged-in account. This can
-                    overwrite existing day/month content if keys overlap. Keep your backup file private.
+                    Warning: Recovery export/import is an advanced migration operation. Exported JSON can contain sensitive personal
+                    records and falls outside platform security controls once downloaded. Proceed entirely at your own risk. Download
+                    eligibility requires an active account, account age above 3 months, and at least 3 months since your previous export.
+                    Export does not delete any server-side data. Upload merges into your active account and can overwrite month/day
+                    records where keys overlap.
                 </p>
+                <label class="recover-terms" for="recoverTermsAgree">
+                    <input type="checkbox" id="recoverTermsAgree">
+                    <span>I have read and accept these recovery terms. I understand exported data may be exposed outside encrypted storage controls and is my responsibility.</span>
+                </label>
                 <div class="recover-actions">
-                    <button type="button" class="recover-btn recover-btn-download" id="recoverDownloadBtn">Download my data</button>
-                    <button type="button" class="recover-btn recover-btn-upload" id="recoverUploadBtn">Upload data</button>
+                    <button type="button" class="recover-btn recover-btn-download" id="recoverDownloadBtn" disabled>Download my data</button>
+                    <button type="button" class="recover-btn recover-btn-upload" id="recoverUploadBtn" disabled>Upload data</button>
                 </div>
                 <input class="recover-file-input" id="recoverFileInput" type="file" accept="application/json,.json">
                 <pre class="recover-status" id="recoverStatus" aria-live="polite"></pre>
@@ -3991,12 +4015,12 @@
         }
 
         const RECOVER_ERROR_MESSAGES = {
-            'permission-denied': 'Handling afvist: premium + kontoalderkrav er ikke opfyldt.',
-            'resource-exhausted': 'Du kan kun eksportere hver 3. måned.',
-            'unauthenticated': 'Du skal være logget ind.',
-            'invalid-argument': 'Ugyldigt filformat til import.',
-            'not-found': 'Cloud Function ikke fundet. Tjek region/deploy.',
-            'unavailable': 'Cloud Function er ikke tilgængelig lige nu.'
+            'permission-denied': 'Action denied: account eligibility requirements are not satisfied.',
+            'resource-exhausted': 'Export cooldown active: you can export only once every 3 months.',
+            'unauthenticated': 'You must be signed in.',
+            'invalid-argument': 'Invalid import file format.',
+            'not-found': 'Cloud Function not found. Verify region and deployment.',
+            'unavailable': 'Cloud Function is currently unavailable.'
         };
 
         function setRecoverStatus(msg) {
@@ -4009,7 +4033,7 @@
             if (detailsCode && RECOVER_ERROR_MESSAGES[detailsCode]) return RECOVER_ERROR_MESSAGES[detailsCode];
             const code = err && err.code ? String(err.code).replace('functions/', '') : '';
             if (code && RECOVER_ERROR_MESSAGES[code]) return RECOVER_ERROR_MESSAGES[code];
-            return (err && err.message) ? err.message : 'Ukendt fejl';
+            return (err && err.message) ? err.message : 'Unknown error';
         }
 
         function triggerRecoverDownload(filename, data) {
@@ -4028,13 +4052,29 @@
             const modal = document.getElementById('recoverModal');
             if (!modal) return;
             modal.classList.add('show');
-            setRecoverStatus('Klar til recovery.');
+            const agreeCheckbox = document.getElementById('recoverTermsAgree');
+            if (agreeCheckbox) agreeCheckbox.checked = false;
+            syncRecoverAgreementState();
+            setRecoverStatus('Recovery console ready. Accept terms to unlock export/import actions.');
         }
 
         function closeRecoverModal() {
             const modal = document.getElementById('recoverModal');
             if (!modal) return;
             modal.classList.remove('show');
+            const agreeCheckbox = document.getElementById('recoverTermsAgree');
+            if (agreeCheckbox) agreeCheckbox.checked = false;
+            syncRecoverAgreementState();
+            setRecoverStatus('');
+        }
+
+        function syncRecoverAgreementState() {
+            const agreeCheckbox = document.getElementById('recoverTermsAgree');
+            const recoverDownloadBtn = document.getElementById('recoverDownloadBtn');
+            const recoverUploadBtn = document.getElementById('recoverUploadBtn');
+            const isAgreed = !!(agreeCheckbox && agreeCheckbox.checked);
+            if (recoverDownloadBtn) recoverDownloadBtn.disabled = !isAgreed;
+            if (recoverUploadBtn) recoverUploadBtn.disabled = !isAgreed;
         }
         
         // Check auth state - create a promise that resolves when auth state is determined
@@ -5248,6 +5288,7 @@
             const recoverDownloadBtn = document.getElementById('recoverDownloadBtn');
             const recoverUploadBtn = document.getElementById('recoverUploadBtn');
             const recoverFileInput = document.getElementById('recoverFileInput');
+            const recoverTermsAgree = document.getElementById('recoverTermsAgree');
 
             if (recoverModal) {
                 recoverModal.addEventListener('click', function(e) {
@@ -5262,29 +5303,41 @@
                 });
             }
 
+            if (recoverTermsAgree) {
+                recoverTermsAgree.addEventListener('change', function() {
+                    syncRecoverAgreementState();
+                    if (recoverTermsAgree.checked) {
+                        setRecoverStatus('Terms accepted. Export/import actions are now enabled.');
+                    } else {
+                        setRecoverStatus('Recovery actions locked until terms are accepted.');
+                    }
+                });
+            }
+            syncRecoverAgreementState();
+
             if (recoverDownloadBtn) {
                 recoverDownloadBtn.addEventListener('click', async function() {
                     if (!currentUser) {
-                        setRecoverStatus('Du skal være logget ind.');
+                        setRecoverStatus('You must be signed in.');
                         return;
                     }
                     if (!exportJournalCallable) {
-                        setRecoverStatus('Export function er ikke initialiseret.');
+                        setRecoverStatus('Export function is not initialized.');
                         return;
                     }
                     recoverDownloadBtn.disabled = true;
-                    setRecoverStatus('Henter backup fra server...');
+                    setRecoverStatus('Requesting backup payload from server...');
                     try {
                         const res = await exportJournalCallable();
                         const payload = res && res.data ? res.data : {};
                         const stamp = new Date().toISOString().replace(/[:.]/g, '-');
                         triggerRecoverDownload(`journal-export-${stamp}.json`, payload);
-                        setRecoverStatus('Download klar.');
+                        setRecoverStatus('Export complete. JSON download started.');
                     } catch (err) {
                         console.error('[RECOVER] Export failed:', err);
-                        setRecoverStatus('Fejl ved download: ' + mapRecoverError(err));
+                        setRecoverStatus('Export failed: ' + mapRecoverError(err));
                     } finally {
-                        recoverDownloadBtn.disabled = false;
+                        syncRecoverAgreementState();
                     }
                 });
             }
@@ -5292,38 +5345,38 @@
             if (recoverUploadBtn) {
                 recoverUploadBtn.addEventListener('click', async function() {
                     if (!currentUser) {
-                        setRecoverStatus('Du skal være logget ind.');
+                        setRecoverStatus('You must be signed in.');
                         return;
                     }
                     if (!importJournalCallable) {
-                        setRecoverStatus('Import function er ikke initialiseret.');
+                        setRecoverStatus('Import function is not initialized.');
                         return;
                     }
                     const file = recoverFileInput && recoverFileInput.files ? recoverFileInput.files[0] : null;
                     if (!file) {
-                        setRecoverStatus('Vælg først en JSON fil.');
+                        setRecoverStatus('Select a JSON file before import.');
                         return;
                     }
                     recoverUploadBtn.disabled = true;
-                    setRecoverStatus('Læser fil...');
+                    setRecoverStatus('Reading local JSON file...');
                     try {
                         const text = await file.text();
                         const json = JSON.parse(text);
-                        setRecoverStatus('Uploader til server...');
+                        setRecoverStatus('Uploading payload to server...');
                         const res = await importJournalCallable(json);
                         const result = res && res.data ? res.data : {};
                         const monthsWritten = result.monthsWritten != null ? result.monthsWritten : 0;
                         const monthsReceived = result.monthsReceived != null ? result.monthsReceived : 0;
-                        setRecoverStatus(`Upload færdig. monthsWritten=${monthsWritten}, monthsReceived=${monthsReceived}`);
+                        setRecoverStatus(`Import complete. monthsWritten=${monthsWritten}, monthsReceived=${monthsReceived}`);
                     } catch (err) {
                         if (err instanceof SyntaxError) {
-                            setRecoverStatus('Filen er ikke gyldig JSON.');
+                            setRecoverStatus('The selected file is not valid JSON.');
                         } else {
                             console.error('[RECOVER] Import failed:', err);
-                            setRecoverStatus('Fejl ved upload: ' + mapRecoverError(err));
+                            setRecoverStatus('Import failed: ' + mapRecoverError(err));
                         }
                     } finally {
-                        recoverUploadBtn.disabled = false;
+                        syncRecoverAgreementState();
                     }
                 });
             }
