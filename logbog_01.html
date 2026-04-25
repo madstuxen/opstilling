@@ -22,6 +22,10 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --top-rail-height: 64px;
+        }
+
         body {
             font-family: 'Arial', sans-serif;
             background: #573920;
@@ -49,7 +53,8 @@
             flex-wrap: wrap;
             align-items: center;
             gap: 12px 20px;
-            padding: 14px 22px;
+            min-height: calc(var(--top-rail-height) + env(safe-area-inset-top, 0px));
+            padding: calc(env(safe-area-inset-top, 0px)) 22px 0;
             padding-right: calc(220px + 22px + env(safe-area-inset-right, 0px));
             background: rgba(47, 32, 20, 0.92);
             border-bottom: 1px solid rgba(255, 255, 255, 0.12);
@@ -289,9 +294,12 @@
 
         .log-history-top-bar {
             flex-shrink: 0;
-            padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 12px 12px;
+            min-height: calc(var(--top-rail-height) + env(safe-area-inset-top, 0px));
+            padding: calc(env(safe-area-inset-top, 0px)) 12px 0;
             border-bottom: 1px solid #e0e0e0;
             background: #ffffff;
+            display: flex;
+            align-items: center;
         }
 
         .log-history-panel-title {
