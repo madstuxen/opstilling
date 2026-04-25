@@ -42,6 +42,53 @@
             flex-direction: column;
         }
 
+        .site-header {
+            position: relative;
+            z-index: 50;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px 20px;
+            padding: 14px 22px;
+            background: rgba(47, 32, 20, 0.92);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .site-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-right: auto;
+        }
+
+        .site-header .brand {
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .site-header .header-divider {
+            width: 1px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .site-header-left a {
+            color: #e5e7eb;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .site-header-left a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .site-header-actions {
+            display: none;
+        }
+
         .header {
             background: transparent;
             color: white;
@@ -216,6 +263,22 @@
             pointer-events: auto;
         }
 
+        .log-history-fixed-actions {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 10px);
+            right: 12px;
+            width: 196px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 4100;
+        }
+
+        .log-history-fixed-actions .logbog-nav-logout {
+            width: 100%;
+            text-align: center;
+        }
+
         .log-history-sidebar {
             width: 220px;
             flex: 1;
@@ -232,7 +295,7 @@
 
         .log-history-top-bar {
             flex-shrink: 0;
-            padding: calc(60px + env(safe-area-inset-top, 0px)) 12px 12px 12px;
+            padding: calc(env(safe-area-inset-top, 0px) + 130px) 12px 12px 12px;
             border-bottom: 1px solid #e0e0e0;
             background: #ffffff;
         }
@@ -293,6 +356,11 @@
 
             .log-history-sidebar {
                 width: min(220px, 100vw);
+            }
+
+            .log-history-fixed-actions {
+                right: 8px;
+                width: min(196px, calc(100vw - 16px));
             }
         }
 
@@ -1509,6 +1577,13 @@
 </head>
 <body>
     <div class="container">
+        <header class="site-header">
+            <div class="site-header-left">
+                <span class="brand">Journal App</span>
+                <span class="header-divider" aria-hidden="true"></span>
+                <a href="index.html">Home</a>
+            </div>
+        </header>
         <div class="header" id="pageHeader">
             <div class="header-bar">
                 <div class="header-title-row">
@@ -1520,11 +1595,6 @@
                         <button type="button" class="header-log-color-btn" id="headerLogHistoryColorBtn" data-i18n-attr-title="pickColor" title="Pick color for selected day">C</button>
                         <span class="header-active-log-date" id="headerActiveLogDate" aria-live="polite"></span>
                     </div>
-                </div>
-                <div class="logbog-minimal-nav">
-                    <button type="button" class="logbog-nav-logout" id="logbogNavHomeBtn" data-i18n="backHome">Back to home</button>
-                    <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
-                    <button type="button" class="logbog-nav-logout" id="logbogRecoverBtn">Recover</button>
                 </div>
             </div>
         </div>
@@ -1602,6 +1672,11 @@
                 </div>
             </div>
             <div class="log-history-panel-shell" id="logHistoryPanelShell" aria-label="History panel">
+                <div class="log-history-fixed-actions">
+                    <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
+                    <button type="button" class="logbog-nav-logout" id="logbogFeedbackBtn">Send feedback</button>
+                    <button type="button" class="logbog-nav-logout" id="logbogRecoverBtn">Recover</button>
+                </div>
                 <aside class="log-history-sidebar" id="logHistorySidebar">
                     <div class="log-history-top-bar">
                         <h2 class="log-history-panel-title" data-i18n="historyTitle">History</h2>
@@ -5280,18 +5355,17 @@
 
             initIdleLogout();
 
-            const logbogNavHomeBtn = document.getElementById('logbogNavHomeBtn');
-            if (logbogNavHomeBtn) {
-                logbogNavHomeBtn.addEventListener('click', function() {
-                    clearIdleLogoutTimers();
-                    window.location.href = 'index.html';
-                });
-            }
-
             const logbogRecoverBtn = document.getElementById('logbogRecoverBtn');
             if (logbogRecoverBtn) {
                 logbogRecoverBtn.addEventListener('click', function() {
                     openRecoverModal();
+                });
+            }
+
+            const logbogFeedbackBtn = document.getElementById('logbogFeedbackBtn');
+            if (logbogFeedbackBtn) {
+                logbogFeedbackBtn.addEventListener('click', function() {
+                    window.open('https://forms.gle/P5kaLHHiDCkCvLyd9', '_blank', 'noopener,noreferrer');
                 });
             }
 
