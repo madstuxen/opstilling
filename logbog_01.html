@@ -50,6 +50,7 @@
             align-items: center;
             gap: 12px 20px;
             padding: 14px 22px;
+            padding-right: calc(220px + 22px + env(safe-area-inset-right, 0px));
             background: rgba(47, 32, 20, 0.92);
             border-bottom: 1px solid rgba(255, 255, 255, 0.12);
         }
@@ -86,7 +87,12 @@
         }
 
         .site-header-actions {
-            display: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
         }
 
         .header {
@@ -263,23 +269,7 @@
             pointer-events: auto;
         }
 
-        .log-history-fixed-actions {
-            position: fixed;
-            top: calc(env(safe-area-inset-top, 0px) + 10px);
-            right: calc(220px + 12px);
-            max-width: calc(100vw - 220px - 24px);
-            display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-            gap: 8px;
-            z-index: 4100;
-            background: rgba(47, 32, 20, 0.92);
-            padding: 4px;
-            border-radius: 10px;
-        }
-
-        .log-history-fixed-actions .logbog-nav-logout {
+        .site-header-actions .logbog-nav-logout {
             text-align: center;
         }
 
@@ -362,10 +352,11 @@
                 width: min(220px, 100vw);
             }
 
-            .log-history-fixed-actions {
-                right: calc(min(220px, 100vw) + 8px);
-                max-width: calc(100vw - min(220px, 100vw) - 16px);
-                padding: 2px;
+            .site-header {
+                padding-right: calc(min(220px, 100vw) + 10px + env(safe-area-inset-right, 0px));
+            }
+
+            .site-header-actions {
                 gap: 6px;
             }
         }
@@ -1589,12 +1580,12 @@
                 <span class="header-divider" aria-hidden="true"></span>
                 <a href="index.html">Home</a>
             </div>
+            <div class="site-header-actions">
+                <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
+                <button type="button" class="logbog-nav-logout" id="logbogFeedbackBtn">Send feedback</button>
+                <button type="button" class="logbog-nav-logout" id="logbogRecoverBtn">Recover</button>
+            </div>
         </header>
-        <div class="log-history-fixed-actions">
-            <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
-            <button type="button" class="logbog-nav-logout" id="logbogFeedbackBtn">Send feedback</button>
-            <button type="button" class="logbog-nav-logout" id="logbogRecoverBtn">Recover</button>
-        </div>
         <div class="header" id="pageHeader">
             <div class="header-bar">
                 <div class="header-title-row">
