@@ -266,16 +266,20 @@
         .log-history-fixed-actions {
             position: fixed;
             top: calc(env(safe-area-inset-top, 0px) + 10px);
-            right: 12px;
-            width: 196px;
+            right: calc(220px + 12px);
+            max-width: calc(100vw - 220px - 24px);
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: flex-end;
             gap: 8px;
             z-index: 4100;
+            background: rgba(47, 32, 20, 0.92);
+            padding: 4px;
+            border-radius: 10px;
         }
 
         .log-history-fixed-actions .logbog-nav-logout {
-            width: 100%;
             text-align: center;
         }
 
@@ -295,7 +299,7 @@
 
         .log-history-top-bar {
             flex-shrink: 0;
-            padding: calc(env(safe-area-inset-top, 0px) + 130px) 12px 12px 12px;
+            padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px 12px 12px;
             border-bottom: 1px solid #e0e0e0;
             background: #ffffff;
         }
@@ -359,8 +363,10 @@
             }
 
             .log-history-fixed-actions {
-                right: 8px;
-                width: min(196px, calc(100vw - 16px));
+                right: calc(min(220px, 100vw) + 8px);
+                max-width: calc(100vw - min(220px, 100vw) - 16px);
+                padding: 2px;
+                gap: 6px;
             }
         }
 
@@ -1584,6 +1590,11 @@
                 <a href="index.html">Home</a>
             </div>
         </header>
+        <div class="log-history-fixed-actions">
+            <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
+            <button type="button" class="logbog-nav-logout" id="logbogFeedbackBtn">Send feedback</button>
+            <button type="button" class="logbog-nav-logout" id="logbogRecoverBtn">Recover</button>
+        </div>
         <div class="header" id="pageHeader">
             <div class="header-bar">
                 <div class="header-title-row">
@@ -1672,11 +1683,6 @@
                 </div>
             </div>
             <div class="log-history-panel-shell" id="logHistoryPanelShell" aria-label="History panel">
-                <div class="log-history-fixed-actions">
-                    <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
-                    <button type="button" class="logbog-nav-logout" id="logbogFeedbackBtn">Send feedback</button>
-                    <button type="button" class="logbog-nav-logout" id="logbogRecoverBtn">Recover</button>
-                </div>
                 <aside class="log-history-sidebar" id="logHistorySidebar">
                     <div class="log-history-top-bar">
                         <h2 class="log-history-panel-title" data-i18n="historyTitle">History</h2>
