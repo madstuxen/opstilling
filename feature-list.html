@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <title>Feature list</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #573920;
+            color: #f5efe7;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            min-height: 64px;
+            padding: 0 22px;
+            background: rgba(47, 32, 20, 0.92);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .site-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand {
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .header-divider {
+            width: 1px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .site-header-left a {
+            color: #e5e7eb;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .site-header-left a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .content-wrap {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        main {
+            width: 100%;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 88px 20px 48px;
+            line-height: 1.65;
+        }
+
+        h1 {
+            font-size: clamp(1.8rem, 2.4vw, 2.4rem);
+            font-weight: 600;
+            margin-bottom: 18px;
+            color: #ffffff;
+        }
+
+        section {
+            margin-top: 28px;
+        }
+
+        h2 {
+            font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        p {
+            margin-bottom: 12px;
+            color: #f5efe7;
+        }
+
+        @media (max-width: 640px) {
+            .site-header {
+                padding: 0 14px;
+            }
+
+            main {
+                padding: 64px 14px 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="site-header">
+            <div class="site-header-left">
+                <span class="brand">Journal App</span>
+                <span class="header-divider" aria-hidden="true"></span>
+                <a href="index.html">Home</a>
+            </div>
+        </header>
+
+        <div class="content-wrap">
+            <main>
+                <h1>Feature list</h1>
+
+            <section>
+                <h2>Daily practice</h2>
+                <p><strong>Daily check-in:</strong> Score your mood on a slider, receive a thought to reflect on, and note what you're grateful for today.</p>
+                <p><strong>Mood graph:</strong> Track your mood over time. Check in once a day — or more often if you want to follow yourself more closely.</p>
+                <p><strong>Dream journal:</strong> Write down your dreams in a dark, quiet interface — designed not to disturb you at night.</p>
+            </section>
+
+            <section>
+                <h2>The journal</h2>
+                <p><strong>Guided journaling:</strong> Write your journal by answering 5 simple questions in a chat-like interface. Your coach asks, you answer.</p>
+                <p><strong>Free journaling:</strong> Write freely whenever you have something on your mind. No structure — just you and the page.</p>
+                <p><strong>Web access:</strong> Prefer writing from a computer? Continue your journal on the website with a full keyboard.</p>
+            </section>
+
+            <section>
+                <h2>Inner work — exercises</h2>
+                <p><strong>Mirroring:</strong> Explore what you think about others — and what it tells you about yourself. You start with someone else and end up learning something new about you.</p>
+                <p><strong>Dialogue:</strong> Switch between two voices. Rehearse a difficult conversation, talk to your inner critic, or ask a role model for advice.</p>
+                <p><strong>Constellation:</strong> Place your relationships on a canvas as figures. Give them size, colour, and body language — and see the connections more clearly.</p>
+                <p><strong>Body scan:</strong> Check in with your body. Add labels and sliders to your sensations and track them over time.</p>
+            </section>
+
+            <section>
+                <h2>Inspiration and reminders</h2>
+                <p><strong>Inspiring exercises:</strong> Small practices and reflections that challenge you to see yourself and your relationships from new angles.</p>
+                <p><strong>Up to 3 notifications a day:</strong> Set reminders when it suits you — no more than you want.</p>
+            </section>
+
+            <section>
+                <h2>Privacy and security</h2>
+                <p><strong>Encrypted cloud storage:</strong> All your data is stored encrypted. Only you have access.</p>
+                <p><strong>Biometric login:</strong> Log in with Face ID or fingerprint. The screen locks automatically.</p>
+                <p><strong>Download your data:</strong> Your journal belongs to you. Your data is available for download upon request.</p>
+                <p><strong>No ads. No data sales. No AI training. Ever.:</strong> Your inner work is not a product.</p>
+                <p><strong>Cancel anytime:</strong> 14 days free, full access. Then a monthly fee. Cancel whenever you want — no tricks.</p>
+            </section>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
