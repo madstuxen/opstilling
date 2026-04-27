@@ -508,7 +508,7 @@
         .site-header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 32px;
             margin-right: auto;
         }
         .site-header-logo {
@@ -613,6 +613,26 @@
             line-height: 0;
             border-radius: 8px;
             opacity: 0.92;
+            transition: transform 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+        }
+        .store-badge-img-wrap.is-coming-soon,
+        .qr-wrap.is-coming-soon {
+            position: relative;
+            overflow: hidden;
+        }
+        .store-badge-img-wrap.is-coming-soon::after,
+        .qr-wrap.is-coming-soon::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            pointer-events: none;
+            border-radius: inherit;
+        }
+        .store-badge-img-wrap:hover {
+            transform: translateY(-2px);
+            opacity: 1;
+            filter: brightness(1.05);
         }
         .store-badge-img {
             display: block;
@@ -620,6 +640,34 @@
             width: auto;
             max-width: 100%;
             object-fit: contain;
+        }
+        .qr-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        .qr-wrap {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 144px;
+            padding: 4px;
+            background: transparent;
+            border: 2px solid rgba(0, 0, 0, 0.45);
+            border-radius: 8px;
+            line-height: 0;
+            overflow: hidden;
+        }
+        .qr-wrap img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            transform: scale(1.14);
+            transform-origin: center;
+            border-radius: 4px;
         }
 
         .site-footer {
@@ -1088,6 +1136,7 @@
             <span class="header-divider" aria-hidden="true"></span>
             <a href="index.html">Home</a>
             <a href="feature-list.html">Feature list</a>
+            <a href="about.html">About</a>
         </div>
         <div class="site-header-actions" id="headerGuestActions">
             <button type="button" class="header-signin-btn" id="openLoginOverlayBtn">Logbook</button>
@@ -1115,13 +1164,21 @@
                     <li>Start on your phone, continue writing on the web</li>
                     <li>Secure and password protected — no tracking, no ads, no AI.</li>
                 </ul>
-                <p class="lead hero-store-lead">Get the app (coming soon):</p>
+                <p class="lead hero-store-lead">Get the app (Google is coming soon!):</p>
                 <div class="store-row">
-                    <span class="store-badge-img-wrap" aria-label="App Store — coming soon">
+                    <a class="store-badge-img-wrap" href="https://apps.apple.com/dk/app/me-them/id6759327572" target="_blank" rel="noopener noreferrer" aria-label="Download on the App Store">
                         <img class="store-badge-img" src="imagefiles/appstoreBlack.svg" alt="" width="144" height="48" decoding="async">
-                    </span>
-                    <span class="store-badge-img-wrap" aria-label="Google Play — coming soon">
+                    </a>
+                    <span class="store-badge-img-wrap is-coming-soon" aria-label="Google Play — coming soon">
                         <img class="store-badge-img" src="imagefiles/googlePlayblack.svg" alt="" width="144" height="48" decoding="async">
+                    </span>
+                </div>
+                <div class="qr-row" aria-label="QR codes for app stores">
+                    <span class="qr-wrap" aria-label="App Store QR code">
+                        <img src="imagefiles/qr-code_appstore.jpg" alt="QR code to Me & Them on App Store" decoding="async">
+                    </span>
+                    <span class="qr-wrap is-coming-soon" aria-label="Google Play QR code coming soon">
+                        <img src="imagefiles/qr-code_appstore.jpg" alt="QR code placeholder for Google Play" decoding="async">
                     </span>
                 </div>
             </div>
