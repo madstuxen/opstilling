@@ -1397,6 +1397,91 @@
             transform: scale(0.99);
         }
 
+        .missing-today-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 6100;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .missing-today-modal.show {
+            display: flex;
+        }
+
+        .missing-today-modal-content {
+            width: min(460px, 100%);
+            background: #fdf8f0;
+            border-radius: 20px;
+            padding: 22px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .missing-today-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .missing-today-modal-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .missing-today-modal-close {
+            border: none;
+            background: #e5e7eb;
+            color: #374151;
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            cursor: pointer;
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+
+        .missing-today-modal-close:hover {
+            background: #d1d5db;
+        }
+
+        .missing-today-modal-body {
+            margin: 0;
+            color: #374151;
+            font-size: 0.98rem;
+            line-height: 1.5;
+        }
+
+        .missing-today-modal-action {
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            padding: 13px 14px;
+            background: #573920;
+            color: #fdf8f0;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        .missing-today-modal-action:hover {
+            background: #6d4c2e;
+        }
+
+        .missing-today-modal-action:active {
+            transform: scale(0.99);
+        }
+
         .idle-logout-blocking {
             position: fixed;
             inset: 0;
@@ -1766,6 +1851,17 @@
         </div>
     </div>
 
+    <div class="missing-today-modal" id="missingTodayModal" role="dialog" aria-modal="true" aria-labelledby="missingTodayTitle" aria-describedby="missingTodayBody">
+        <div class="missing-today-modal-content" onclick="event.stopPropagation()">
+            <div class="missing-today-modal-header">
+                <h2 id="missingTodayTitle" data-i18n="missingTodayEntryTitle">No entry for today</h2>
+                <button type="button" class="missing-today-modal-close" id="missingTodayCloseBtn" aria-label="Close">&times;</button>
+            </div>
+            <p class="missing-today-modal-body" id="missingTodayBody" data-i18n="missingTodayEntryBody">There is no entry for today. Create it in the app and continue here, or choose one in the sidebar.</p>
+            <button type="button" class="missing-today-modal-action" id="missingTodayDismissBtn" data-i18n="missingTodayEntryClose">Close</button>
+        </div>
+    </div>
+
     <script>
         const LOGBOOK_STORAGE_KEY = 'logbogData';
         const BODYMAP_STORAGE_KEY = 'bodymapData';
@@ -1815,7 +1911,10 @@
                 checkinTooltipTime: 'Tid',
                 checkinTooltipValue: 'Værdi',
                 checkinTooltipNA: '—',
-                checkinSaveError: 'Kunne ikke gemme check-in. Prøv igen.'
+                checkinSaveError: 'Kunne ikke gemme check-in. Prøv igen.',
+                missingTodayEntryTitle: 'Ingen entry for i dag',
+                missingTodayEntryBody: 'Der er ikke nogen entry for i dag. Lav den i appen og fortsæt her, eller vælg en i sidebaren.',
+                missingTodayEntryClose: 'Luk'
             },
             en: {
                 backHome: 'Back to home',
@@ -1861,7 +1960,10 @@
                 checkinTooltipTime: 'Time',
                 checkinTooltipValue: 'Value',
                 checkinTooltipNA: 'N/A',
-                checkinSaveError: 'Could not save check-in. Please try again.'
+                checkinSaveError: 'Could not save check-in. Please try again.',
+                missingTodayEntryTitle: 'No entry for today',
+                missingTodayEntryBody: 'There is no entry for today. Create it in the app and continue here, or choose one in the sidebar.',
+                missingTodayEntryClose: 'Close'
             }
         };
 
@@ -1980,6 +2082,7 @@
                 if (s.chartDays20) el.setAttribute('title', s.chartDays20);
             });
             syncIdleLogoutModalI18n();
+            syncMissingTodayModalI18n();
             updateJournalSaveButtonAppearance();
             updateDreamsSaveButtonAppearance();
         }
@@ -1994,6 +2097,34 @@
             warningVisible: false,
             remainingSeconds: 30
         };
+        let missingTodayPendingFallback = null;
+
+        function syncMissingTodayModalI18n() {
+            const s = getLogbogStrings();
+            const titleEl = document.getElementById('missingTodayTitle');
+            const bodyEl = document.getElementById('missingTodayBody');
+            const closeBtn = document.getElementById('missingTodayDismissBtn');
+            if (titleEl) titleEl.textContent = s.missingTodayEntryTitle;
+            if (bodyEl) bodyEl.textContent = s.missingTodayEntryBody;
+            if (closeBtn) closeBtn.textContent = s.missingTodayEntryClose;
+        }
+
+        function openMissingTodayModal(fallbackDate) {
+            const modal = document.getElementById('missingTodayModal');
+            if (!modal) return;
+            missingTodayPendingFallback = fallbackDate || null;
+            modal.classList.add('show');
+        }
+
+        async function closeMissingTodayModal() {
+            const modal = document.getElementById('missingTodayModal');
+            if (modal) modal.classList.remove('show');
+            const fallbackDate = missingTodayPendingFallback;
+            missingTodayPendingFallback = null;
+            if (fallbackDate) {
+                await setActiveLogDate(fallbackDate);
+            }
+        }
 
         function updateIdleLogoutCountdownText(seconds) {
             const el = document.getElementById('idleLogoutCountdown');
@@ -5402,6 +5533,27 @@
             const recoverUploadBtn = document.getElementById('recoverUploadBtn');
             const recoverFileInput = document.getElementById('recoverFileInput');
             const recoverTermsAgree = document.getElementById('recoverTermsAgree');
+            const missingTodayModal = document.getElementById('missingTodayModal');
+            const missingTodayCloseBtn = document.getElementById('missingTodayCloseBtn');
+            const missingTodayDismissBtn = document.getElementById('missingTodayDismissBtn');
+
+            if (missingTodayModal) {
+                missingTodayModal.addEventListener('click', function(e) {
+                    if (e.target === missingTodayModal) {
+                        closeMissingTodayModal();
+                    }
+                });
+            }
+            if (missingTodayCloseBtn) {
+                missingTodayCloseBtn.addEventListener('click', function() {
+                    closeMissingTodayModal();
+                });
+            }
+            if (missingTodayDismissBtn) {
+                missingTodayDismissBtn.addEventListener('click', function() {
+                    closeMissingTodayModal();
+                });
+            }
 
             if (recoverModal) {
                 recoverModal.addEventListener('click', function(e) {
@@ -5511,10 +5663,17 @@
             
             console.log('[INIT] Initial load complete');
             
-            // Always use today's date when page loads
             const todayKey = getTodayDateKey();
-            if (activeLogDate !== todayKey) {
+            const sortedEntries = await getSortedLogEntries();
+            const hasTodayEntry = sortedEntries.some((entry) => entry && entry.date === todayKey);
+            if (hasTodayEntry) {
                 activeLogDate = todayKey;
+            } else {
+                const latestDate = sortedEntries.length && sortedEntries[0] && sortedEntries[0].date
+                    ? sortedEntries[0].date
+                    : null;
+                activeLogDate = todayKey;
+                openMissingTodayModal(latestDate);
             }
             
             // 7. Render history and hydrate fields
@@ -5638,6 +5797,11 @@
                     const recoverM = document.getElementById('recoverModal');
                     if (recoverM && recoverM.classList.contains('show')) {
                         closeRecoverModal();
+                        return;
+                    }
+                    const missingTodayM = document.getElementById('missingTodayModal');
+                    if (missingTodayM && missingTodayM.classList.contains('show')) {
+                        closeMissingTodayModal();
                         return;
                     }
                     const modal = document.getElementById('logHistoryColorPickerModal');
