@@ -51,7 +51,7 @@
     border-radius: 12px;
     box-shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
     position: fixed;
-    top: 74px;
+    top: var(--mobile-menu-top, 74px);
     left: 12px;
     z-index: 140;
     opacity: 0;
@@ -78,10 +78,15 @@
 }
 
 .site-mobile-layer {
+    display: none;
     position: fixed;
     inset: 0;
     z-index: 120;
     pointer-events: none;
+}
+
+body.mobile-menu-open .site-mobile-layer {
+    display: block;
 }
 
 body.mobile-menu-open .site-mobile-backdrop,
@@ -98,13 +103,24 @@ body.mobile-menu-open {
 @media (max-width: 768px) {
     .site-header {
         gap: 10px 12px;
-        flex-wrap: nowrap;
+        flex-wrap: nowrap !important;
+        min-height: 64px;
+        overflow: visible;
     }
 
     .site-header-left {
         gap: 12px;
-        flex-wrap: nowrap;
+        flex-wrap: nowrap !important;
         min-width: 0;
+        overflow: hidden;
+    }
+
+    .site-header .brand {
+        white-space: nowrap;
+    }
+
+    .site-header-actions {
+        flex-wrap: nowrap !important;
     }
 
     .site-header .header-divider {
