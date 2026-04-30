@@ -126,18 +126,34 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="assets/nav.css">
 </head>
 <body>
     <div class="container">
-        <header class="site-header">
+        <header class="site-header" data-mobile-nav>
             <div class="site-header-left">
                 <img class="site-header-logo" src="imagefiles/ios-light.png" alt="Journal App logo" width="48" height="48" decoding="async">
                 <span class="brand">Journal App</span>
                 <span class="header-divider" aria-hidden="true"></span>
-                <a href="index.html">Home</a>
-                <a href="feature-list.html">Feature list</a>
-                <a href="about.html">About</a>
+                <nav class="site-nav" aria-label="Primary">
+                    <a class="site-nav-link" href="index.html">Home</a>
+                    <a class="site-nav-link" href="feature-list.html">Feature list</a>
+                    <a class="site-nav-link" href="about.html" aria-current="page">About</a>
+                </nav>
             </div>
+            <button
+                type="button"
+                class="site-nav-toggle"
+                aria-label="Open menu"
+                aria-controls="mobileMenuAbout"
+                aria-expanded="false">☰</button>
+            <nav class="site-mobile-menu" id="mobileMenuAbout" aria-label="Mobile primary">
+                <div class="site-nav">
+                    <a class="site-nav-link" href="index.html">Home</a>
+                    <a class="site-nav-link" href="feature-list.html">Feature list</a>
+                    <a class="site-nav-link" href="about.html" aria-current="page">About</a>
+                </div>
+            </nav>
         </header>
 
         <div class="content-wrap">
@@ -178,5 +194,6 @@
             </main>
         </div>
     </div>
+    <script src="assets/nav.js"></script>
 </body>
 </html>
