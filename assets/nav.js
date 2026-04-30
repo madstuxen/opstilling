@@ -1,48 +1,47 @@
 (() => {
-    function closeMenu(header, toggleBtn) {
-        header.classList.remove("is-menu-open");
+    function closeMenu(toggleBtn) {
         toggleBtn.setAttribute("aria-expanded", "false");
         document.body.classList.remove("mobile-menu-open");
     }
 
-    function openMenu(header, toggleBtn) {
-        header.classList.add("is-menu-open");
+    function openMenu(toggleBtn) {
         toggleBtn.setAttribute("aria-expanded", "true");
         document.body.classList.add("mobile-menu-open");
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-        const headers = document.querySelectorAll(".site-header[data-mobile-nav]");
+        const toggles = document.querySelectorAll(".site-header[data-mobile-nav] .site-nav-toggle");
 
-        headers.forEach((header) => {
-            const toggleBtn = header.querySelector(".site-nav-toggle");
-            if (!toggleBtn) return;
-            const backdrop = header.querySelector(".site-mobile-backdrop");
+        toggles.forEach((toggleBtn) => {
+            const layer = document.getElementById(toggleBtn.getAttribute("aria-controls"));
+            if (!layer) return;
+            const backdrop = layer.querySelector(".site-mobile-backdrop");
 
             toggleBtn.addEventListener("click", () => {
-                const isOpen = header.classList.contains("is-menu-open");
+                const isOpen = document.body.classList.contains("mobile-menu-open");
                 if (isOpen) {
-                    closeMenu(header, toggleBtn);
+                    closeMenu(toggleBtn);
                 } else {
-                    openMenu(header, toggleBtn);
+                    openMenu(toggleBtn);
                 }
             });
 
             if (backdrop) {
                 backdrop.addEventListener("click", () => {
-                    closeMenu(header, toggleBtn);
+                    closeMenu(toggleBtn);
                 });
             }
 
             document.addEventListener("click", (event) => {
-                if (!header.contains(event.target)) {
-                    closeMenu(header, toggleBtn);
+                const header = toggleBtn.closest(".site-header");
+                if (!header.contains(event.target) && !layer.contains(event.target)) {
+                    closeMenu(toggleBtn);
                 }
             });
 
             document.addEventListener("keydown", (event) => {
                 if (event.key === "Escape") {
-                    closeMenu(header, toggleBtn);
+                    closeMenu(toggleBtn);
                 }
             });
         });
