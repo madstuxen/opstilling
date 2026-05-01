@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Editor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #573920;
+            color: #f5efe7;
+            min-height: 100vh;
+        }
+        .wrap { width: 100%; max-width: 1220px; margin: 0 auto; padding: 24px 16px 40px; }
+        h1 { margin-bottom: 12px; color: #fff; }
+        .note { margin-bottom: 16px; opacity: 0.95; }
+        .toolbar { margin-bottom: 16px; display: flex; gap: 10px; align-items: center; }
+        .btn {
+            border: 2px solid #d97706;
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+            border-radius: 10px;
+            padding: 9px 14px;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        .btn:hover { background: rgba(255, 255, 255, 0.18); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .card {
+            border: 2px solid #d97706;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .card h2 { margin-bottom: 10px; color: #fff; }
+        .hidden { display: none; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        label { display: block; font-size: 0.86rem; margin-bottom: 6px; opacity: 0.95; }
+        input[type="text"], textarea, select {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.18);
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 1rem;
+        }
+        textarea { min-height: 95px; line-height: 1.65; resize: vertical; }
+        .date-grid { display: grid; grid-template-columns: 110px 110px 1fr; gap: 10px; }
+        .image-picker {
+            border: 2px dashed rgba(255, 255, 255, 0.35);
+            background: rgba(0, 0, 0, 0.16);
+            border-radius: 12px;
+            padding: 12px;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: stretch;
+            gap: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .image-picker.right { align-items: flex-end; text-align: right; }
+        .file-name { font-size: 0.86rem; opacity: 0.9; word-break: break-all; }
+        .picker-tools { display: flex; gap: 8px; align-items: center; width: 100%; }
+        .picker-tools.right { justify-content: flex-end; }
+        .mini-btn {
+            border: 1px solid #d97706;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .mini-btn:hover { background: rgba(255, 255, 255, 0.18); }
+        .scale-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+        .scale-row input[type="range"] { flex: 1; }
+        .scale-val { font-size: 0.85rem; min-width: 42px; text-align: right; }
+        .picker-preview {
+            width: 100%;
+            margin-top: 4px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.26);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .picker-preview.left { margin-right: auto; margin-left: 0; }
+        .picker-preview.right { margin-left: auto; margin-right: 0; }
+        .actions { margin-top: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .status { font-size: 0.9rem; opacity: 0.95; }
+        .blog-content { display: flex; flex-direction: column; gap: 18px; }
+        .blog-post {
+            border: 2px solid #d97706;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 18px;
+        }
+        .blog-post-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+        .blog-post-head h3 { margin-bottom: 6px; color: #fff; font-size: 1.35rem; }
+        .post-actions { display: flex; gap: 8px; }
+        .post-actions .btn { padding: 7px 10px; font-size: 0.85rem; }
+        .blog-date {
+            display: inline-block;
+            margin-bottom: 12px;
+            font-size: 0.86rem;
+            color: rgba(255, 255, 255, 0.88);
+            background: rgba(0, 0, 0, 0.16);
+            border-radius: 999px;
+            padding: 3px 10px;
+        }
+        .blog-post p { margin-bottom: 12px; font-size: 1rem; line-height: 1.65; white-space: break-spaces; }
+        .blog-image {
+            display: block;
+            max-width: min(460px, 60%);
+            width: auto;
+            height: auto;
+            border-radius: 10px;
+            margin: 6px 0 14px;
+            border: 1px solid rgba(255, 255, 255, 0.26);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .blog-image-left { margin-right: auto; margin-left: 0; }
+        .blog-image-right { margin-left: auto; margin-right: 0; }
+        .status-msg {
+            border: 2px solid #d97706;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        @media (max-width: 800px) {
+            .grid-2, .date-grid { grid-template-columns: 1fr; }
+            .blog-image { max-width: 100%; }
+            .blog-post-head { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h1>Blog Editor (Local)</h1>
+        <p class="note">Denne side skriver direkte til <code>blog/blog.json</code>. Ved sletning fjernes kun posten i JSON, ikke billeder.</p>
+
+        <div class="toolbar">
+            <button id="toggleFormBtn" class="btn" type="button">Ny blog</button>
+        </div>
+
+        <section id="formCard" class="card hidden">
+            <h2 id="formHeading">Ny blog</h2>
+            <div class="grid-2">
+                <div>
+                    <label for="titleInput">Overskrift</label>
+                    <input id="titleInput" type="text" placeholder="Skriv overskrift" />
+                </div>
+                <div>
+                    <label>Dato (yyyy dd month)</label>
+                    <div class="date-grid">
+                        <input id="yearInput" type="text" inputmode="numeric" maxlength="4" placeholder="2026" />
+                        <input id="dayInput" type="text" inputmode="numeric" maxlength="2" placeholder="01" />
+                        <select id="monthInput"></select>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top:12px;">
+                <label for="textAInput">Tekst A</label>
+                <textarea id="textAInput" placeholder="Skriv tekst A"></textarea>
+            </div>
+
+            <div id="pickerA" class="image-picker left" role="button" tabindex="0" aria-label="Vaelg billede A">
+                <strong>Billede A (venstre)</strong>
+                <span id="fileAName" class="file-name">Klik for at vaelge fil</span>
+                <div class="picker-tools">
+                    <button id="removeImageABtn" type="button" class="mini-btn hidden">Slet billede</button>
+                </div>
+                <div class="scale-row">
+                    <input id="scaleA" type="range" min="0.2" max="1.0" step="0.01" value="1.0" />
+                    <span id="scaleAVal" class="scale-val">1.00</span>
+                </div>
+                <img id="previewA" class="picker-preview left hidden" alt="Preview A" />
+            </div>
+
+            <div style="margin-top:12px;">
+                <label for="textBInput">Tekst B</label>
+                <textarea id="textBInput" placeholder="Skriv tekst B"></textarea>
+            </div>
+
+            <div id="pickerB" class="image-picker right" role="button" tabindex="0" aria-label="Vaelg billede B">
+                <strong>Billede B (hoejre)</strong>
+                <span id="fileBName" class="file-name">Klik for at vaelge fil</span>
+                <div class="picker-tools right">
+                    <button id="removeImageBBtn" type="button" class="mini-btn hidden">Slet billede</button>
+                </div>
+                <div class="scale-row">
+                    <input id="scaleB" type="range" min="0.2" max="1.0" step="0.01" value="1.0" />
+                    <span id="scaleBVal" class="scale-val">1.00</span>
+                </div>
+                <img id="previewB" class="picker-preview right hidden" alt="Preview B" />
+            </div>
+
+            <div style="margin-top:12px;">
+                <label for="textCInput">Tekst C</label>
+                <textarea id="textCInput" placeholder="Skriv tekst C"></textarea>
+            </div>
+
+            <input id="fileAInput" type="file" accept="image/*" class="hidden" />
+            <input id="fileBInput" type="file" accept="image/*" class="hidden" />
+
+            <div class="actions">
+                <button id="saveBtn" class="btn" type="button" disabled>Gem</button>
+                <button id="saveAsNewBtn" class="btn" type="button">Gem som ny</button>
+                <button id="deleteBtn" class="btn" type="button" disabled>Slet</button>
+                <button id="cancelEditBtn" class="btn" type="button" disabled>Annuller redigering</button>
+                <span id="statusText" class="status"></span>
+            </div>
+        </section>
+
+        <section class="card" style="margin-top:18px;">
+            <h2>Eksisterende blogs</h2>
+            <div id="blogList" class="blog-content"></div>
+        </section>
+    </div>
+
+    <script>
+        (() => {
+            const monthNames = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+            const blogList = document.getElementById("blogList");
+            const formCard = document.getElementById("formCard");
+            const toggleFormBtn = document.getElementById("toggleFormBtn");
+            const formHeading = document.getElementById("formHeading");
+            const statusText = document.getElementById("statusText");
+            const saveBtn = document.getElementById("saveBtn");
+            const saveAsNewBtn = document.getElementById("saveAsNewBtn");
+            const deleteBtn = document.getElementById("deleteBtn");
+            const cancelEditBtn = document.getElementById("cancelEditBtn");
+
+            const titleInput = document.getElementById("titleInput");
+            const yearInput = document.getElementById("yearInput");
+            const dayInput = document.getElementById("dayInput");
+            const monthInput = document.getElementById("monthInput");
+            const textAInput = document.getElementById("textAInput");
+            const textBInput = document.getElementById("textBInput");
+            const textCInput = document.getElementById("textCInput");
+
+            const pickerA = document.getElementById("pickerA");
+            const pickerB = document.getElementById("pickerB");
+            const fileAInput = document.getElementById("fileAInput");
+            const fileBInput = document.getElementById("fileBInput");
+            const fileAName = document.getElementById("fileAName");
+            const fileBName = document.getElementById("fileBName");
+            const previewA = document.getElementById("previewA");
+            const previewB = document.getElementById("previewB");
+            const scaleA = document.getElementById("scaleA");
+            const scaleB = document.getElementById("scaleB");
+            const scaleAVal = document.getElementById("scaleAVal");
+            const scaleBVal = document.getElementById("scaleBVal");
+            const removeImageABtn = document.getElementById("removeImageABtn");
+            const removeImageBBtn = document.getElementById("removeImageBBtn");
+
+            let blogsRaw = [];
+            let selectedFileA = null;
+            let selectedFileB = null;
+            let existingImageAName = null;
+            let existingImageBName = null;
+            let editingIndex = null;
+            let previewADataUrl = null;
+            let previewBDataUrl = null;
+
+            function todayParts() {
+                const now = new Date();
+                return { year: String(now.getFullYear()), day: String(now.getDate()).padStart(2, "0"), month: monthNames[now.getMonth()] };
+            }
+
+            function populateMonthSelect() {
+                monthInput.innerHTML = "";
+                monthNames.forEach((month) => {
+                    const option = document.createElement("option");
+                    option.value = month;
+                    option.textContent = month;
+                    monthInput.appendChild(option);
+                });
+            }
+
+            function normalizeScale(raw) {
+                const n = Number(raw);
+                if (!Number.isFinite(n)) return 1;
+                if (n < 0.2) return 0.2;
+                if (n > 1) return 1;
+                return Number(n.toFixed(2));
+            }
+
+            function parseBlogDate(raw) {
+                const value = String(raw || "").trim();
+                const m = value.match(/^(\d{4})\s+(\d{1,2})\s+([a-zA-Z]+)$/);
+                if (!m) return null;
+                const month = monthNames.indexOf(m[3].toLowerCase());
+                if (month < 0) return null;
+                return new Date(Number(m[1]), month, Number(m[2]));
+            }
+
+            function sortPostsDescending(posts) {
+                return posts
+                    .map((post, index) => ({ post, index, parsedDate: parseBlogDate(post && post.dato) }))
+                    .sort((a, b) => {
+                        if (a.parsedDate && b.parsedDate) return b.parsedDate - a.parsedDate;
+                        if (a.parsedDate && !b.parsedDate) return -1;
+                        if (!a.parsedDate && b.parsedDate) return 1;
+                        return b.index - a.index;
+                    });
+            }
+
+            function sectionValue(post, key) {
+                const sections = Array.isArray(post && post.sektioner) ? post.sektioner : [];
+                for (const entry of sections) {
+                    if (entry && typeof entry === "object" && Object.prototype.hasOwnProperty.call(entry, key)) {
+                        return entry[key];
+                    }
+                }
+                return null;
+            }
+
+            function resetPreview(previewEl) {
+                previewEl.src = "";
+                previewEl.classList.add("hidden");
+            }
+
+            function applyPreviewScale(previewEl, scaleValue) {
+                const nScale = normalizeScale(scaleValue);
+                previewEl.style.maxWidth = `min(${Math.round(460 * nScale)}px, ${Math.round(60 * nScale)}%)`;
+            }
+
+            function updatePreviews() {
+                if (previewADataUrl) {
+                    previewA.src = previewADataUrl;
+                    previewA.classList.remove("hidden");
+                    applyPreviewScale(previewA, scaleA.value);
+                } else {
+                    resetPreview(previewA);
+                }
+
+                if (previewBDataUrl) {
+                    previewB.src = previewBDataUrl;
+                    previewB.classList.remove("hidden");
+                    applyPreviewScale(previewB, scaleB.value);
+                } else {
+                    resetPreview(previewB);
+                }
+            }
+
+            function setMode(newIndex) {
+                editingIndex = Number.isInteger(newIndex) ? newIndex : null;
+                const isEdit = editingIndex !== null;
+                formHeading.textContent = isEdit ? "Rediger blog" : "Ny blog";
+                saveBtn.disabled = !isEdit;
+                deleteBtn.disabled = !isEdit;
+                cancelEditBtn.disabled = !isEdit;
+                toggleFormBtn.classList.toggle("hidden", isEdit);
+                updateImageRemoveButtons();
+            }
+
+            function updateImageRemoveButtons() {
+                const isEdit = editingIndex !== null;
+                removeImageABtn.classList.toggle("hidden", !(isEdit && (existingImageAName || selectedFileA)));
+                removeImageBBtn.classList.toggle("hidden", !(isEdit && (existingImageBName || selectedFileB)));
+            }
+
+            function clearFormToNew() {
+                titleInput.value = "";
+                textAInput.value = "";
+                textBInput.value = "";
+                textCInput.value = "";
+                selectedFileA = null;
+                selectedFileB = null;
+                existingImageAName = null;
+                existingImageBName = null;
+                previewADataUrl = null;
+                previewBDataUrl = null;
+                fileAInput.value = "";
+                fileBInput.value = "";
+                fileAName.textContent = "Klik for at vaelge fil";
+                fileBName.textContent = "Klik for at vaelge fil";
+                scaleA.value = "1.0";
+                scaleB.value = "1.0";
+                scaleAVal.textContent = "1.00";
+                scaleBVal.textContent = "1.00";
+                const parts = todayParts();
+                yearInput.value = parts.year;
+                dayInput.value = parts.day;
+                monthInput.value = parts.month;
+                setMode(null);
+                updatePreviews();
+            }
+
+            function loadPostIntoForm(index) {
+                const post = blogsRaw[index];
+                if (!post) return;
+                formCard.classList.remove("hidden");
+                setMode(index);
+
+                titleInput.value = String(post.titel || "");
+                const date = String(post.dato || "");
+                const m = date.match(/^(\d{4})\s+(\d{1,2})\s+([a-zA-Z]+)$/);
+                if (m) {
+                    yearInput.value = m[1];
+                    dayInput.value = String(Number(m[2])).padStart(2, "0");
+                    monthInput.value = m[3].toLowerCase();
+                }
+
+                textAInput.value = String(sectionValue(post, "Atekst") || "");
+                textBInput.value = String(sectionValue(post, "Btekst") || "");
+                textCInput.value = String(sectionValue(post, "Ctekst") || "");
+
+                existingImageAName = sectionValue(post, "Abillede");
+                existingImageBName = sectionValue(post, "Bbillede");
+                const currentScaleA = normalizeScale(sectionValue(post, "AbilledeScale"));
+                const currentScaleB = normalizeScale(sectionValue(post, "BbilledeScale"));
+                scaleA.value = String(currentScaleA);
+                scaleB.value = String(currentScaleB);
+                scaleAVal.textContent = currentScaleA.toFixed(2);
+                scaleBVal.textContent = currentScaleB.toFixed(2);
+
+                selectedFileA = null;
+                selectedFileB = null;
+                fileAInput.value = "";
+                fileBInput.value = "";
+
+                fileAName.textContent = existingImageAName ? `Eksisterende: ${existingImageAName}` : "Klik for at vaelge fil";
+                fileBName.textContent = existingImageBName ? `Eksisterende: ${existingImageBName}` : "Klik for at vaelge fil";
+                previewADataUrl = existingImageAName ? `blog/images_blog/${existingImageAName}` : null;
+                previewBDataUrl = existingImageBName ? `blog/images_blog/${existingImageBName}` : null;
+                updatePreviews();
+                updateImageRemoveButtons();
+                statusText.textContent = "";
+            }
+
+            function removeImageA() {
+                selectedFileA = null;
+                existingImageAName = null;
+                previewADataUrl = null;
+                fileAInput.value = "";
+                fileAName.textContent = "Intet billede valgt";
+                updatePreviews();
+                updateImageRemoveButtons();
+            }
+
+            function removeImageB() {
+                selectedFileB = null;
+                existingImageBName = null;
+                previewBDataUrl = null;
+                fileBInput.value = "";
+                fileBName.textContent = "Intet billede valgt";
+                updatePreviews();
+                updateImageRemoveButtons();
+            }
+
+            function validateDateParts() {
+                const year = String(yearInput.value || "").trim();
+                const day = String(dayInput.value || "").trim();
+                const month = String(monthInput.value || "").trim().toLowerCase();
+                if (!/^\d{4}$/.test(year)) return null;
+                if (!/^\d{1,2}$/.test(day)) return null;
+                const dayNum = Number(day);
+                if (dayNum < 1 || dayNum > 31) return null;
+                if (!monthNames.includes(month)) return null;
+                return { year, day: String(dayNum).padStart(2, "0"), month };
+            }
+
+            function fileToDataUrl(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error("Kunne ikke laese fil"));
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function slugify(text, fallback) {
+                const normalized = String(text || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+                return normalized || `post-${fallback}`;
+            }
+
+            function renderText(parent, value) {
+                if (!value) return;
+                const p = document.createElement("p");
+                p.textContent = value;
+                parent.appendChild(p);
+            }
+
+            function renderImage(parent, fileName, alignClass, altText, scale) {
+                if (!fileName) return;
+                const nScale = normalizeScale(scale);
+                const img = document.createElement("img");
+                img.className = `blog-image ${alignClass}`;
+                img.src = `blog/images_blog/${fileName}`;
+                img.alt = altText || "";
+                img.loading = "lazy";
+                img.decoding = "async";
+                img.style.maxWidth = `min(${Math.round(460 * nScale)}px, ${Math.round(60 * nScale)}%)`;
+                img.onerror = () => img.remove();
+                parent.appendChild(img);
+            }
+
+            async function deletePost(index) {
+                if (!confirm("Slet denne blogpost fra blog.json? (billeder beholdes)")) return;
+                try {
+                    statusText.textContent = "Sletter...";
+                    const response = await fetch(`/api/blogs/${index}`, { method: "DELETE" });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || "Kunne ikke slette blog");
+                    blogsRaw = Array.isArray(data.blogs) ? data.blogs : [];
+                    renderPosts(blogsRaw);
+                    if (editingIndex === index) clearFormToNew();
+                    else if (editingIndex !== null && editingIndex > index) setMode(editingIndex - 1);
+                    statusText.textContent = "Blog slettet fra blog.json.";
+                } catch (err) {
+                    statusText.textContent = err.message || "Der opstod en fejl ved sletning.";
+                }
+            }
+
+            function renderPosts(rawPosts) {
+                blogList.innerHTML = "";
+                const sorted = sortPostsDescending(rawPosts);
+                if (!sorted.length) {
+                    blogList.innerHTML = '<p class="status-msg">Ingen blogs fundet.</p>';
+                    return;
+                }
+                sorted.forEach(({ post, index }, displayIndex) => {
+                    const article = document.createElement("article");
+                    article.className = "blog-post";
+                    article.id = "post-" + slugify(post.titel, displayIndex + 1);
+
+                    const head = document.createElement("div");
+                    head.className = "blog-post-head";
+
+                    const titleWrap = document.createElement("div");
+                    const h = document.createElement("h3");
+                    h.textContent = post.titel || `Blog ${displayIndex + 1}`;
+                    titleWrap.appendChild(h);
+                    if (post.dato) {
+                        const chip = document.createElement("span");
+                        chip.className = "blog-date";
+                        chip.textContent = post.dato;
+                        titleWrap.appendChild(chip);
+                    }
+
+                    const actions = document.createElement("div");
+                    actions.className = "post-actions";
+                    const editBtn = document.createElement("button");
+                    editBtn.type = "button";
+                    editBtn.className = "btn";
+                    editBtn.textContent = "Rediger";
+                    editBtn.addEventListener("click", () => loadPostIntoForm(index));
+
+                    const delBtn = document.createElement("button");
+                    delBtn.type = "button";
+                    delBtn.className = "btn";
+                    delBtn.textContent = "Slet";
+                    delBtn.addEventListener("click", () => deletePost(index));
+
+                    actions.appendChild(editBtn);
+                    actions.appendChild(delBtn);
+                    head.appendChild(titleWrap);
+                    head.appendChild(actions);
+                    article.appendChild(head);
+
+                    const sections = Array.isArray(post.sektioner) ? post.sektioner : [];
+                    sections.forEach((entry) => {
+                        if (!entry || typeof entry !== "object") return;
+                        if (entry.Atekst) renderText(article, entry.Atekst);
+                        if (entry.Abillede) renderImage(article, entry.Abillede, "blog-image-left", "Blog billede A", entry.AbilledeScale);
+                        if (entry.Btekst) renderText(article, entry.Btekst);
+                        if (entry.Bbillede) renderImage(article, entry.Bbillede, "blog-image-right", "Blog billede B", entry.BbilledeScale);
+                        if (entry.Ctekst) renderText(article, entry.Ctekst);
+                    });
+                    blogList.appendChild(article);
+                });
+            }
+
+            async function loadBlogs() {
+                const response = await fetch("/api/blogs");
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Kunne ikke hente blogs");
+                blogsRaw = Array.isArray(data.blogs) ? data.blogs : [];
+                renderPosts(blogsRaw);
+            }
+
+            async function buildPayload() {
+                const title = titleInput.value.trim();
+                const textA = textAInput.value;
+                const textB = textBInput.value;
+                const textC = textCInput.value;
+                const dateParts = validateDateParts();
+                if (!title || !textA.trim() || !textB.trim() || !textC.trim() || !dateParts) {
+                    throw new Error("Udfyld overskrift, dato og alle tekstfelter korrekt.");
+                }
+
+                return {
+                    title,
+                    dateParts,
+                    textA,
+                    textB,
+                    textC,
+                    imageAScale: normalizeScale(scaleA.value),
+                    imageBScale: normalizeScale(scaleB.value),
+                    existingImageAName,
+                    existingImageBName,
+                    imageA: selectedFileA ? { fileName: selectedFileA.name, dataUrl: await fileToDataUrl(selectedFileA) } : null,
+                    imageB: selectedFileB ? { fileName: selectedFileB.name, dataUrl: await fileToDataUrl(selectedFileB) } : null
+                };
+            }
+
+            async function saveAsNew() {
+                try {
+                    saveAsNewBtn.disabled = true;
+                    statusText.textContent = "Gemmer som ny...";
+                    const payload = await buildPayload();
+                    const response = await fetch("/api/blogs", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || "Kunne ikke gemme ny blog");
+                    blogsRaw = Array.isArray(data.blogs) ? data.blogs : [];
+                    renderPosts(blogsRaw);
+                    clearFormToNew();
+                    statusText.textContent = "Ny blog gemt.";
+                } catch (err) {
+                    statusText.textContent = err.message || "Der opstod en fejl.";
+                } finally {
+                    saveAsNewBtn.disabled = false;
+                }
+            }
+
+            async function saveEdit() {
+                if (editingIndex === null) return;
+                try {
+                    saveBtn.disabled = true;
+                    statusText.textContent = "Gemmer rettelser...";
+                    const payload = await buildPayload();
+                    const response = await fetch(`/api/blogs/${editingIndex}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || "Kunne ikke gemme rettelser");
+                    blogsRaw = Array.isArray(data.blogs) ? data.blogs : [];
+                    renderPosts(blogsRaw);
+                    loadPostIntoForm(editingIndex);
+                    statusText.textContent = "Blog opdateret.";
+                } catch (err) {
+                    statusText.textContent = err.message || "Der opstod en fejl.";
+                } finally {
+                    saveBtn.disabled = false;
+                }
+            }
+
+            function wireImagePicker(picker, input, nameEl, onFile, onDataUrl) {
+                const open = () => input.click();
+                picker.addEventListener("click", open);
+                picker.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        open();
+                    }
+                });
+                input.addEventListener("change", async () => {
+                    const file = input.files && input.files[0] ? input.files[0] : null;
+                    onFile(file);
+                    updateImageRemoveButtons();
+                    if (!file) {
+                        nameEl.textContent = "Klik for at vaelge fil";
+                        onDataUrl(null);
+                        updatePreviews();
+                        return;
+                    }
+                    nameEl.textContent = file.name;
+                    try {
+                        const dataUrl = await fileToDataUrl(file);
+                        onDataUrl(dataUrl);
+                        updatePreviews();
+                    } catch {
+                        onDataUrl(null);
+                        updatePreviews();
+                    }
+                });
+            }
+
+            function preventPickerOpenOnControl(element) {
+                if (!element) return;
+                ["click", "mousedown", "touchstart", "pointerdown"].forEach((eventName) => {
+                    element.addEventListener(eventName, (event) => event.stopPropagation());
+                });
+            }
+
+            toggleFormBtn.addEventListener("click", () => formCard.classList.toggle("hidden"));
+            saveAsNewBtn.addEventListener("click", saveAsNew);
+            saveBtn.addEventListener("click", saveEdit);
+            deleteBtn.addEventListener("click", () => {
+                if (editingIndex !== null) deletePost(editingIndex);
+            });
+            cancelEditBtn.addEventListener("click", () => clearFormToNew());
+            removeImageABtn.addEventListener("click", removeImageA);
+            removeImageBBtn.addEventListener("click", removeImageB);
+
+            scaleA.addEventListener("input", () => {
+                scaleAVal.textContent = Number(scaleA.value).toFixed(2);
+                applyPreviewScale(previewA, scaleA.value);
+            });
+            scaleB.addEventListener("input", () => {
+                scaleBVal.textContent = Number(scaleB.value).toFixed(2);
+                applyPreviewScale(previewB, scaleB.value);
+            });
+
+            wireImagePicker(pickerA, fileAInput, fileAName, (file) => {
+                selectedFileA = file;
+                if (file) existingImageAName = null;
+            }, (dataUrl) => {
+                previewADataUrl = dataUrl;
+            });
+            wireImagePicker(pickerB, fileBInput, fileBName, (file) => {
+                selectedFileB = file;
+                if (file) existingImageBName = null;
+            }, (dataUrl) => {
+                previewBDataUrl = dataUrl;
+            });
+
+            document.querySelectorAll(".scale-row, .picker-tools, .picker-preview").forEach(preventPickerOpenOnControl);
+
+            populateMonthSelect();
+            clearFormToNew();
+            loadBlogs().catch((err) => {
+                blogList.innerHTML = `<p class="status-msg">Kunne ikke hente blogs: ${err.message || "ukendt fejl"}</p>`;
+            });
+        })();
+    </script>
+</body>
+</html>

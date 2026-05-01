@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <title>Blog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #573920;
+            color: #f5efe7;
+            min-height: 100vh;
+        }
+
+        .container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            min-height: 64px;
+            padding: 0 22px;
+            background: rgba(47, 32, 20, 0.92);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .site-header-left {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .site-header-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .brand {
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .header-divider {
+            width: 1px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .site-header-left a {
+            color: #e5e7eb;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .site-header-left a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .content-wrap {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        main {
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 40px 20px 48px;
+            line-height: 1.65;
+        }
+
+        h1 {
+            font-size: clamp(1.8rem, 2.4vw, 2.4rem);
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .blog-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .blog-sidebar {
+            position: sticky;
+            top: 92px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid #d97706;
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        .blog-sidebar h2 {
+            margin-bottom: 10px;
+            font-size: 1.08rem;
+            color: #fff;
+        }
+
+        .blog-toc {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .blog-toc a {
+            display: block;
+            color: #f9fafb;
+            text-decoration: none;
+            padding: 6px 8px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease;
+        }
+
+        .blog-toc a:hover {
+            background: rgba(255, 255, 255, 0.14);
+            text-decoration: underline;
+        }
+
+        .blog-content {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .blog-post {
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid #d97706;
+            border-radius: 14px;
+            padding: 18px 18px 16px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+            scroll-margin-top: 92px;
+        }
+
+        .blog-post h2 {
+            font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        .blog-date {
+            display: inline-block;
+            margin-bottom: 12px;
+            font-size: 0.86rem;
+            color: rgba(255, 255, 255, 0.88);
+            background: rgba(0, 0, 0, 0.16);
+            border-radius: 999px;
+            padding: 3px 10px;
+        }
+
+        .blog-post p {
+            margin-bottom: 12px;
+            white-space: break-spaces;
+        }
+
+        .blog-image {
+            display: block;
+            max-width: min(460px, 60%);
+            width: auto;
+            height: auto;
+            border-radius: 10px;
+            margin: 6px 0 14px;
+            border: 1px solid rgba(255, 255, 255, 0.26);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .blog-image-left {
+            margin-right: auto;
+            margin-left: 0;
+        }
+
+        .blog-image-right {
+            margin-left: auto;
+            margin-right: 0;
+        }
+
+        .status-msg {
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid #d97706;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        @media (max-width: 980px) {
+            .blog-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .blog-sidebar {
+                position: static;
+            }
+
+            .blog-image {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .site-header {
+                padding: 0 14px;
+            }
+
+            main {
+                padding: 24px 14px 32px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="assets/nav.css">
+</head>
+<body>
+    <div class="container">
+        <header class="site-header" data-mobile-nav>
+            <div class="site-header-left">
+                <img class="site-header-logo" src="imagefiles/ios-light.png" alt="Journal App logo" width="48" height="48" decoding="async">
+                <button
+                    type="button"
+                    class="site-nav-toggle"
+                    aria-label="Open menu"
+                    aria-controls="mobileLayerBlog"
+                    aria-expanded="false">☰</button>
+                <span class="brand">Journal App</span>
+                <span class="header-divider" aria-hidden="true"></span>
+                <nav class="site-nav" aria-label="Primary">
+                    <a class="site-nav-link" href="index.html">Home</a>
+                    <a class="site-nav-link" href="feature-list.html">Feature list</a>
+                    <a class="site-nav-link" href="about.html">About</a>
+                    <a class="site-nav-link" href="blog.html" aria-current="page">Blog</a>
+                </nav>
+            </div>
+        </header>
+        <div class="site-mobile-layer" id="mobileLayerBlog" aria-hidden="true">
+            <div class="site-mobile-backdrop"></div>
+            <nav class="site-mobile-menu" aria-label="Mobile primary">
+                <div class="site-nav">
+                    <a class="site-nav-link" href="index.html">Home</a>
+                    <a class="site-nav-link" href="feature-list.html">Feature list</a>
+                    <a class="site-nav-link" href="about.html">About</a>
+                    <a class="site-nav-link" href="blog.html" aria-current="page">Blog</a>
+                </div>
+            </nav>
+        </div>
+
+        <div class="content-wrap">
+            <main>
+                <h1>Blog</h1>
+                <div class="blog-layout">
+                    <aside class="blog-sidebar">
+                        <h2>All blogs</h2>
+                        <ul id="blogToc" class="blog-toc"></ul>
+                    </aside>
+                    <section id="blogContent" class="blog-content" aria-live="polite"></section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const blogToc = document.getElementById("blogToc");
+            const blogContent = document.getElementById("blogContent");
+
+            const monthLookup = {
+                january: 0,
+                february: 1,
+                march: 2,
+                april: 3,
+                may: 4,
+                june: 5,
+                july: 6,
+                august: 7,
+                september: 8,
+                october: 9,
+                november: 10,
+                december: 11,
+                januar: 0,
+                februar: 1,
+                marts: 2,
+                maj: 4,
+                juni: 5,
+                juli: 6,
+                august: 7,
+                september: 8,
+                oktober: 9,
+                november: 10,
+                december: 11
+            };
+
+            function normalizeMonthKey(monthRaw) {
+                const m = String(monthRaw || "").trim().toLowerCase();
+                if (m === "april") return "april";
+                if (m === "august") return "august";
+                if (m === "september") return "september";
+                if (m === "november") return "november";
+                if (m === "december") return "december";
+                return m;
+            }
+
+            function parseBlogDate(raw) {
+                const value = String(raw || "").trim();
+                if (!value) return null;
+
+                const iso = /^(\d{4})-(\d{2})-(\d{2})$/;
+                const isoMatch = value.match(iso);
+                if (isoMatch) {
+                    return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+                }
+
+                const textFormat = /^(\d{4})\s+(\d{1,2})\s+([A-Za-z\u00c6\u00d8\u00c5\u00e6\u00f8\u00e5]+)$/;
+                const textMatch = value.match(textFormat);
+                if (textMatch) {
+                    const year = Number(textMatch[1]);
+                    const day = Number(textMatch[2]);
+                    const monthKeyRaw = normalizeMonthKey(textMatch[3]);
+                    const month = monthLookup[monthKeyRaw];
+                    if (Number.isFinite(month)) {
+                        return new Date(year, month, day);
+                    }
+                }
+
+                return null;
+            }
+
+            function slugify(text, fallback) {
+                const normalized = String(text || "")
+                    .toLowerCase()
+                    .trim()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-+|-+$/g, "");
+                return normalized || ("post-" + fallback);
+            }
+
+            function renderText(parent, value) {
+                if (!value) return;
+                const p = document.createElement("p");
+                p.textContent = value;
+                parent.appendChild(p);
+            }
+
+            function normalizeScale(rawScale) {
+                const numeric = Number(rawScale);
+                if (!Number.isFinite(numeric)) return 1;
+                if (numeric < 0.2) return 0.2;
+                if (numeric > 1) return 1;
+                return numeric;
+            }
+
+            function renderImage(parent, fileName, alignClass, altText, scale) {
+                if (!fileName) return;
+                const normalizedScale = normalizeScale(scale);
+                const img = document.createElement("img");
+                img.className = "blog-image " + alignClass;
+                img.src = "blog/images_blog/" + fileName;
+                img.alt = altText || "";
+                img.loading = "lazy";
+                img.decoding = "async";
+                img.style.maxWidth = "min(" + Math.round(460 * normalizedScale) + "px, " + Math.round(60 * normalizedScale) + "%)";
+                img.onerror = function () {
+                    img.remove();
+                };
+                parent.appendChild(img);
+            }
+
+            function renderPosts(posts) {
+                blogToc.innerHTML = "";
+                blogContent.innerHTML = "";
+
+                if (!posts.length) {
+                    blogContent.innerHTML = '<p class="status-msg">Ingen blogs fundet.</p>';
+                    return;
+                }
+
+                posts.forEach((post, index) => {
+                    const postId = "post-" + slugify(post.titel, index + 1);
+
+                    const li = document.createElement("li");
+                    const link = document.createElement("a");
+                    link.href = "#" + postId;
+                    link.textContent = post.titel || ("Blog " + (index + 1));
+                    li.appendChild(link);
+                    blogToc.appendChild(li);
+
+                    const article = document.createElement("article");
+                    article.className = "blog-post";
+                    article.id = postId;
+
+                    const title = document.createElement("h2");
+                    title.textContent = post.titel || ("Blog " + (index + 1));
+                    article.appendChild(title);
+
+                    if (post.dato) {
+                        const dateChip = document.createElement("span");
+                        dateChip.className = "blog-date";
+                        dateChip.textContent = post.dato;
+                        article.appendChild(dateChip);
+                    }
+
+                    const sections = Array.isArray(post.sektioner) ? post.sektioner : [];
+                    sections.forEach((entry) => {
+                        if (!entry || typeof entry !== "object") return;
+                        if (entry.Atekst) renderText(article, entry.Atekst);
+                        if (entry.Abillede) renderImage(article, entry.Abillede, "blog-image-left", post.titel ? post.titel + " billede 1" : "Blog billede 1", entry.AbilledeScale);
+                        if (entry.Btekst) renderText(article, entry.Btekst);
+                        if (entry.Bbillede) renderImage(article, entry.Bbillede, "blog-image-right", post.titel ? post.titel + " billede 2" : "Blog billede 2", entry.BbilledeScale);
+                        if (entry.Ctekst) renderText(article, entry.Ctekst);
+                    });
+
+                    blogContent.appendChild(article);
+                });
+            }
+
+            function sortPostsDescending(inputPosts) {
+                return inputPosts
+                    .map((post, index) => ({
+                        post: post,
+                        index: index,
+                        parsedDate: parseBlogDate(post && post.dato)
+                    }))
+                    .sort((a, b) => {
+                        if (a.parsedDate && b.parsedDate) {
+                            return b.parsedDate - a.parsedDate;
+                        }
+                        if (a.parsedDate && !b.parsedDate) return -1;
+                        if (!a.parsedDate && b.parsedDate) return 1;
+                        return b.index - a.index;
+                    })
+                    .map((entry) => entry.post);
+            }
+
+            async function init() {
+                try {
+                    const response = await fetch("blog/blog.json");
+                    if (!response.ok) {
+                        throw new Error("Kunne ikke hente blog data");
+                    }
+                    const raw = await response.json();
+                    const posts = Array.isArray(raw) ? raw : [];
+                    const sortedPosts = sortPostsDescending(posts);
+                    renderPosts(sortedPosts);
+                } catch (err) {
+                    blogContent.innerHTML = '<p class="status-msg">Kunne ikke indlaese blogs lige nu.</p>';
+                    console.error(err);
+                }
+            }
+
+            init();
+        })();
+    </script>
+    <script src="assets/nav.js"></script>
+</body>
+</html>
