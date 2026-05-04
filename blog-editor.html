@@ -111,6 +111,15 @@
             padding: 3px 10px;
         }
         .blog-post p { margin-bottom: 12px; font-size: 1rem; line-height: 1.65; white-space: break-spaces; }
+        .blog-post-link {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .blog-post-link-line { margin-bottom: 4px; white-space: break-spaces; font-size: 1rem; line-height: 1.65; }
+        .blog-post-link-line:last-child { margin-bottom: 0; }
+        .blog-post-link a { color: #fde68a; text-decoration: underline; word-break: break-all; }
+        .blog-post-link a:hover { color: #fff; }
         .blog-image {
             display: block;
             max-width: min(460px, 60%);
@@ -203,6 +212,17 @@
                 <textarea id="textCInput" placeholder="Skriv tekst C"></textarea>
             </div>
 
+            <div class="grid-2" style="margin-top:12px;">
+                <div>
+                    <label for="linkNavnInput">Link navn</label>
+                    <input id="linkNavnInput" type="text" placeholder="Fx Mads's hjemmeside" autocomplete="off" />
+                </div>
+                <div>
+                    <label for="linkWebInput">Web adresse</label>
+                    <input id="linkWebInput" type="text" placeholder="www.eksempel.dk eller https://..." autocomplete="off" />
+                </div>
+            </div>
+
             <input id="fileAInput" type="file" accept="image/*" class="hidden" />
             <input id="fileBInput" type="file" accept="image/*" class="hidden" />
 
@@ -241,6 +261,8 @@
             const textAInput = document.getElementById("textAInput");
             const textBInput = document.getElementById("textBInput");
             const textCInput = document.getElementById("textCInput");
+            const linkNavnInput = document.getElementById("linkNavnInput");
+            const linkWebInput = document.getElementById("linkWebInput");
 
             const pickerA = document.getElementById("pickerA");
             const pickerB = document.getElementById("pickerB");
@@ -370,6 +392,8 @@
                 textAInput.value = "";
                 textBInput.value = "";
                 textCInput.value = "";
+                linkNavnInput.value = "";
+                linkWebInput.value = "";
                 selectedFileA = null;
                 selectedFileB = null;
                 existingImageAName = null;
@@ -417,6 +441,9 @@
                 textAInput.value = String(sectionValue(post, "Atekst") || "");
                 textBInput.value = String(sectionValue(post, "Btekst") || "");
                 textCInput.value = String(sectionValue(post, "Ctekst") || "");
+
+                linkNavnInput.value = String(post.linkNavn || "");
+                linkWebInput.value = String(post.linkUrl || "");
 
                 existingImageAName = sectionValue(post, "Abillede");
                 existingImageBName = sectionValue(post, "Bbillede");
@@ -492,6 +519,52 @@
                 const p = document.createElement("p");
                 p.textContent = value;
                 parent.appendChild(p);
+            }
+
+            function normalizeBlogUrl(raw) {
+                const s = String(raw || "").trim();
+                if (!s) return null;
+                const withScheme = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+                try {
+                    const u = new URL(withScheme);
+                    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+                    return u.href;
+                } catch {
+                    return null;
+                }
+            }
+
+            function linkSecondaryLabel(canonicalHref) {
+                try {
+                    const u = new URL(canonicalHref);
+                    const tail = u.pathname + (u.search || "") + (u.hash || "");
+                    if (tail === "/" || tail === "") return u.host || canonicalHref;
+                    return u.host + tail;
+                } catch {
+                    return canonicalHref;
+                }
+            }
+
+            function renderPostLink(parent, post) {
+                const href = normalizeBlogUrl(post.linkUrl);
+                if (!href) return;
+                const name = String(post.linkNavn || "").trim();
+                const wrap = document.createElement("div");
+                wrap.className = "blog-post-link";
+                const p1 = document.createElement("p");
+                p1.className = "blog-post-link-line";
+                p1.textContent = name ? `Link: ${name}` : "Link:";
+                const p2 = document.createElement("p");
+                p2.className = "blog-post-link-line";
+                const a = document.createElement("a");
+                a.href = href;
+                a.target = "_blank";
+                a.rel = "noopener noreferrer";
+                a.textContent = linkSecondaryLabel(href);
+                p2.appendChild(a);
+                wrap.appendChild(p1);
+                wrap.appendChild(p2);
+                parent.appendChild(wrap);
             }
 
             function renderImage(parent, fileName, alignClass, altText, scale) {
@@ -580,6 +653,7 @@
                         if (entry.Bbillede) renderImage(article, entry.Bbillede, "blog-image-right", "Blog billede B", entry.BbilledeScale);
                         if (entry.Ctekst) renderText(article, entry.Ctekst);
                     });
+                    renderPostLink(article, post);
                     blogList.appendChild(article);
                 });
             }
@@ -617,6 +691,8 @@
                     textA,
                     textB,
                     textC,
+                    linkNavn: linkNavnInput.value.trim(),
+                    linkUrl: linkWebInput.value.trim(),
                     imageAScale: normalizeScale(scaleA.value),
                     imageBScale: normalizeScale(scaleB.value),
                     existingImageAName,

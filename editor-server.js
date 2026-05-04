@@ -99,6 +99,30 @@ function clampScale(scale) {
   return Number(numeric.toFixed(2));
 }
 
+/** @returns {string|null} canonical http(s) href or null */
+function normalizeBlogUrl(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  const withScheme = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+  let u;
+  try {
+    u = new URL(withScheme);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+  return u.href;
+}
+
+function linkFieldsFromBody(body) {
+  const linkNavn = String(body?.linkNavn ?? "").trim();
+  const linkUrl = normalizeBlogUrl(body?.linkUrl);
+  if (!linkUrl) return {};
+  const out = { linkUrl };
+  if (linkNavn) out.linkNavn = linkNavn;
+  return out;
+}
+
 async function readBlogs() {
   const raw = await fsp.readFile(BLOG_JSON_PATH, "utf8");
   const parsed = JSON.parse(raw);
@@ -217,7 +241,8 @@ async function handleApi(req, res) {
       const newPost = {
         titel: title,
         dato: dateString,
-        sektioner: sections
+        sektioner: sections,
+        ...linkFieldsFromBody(body)
       };
 
       const blogs = await readBlogs();
@@ -274,7 +299,8 @@ async function handleApi(req, res) {
       blogs[targetIndex] = {
         titel: title,
         dato: dateString,
-        sektioner: sections
+        sektioner: sections,
+        ...linkFieldsFromBody(body)
       };
 
       await writeBlogs(blogs);

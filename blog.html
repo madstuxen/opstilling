@@ -175,6 +175,31 @@
             white-space: break-spaces;
         }
 
+        .blog-post-link {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .blog-post-link-line {
+            margin-bottom: 4px;
+            white-space: break-spaces;
+        }
+
+        .blog-post-link-line:last-child {
+            margin-bottom: 0;
+        }
+
+        .blog-post-link a {
+            color: #fde68a;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+
+        .blog-post-link a:hover {
+            color: #fff;
+        }
+
         .blog-image {
             display: block;
             max-width: min(460px, 60%);
@@ -358,6 +383,53 @@
                 parent.appendChild(p);
             }
 
+            function normalizeBlogUrl(raw) {
+                const s = String(raw || "").trim();
+                if (!s) return null;
+                const withScheme = /^https?:\/\//i.test(s) ? s : "https://" + s;
+                let u;
+                try {
+                    u = new URL(withScheme);
+                } catch (e) {
+                    return null;
+                }
+                if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+                return u.href;
+            }
+
+            function linkSecondaryLabel(canonicalHref) {
+                try {
+                    const u = new URL(canonicalHref);
+                    const tail = u.pathname + (u.search || "") + (u.hash || "");
+                    if (tail === "/" || tail === "") return u.host || canonicalHref;
+                    return u.host + tail;
+                } catch (e2) {
+                    return canonicalHref;
+                }
+            }
+
+            function renderPostLink(parent, post) {
+                const href = normalizeBlogUrl(post.linkUrl);
+                if (!href) return;
+                const name = String(post.linkNavn || "").trim();
+                const wrap = document.createElement("div");
+                wrap.className = "blog-post-link";
+                const p1 = document.createElement("p");
+                p1.className = "blog-post-link-line";
+                p1.textContent = name ? "Link: " + name : "Link:";
+                const p2 = document.createElement("p");
+                p2.className = "blog-post-link-line";
+                const a = document.createElement("a");
+                a.href = href;
+                a.target = "_blank";
+                a.rel = "noopener noreferrer";
+                a.textContent = linkSecondaryLabel(href);
+                p2.appendChild(a);
+                wrap.appendChild(p1);
+                wrap.appendChild(p2);
+                parent.appendChild(wrap);
+            }
+
             function normalizeScale(rawScale) {
                 const numeric = Number(rawScale);
                 if (!Number.isFinite(numeric)) return 1;
@@ -425,6 +497,8 @@
                         if (entry.Bbillede) renderImage(article, entry.Bbillede, "blog-image-right", post.titel ? post.titel + " billede 2" : "Blog billede 2", entry.BbilledeScale);
                         if (entry.Ctekst) renderText(article, entry.Ctekst);
                     });
+
+                    renderPostLink(article, post);
 
                     blogContent.appendChild(article);
                 });
