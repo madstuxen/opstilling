@@ -54,15 +54,41 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function parseDateFromDatoString(raw) {
+  const m = String(raw ?? "").trim().match(/^(\d{4})\s+(\d{1,2})\s+([a-zA-Z]+)$/i);
+  if (!m) return null;
+  return parseDateParts({ year: m[1], day: m[2], month: m[3].toLowerCase() });
+}
+
 function parseDateParts(dateParts) {
-  const year = Number(dateParts && dateParts.year);
-  const day = Number(dateParts && dateParts.day);
-  const month = String(dateParts && dateParts.month || "").toLowerCase();
+  if (dateParts == null) return null;
+  if (typeof dateParts === "string") return parseDateFromDatoString(dateParts);
+  if (typeof dateParts !== "object" || Array.isArray(dateParts)) return null;
+  const yearStr = String(dateParts.year ?? "").trim();
+  const dayStr = String(dateParts.day ?? "").trim();
+  const month = String(dateParts.month ?? "").trim().toLowerCase();
+  if (!/^\d{4}$/.test(yearStr)) return null;
+  if (!/^\d{1,2}$/.test(dayStr)) return null;
+  const year = Number(yearStr);
+  const day = Number(dayStr);
   const monthIndex = MONTH_NAMES.indexOf(month);
   if (!Number.isInteger(year) || year < 1900 || year > 3000) return null;
   if (!Number.isInteger(day) || day < 1 || day > 31) return null;
   if (monthIndex < 0) return null;
   return `${year} ${String(day).padStart(2, "0")} ${MONTH_NAMES[monthIndex]}`;
+}
+
+function resolveDateString(body) {
+  if (!body || typeof body !== "object") return null;
+  let s = parseDateParts(body.dateParts);
+  if (s) return s;
+  s = parseDateParts({
+    year: body.year,
+    day: body.day,
+    month: body.month
+  });
+  if (s) return s;
+  return parseDateFromDatoString(body.dato);
 }
 
 function clampScale(scale) {
@@ -165,9 +191,12 @@ async function handleApi(req, res) {
       const textA = String(body.textA || "");
       const textB = String(body.textB || "");
       const textC = String(body.textC || "");
-      const dateString = parseDateParts(body.dateParts);
-      if (!title || !textA.trim() || !textB.trim() || !textC.trim() || !dateString) {
-        return sendJson(res, 400, { error: "Missing required fields" });
+      const dateString = resolveDateString(body);
+      if (!title) {
+        return sendJson(res, 400, { error: "Mangler overskrift" });
+      }
+      if (!dateString) {
+        return sendJson(res, 400, { error: "Ugyldig dato" });
       }
 
       const imageAName = await saveImageFromPayload(body.imageA);
@@ -214,9 +243,12 @@ async function handleApi(req, res) {
       const textA = String(body.textA || "");
       const textB = String(body.textB || "");
       const textC = String(body.textC || "");
-      const dateString = parseDateParts(body.dateParts);
-      if (!title || !textA.trim() || !textB.trim() || !textC.trim() || !dateString) {
-        return sendJson(res, 400, { error: "Missing required fields" });
+      const dateString = resolveDateString(body);
+      if (!title) {
+        return sendJson(res, 400, { error: "Mangler overskrift" });
+      }
+      if (!dateString) {
+        return sendJson(res, 400, { error: "Ugyldig dato" });
       }
 
       const imageAScale = clampScale(body.imageAScale);

@@ -207,7 +207,7 @@
             <input id="fileBInput" type="file" accept="image/*" class="hidden" />
 
             <div class="actions">
-                <button id="saveBtn" class="btn" type="button" disabled>Gem</button>
+                <button id="saveBtn" class="btn" type="button">Gem</button>
                 <button id="saveAsNewBtn" class="btn" type="button">Gem som ny</button>
                 <button id="deleteBtn" class="btn" type="button" disabled>Slet</button>
                 <button id="cancelEditBtn" class="btn" type="button" disabled>Annuller redigering</button>
@@ -351,7 +351,8 @@
                 editingIndex = Number.isInteger(newIndex) ? newIndex : null;
                 const isEdit = editingIndex !== null;
                 formHeading.textContent = isEdit ? "Rediger blog" : "Ny blog";
-                saveBtn.disabled = !isEdit;
+                saveBtn.disabled = false;
+                saveAsNewBtn.disabled = !isEdit;
                 deleteBtn.disabled = !isEdit;
                 cancelEditBtn.disabled = !isEdit;
                 toggleFormBtn.classList.toggle("hidden", isEdit);
@@ -387,6 +388,9 @@
                 yearInput.value = parts.year;
                 dayInput.value = parts.day;
                 monthInput.value = parts.month;
+                if (monthInput.value !== parts.month) {
+                    monthInput.selectedIndex = Math.max(0, monthNames.indexOf(parts.month));
+                }
                 setMode(null);
                 updatePreviews();
             }
@@ -401,9 +405,13 @@
                 const date = String(post.dato || "");
                 const m = date.match(/^(\d{4})\s+(\d{1,2})\s+([a-zA-Z]+)$/);
                 if (m) {
+                    const mon = m[3].toLowerCase();
                     yearInput.value = m[1];
                     dayInput.value = String(Number(m[2])).padStart(2, "0");
-                    monthInput.value = m[3].toLowerCase();
+                    monthInput.value = mon;
+                    if (monthInput.value !== mon) {
+                        monthInput.selectedIndex = Math.max(0, monthNames.indexOf(mon));
+                    }
                 }
 
                 textAInput.value = String(sectionValue(post, "Atekst") || "");
@@ -590,13 +598,22 @@
                 const textB = textBInput.value;
                 const textC = textCInput.value;
                 const dateParts = validateDateParts();
-                if (!title || !textA.trim() || !textB.trim() || !textC.trim() || !dateParts) {
-                    throw new Error("Udfyld overskrift, dato og alle tekstfelter korrekt.");
+                if (!title) {
+                    throw new Error("Udfyld overskrift.");
                 }
+                if (!dateParts) {
+                    throw new Error("Udfyld dato (år, dag og måned).");
+                }
+
+                const dato = `${dateParts.year} ${dateParts.day} ${dateParts.month}`;
 
                 return {
                     title,
                     dateParts,
+                    dato,
+                    year: dateParts.year,
+                    day: dateParts.day,
+                    month: dateParts.month,
                     textA,
                     textB,
                     textC,
@@ -610,9 +627,11 @@
             }
 
             async function saveAsNew() {
+                const wasEditing = editingIndex !== null;
                 try {
+                    saveBtn.disabled = true;
                     saveAsNewBtn.disabled = true;
-                    statusText.textContent = "Gemmer som ny...";
+                    statusText.textContent = wasEditing ? "Gemmer som ny..." : "Gemmer...";
                     const payload = await buildPayload();
                     const response = await fetch("/api/blogs", {
                         method: "POST",
@@ -624,11 +643,12 @@
                     blogsRaw = Array.isArray(data.blogs) ? data.blogs : [];
                     renderPosts(blogsRaw);
                     clearFormToNew();
-                    statusText.textContent = "Ny blog gemt.";
+                    statusText.textContent = wasEditing ? "Ny kopi gemt." : "Blog gemt.";
                 } catch (err) {
                     statusText.textContent = err.message || "Der opstod en fejl.";
                 } finally {
-                    saveAsNewBtn.disabled = false;
+                    saveBtn.disabled = false;
+                    saveAsNewBtn.disabled = editingIndex === null;
                 }
             }
 
@@ -696,7 +716,10 @@
 
             toggleFormBtn.addEventListener("click", () => formCard.classList.toggle("hidden"));
             saveAsNewBtn.addEventListener("click", saveAsNew);
-            saveBtn.addEventListener("click", saveEdit);
+            saveBtn.addEventListener("click", () => {
+                if (editingIndex !== null) saveEdit();
+                else saveAsNew();
+            });
             deleteBtn.addEventListener("click", () => {
                 if (editingIndex !== null) deletePost(editingIndex);
             });
