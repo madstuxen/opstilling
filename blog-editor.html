@@ -148,7 +148,7 @@
 <body>
     <div class="wrap">
         <h1>Blog Editor (Local)</h1>
-        <p class="note">Denne side skriver direkte til <code>blog/blog.json</code>. Ved sletning fjernes kun posten i JSON, ikke billeder.</p>
+        <p class="note">Denne side skriver direkte til <code>blog.html</code>. Ved sletning fjernes kun posten, ikke billeder.</p>
 
         <div class="toolbar">
             <button id="toggleFormBtn" class="btn" type="button">Ny blog</button>
@@ -223,8 +223,8 @@
                 </div>
             </div>
 
-            <input id="fileAInput" type="file" accept="image/*" class="hidden" />
-            <input id="fileBInput" type="file" accept="image/*" class="hidden" />
+            <input id="fileAInput" type="file" accept=".png,.jpg,.jpeg,.gif,image/png,image/jpeg,image/gif" class="hidden" />
+            <input id="fileBInput" type="file" accept=".png,.jpg,.jpeg,.gif,image/png,image/jpeg,image/gif" class="hidden" />
 
             <div class="actions">
                 <button id="saveBtn" class="btn" type="button">Gem</button>
@@ -284,7 +284,7 @@
             let selectedFileB = null;
             let existingImageAName = null;
             let existingImageBName = null;
-            let editingIndex = null;
+            let editingId = null;
             let previewADataUrl = null;
             let previewBDataUrl = null;
 
@@ -369,9 +369,9 @@
                 }
             }
 
-            function setMode(newIndex) {
-                editingIndex = Number.isInteger(newIndex) ? newIndex : null;
-                const isEdit = editingIndex !== null;
+            function setMode(newId) {
+                editingId = typeof newId === "string" && newId ? newId : null;
+                const isEdit = editingId !== null;
                 formHeading.textContent = isEdit ? "Rediger blog" : "Ny blog";
                 saveBtn.disabled = false;
                 saveAsNewBtn.disabled = !isEdit;
@@ -382,7 +382,7 @@
             }
 
             function updateImageRemoveButtons() {
-                const isEdit = editingIndex !== null;
+                const isEdit = editingId !== null;
                 removeImageABtn.classList.toggle("hidden", !(isEdit && (existingImageAName || selectedFileA)));
                 removeImageBBtn.classList.toggle("hidden", !(isEdit && (existingImageBName || selectedFileB)));
             }
@@ -419,11 +419,11 @@
                 updatePreviews();
             }
 
-            function loadPostIntoForm(index) {
-                const post = blogsRaw[index];
+            function loadPostIntoForm(postId) {
+                const post = blogsRaw.find((entry) => entry && entry.id === postId);
                 if (!post) return;
                 formCard.classList.remove("hidden");
-                setMode(index);
+                setMode(post.id);
 
                 titleInput.value = String(post.titel || "");
                 const date = String(post.dato || "");
@@ -509,6 +509,15 @@
                 });
             }
 
+            function isAllowedImageFile(file) {
+                if (!file) return false;
+                const name = String(file.name || "").toLowerCase();
+                const extOk = /\.(png|jpe?g|gif)$/.test(name);
+                const type = String(file.type || "").toLowerCase();
+                const mimeOk = !type || type === "image/png" || type === "image/jpeg" || type === "image/gif";
+                return extOk && mimeOk;
+            }
+
             function slugify(text, fallback) {
                 const normalized = String(text || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
                 return normalized || `post-${fallback}`;
@@ -581,18 +590,17 @@
                 parent.appendChild(img);
             }
 
-            async function deletePost(index) {
-                if (!confirm("Slet denne blogpost fra blog.json? (billeder beholdes)")) return;
+            async function deletePost(postId) {
+                if (!confirm("Slet denne blogpost fra blog.html? (billeder beholdes)")) return;
                 try {
                     statusText.textContent = "Sletter...";
-                    const response = await fetch(`/api/blogs/${index}`, { method: "DELETE" });
+                    const response = await fetch(`/api/blogs/${encodeURIComponent(postId)}`, { method: "DELETE" });
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error || "Kunne ikke slette blog");
                     blogsRaw = Array.isArray(data.blogs) ? data.blogs : [];
                     renderPosts(blogsRaw);
-                    if (editingIndex === index) clearFormToNew();
-                    else if (editingIndex !== null && editingIndex > index) setMode(editingIndex - 1);
-                    statusText.textContent = "Blog slettet fra blog.json.";
+                    if (editingId === postId) clearFormToNew();
+                    statusText.textContent = "Blog slettet.";
                 } catch (err) {
                     statusText.textContent = err.message || "Der opstod en fejl ved sletning.";
                 }
@@ -605,10 +613,10 @@
                     blogList.innerHTML = '<p class="status-msg">Ingen blogs fundet.</p>';
                     return;
                 }
-                sorted.forEach(({ post, index }, displayIndex) => {
+                sorted.forEach(({ post }, displayIndex) => {
                     const article = document.createElement("article");
                     article.className = "blog-post";
-                    article.id = "post-" + slugify(post.titel, displayIndex + 1);
+                    article.id = post.id || ("post-" + slugify(post.titel, displayIndex + 1));
 
                     const head = document.createElement("div");
                     head.className = "blog-post-head";
@@ -630,13 +638,13 @@
                     editBtn.type = "button";
                     editBtn.className = "btn";
                     editBtn.textContent = "Rediger";
-                    editBtn.addEventListener("click", () => loadPostIntoForm(index));
+                    editBtn.addEventListener("click", () => loadPostIntoForm(post.id));
 
                     const delBtn = document.createElement("button");
                     delBtn.type = "button";
                     delBtn.className = "btn";
                     delBtn.textContent = "Slet";
-                    delBtn.addEventListener("click", () => deletePost(index));
+                    delBtn.addEventListener("click", () => deletePost(post.id));
 
                     actions.appendChild(editBtn);
                     actions.appendChild(delBtn);
@@ -703,7 +711,7 @@
             }
 
             async function saveAsNew() {
-                const wasEditing = editingIndex !== null;
+                const wasEditing = editingId !== null;
                 try {
                     saveBtn.disabled = true;
                     saveAsNewBtn.disabled = true;
@@ -724,17 +732,18 @@
                     statusText.textContent = err.message || "Der opstod en fejl.";
                 } finally {
                     saveBtn.disabled = false;
-                    saveAsNewBtn.disabled = editingIndex === null;
+                    saveAsNewBtn.disabled = editingId === null;
                 }
             }
 
             async function saveEdit() {
-                if (editingIndex === null) return;
+                if (editingId === null) return;
                 try {
                     saveBtn.disabled = true;
                     statusText.textContent = "Gemmer rettelser...";
                     const payload = await buildPayload();
-                    const response = await fetch(`/api/blogs/${editingIndex}`, {
+                    payload.postId = editingId;
+                    const response = await fetch(`/api/blogs/${encodeURIComponent(editingId)}`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)
@@ -743,7 +752,7 @@
                     if (!response.ok) throw new Error(data.error || "Kunne ikke gemme rettelser");
                     blogsRaw = Array.isArray(data.blogs) ? data.blogs : [];
                     renderPosts(blogsRaw);
-                    loadPostIntoForm(editingIndex);
+                    loadPostIntoForm(editingId);
                     statusText.textContent = "Blog opdateret.";
                 } catch (err) {
                     statusText.textContent = err.message || "Der opstod en fejl.";
@@ -763,6 +772,16 @@
                 });
                 input.addEventListener("change", async () => {
                     const file = input.files && input.files[0] ? input.files[0] : null;
+                    if (file && !isAllowedImageFile(file)) {
+                        onFile(null);
+                        onDataUrl(null);
+                        input.value = "";
+                        nameEl.textContent = "Ugyldig filtype (brug png/jpg/jpeg/gif)";
+                        statusText.textContent = "Billedtype ikke tilladt. Brug png, jpg, jpeg eller gif.";
+                        updateImageRemoveButtons();
+                        updatePreviews();
+                        return;
+                    }
                     onFile(file);
                     updateImageRemoveButtons();
                     if (!file) {
@@ -793,11 +812,11 @@
             toggleFormBtn.addEventListener("click", () => formCard.classList.toggle("hidden"));
             saveAsNewBtn.addEventListener("click", saveAsNew);
             saveBtn.addEventListener("click", () => {
-                if (editingIndex !== null) saveEdit();
+                if (editingId !== null) saveEdit();
                 else saveAsNew();
             });
             deleteBtn.addEventListener("click", () => {
-                if (editingIndex !== null) deletePost(editingIndex);
+                if (editingId !== null) deletePost(editingId);
             });
             cancelEditBtn.addEventListener("click", () => clearFormToNew());
             removeImageABtn.addEventListener("click", removeImageA);
