@@ -193,6 +193,31 @@
             padding: 3px 10px;
         }
 
+        .blog-new-badge {
+            display: inline-block;
+            margin-left: 8px;
+            margin-bottom: 12px;
+            font-size: 0.86rem;
+            font-weight: 400;
+            color: #1f1308;
+            background: #fde68a;
+            border-radius: 999px;
+            padding: 3px 10px;
+        }
+
+        .blog-toc-new-badge {
+            display: inline-block;
+            margin-right: 8px;
+            font-size: 0.86rem;
+            font-weight: 400;
+            color: #1f1308;
+            background: #fde68a;
+            border-radius: 999px;
+            padding: 3px 10px;
+            line-height: 1;
+            vertical-align: middle;
+        }
+
         .blog-post p {
             margin-bottom: 12px;
             white-space: break-spaces;
@@ -533,7 +558,13 @@ You need to figure that out, and only you have the answer.</p>
                     const li = document.createElement("li");
                     const link = document.createElement("a");
                     link.href = "#" + article.id;
-                    link.textContent = title || ("Blog " + (index + 1));
+                    if (article.classList.contains("is-latest")) {
+                        const badge = document.createElement("span");
+                        badge.className = "blog-toc-new-badge";
+                        badge.textContent = "New";
+                        link.appendChild(badge);
+                    }
+                    link.appendChild(document.createTextNode(title || ("Blog " + (index + 1))));
                     li.appendChild(link);
                     blogToc.appendChild(li);
                 });
@@ -591,6 +622,26 @@ You need to figure that out, and only you have the answer.</p>
                 return visiblePosts;
             }
 
+            function markLatestPost(visiblePosts) {
+                visiblePosts.forEach(function (article) {
+                    article.classList.remove("is-latest");
+                    const existingBadge = article.querySelector(".blog-new-badge");
+                    if (existingBadge) existingBadge.remove();
+                });
+
+                const latestPost = visiblePosts[visiblePosts.length - 1];
+                if (!latestPost) return;
+
+                latestPost.classList.add("is-latest");
+                const dateChip = latestPost.querySelector(".blog-date");
+                if (!dateChip) return;
+
+                const badge = document.createElement("span");
+                badge.className = "blog-new-badge";
+                badge.textContent = "New";
+                dateChip.insertAdjacentElement("afterend", badge);
+            }
+
             function init() {
                 attachShareButtons(allPosts);
                 const visiblePosts = applyReleaseFilter(allPosts);
@@ -610,6 +661,7 @@ You need to figure that out, and only you have the answer.</p>
                 visiblePosts.forEach(function (article) {
                     blogContent.appendChild(article);
                 });
+                markLatestPost(visiblePosts);
                 buildToc(visiblePosts);
             }
 
