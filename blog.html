@@ -594,11 +594,22 @@ You need to figure that out, and only you have the answer.</p>
             function init() {
                 attachShareButtons(allPosts);
                 const visiblePosts = applyReleaseFilter(allPosts);
+                visiblePosts.sort(function (a, b) {
+                    const aDate = getPostDate(a);
+                    const bDate = getPostDate(b);
+                    const aTime = aDate ? aDate.getTime() : Number.POSITIVE_INFINITY;
+                    const bTime = bDate ? bDate.getTime() : Number.POSITIVE_INFINITY;
+                    return aTime - bTime;
+                });
                 if (!visiblePosts.length) {
                     blogContent.innerHTML = '<p class="status-msg">Ingen blogs fundet.</p>';
                     blogToc.innerHTML = "";
                     return;
                 }
+                blogContent.innerHTML = "";
+                visiblePosts.forEach(function (article) {
+                    blogContent.appendChild(article);
+                });
                 buildToc(visiblePosts);
             }
 
