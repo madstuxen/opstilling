@@ -7,6 +7,7 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
     <title>Journal — web companion</title>
+    <script src="crypto.js"></script>
     <!-- Firebase App (the core Firebase SDK) - Using v8 for compatibility -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Authentication -->
@@ -1403,6 +1404,62 @@ const firebaseConfig = {
             return 'Europe/Copenhagen'; // Default fallback
         }
 
+        async function maybeShowEncryptionUnlock() {
+            if (sessionStorage.getItem('needs_enc_unlock') !== 'true') return;
+            const salt = sessionStorage.getItem('pending_enc_salt');
+            if (!salt) return;
+
+            return new Promise((resolve) => {
+                // Byg modal
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999';
+
+                const box = document.createElement('div');
+                box.style.cssText = 'background:#fff;border-radius:12px;padding:32px;max-width:360px;width:90%;display:flex;flex-direction:column;gap:16px';
+
+                const title = document.createElement('p');
+                title.textContent = 'Din dagbog er krypteret. Indtast dit krypteringsord.';
+                title.style.cssText = 'font-size:16px;font-weight:600;margin:0';
+
+                const input = document.createElement('input');
+                input.type = 'password';
+                input.placeholder = 'Krypteringsord';
+                input.style.cssText = 'border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:16px';
+
+                const error = document.createElement('p');
+                error.style.cssText = 'color:#b91c1c;font-size:14px;margin:0;display:none';
+                error.textContent = 'Noget gik galt. Prøv igen.';
+
+                const btn = document.createElement('button');
+                btn.textContent = 'Lås op';
+                btn.style.cssText = 'background:#000;color:#fff;border:none;border-radius:8px;padding:12px;font-size:16px;cursor:pointer';
+
+                btn.addEventListener('click', async () => {
+                    try {
+                        error.style.display = 'none';
+                        const cryptoKey = await deriveKey(input.value, salt);
+                        // Eksportér nøglen som rå bytes og gem som base64 i sessionStorage
+                        const rawKey = await crypto.subtle.exportKey('raw', cryptoKey);
+                        const base64Key = bytesToBase64(new Uint8Array(rawKey));
+                        sessionStorage.setItem('enc_key', base64Key);
+                        sessionStorage.removeItem('needs_enc_unlock');
+                        sessionStorage.removeItem('pending_enc_salt');
+                        document.body.removeChild(overlay);
+                        resolve();
+                    } catch (e) {
+                        error.style.display = 'block';
+                    }
+                });
+
+                box.appendChild(title);
+                box.appendChild(input);
+                box.appendChild(error);
+                box.appendChild(btn);
+                overlay.appendChild(box);
+                document.body.appendChild(overlay);
+            });
+        }
+
         // Function to load and save userData to localStorage
         async function loadAndSaveUserData(user) {
             if (!user || !db) return;
@@ -1438,6 +1495,11 @@ const firebaseConfig = {
                         localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
                         console.log('Empty userData created in localStorage with timezone');
                     }
+                    // Tjek om dagbogen er krypteret
+                    if (data && data.isEncrypted === true && data.encryptionSalt) {
+                        sessionStorage.setItem('pending_enc_salt', data.encryptionSalt);
+                        sessionStorage.setItem('needs_enc_unlock', 'true');
+                    }
                 } else {
                     // If document doesn't exist, create empty userData with timezone
                     const dataToSave = {
@@ -1458,6 +1520,7 @@ const firebaseConfig = {
             currentUser = user;
             saveGlobalFirestoreToggle(true);
             await loadAndSaveUserData(user);
+            await maybeShowEncryptionUnlock();
             if (loginForm) loginForm.reset();
             closeLoginEntryOverlay();
             window.location.href = 'logbog_01.html';
@@ -1482,6 +1545,7 @@ const firebaseConfig = {
                 saveGlobalFirestoreToggle(true);
                 // Load and save userData to localStorage to ensure displayName and You are set
                 await loadAndSaveUserData(user);
+                await maybeShowEncryptionUnlock();
                 showLoggedInSection(user);
             } else {
                 console.log('User is not logged in, showing login form');

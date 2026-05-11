@@ -6,6 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>Logbog</title>
+    <script src="crypto.js"></script>
     <!-- Firebase App (the core Firebase SDK) - Using v8 for compatibility -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Authentication -->
@@ -4294,6 +4295,18 @@
             URL.revokeObjectURL(url);
         }
 
+        function deriveKeyFromSession(base64Key) {
+            // Nøglen er allerede afledt og gemt som base64 raw bytes – importer den direkte
+            const keyBytes = base64ToBytes(base64Key);
+            return crypto.subtle.importKey(
+                'raw',
+                keyBytes,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
         function openRecoverModal() {
             const modal = document.getElementById('recoverModal');
             if (!modal) return;
@@ -5596,6 +5609,17 @@
                     try {
                         const res = await exportJournalCallable();
                         const payload = res && res.data ? res.data : {};
+                        // Dekryptér måneder hvis nøgle findes
+                        const encKey = sessionStorage.getItem('enc_key');
+                        if (encKey && payload.months) {
+                            const cryptoKey = await deriveKeyFromSession(encKey);
+                            for (const monthKey of Object.keys(payload.months)) {
+                                const month = payload.months[monthKey];
+                                if (month && month.encrypted && typeof month.encrypted === 'string') {
+                                    payload.months[monthKey] = await decryptMonth(month, cryptoKey);
+                                }
+                            }
+                        }
                         const stamp = new Date().toISOString().replace(/[:.]/g, '-');
                         triggerRecoverDownload(`journal-export-${stamp}.json`, payload);
                         setRecoverStatus('Export complete. JSON download started.');
@@ -5629,6 +5653,17 @@
                         const text = await file.text();
                         const json = JSON.parse(text);
                         setRecoverStatus('Uploading payload to server...');
+                        // Kryptér måneder hvis nøgle findes
+                        const encKey = sessionStorage.getItem('enc_key');
+                        if (encKey && json.months) {
+                            const cryptoKey = await deriveKeyFromSession(encKey);
+                            for (const monthKey of Object.keys(json.months)) {
+                                const month = json.months[monthKey];
+                                if (month && !month.encrypted) {
+                                    json.months[monthKey] = await encryptMonth(month, cryptoKey);
+                                }
+                            }
+                        }
                         const res = await importJournalCallable(json);
                         const result = res && res.data ? res.data : {};
                         const monthsWritten = result.monthsWritten != null ? result.monthsWritten : 0;
