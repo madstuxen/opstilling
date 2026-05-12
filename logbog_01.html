@@ -2616,6 +2616,8 @@
                     const monthDoc = await monthDocRef.get();
                     if (monthDoc.exists) {
                         const monthDataFromSub = monthDoc.data() || {};
+                        console.log('[LOAD] monthDataFromSub keys:', Object.keys(monthDataFromSub));
+                        console.log('[LOAD] enc_key in sessionStorage:', !!sessionStorage.getItem('enc_key'));
                         // Dekryptér hvis krypteret
                         if (monthDataFromSub.encrypted && typeof monthDataFromSub.encrypted === 'string') {
                             const encKey = sessionStorage.getItem('enc_key');
