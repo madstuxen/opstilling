@@ -1365,6 +1365,7 @@ const firebaseConfig = {
         const goToLogbogBtn = document.getElementById('goToLogbogBtn');
         const logoutButton = document.getElementById('logoutButton');
         let currentUser = null;
+        let encryptionUnlockHandled = false;
 
         console.log('DOM elements check:');
         console.log('loginForm:', loginForm ? 'found' : 'NOT FOUND');
@@ -1405,6 +1406,8 @@ const firebaseConfig = {
         }
 
         async function maybeShowEncryptionUnlock() {
+            if (encryptionUnlockHandled) return;
+            encryptionUnlockHandled = true;
             if (sessionStorage.getItem('needs_enc_unlock') !== 'true') return;
             const salt = sessionStorage.getItem('pending_enc_salt');
             if (!salt) return;
@@ -1572,6 +1575,7 @@ const firebaseConfig = {
             } else {
                 console.log('User is not logged in, showing login form');
                 currentUser = null;
+                encryptionUnlockHandled = false;
                 // Set global_useFirestore to false when user logs out
                 saveGlobalFirestoreToggle(false);
                 showLoginForm();
@@ -1690,6 +1694,7 @@ const firebaseConfig = {
                     .then(() => {
                         console.log('User logged out');
                         currentUser = null;
+                        encryptionUnlockHandled = false;
                         // Set global_useFirestore to false on logout
                         saveGlobalFirestoreToggle(false);
                         showLoginForm();
