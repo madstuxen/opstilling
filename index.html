@@ -1479,6 +1479,8 @@ const firebaseConfig = {
                         language: data.user.profile.language || 'en',
                         monthsIndex: data.user.monthsIndex || {},
                     } : null);
+                    console.log('[debug] userData result:', JSON.stringify(userData));
+                    console.log('[debug] data.user:', JSON.stringify(data.user ? { hasProfile: !!data.user.profile, nickname: data.user.profile?.nickname } : null));
                     console.log('[debug] Firestore rod-data:', JSON.stringify({
                         isEncrypted: data.isEncrypted,
                         encryptionSalt: data.encryptionSalt,
