@@ -1472,7 +1472,13 @@ const firebaseConfig = {
                 console.log('[debug] user.uid:', user.uid);
                 if (userDoc.exists) {
                     const data = userDoc.data();
-                    const userData = data.userData || null;
+                    const userData = data.userData || (data.user && data.user.profile ? {
+                        displayName: data.user.profile.nickname || '',
+                        email: data.user.profile.email || '',
+                        color: data.user.profile.defaultColor || '',
+                        language: data.user.profile.language || 'en',
+                        monthsIndex: data.user.monthsIndex || {},
+                    } : null);
                     console.log('[debug] Firestore rod-data:', JSON.stringify({
                         isEncrypted: data.isEncrypted,
                         encryptionSalt: data.encryptionSalt,
