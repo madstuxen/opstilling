@@ -1470,6 +1470,12 @@ const firebaseConfig = {
                 if (userDoc.exists) {
                     const data = userDoc.data();
                     const userData = data.userData || null;
+                    console.log('[debug] Firestore rod-data:', JSON.stringify({
+                        isEncrypted: data.isEncrypted,
+                        encryptionSalt: data.encryptionSalt,
+                        hasUserData: !!data.userData,
+                        hasUser: !!data.user,
+                    }));
                     
                     // Save to localStorage
                     if (userData) {
@@ -1500,6 +1506,8 @@ const firebaseConfig = {
                         sessionStorage.setItem('pending_enc_salt', data.encryptionSalt);
                         sessionStorage.setItem('needs_enc_unlock', 'true');
                     }
+                    console.log('[debug] needs_enc_unlock:', sessionStorage.getItem('needs_enc_unlock'));
+                    console.log('[debug] pending_enc_salt:', sessionStorage.getItem('pending_enc_salt'));
                 } else {
                     // If document doesn't exist, create empty userData with timezone
                     const dataToSave = {
