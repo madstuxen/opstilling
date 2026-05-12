@@ -2979,19 +2979,32 @@
                 if (hasMonthlyStructure) {
                     const monthKey = dk.substring(0, 7);
                     const monthDocRef = userDocRef.collection('months').doc(monthKey);
-                    const ok = await db.runTransaction(function (transaction) {
-                        return transaction.get(monthDocRef).then(function (snap) {
-                            if (!snap.exists) return false;
-                            const data = snap.data() || {};
-                            const lb = data.logbog;
-                            const result = mutateRawLogbogDay(lb, dk, function (day) {
-                                return deepMergeDayPatchFields(day, patch);
-                            });
-                            if (!result || !result.ok) return false;
-                            transaction.set(monthDocRef, { logbog: result.logbog }, { merge: true });
-                            return true;
-                        });
+                    const monthDoc = await monthDocRef.get();
+                    const existingData = monthDoc.exists ? monthDoc.data() : {};
+                    let baseData = existingData;
+                    const encKey = sessionStorage.getItem('enc_key');
+                    if (existingData.encrypted && typeof existingData.encrypted === 'string') {
+                        if (!encKey) throw new Error('Encryption key not found');
+                        const cryptoKey = await deriveKeyFromSession(encKey);
+                        baseData = await decryptMonth(existingData, cryptoKey);
+                    }
+                    const lb = baseData.logbog;
+                    const result = mutateRawLogbogDay(lb, dk, function (day) {
+                        return deepMergeDayPatchFields(day, patch);
                     });
+                    if (!result || !result.ok) return false;
+                    // Merge logbog ind i det fulde objekt
+                    const fullPlain = {
+                        ...baseData,
+                        logbog: result.logbog,
+                    };
+                    if (encKey) {
+                        const cryptoKey = await deriveKeyFromSession(encKey);
+                        await monthDocRef.set(await encryptMonth(fullPlain, cryptoKey));
+                    } else {
+                        await monthDocRef.set({ logbog: fullPlain.logbog }, { merge: true });
+                    }
+                    const ok = true;
                     if (ok) patchLogbogDataCache(dk, patch);
                     return ok;
                 }
@@ -3041,19 +3054,32 @@
                 if (hasMonthlyStructure) {
                     const monthKey = dk.substring(0, 7);
                     const monthDocRef = userDocRef.collection('months').doc(monthKey);
-                    const ok = await db.runTransaction(function (transaction) {
-                        return transaction.get(monthDocRef).then(function (snap) {
-                            if (!snap.exists) return false;
-                            const data = snap.data() || {};
-                            const lb = data.logbog;
-                            const result = mutateRawLogbogDay(lb, dk, function (day) {
-                                return mergeDayAppendCheckin(day, checkin, nowIso);
-                            });
-                            if (!result || !result.ok) return false;
-                            transaction.set(monthDocRef, { logbog: result.logbog }, { merge: true });
-                            return true;
-                        });
+                    const monthDoc = await monthDocRef.get();
+                    const existingData = monthDoc.exists ? monthDoc.data() : {};
+                    let baseData = existingData;
+                    const encKey = sessionStorage.getItem('enc_key');
+                    if (existingData.encrypted && typeof existingData.encrypted === 'string') {
+                        if (!encKey) throw new Error('Encryption key not found');
+                        const cryptoKey = await deriveKeyFromSession(encKey);
+                        baseData = await decryptMonth(existingData, cryptoKey);
+                    }
+                    const lb = baseData.logbog;
+                    const result = mutateRawLogbogDay(lb, dk, function (day) {
+                        return mergeDayAppendCheckin(day, checkin, nowIso);
                     });
+                    if (!result || !result.ok) return false;
+                    // Merge logbog ind i det fulde objekt
+                    const fullPlain = {
+                        ...baseData,
+                        logbog: result.logbog,
+                    };
+                    if (encKey) {
+                        const cryptoKey = await deriveKeyFromSession(encKey);
+                        await monthDocRef.set(await encryptMonth(fullPlain, cryptoKey));
+                    } else {
+                        await monthDocRef.set({ logbog: fullPlain.logbog }, { merge: true });
+                    }
+                    const ok = true;
                     if (ok) appendCheckinInCache(dk, checkin, nowIso);
                     return ok;
                 }
