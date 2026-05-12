@@ -1467,6 +1467,9 @@ const firebaseConfig = {
             try {
                 console.log('🔥 FIRESTORE READ - index.html - loadAndSaveUserData');
                 const userDoc = await db.collection('users').doc(user.uid).get();
+                console.log('[debug] userDoc.exists:', userDoc.exists);
+                console.log('[debug] userDoc.id:', userDoc.id);
+                console.log('[debug] user.uid:', user.uid);
                 if (userDoc.exists) {
                     const data = userDoc.data();
                     const userData = data.userData || null;
