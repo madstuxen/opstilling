@@ -4139,9 +4139,12 @@
                 clearTimeout(logbookDebounceTimeout);
                 logbookDebounceTimeout = null;
             }
+            const s = getLogbogStrings();
+            const journalSaveBtn = document.getElementById('journalSaveBtn');
             const logbookEntryEl = document.getElementById('logbookEntry');
             if (!logbookEntryEl) return;
             if (!isJournalFieldDirty()) return;
+            if (journalSaveBtn) journalSaveBtn.textContent = s.saving || 'Gemmer...';
             const ok = await saveLogbogDayPatchToFirestore(activeLogDate, { dagbog: logbookEntryEl.value });
             if (ok) {
                 lastSavedDagbogSnapshot = normalizeLogFieldText(logbookEntryEl.value);
@@ -4156,9 +4159,12 @@
                 clearTimeout(dreamDebounceTimeout);
                 dreamDebounceTimeout = null;
             }
+            const s = getLogbogStrings();
+            const dreamsSaveBtn = document.getElementById('dreamsSaveBtn');
             const dreamEntryEl = document.getElementById('dreamEntry');
             if (!dreamEntryEl) return;
             if (!isDreamsFieldDirty()) return;
+            if (dreamsSaveBtn) dreamsSaveBtn.textContent = s.saving || 'Gemmer...';
             const ok = await saveLogbogDayPatchToFirestore(activeLogDate, { dreams: dreamEntryEl.value });
             if (ok) {
                 lastSavedDreamsSnapshot = normalizeLogFieldText(dreamEntryEl.value);
