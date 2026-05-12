@@ -2616,6 +2616,16 @@
                     const monthDoc = await monthDocRef.get();
                     if (monthDoc.exists) {
                         const monthDataFromSub = monthDoc.data() || {};
+                        // Dekryptér hvis krypteret
+                        if (monthDataFromSub.encrypted && typeof monthDataFromSub.encrypted === 'string') {
+                            const encKey = sessionStorage.getItem('enc_key');
+                            if (!encKey) {
+                                console.warn('[LOAD] Month is encrypted but no enc_key in sessionStorage');
+                                return null;
+                            }
+                            const cryptoKey = await deriveKeyFromSession(encKey);
+                            return await decryptMonth(monthDataFromSub, cryptoKey);
+                        }
                         return monthDataFromSub;
                     }
                 } catch (error) {
@@ -2630,6 +2640,15 @@
                 const monthDataFromMain = raw[monthKey];
                 
                 if (monthDataFromMain && typeof monthDataFromMain === 'object') {
+                    if (monthDataFromMain.encrypted && typeof monthDataFromMain.encrypted === 'string') {
+                        const encKey = sessionStorage.getItem('enc_key');
+                        if (!encKey) {
+                            console.warn('[LOAD] Month is encrypted but no enc_key in sessionStorage');
+                            return null;
+                        }
+                        const cryptoKey = await deriveKeyFromSession(encKey);
+                        return await decryptMonth(monthDataFromMain, cryptoKey);
+                    }
                     return monthDataFromMain;
                 }
                 return null;
