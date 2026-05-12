@@ -1437,9 +1437,11 @@ const firebaseConfig = {
                 btn.addEventListener('click', async () => {
                     try {
                         error.style.display = 'none';
+                        console.log('[debug] deriveKey start, salt:', salt);
                         const cryptoKey = await deriveKey(input.value, salt);
-                        // Eksportér nøglen som rå bytes og gem som base64 i sessionStorage
+                        console.log('[debug] deriveKey success:', cryptoKey);
                         const rawKey = await crypto.subtle.exportKey('raw', cryptoKey);
+                        console.log('[debug] exportKey success, byteLength:', rawKey.byteLength);
                         const base64Key = bytesToBase64(new Uint8Array(rawKey));
                         sessionStorage.setItem('enc_key', base64Key);
                         sessionStorage.removeItem('needs_enc_unlock');
@@ -1447,6 +1449,7 @@ const firebaseConfig = {
                         document.body.removeChild(overlay);
                         resolve();
                     } catch (e) {
+                        console.error('[debug] unlock failed:', e);
                         error.style.display = 'block';
                     }
                 });
