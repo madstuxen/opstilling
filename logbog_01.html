@@ -2275,22 +2275,6 @@
         // Affirmations
         let affirmations = [];
         
-        async function loadAffirmations() {
-            try {
-                const response = await fetch('affirmations.json');
-                if (response.ok) {
-                    affirmations = await response.json();
-                    return affirmations;
-                } else {
-                    console.error('Kunne ikke indlæse affirmations.json');
-                    return [];
-                }
-            } catch (error) {
-                console.error('Fejl ved indlæsning af affirmations:', error);
-                return [];
-            }
-        }
-        
         async function getAffirmationTextForDate(dateKey) {
             // Get affirm from logbogData (new structure)
             try {
@@ -2613,13 +2597,9 @@
                 // First, try to load from subcollection
                 try {
                     const monthDocRef = userDocRef.collection('months').doc(monthKey);
-                    console.log('[LOAD] Fetching month:', monthKey, 'path:', monthDocRef.path);
                     const monthDoc = await monthDocRef.get();
-                    console.log('[LOAD] monthDoc.exists:', monthDoc.exists, 'for:', monthKey);
                     if (monthDoc.exists) {
                         const monthDataFromSub = monthDoc.data() || {};
-                        console.log('[LOAD] monthDataFromSub keys:', Object.keys(monthDataFromSub));
-                        console.log('[LOAD] enc_key in sessionStorage:', !!sessionStorage.getItem('enc_key'));
                         // Dekryptér hvis krypteret
                         if (monthDataFromSub.encrypted && typeof monthDataFromSub.encrypted === 'string') {
                             const encKey = sessionStorage.getItem('enc_key');
@@ -5482,7 +5462,6 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('[INIT] enc_key in sessionStorage:', !!sessionStorage.getItem('enc_key'), 'value length:', sessionStorage.getItem('enc_key')?.length);
             logbogLocale = resolveLocaleFromUserData();
 
             // GUARD 1: Extend initial load period - wait for ALL
@@ -5706,9 +5685,6 @@
                 });
             }
             
-            // 3. Load affirmations first
-            await loadAffirmations();
-
             initCheckinDaysButtons();
             initCheckinViewToggle();
             initCheckinModal();

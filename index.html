@@ -1440,11 +1440,8 @@ const firebaseConfig = {
                 btn.addEventListener('click', async () => {
                     try {
                         error.style.display = 'none';
-                        console.log('[debug] deriveKey start, salt:', salt);
                         const cryptoKey = await deriveKey(input.value, salt);
-                        console.log('[debug] deriveKey success:', cryptoKey);
                         const rawKey = await crypto.subtle.exportKey('raw', cryptoKey);
-                        console.log('[debug] exportKey success, byteLength:', rawKey.byteLength);
                         const base64Key = bytesToBase64(new Uint8Array(rawKey));
                         sessionStorage.setItem('enc_key', base64Key);
                         sessionStorage.removeItem('needs_enc_unlock');
@@ -1452,7 +1449,6 @@ const firebaseConfig = {
                         document.body.removeChild(overlay);
                         resolve();
                     } catch (e) {
-                        console.error('[debug] unlock failed:', e);
                         error.style.display = 'block';
                     }
                 });
@@ -1473,9 +1469,6 @@ const firebaseConfig = {
             try {
                 console.log('🔥 FIRESTORE READ - index.html - loadAndSaveUserData');
                 const userDoc = await db.collection('users').doc(user.uid).get();
-                console.log('[debug] userDoc.exists:', userDoc.exists);
-                console.log('[debug] userDoc.id:', userDoc.id);
-                console.log('[debug] user.uid:', user.uid);
                 if (userDoc.exists) {
                     const data = userDoc.data();
                     const userData = data.userData || (data.user && data.user.profile ? {
@@ -1485,15 +1478,6 @@ const firebaseConfig = {
                         language: data.user.profile.language || 'en',
                         monthsIndex: data.user.monthsIndex || {},
                     } : null);
-                    console.log('[debug] userData result:', JSON.stringify(userData));
-                    console.log('[debug] data.user:', JSON.stringify(data.user ? { hasProfile: !!data.user.profile, nickname: data.user.profile?.nickname } : null));
-                    console.log('[debug] Firestore rod-data:', JSON.stringify({
-                        isEncrypted: data.isEncrypted,
-                        encryptionSalt: data.encryptionSalt,
-                        hasUserData: !!data.userData,
-                        hasUser: !!data.user,
-                    }));
-                    
                     // Save to localStorage
                     if (userData) {
                         // Add "You" field and ensure timezone exists; include root user.map (profile.language lives there)
@@ -1523,8 +1507,6 @@ const firebaseConfig = {
                         sessionStorage.setItem('pending_enc_salt', data.encryptionSalt);
                         sessionStorage.setItem('needs_enc_unlock', 'true');
                     }
-                    console.log('[debug] needs_enc_unlock:', sessionStorage.getItem('needs_enc_unlock'));
-                    console.log('[debug] pending_enc_salt:', sessionStorage.getItem('pending_enc_salt'));
                 } else {
                     // If document doesn't exist, create empty userData with timezone
                     const dataToSave = {
