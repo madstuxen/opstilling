@@ -1560,9 +1560,37 @@ const firebaseConfig = {
             return 'Europe/Copenhagen'; // Default fallback
         }
 
+        function wantsEncryptionUnlockFromUrl() {
+            try {
+                return new URLSearchParams(window.location.search).get('unlock') === '1';
+            } catch (e) {
+                return false;
+            }
+        }
+
         async function maybeShowEncryptionUnlock() {
-            if (sessionStorage.getItem('needs_enc_unlock') !== 'true') return;
-            const salt = sessionStorage.getItem('pending_enc_salt');
+            const needsUnlock =
+                sessionStorage.getItem('needs_enc_unlock') === 'true' ||
+                wantsEncryptionUnlockFromUrl();
+            if (!needsUnlock) return;
+            if (needsUnlock && sessionStorage.getItem('needs_enc_unlock') !== 'true') {
+                sessionStorage.setItem('needs_enc_unlock', 'true');
+            }
+
+            let salt = sessionStorage.getItem('pending_enc_salt');
+            if (!salt && currentUser && db) {
+                try {
+                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                    const data = userDoc.exists ? (userDoc.data() || {}) : {};
+                    if (data.encryptionSalt) {
+                        salt = data.encryptionSalt;
+                        sessionStorage.setItem('pending_enc_salt', salt);
+                        sessionStorage.setItem('is_encrypted', 'true');
+                    }
+                } catch (e) {
+                    console.warn('Could not load encryption salt:', e);
+                }
+            }
             if (!salt) return;
             if (encryptionUnlockPromise) return encryptionUnlockPromise;
 
@@ -1609,6 +1637,12 @@ const firebaseConfig = {
                         sessionStorage.setItem('enc_key', base64Key);
                         sessionStorage.removeItem('needs_enc_unlock');
                         sessionStorage.removeItem('pending_enc_salt');
+                        if (wantsEncryptionUnlockFromUrl()) {
+                            try {
+                                const cleanUrl = window.location.pathname + window.location.hash;
+                                window.history.replaceState({}, '', cleanUrl);
+                            } catch (e) { /* ignore */ }
+                        }
                         document.body.removeChild(overlay);
                         resolve();
                     } catch (e) {
@@ -1725,12 +1759,29 @@ const firebaseConfig = {
                 console.log('User is not logged in, showing login form');
                 currentUser = null;
                 encryptionUnlockContext = null;
-                clearEncryptionSession();
+                encryptionUnlockPromise = null;
                 // Set global_useFirestore to false when user logs out
                 saveGlobalFirestoreToggle(false);
                 showLoginForm();
             }
         });
+
+        async function ensureEncryptionUnlockPromptIfNeeded() {
+            if (
+                sessionStorage.getItem('needs_enc_unlock') !== 'true' &&
+                !wantsEncryptionUnlockFromUrl()
+            ) {
+                return;
+            }
+            let waited = 0;
+            while (!currentUser && waited < 8000) {
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                waited += 100;
+            }
+            if (!currentUser) return;
+            await loadAndSaveUserData(currentUser);
+            await maybeShowEncryptionUnlock();
+        }
 
         function showAuthErrorInOverlay(err) {
             if (!errorMessage) return;
@@ -1869,6 +1920,7 @@ const firebaseConfig = {
             console.log('Login form element:', loginForm);
             console.log('Auth object:', auth);
             console.log('DB object:', db);
+            ensureEncryptionUnlockPromptIfNeeded();
         });
     </script>
     <script>

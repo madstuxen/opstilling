@@ -4332,7 +4332,7 @@
         function redirectToEncryptionUnlock() {
             sessionStorage.removeItem('enc_key');
             sessionStorage.setItem('needs_enc_unlock', 'true');
-            window.location.href = 'index.html';
+            window.location.href = 'index.html?unlock=1';
         }
 
         /** Firestore is source of truth for encryption (not sessionStorage enc_key). */
