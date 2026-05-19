@@ -1366,10 +1366,61 @@ const firebaseConfig = {
         const goToLogbogBtn = document.getElementById('goToLogbogBtn');
         const logoutButton = document.getElementById('logoutButton');
         let currentUser = null;
-        let encryptionUnlockHandled = false;
         let encryptionUnlockContext = null;
+        let encryptionUnlockPromise = null;
 
         const INVALID_ENC_PASSWORD = 'INVALID_ENC_PASSWORD';
+        const ENC_SESSION_UID_KEY = 'enc_session_uid';
+
+        function clearEncryptionSession() {
+            sessionStorage.removeItem('enc_key');
+            sessionStorage.removeItem('is_encrypted');
+            sessionStorage.removeItem('needs_enc_unlock');
+            sessionStorage.removeItem('pending_enc_salt');
+            sessionStorage.removeItem(ENC_SESSION_UID_KEY);
+            encryptionUnlockPromise = null;
+        }
+
+        function syncEncryptionSessionFromFirestore(user, data) {
+            const uid = user.uid;
+            const prevUid = sessionStorage.getItem(ENC_SESSION_UID_KEY);
+            const uidChanged = prevUid !== uid;
+
+            if (uidChanged) {
+                clearEncryptionSession();
+            }
+            sessionStorage.setItem(ENC_SESSION_UID_KEY, uid);
+
+            const accountEncrypted = !!(data && data.isEncrypted === true && data.encryptionSalt);
+
+            if (!accountEncrypted) {
+                sessionStorage.removeItem('enc_key');
+                sessionStorage.removeItem('is_encrypted');
+                sessionStorage.removeItem('needs_enc_unlock');
+                sessionStorage.removeItem('pending_enc_salt');
+                encryptionUnlockContext = null;
+                encryptionUnlockPromise = null;
+                return;
+            }
+
+            sessionStorage.setItem('is_encrypted', 'true');
+            sessionStorage.setItem('pending_enc_salt', data.encryptionSalt);
+            encryptionUnlockContext = {
+                uid,
+                encryptionVerifier: data.user && data.user.encryptionVerifier
+                    ? data.user.encryptionVerifier
+                    : null,
+                monthsIndex: parseMonthsIndexForUnlock(data),
+            };
+
+            if (sessionStorage.getItem('enc_key')) {
+                sessionStorage.removeItem('needs_enc_unlock');
+            } else {
+                sessionStorage.removeItem('enc_key');
+                sessionStorage.setItem('needs_enc_unlock', 'true');
+                encryptionUnlockPromise = null;
+            }
+        }
 
         function parseMonthsIndexForUnlock(raw) {
             if (!raw || typeof raw !== 'object') return {};
@@ -1510,13 +1561,12 @@ const firebaseConfig = {
         }
 
         async function maybeShowEncryptionUnlock() {
-            if (encryptionUnlockHandled) return;
-            encryptionUnlockHandled = true;
             if (sessionStorage.getItem('needs_enc_unlock') !== 'true') return;
             const salt = sessionStorage.getItem('pending_enc_salt');
             if (!salt) return;
+            if (encryptionUnlockPromise) return encryptionUnlockPromise;
 
-            return new Promise((resolve) => {
+            encryptionUnlockPromise = new Promise((resolve) => {
                 // Byg modal
                 const overlay = document.createElement('div');
                 overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999';
@@ -1578,6 +1628,7 @@ const firebaseConfig = {
                 overlay.appendChild(box);
                 document.body.appendChild(overlay);
             });
+            return encryptionUnlockPromise;
         }
 
         // Function to load and save userData to localStorage
@@ -1620,21 +1671,7 @@ const firebaseConfig = {
                         localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
                         console.log('Empty userData created in localStorage with timezone');
                     }
-                    // Tjek om dagbogen er krypteret
-                    if (data && data.isEncrypted === true && data.encryptionSalt) {
-                        sessionStorage.setItem('pending_enc_salt', data.encryptionSalt);
-                        sessionStorage.setItem('needs_enc_unlock', 'true');
-                        sessionStorage.setItem('is_encrypted', 'true');
-                        encryptionUnlockContext = {
-                            uid: user.uid,
-                            encryptionVerifier: data.user && data.user.encryptionVerifier
-                                ? data.user.encryptionVerifier
-                                : null,
-                            monthsIndex: parseMonthsIndexForUnlock(data),
-                        };
-                    } else {
-                        encryptionUnlockContext = null;
-                    }
+                    syncEncryptionSessionFromFirestore(user, data);
                 } else {
                     // If document doesn't exist, create empty userData with timezone
                     const dataToSave = {
@@ -1642,6 +1679,8 @@ const firebaseConfig = {
                     };
                     localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
                     console.log('User document not found, created empty userData in localStorage with timezone');
+                    clearEncryptionSession();
+                    sessionStorage.setItem(ENC_SESSION_UID_KEY, user.uid);
                 }
             } catch (error) {
                 console.error('Error loading userData from Firestore:', error);
@@ -1685,7 +1724,8 @@ const firebaseConfig = {
             } else {
                 console.log('User is not logged in, showing login form');
                 currentUser = null;
-                encryptionUnlockHandled = false;
+                encryptionUnlockContext = null;
+                clearEncryptionSession();
                 // Set global_useFirestore to false when user logs out
                 saveGlobalFirestoreToggle(false);
                 showLoginForm();
@@ -1792,7 +1832,13 @@ const firebaseConfig = {
         });
 
         if (goToLogbogBtn) {
-            goToLogbogBtn.addEventListener('click', function() {
+            goToLogbogBtn.addEventListener('click', async function() {
+                if (!currentUser) {
+                    openLoginEntryOverlay();
+                    return;
+                }
+                await loadAndSaveUserData(currentUser);
+                await maybeShowEncryptionUnlock();
                 window.location.href = 'logbog_01.html';
             });
         }
@@ -1804,7 +1850,8 @@ const firebaseConfig = {
                     .then(() => {
                         console.log('User logged out');
                         currentUser = null;
-                        encryptionUnlockHandled = false;
+                        encryptionUnlockContext = null;
+                        clearEncryptionSession();
                         // Set global_useFirestore to false on logout
                         saveGlobalFirestoreToggle(false);
                         showLoginForm();

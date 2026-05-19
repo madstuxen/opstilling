@@ -2191,6 +2191,7 @@
                 window.location.href = 'index.html';
                 return;
             }
+            clearEncryptionSession();
             auth.signOut().then(function() {
                 window.location.href = 'index.html';
             }).catch(function(err) {
@@ -2605,10 +2606,17 @@
                             const encKey = sessionStorage.getItem('enc_key');
                             if (!encKey) {
                                 console.warn('[LOAD] Month is encrypted but no enc_key in sessionStorage');
+                                redirectToEncryptionUnlock();
                                 return null;
                             }
-                            const cryptoKey = await deriveKeyFromSession(encKey);
-                            return await decryptMonth(monthDataFromSub, cryptoKey);
+                            try {
+                                const cryptoKey = await deriveKeyFromSession(encKey);
+                                return await decryptMonth(monthDataFromSub, cryptoKey);
+                            } catch (e) {
+                                console.warn('[LOAD] Failed to decrypt month:', monthKey, e);
+                                redirectToEncryptionUnlock();
+                                return null;
+                            }
                         }
                         return monthDataFromSub;
                     }
@@ -2628,10 +2636,17 @@
                         const encKey = sessionStorage.getItem('enc_key');
                         if (!encKey) {
                             console.warn('[LOAD] Month is encrypted but no enc_key in sessionStorage');
+                            redirectToEncryptionUnlock();
                             return null;
                         }
-                        const cryptoKey = await deriveKeyFromSession(encKey);
-                        return await decryptMonth(monthDataFromMain, cryptoKey);
+                        try {
+                            const cryptoKey = await deriveKeyFromSession(encKey);
+                            return await decryptMonth(monthDataFromMain, cryptoKey);
+                        } catch (e) {
+                            console.warn('[LOAD] Failed to decrypt month from main doc:', monthKey, e);
+                            redirectToEncryptionUnlock();
+                            return null;
+                        }
                     }
                     return monthDataFromMain;
                 }
@@ -2971,7 +2986,7 @@
 
             // Krypteret konto uden nøgle — send til unlock
             if (!encKey) {
-                window.location.href = 'index.html';
+                redirectToEncryptionUnlock();
                 return null;
             }
             return encKey;
@@ -4304,6 +4319,22 @@
             if (statusEl) statusEl.textContent = msg || '';
         }
 
+        const ENC_SESSION_UID_KEY = 'enc_session_uid';
+
+        function clearEncryptionSession() {
+            sessionStorage.removeItem('enc_key');
+            sessionStorage.removeItem('is_encrypted');
+            sessionStorage.removeItem('needs_enc_unlock');
+            sessionStorage.removeItem('pending_enc_salt');
+            sessionStorage.removeItem(ENC_SESSION_UID_KEY);
+        }
+
+        function redirectToEncryptionUnlock() {
+            sessionStorage.removeItem('enc_key');
+            sessionStorage.setItem('needs_enc_unlock', 'true');
+            window.location.href = 'index.html';
+        }
+
         /** Firestore is source of truth for encryption (not sessionStorage enc_key). */
         async function isAccountEncryptedInFirestore() {
             if (!currentUser || !db) return false;
@@ -4313,12 +4344,54 @@
             return data.isEncrypted === true && !!data.encryptionSalt;
         }
 
+        /**
+         * Sync session encryption flags from Firestore; redirect to index if encrypted but locked.
+         * @returns {Promise<boolean>} false if redirecting to unlock
+         */
+        async function ensureEncryptionReadyForJournal() {
+            if (!currentUser || !db) return true;
+
+            const userSnap = await db.collection('users').doc(currentUser.uid).get();
+            const data = userSnap.exists ? (userSnap.data() || {}) : {};
+            const uid = currentUser.uid;
+            const prevUid = sessionStorage.getItem(ENC_SESSION_UID_KEY);
+            const uidChanged = prevUid !== uid;
+
+            if (uidChanged) {
+                clearEncryptionSession();
+            }
+            sessionStorage.setItem(ENC_SESSION_UID_KEY, uid);
+
+            const accountEncrypted = data.isEncrypted === true && !!data.encryptionSalt;
+
+            if (!accountEncrypted) {
+                sessionStorage.removeItem('enc_key');
+                sessionStorage.removeItem('is_encrypted');
+                sessionStorage.removeItem('needs_enc_unlock');
+                sessionStorage.removeItem('pending_enc_salt');
+                return true;
+            }
+
+            sessionStorage.setItem('is_encrypted', 'true');
+            sessionStorage.setItem('pending_enc_salt', data.encryptionSalt);
+
+            if (sessionStorage.getItem('enc_key')) {
+                sessionStorage.removeItem('needs_enc_unlock');
+                return true;
+            }
+
+            sessionStorage.removeItem('enc_key');
+            sessionStorage.setItem('needs_enc_unlock', 'true');
+            redirectToEncryptionUnlock();
+            return false;
+        }
+
         /** Require unlock key only when Firestore marks the account encrypted. */
         function requireEncKeyWhenAccountEncrypted(accountEncrypted) {
             if (!accountEncrypted) return null;
             const encKey = sessionStorage.getItem('enc_key');
             if (!encKey) {
-                window.location.href = 'index.html';
+                redirectToEncryptionUnlock();
                 return null;
             }
             return encKey;
@@ -4431,6 +4504,12 @@
                     }
                 } else {
                     lastLogHistoryAuthUid = null;
+                    clearEncryptionSession();
+                }
+
+                if (user) {
+                    const encReady = await ensureEncryptionReadyForJournal();
+                    if (!encReady) return;
                 }
                 
                 // Mark auth as ready and resolve promise
@@ -5560,6 +5639,9 @@
                 return;
             }
 
+            const encryptionReady = await ensureEncryptionReadyForJournal();
+            if (!encryptionReady) return;
+
             // Locale from Firestore: user.profile.language lives on doc root (sibling to userData)
             if (db) {
                 try {
@@ -5606,6 +5688,7 @@
             if (logbogLogoutBtn && auth) {
                 logbogLogoutBtn.addEventListener('click', function() {
                     clearIdleLogoutTimers();
+                    clearEncryptionSession();
                     auth.signOut().then(function() {
                         window.location.href = 'index.html';
                     }).catch(function(err) {
