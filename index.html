@@ -1186,6 +1186,7 @@
                     <li>5-step guided journaling makes it easy to get started</li>
                     <li>Start on your phone, continue writing on the web</li>
                     <li>Secure and password protected — no tracking, no ads, no AI.</li>
+                    <li>Optional end-to-end encryption — your journal, your data</li>
                 </ul>
                 <p class="lead hero-store-lead">Get the app (Google is coming soon!):</p>
                 <div class="store-row">
@@ -1366,6 +1367,109 @@ const firebaseConfig = {
         const logoutButton = document.getElementById('logoutButton');
         let currentUser = null;
         let encryptionUnlockHandled = false;
+        let encryptionUnlockContext = null;
+
+        const INVALID_ENC_PASSWORD = 'INVALID_ENC_PASSWORD';
+
+        function parseMonthsIndexForUnlock(raw) {
+            if (!raw || typeof raw !== 'object') return {};
+            const pick = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null);
+            return (
+                pick((raw.user || {}).monthsIndex) ||
+                pick((raw.user || {}).monthIndex) ||
+                pick(raw.monthsIndex) ||
+                pick(raw.monthIndex) ||
+                pick((raw.userData || {}).monthsIndex) ||
+                pick((raw.userData || {}).monthIndex) ||
+                {}
+            );
+        }
+
+        async function ensureEncryptionUnlockContext() {
+            if (encryptionUnlockContext && encryptionUnlockContext.uid) {
+                return encryptionUnlockContext;
+            }
+            if (!currentUser || !db) {
+                throw new Error('Missing user for encryption unlock');
+            }
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            const data = userDoc.exists ? (userDoc.data() || {}) : {};
+            encryptionUnlockContext = {
+                uid: currentUser.uid,
+                encryptionVerifier: data.user && data.user.encryptionVerifier ? data.user.encryptionVerifier : null,
+                monthsIndex: parseMonthsIndexForUnlock(data),
+            };
+            return encryptionUnlockContext;
+        }
+
+        async function fetchNewestEncryptedMonthDoc(uid, monthKeysSortedDesc) {
+            if (!db || !uid || !monthKeysSortedDesc.length) return null;
+            const userDocRef = db.collection('users').doc(uid);
+            let rootData = null;
+            for (const monthKey of monthKeysSortedDesc) {
+                const monthDoc = await userDocRef.collection('months').doc(monthKey).get();
+                if (monthDoc.exists) {
+                    const data = monthDoc.data() || {};
+                    if (data.encrypted && typeof data.encrypted === 'string') return data;
+                }
+                if (!rootData) {
+                    const userSnap = await userDocRef.get();
+                    rootData = userSnap.exists ? (userSnap.data() || {}) : {};
+                }
+                const legacy = rootData[monthKey];
+                if (legacy && legacy.encrypted && typeof legacy.encrypted === 'string') return legacy;
+            }
+            return null;
+        }
+
+        async function validateDerivedEncryptionKey(cryptoKey, unlockContext) {
+            const verifier = unlockContext.encryptionVerifier;
+            if (verifier && verifier.encrypted && verifier.iv) {
+                let decoded;
+                try {
+                    decoded = await decryptMonth(verifier, cryptoKey);
+                } catch (e) {
+                    throw new Error(INVALID_ENC_PASSWORD);
+                }
+                if (!(decoded && decoded._verify === true && decoded.app === 'me-and-them')) {
+                    throw new Error(INVALID_ENC_PASSWORD);
+                }
+                return { usedMonthTest: false };
+            }
+
+            const monthKeys = Object.keys(unlockContext.monthsIndex || {})
+                .filter((k) => /^\d{4}-\d{2}$/.test(k))
+                .sort((a, b) => b.localeCompare(a));
+            if (monthKeys.length > 0) {
+                const encryptedPayload = await fetchNewestEncryptedMonthDoc(unlockContext.uid, monthKeys);
+                if (encryptedPayload) {
+                    try {
+                        await decryptMonth(encryptedPayload, cryptoKey);
+                    } catch (e) {
+                        throw new Error(INVALID_ENC_PASSWORD);
+                    }
+                    return { usedMonthTest: true };
+                }
+            }
+
+            return { usedMonthTest: false };
+        }
+
+        async function backfillEncryptionVerifier(uid, cryptoKey) {
+            const verifier = await encryptMonth({ _verify: true, app: 'me-and-them' }, cryptoKey);
+            const userDocRef = db.collection('users').doc(uid);
+            const snap = await userDocRef.get();
+            const existingUser = (snap.exists && snap.data().user) || {};
+            await userDocRef.set({
+                user: {
+                    ...existingUser,
+                    encryptionVerifier: verifier,
+                },
+            }, { merge: true });
+            if (encryptionUnlockContext && encryptionUnlockContext.uid === uid) {
+                encryptionUnlockContext.encryptionVerifier = verifier;
+            }
+        }
 
         console.log('DOM elements check:');
         console.log('loginForm:', loginForm ? 'found' : 'NOT FOUND');
@@ -1440,7 +1544,16 @@ const firebaseConfig = {
                 btn.addEventListener('click', async () => {
                     try {
                         error.style.display = 'none';
+                        btn.disabled = true;
                         const cryptoKey = await deriveKey(input.value, salt);
+                        const unlockContext = await ensureEncryptionUnlockContext();
+                        const validation = await validateDerivedEncryptionKey(cryptoKey, unlockContext);
+                        const hadVerifier = !!(unlockContext.encryptionVerifier &&
+                            unlockContext.encryptionVerifier.encrypted &&
+                            unlockContext.encryptionVerifier.iv);
+                        if (validation.usedMonthTest && !hadVerifier) {
+                            await backfillEncryptionVerifier(unlockContext.uid, cryptoKey);
+                        }
                         const rawKey = await crypto.subtle.exportKey('raw', cryptoKey);
                         const base64Key = bytesToBase64(new Uint8Array(rawKey));
                         sessionStorage.setItem('enc_key', base64Key);
@@ -1449,7 +1562,12 @@ const firebaseConfig = {
                         document.body.removeChild(overlay);
                         resolve();
                     } catch (e) {
+                        error.textContent = (e && e.message === INVALID_ENC_PASSWORD)
+                            ? 'Forkert krypteringsord. Prøv igen.'
+                            : 'Noget gik galt. Prøv igen.';
                         error.style.display = 'block';
+                    } finally {
+                        btn.disabled = false;
                     }
                 });
 
@@ -1506,6 +1624,16 @@ const firebaseConfig = {
                     if (data && data.isEncrypted === true && data.encryptionSalt) {
                         sessionStorage.setItem('pending_enc_salt', data.encryptionSalt);
                         sessionStorage.setItem('needs_enc_unlock', 'true');
+                        sessionStorage.setItem('is_encrypted', 'true');
+                        encryptionUnlockContext = {
+                            uid: user.uid,
+                            encryptionVerifier: data.user && data.user.encryptionVerifier
+                                ? data.user.encryptionVerifier
+                                : null,
+                            monthsIndex: parseMonthsIndexForUnlock(data),
+                        };
+                    } else {
+                        encryptionUnlockContext = null;
                     }
                 } else {
                     // If document doesn't exist, create empty userData with timezone

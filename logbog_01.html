@@ -2962,6 +2962,21 @@
             return hasMonthlyStructure;
         }
 
+        function getEncKeyOrRedirect() {
+            const encKey = sessionStorage.getItem('enc_key');
+            const isEncrypted = sessionStorage.getItem('is_encrypted') === 'true';
+
+            // Ikke-krypteret konto — ingen guard nødvendig
+            if (!isEncrypted) return null;
+
+            // Krypteret konto uden nøgle — send til unlock
+            if (!encKey) {
+                window.location.href = 'index.html';
+                return null;
+            }
+            return encKey;
+        }
+
         /**
          * Opdaterer kun dagbog/drømme/farve for én eksisterende dato. Opretter aldrig ny dag. Bevarer month.logbog som array eller objekt.
          */
@@ -2977,14 +2992,15 @@
 
             try {
                 if (hasMonthlyStructure) {
+                    const encKey = getEncKeyOrRedirect() ?? sessionStorage.getItem('enc_key');
+                    if (sessionStorage.getItem('is_encrypted') === 'true' && !encKey) return false;
+
                     const monthKey = dk.substring(0, 7);
                     const monthDocRef = userDocRef.collection('months').doc(monthKey);
                     const monthDoc = await monthDocRef.get();
                     const existingData = monthDoc.exists ? monthDoc.data() : {};
                     let baseData = existingData;
-                    const encKey = sessionStorage.getItem('enc_key');
                     if (existingData.encrypted && typeof existingData.encrypted === 'string') {
-                        if (!encKey) throw new Error('Encryption key not found');
                         const cryptoKey = await deriveKeyFromSession(encKey);
                         baseData = await decryptMonth(existingData, cryptoKey);
                     }
@@ -3052,14 +3068,15 @@
 
             try {
                 if (hasMonthlyStructure) {
+                    const encKey = getEncKeyOrRedirect() ?? sessionStorage.getItem('enc_key');
+                    if (sessionStorage.getItem('is_encrypted') === 'true' && !encKey) return false;
+
                     const monthKey = dk.substring(0, 7);
                     const monthDocRef = userDocRef.collection('months').doc(monthKey);
                     const monthDoc = await monthDocRef.get();
                     const existingData = monthDoc.exists ? monthDoc.data() : {};
                     let baseData = existingData;
-                    const encKey = sessionStorage.getItem('enc_key');
                     if (existingData.encrypted && typeof existingData.encrypted === 'string') {
-                        if (!encKey) throw new Error('Encryption key not found');
                         const cryptoKey = await deriveKeyFromSession(encKey);
                         baseData = await decryptMonth(existingData, cryptoKey);
                     }
@@ -4144,6 +4161,7 @@
             const logbookEntryEl = document.getElementById('logbookEntry');
             if (!logbookEntryEl) return;
             if (!isJournalFieldDirty()) return;
+            if (sessionStorage.getItem('is_encrypted') === 'true' && !getEncKeyOrRedirect()) return false;
             if (journalSaveBtn) journalSaveBtn.textContent = s.saving || 'Gemmer...';
             const ok = await saveLogbogDayPatchToFirestore(activeLogDate, { dagbog: logbookEntryEl.value });
             if (ok) {
@@ -4164,6 +4182,7 @@
             const dreamEntryEl = document.getElementById('dreamEntry');
             if (!dreamEntryEl) return;
             if (!isDreamsFieldDirty()) return;
+            if (sessionStorage.getItem('is_encrypted') === 'true' && !getEncKeyOrRedirect()) return false;
             if (dreamsSaveBtn) dreamsSaveBtn.textContent = s.saving || 'Gemmer...';
             const ok = await saveLogbogDayPatchToFirestore(activeLogDate, { dreams: dreamEntryEl.value });
             if (ok) {
@@ -5642,6 +5661,10 @@
                     recoverDownloadBtn.disabled = true;
                     setRecoverStatus('Requesting backup payload from server...');
                     try {
+                        if (sessionStorage.getItem('is_encrypted') === 'true') {
+                            const encKey = getEncKeyOrRedirect();
+                            if (!encKey) return;
+                        }
                         const res = await exportJournalCallable();
                         const payload = res && res.data ? res.data : {};
                         // Dekryptér måneder hvis nøgle findes
@@ -5688,8 +5711,8 @@
                         const text = await file.text();
                         const json = JSON.parse(text);
                         setRecoverStatus('Uploading payload to server...');
-                        // Kryptér måneder hvis nøgle findes
-                        const encKey = sessionStorage.getItem('enc_key');
+                        const encKey = getEncKeyOrRedirect() ?? sessionStorage.getItem('enc_key');
+                        if (sessionStorage.getItem('is_encrypted') === 'true' && !encKey) return;
                         if (encKey && json.months) {
                             const cryptoKey = await deriveKeyFromSession(encKey);
                             for (const monthKey of Object.keys(json.months)) {
