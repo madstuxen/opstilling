@@ -1368,6 +1368,7 @@ const firebaseConfig = {
         let currentUser = null;
         let encryptionUnlockContext = null;
         let encryptionUnlockPromise = null;
+        let afterAuthPrepareInFlight = null;
 
         const INVALID_ENC_PASSWORD = 'INVALID_ENC_PASSWORD';
         const ENC_SESSION_UID_KEY = 'enc_session_uid';
@@ -1577,26 +1578,29 @@ const firebaseConfig = {
                 sessionStorage.setItem('needs_enc_unlock', 'true');
             }
 
-            let salt = sessionStorage.getItem('pending_enc_salt');
-            if (!salt && currentUser && db) {
-                try {
-                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                    const data = userDoc.exists ? (userDoc.data() || {}) : {};
-                    if (data.encryptionSalt) {
-                        salt = data.encryptionSalt;
-                        sessionStorage.setItem('pending_enc_salt', salt);
-                        sessionStorage.setItem('is_encrypted', 'true');
-                    }
-                } catch (e) {
-                    console.warn('Could not load encryption salt:', e);
-                }
-            }
-            if (!salt) return;
             if (encryptionUnlockPromise) return encryptionUnlockPromise;
 
-            encryptionUnlockPromise = new Promise((resolve) => {
-                // Byg modal
+            encryptionUnlockPromise = (async () => {
+                let salt = sessionStorage.getItem('pending_enc_salt');
+                if (!salt && currentUser && db) {
+                    try {
+                        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                        const data = userDoc.exists ? (userDoc.data() || {}) : {};
+                        if (data.encryptionSalt) {
+                            salt = data.encryptionSalt;
+                            sessionStorage.setItem('pending_enc_salt', salt);
+                            sessionStorage.setItem('is_encrypted', 'true');
+                        }
+                    } catch (e) {
+                        console.warn('Could not load encryption salt:', e);
+                    }
+                }
+                if (!salt) return;
+
+                await new Promise((resolveModal) => {
+                document.querySelectorAll('[data-encryption-unlock-overlay]').forEach((el) => el.remove());
                 const overlay = document.createElement('div');
+                overlay.setAttribute('data-encryption-unlock-overlay', 'true');
                 overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10001';
 
                 const box = document.createElement('div');
@@ -1647,7 +1651,7 @@ const firebaseConfig = {
                             } catch (e) { /* ignore */ }
                         }
                         document.body.removeChild(overlay);
-                        resolve();
+                        resolveModal();
                     } catch (e) {
                         error.textContent = (e && e.message === INVALID_ENC_PASSWORD)
                             ? 'Forkert krypteringsord. Prøv igen.'
@@ -1674,8 +1678,14 @@ const firebaseConfig = {
                 overlay.appendChild(box);
                 document.body.appendChild(overlay);
                 input.focus();
-            });
-            return encryptionUnlockPromise;
+                });
+            })();
+
+            try {
+                await encryptionUnlockPromise;
+            } finally {
+                encryptionUnlockPromise = null;
+            }
         }
 
         // Function to load and save userData to localStorage
@@ -1739,11 +1749,21 @@ const firebaseConfig = {
         /** Load session, close login UI, then encryption unlock if needed. */
         async function afterAuthPrepareSessionAndUnlock(user) {
             if (!user) return false;
-            await loadAndSaveUserData(user);
-            if (loginForm) loginForm.reset();
-            showLoggedInSection(user);
-            await maybeShowEncryptionUnlock();
-            return sessionStorage.getItem('needs_enc_unlock') !== 'true';
+            if (afterAuthPrepareInFlight) return afterAuthPrepareInFlight;
+
+            afterAuthPrepareInFlight = (async () => {
+                try {
+                    await loadAndSaveUserData(user);
+                    if (loginForm) loginForm.reset();
+                    showLoggedInSection(user);
+                    await maybeShowEncryptionUnlock();
+                    return sessionStorage.getItem('needs_enc_unlock') !== 'true';
+                } finally {
+                    afterAuthPrepareInFlight = null;
+                }
+            })();
+
+            return afterAuthPrepareInFlight;
         }
 
         async function finishSignInAndGoToJournal(user) {
