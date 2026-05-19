@@ -4329,6 +4329,16 @@
             sessionStorage.removeItem(ENC_SESSION_UID_KEY);
         }
 
+        /** Encryption metadata lives under users/{uid}.user (app canonical). */
+        function getUserEncryptionFields(docData) {
+            const user = (docData && docData.user && typeof docData.user === 'object') ? docData.user : {};
+            return {
+                isEncrypted: user.isEncrypted === true,
+                encryptionSalt: user.encryptionSalt || null,
+                encryptionVerifier: user.encryptionVerifier || null,
+            };
+        }
+
         function redirectToEncryptionUnlock() {
             sessionStorage.removeItem('enc_key');
             sessionStorage.setItem('needs_enc_unlock', 'true');
@@ -4341,7 +4351,8 @@
             const userSnap = await db.collection('users').doc(currentUser.uid).get();
             if (!userSnap.exists) return false;
             const data = userSnap.data() || {};
-            return data.isEncrypted === true && !!data.encryptionSalt;
+            const enc = getUserEncryptionFields(data);
+            return enc.isEncrypted && !!enc.encryptionSalt;
         }
 
         /**
@@ -4362,7 +4373,8 @@
             }
             sessionStorage.setItem(ENC_SESSION_UID_KEY, uid);
 
-            const accountEncrypted = data.isEncrypted === true && !!data.encryptionSalt;
+            const enc = getUserEncryptionFields(data);
+            const accountEncrypted = enc.isEncrypted && !!enc.encryptionSalt;
 
             if (!accountEncrypted) {
                 sessionStorage.removeItem('enc_key');
@@ -4373,7 +4385,7 @@
             }
 
             sessionStorage.setItem('is_encrypted', 'true');
-            sessionStorage.setItem('pending_enc_salt', data.encryptionSalt);
+            sessionStorage.setItem('pending_enc_salt', enc.encryptionSalt);
 
             if (sessionStorage.getItem('enc_key')) {
                 sessionStorage.removeItem('needs_enc_unlock');

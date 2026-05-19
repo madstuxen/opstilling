@@ -1382,6 +1382,16 @@ const firebaseConfig = {
             encryptionUnlockPromise = null;
         }
 
+        /** Encryption metadata lives under users/{uid}.user (app canonical). */
+        function getUserEncryptionFields(docData) {
+            const user = (docData && docData.user && typeof docData.user === 'object') ? docData.user : {};
+            return {
+                isEncrypted: user.isEncrypted === true,
+                encryptionSalt: user.encryptionSalt || null,
+                encryptionVerifier: user.encryptionVerifier || null,
+            };
+        }
+
         function syncEncryptionSessionFromFirestore(user, data) {
             const uid = user.uid;
             const prevUid = sessionStorage.getItem(ENC_SESSION_UID_KEY);
@@ -1392,7 +1402,8 @@ const firebaseConfig = {
             }
             sessionStorage.setItem(ENC_SESSION_UID_KEY, uid);
 
-            const accountEncrypted = !!(data && data.isEncrypted === true && data.encryptionSalt);
+            const enc = getUserEncryptionFields(data || {});
+            const accountEncrypted = enc.isEncrypted && !!enc.encryptionSalt;
 
             if (!accountEncrypted) {
                 sessionStorage.removeItem('enc_key');
@@ -1405,12 +1416,10 @@ const firebaseConfig = {
             }
 
             sessionStorage.setItem('is_encrypted', 'true');
-            sessionStorage.setItem('pending_enc_salt', data.encryptionSalt);
+            sessionStorage.setItem('pending_enc_salt', enc.encryptionSalt);
             encryptionUnlockContext = {
                 uid,
-                encryptionVerifier: data.user && data.user.encryptionVerifier
-                    ? data.user.encryptionVerifier
-                    : null,
+                encryptionVerifier: enc.encryptionVerifier,
                 monthsIndex: parseMonthsIndexForUnlock(data),
             };
 
@@ -1446,9 +1455,10 @@ const firebaseConfig = {
             }
             const userDoc = await db.collection('users').doc(currentUser.uid).get();
             const data = userDoc.exists ? (userDoc.data() || {}) : {};
+            const enc = getUserEncryptionFields(data);
             encryptionUnlockContext = {
                 uid: currentUser.uid,
-                encryptionVerifier: data.user && data.user.encryptionVerifier ? data.user.encryptionVerifier : null,
+                encryptionVerifier: enc.encryptionVerifier,
                 monthsIndex: parseMonthsIndexForUnlock(data),
             };
             return encryptionUnlockContext;
@@ -1586,8 +1596,9 @@ const firebaseConfig = {
                     try {
                         const userDoc = await db.collection('users').doc(currentUser.uid).get();
                         const data = userDoc.exists ? (userDoc.data() || {}) : {};
-                        if (data.encryptionSalt) {
-                            salt = data.encryptionSalt;
+                        const enc = getUserEncryptionFields(data);
+                        if (enc.encryptionSalt) {
+                            salt = enc.encryptionSalt;
                             sessionStorage.setItem('pending_enc_salt', salt);
                             sessionStorage.setItem('is_encrypted', 'true');
                         }
