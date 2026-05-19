@@ -1616,13 +1616,16 @@ const firebaseConfig = {
                 error.textContent = 'Noget gik galt. Prøv igen.';
 
                 const btn = document.createElement('button');
+                btn.type = 'button';
                 btn.textContent = 'Lås op';
                 btn.style.cssText = 'background:#000;color:#fff;border:none;border-radius:8px;padding:12px;font-size:16px;cursor:pointer';
 
-                btn.addEventListener('click', async () => {
+                async function submitEncryptionUnlock() {
+                    if (btn.disabled) return;
                     try {
                         error.style.display = 'none';
                         btn.disabled = true;
+                        input.disabled = true;
                         const cryptoKey = await deriveKey(input.value, salt);
                         const unlockContext = await ensureEncryptionUnlockContext();
                         const validation = await validateDerivedEncryptionKey(cryptoKey, unlockContext);
@@ -1652,6 +1655,15 @@ const firebaseConfig = {
                         error.style.display = 'block';
                     } finally {
                         btn.disabled = false;
+                        input.disabled = false;
+                    }
+                }
+
+                btn.addEventListener('click', submitEncryptionUnlock);
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        submitEncryptionUnlock();
                     }
                 });
 
@@ -1661,6 +1673,7 @@ const firebaseConfig = {
                 box.appendChild(btn);
                 overlay.appendChild(box);
                 document.body.appendChild(overlay);
+                input.focus();
             });
             return encryptionUnlockPromise;
         }
