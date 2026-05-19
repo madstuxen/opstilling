@@ -4304,6 +4304,26 @@
             if (statusEl) statusEl.textContent = msg || '';
         }
 
+        /** Firestore is source of truth for encryption (not sessionStorage enc_key). */
+        async function isAccountEncryptedInFirestore() {
+            if (!currentUser || !db) return false;
+            const userSnap = await db.collection('users').doc(currentUser.uid).get();
+            if (!userSnap.exists) return false;
+            const data = userSnap.data() || {};
+            return data.isEncrypted === true && !!data.encryptionSalt;
+        }
+
+        /** Require unlock key only when Firestore marks the account encrypted. */
+        function requireEncKeyWhenAccountEncrypted(accountEncrypted) {
+            if (!accountEncrypted) return null;
+            const encKey = sessionStorage.getItem('enc_key');
+            if (!encKey) {
+                window.location.href = 'index.html';
+                return null;
+            }
+            return encKey;
+        }
+
         function formatFriendlyRecoverDate(isoString) {
             const date = new Date(isoString);
             if (Number.isNaN(date.getTime())) return null;
@@ -5661,15 +5681,12 @@
                     recoverDownloadBtn.disabled = true;
                     setRecoverStatus('Requesting backup payload from server...');
                     try {
-                        if (sessionStorage.getItem('is_encrypted') === 'true') {
-                            const encKey = getEncKeyOrRedirect();
-                            if (!encKey) return;
-                        }
+                        const accountEncrypted = await isAccountEncryptedInFirestore();
+                        const encKey = requireEncKeyWhenAccountEncrypted(accountEncrypted);
+                        if (accountEncrypted && !encKey) return;
                         const res = await exportJournalCallable();
                         const payload = res && res.data ? res.data : {};
-                        // Dekryptér måneder hvis nøgle findes
-                        const encKey = sessionStorage.getItem('enc_key');
-                        if (encKey && payload.months) {
+                        if (accountEncrypted && encKey && payload.months) {
                             const cryptoKey = await deriveKeyFromSession(encKey);
                             for (const monthKey of Object.keys(payload.months)) {
                                 const month = payload.months[monthKey];
@@ -5711,9 +5728,10 @@
                         const text = await file.text();
                         const json = JSON.parse(text);
                         setRecoverStatus('Uploading payload to server...');
-                        const encKey = getEncKeyOrRedirect() ?? sessionStorage.getItem('enc_key');
-                        if (sessionStorage.getItem('is_encrypted') === 'true' && !encKey) return;
-                        if (encKey && json.months) {
+                        const accountEncrypted = await isAccountEncryptedInFirestore();
+                        const encKey = requireEncKeyWhenAccountEncrypted(accountEncrypted);
+                        if (accountEncrypted && !encKey) return;
+                        if (accountEncrypted && encKey && json.months) {
                             const cryptoKey = await deriveKeyFromSession(encKey);
                             for (const monthKey of Object.keys(json.months)) {
                                 const month = json.months[monthKey];
