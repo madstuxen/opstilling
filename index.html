@@ -1597,7 +1597,7 @@ const firebaseConfig = {
             encryptionUnlockPromise = new Promise((resolve) => {
                 // Byg modal
                 const overlay = document.createElement('div');
-                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999';
+                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10001';
 
                 const box = document.createElement('div');
                 box.style.cssText = 'background:#fff;border-radius:12px;padding:32px;max-width:360px;width:90%;display:flex;flex-direction:column;gap:16px';
@@ -1723,15 +1723,24 @@ const firebaseConfig = {
             }
         }
 
+        /** Load session, close login UI, then encryption unlock if needed. */
+        async function afterAuthPrepareSessionAndUnlock(user) {
+            if (!user) return false;
+            await loadAndSaveUserData(user);
+            if (loginForm) loginForm.reset();
+            showLoggedInSection(user);
+            await maybeShowEncryptionUnlock();
+            return sessionStorage.getItem('needs_enc_unlock') !== 'true';
+        }
+
         async function finishSignInAndGoToJournal(user) {
             if (!user) return;
             currentUser = user;
             saveGlobalFirestoreToggle(true);
-            await loadAndSaveUserData(user);
-            await maybeShowEncryptionUnlock();
-            if (loginForm) loginForm.reset();
-            closeLoginEntryOverlay();
-            window.location.href = 'logbog_01.html';
+            const canOpenJournal = await afterAuthPrepareSessionAndUnlock(user);
+            if (canOpenJournal) {
+                window.location.href = 'logbog_01.html';
+            }
         }
 
         // getRedirectResult — midlertidigt udkommenteret til test (redirect-flow bruges ikke med signInWithPopup)
@@ -1751,10 +1760,7 @@ const firebaseConfig = {
                 currentUser = user;
                 // Set global_useFirestore to true when user logs in
                 saveGlobalFirestoreToggle(true);
-                // Load and save userData to localStorage to ensure displayName and You are set
-                await loadAndSaveUserData(user);
-                await maybeShowEncryptionUnlock();
-                showLoggedInSection(user);
+                await afterAuthPrepareSessionAndUnlock(user);
             } else {
                 console.log('User is not logged in, showing login form');
                 currentUser = null;
@@ -1779,8 +1785,7 @@ const firebaseConfig = {
                 waited += 100;
             }
             if (!currentUser) return;
-            await loadAndSaveUserData(currentUser);
-            await maybeShowEncryptionUnlock();
+            await afterAuthPrepareSessionAndUnlock(currentUser);
         }
 
         function showAuthErrorInOverlay(err) {
@@ -1888,9 +1893,10 @@ const firebaseConfig = {
                     openLoginEntryOverlay();
                     return;
                 }
-                await loadAndSaveUserData(currentUser);
-                await maybeShowEncryptionUnlock();
-                window.location.href = 'logbog_01.html';
+                const canOpenJournal = await afterAuthPrepareSessionAndUnlock(currentUser);
+                if (canOpenJournal) {
+                    window.location.href = 'logbog_01.html';
+                }
             });
         }
         
