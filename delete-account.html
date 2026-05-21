@@ -33,6 +33,22 @@
         }
         .site-nav a:hover { color: #fff; text-decoration: underline; }
         .site-nav .brand { font-weight: 700; margin-right: auto; }
+        .site-nav-logo-link {
+            display: block;
+            line-height: 0;
+            text-decoration: none;
+        }
+        .site-nav-logo-link:hover {
+            text-decoration: none;
+            opacity: 0.9;
+        }
+        .site-nav-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            object-fit: cover;
+            display: block;
+        }
         main {
             flex: 1;
             max-width: 720px;
@@ -57,6 +73,9 @@
 </head>
 <body>
     <nav class="site-nav" aria-label="Main">
+        <a class="site-nav-logo-link" href="index.html" aria-label="Home">
+            <img class="site-nav-logo" src="imagefiles/ios-light.png" alt="" width="48" height="48" decoding="async">
+        </a>
         <a class="brand" href="index.html">Journal App</a>
         <a href="index.html">Home</a>
         <a href="blog.html">Blog</a>
