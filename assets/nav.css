@@ -1,3 +1,14 @@
+.site-header-logo-link {
+    display: block;
+    line-height: 0;
+    text-decoration: none;
+}
+
+.site-header-logo-link:hover {
+    text-decoration: none;
+    opacity: 0.9;
+}
+
 .site-header {
     position: sticky;
     top: 0;

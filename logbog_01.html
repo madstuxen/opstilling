@@ -77,6 +77,17 @@
             display: block;
         }
 
+        .site-header-logo-link {
+            display: block;
+            line-height: 0;
+            text-decoration: none;
+        }
+
+        .site-header-logo-link:hover {
+            text-decoration: none;
+            opacity: 0.9;
+        }
+
         .site-header .brand {
             font-weight: 700;
             color: #fff;
@@ -1679,7 +1690,9 @@
     <div class="container">
         <header class="site-header">
             <div class="site-header-left">
-                <img class="site-header-logo" src="imagefiles/ios-light.png" alt="Journal App logo" width="32" height="32" decoding="async">
+                <a class="site-header-logo-link" href="index.html" aria-label="Home">
+                    <img class="site-header-logo" src="imagefiles/ios-light.png" alt="" width="32" height="32" decoding="async">
+                </a>
                 <span class="brand">Journal App</span>
                 <span class="header-divider" aria-hidden="true"></span>
                 <a href="index.html">Home</a>
