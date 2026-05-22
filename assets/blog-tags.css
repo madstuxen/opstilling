@@ -1,0 +1,56 @@
+.blog-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.86rem;
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    padding: 3px 10px;
+}
+
+.blog-tag[data-tag="Journaling"] {
+    color: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.blog-tag[data-tag="App"] {
+    color: #1f1308;
+    background: #fdba74;
+}
+
+.blog-tag[data-tag="Dialogue"] {
+    color: #1f1308;
+    background: #93c5fd;
+}
+
+.blog-tag[data-tag="Constellation"] {
+    color: #1f1308;
+    background: #86efac;
+}
+
+.blog-tag[data-tag="BodyScan"] {
+    color: #1f1308;
+    background: #f9a8d4;
+}
+
+.blog-tag[data-tag="Mirroring"] {
+    color: #1f1308;
+    background: #c4b5fd;
+}
+
+.blog-tag[data-tag="App"] .blog-tag-remove,
+.blog-tag[data-tag="Dialogue"] .blog-tag-remove,
+.blog-tag[data-tag="Constellation"] .blog-tag-remove,
+.blog-tag[data-tag="BodyScan"] .blog-tag-remove,
+.blog-tag[data-tag="Mirroring"] .blog-tag-remove {
+    color: rgba(31, 19, 8, 0.72);
+}
+
+.blog-tag[data-tag="App"] .blog-tag-remove:hover,
+.blog-tag[data-tag="Dialogue"] .blog-tag-remove:hover,
+.blog-tag[data-tag="Constellation"] .blog-tag-remove:hover,
+.blog-tag[data-tag="BodyScan"] .blog-tag-remove:hover,
+.blog-tag[data-tag="Mirroring"] .blog-tag-remove:hover {
+    color: #1f1308;
+}

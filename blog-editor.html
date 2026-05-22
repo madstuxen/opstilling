@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Blog Editor</title>
+    <link rel="stylesheet" href="assets/blog-tags.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -139,6 +140,83 @@
             border-radius: 12px;
             padding: 14px;
         }
+        .blog-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+            margin-bottom: 12px;
+        }
+        .blog-tag-remove {
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.85);
+            cursor: pointer;
+            font-size: 0.95rem;
+            line-height: 1;
+            padding: 0;
+        }
+        .blog-tag-remove:hover { color: #fff; }
+        .tag-picker-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+        .tag-add-wrap { position: relative; }
+        .tag-add-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            background: rgba(0, 0, 0, 0.18);
+            color: #fff;
+            font-size: 1.2rem;
+            line-height: 1;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .tag-add-btn:hover { background: rgba(255, 255, 255, 0.14); }
+        .tag-add-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .tag-add-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            z-index: 5;
+            min-width: 160px;
+            list-style: none;
+            margin: 0;
+            padding: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: #4a3220;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+        }
+        .tag-add-menu button {
+            width: 100%;
+            text-align: left;
+            border: none;
+            background: transparent;
+            color: #fff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            cursor: pointer;
+            font-size: 0.92rem;
+        }
+        .tag-add-menu button:hover { background: rgba(255, 255, 255, 0.12); }
+        .link-type-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+            margin-bottom: 0;
+            cursor: pointer;
+        }
+        .link-type-row input { width: auto; }
         @media (max-width: 800px) {
             .grid-2, .date-grid { grid-template-columns: 1fr; }
             .blog-image { max-width: 100%; }
@@ -168,6 +246,17 @@
                         <input id="yearInput" type="text" inputmode="numeric" maxlength="4" placeholder="2026" />
                         <input id="dayInput" type="text" inputmode="numeric" maxlength="2" placeholder="01" />
                         <select id="monthInput"></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tag-section" style="margin-top:12px;">
+                <label>Tags</label>
+                <div id="tagPickerRow" class="tag-picker-row">
+                    <div id="selectedTagsWrap" class="blog-meta" style="margin-bottom:0;"></div>
+                    <div class="tag-add-wrap">
+                        <button id="tagAddBtn" type="button" class="tag-add-btn" aria-label="Tilfoej tag" aria-expanded="false">+</button>
+                        <ul id="tagAddMenu" class="tag-add-menu hidden" role="listbox" aria-label="Tilgaengelige tags"></ul>
                     </div>
                 </div>
             </div>
@@ -213,14 +302,25 @@
                 <textarea id="textCInput" placeholder="Skriv tekst C"></textarea>
             </div>
 
+            <div style="margin-top:12px;">
+                <label class="link-type-row">
+                    <input id="linkExternalCheckbox" type="checkbox" checked />
+                    Eksternt link
+                </label>
+            </div>
+
             <div class="grid-2" style="margin-top:12px;">
                 <div>
                     <label for="linkNavnInput">Link navn</label>
-                    <input id="linkNavnInput" type="text" placeholder="Fx Mads's hjemmeside" autocomplete="off" />
+                    <input id="linkNavnInput" type="text" placeholder="Fx Journal metaphor" autocomplete="off" />
                 </div>
-                <div>
+                <div id="linkExternalWrap">
                     <label for="linkWebInput">Web adresse</label>
                     <input id="linkWebInput" type="text" placeholder="www.eksempel.dk eller https://..." autocomplete="off" />
+                </div>
+                <div id="linkInternalWrap" class="hidden">
+                    <label for="linkPostSelect">Blog-post</label>
+                    <select id="linkPostSelect"></select>
                 </div>
             </div>
 
@@ -242,6 +342,7 @@
         </section>
     </div>
 
+    <script src="assets/blog-tags.js"></script>
     <script>
         (() => {
             const monthNames = ["january","february","march","april","may","june","july","august","september","october","november","december"];
@@ -264,6 +365,10 @@
             const textCInput = document.getElementById("textCInput");
             const linkNavnInput = document.getElementById("linkNavnInput");
             const linkWebInput = document.getElementById("linkWebInput");
+            const linkExternalCheckbox = document.getElementById("linkExternalCheckbox");
+            const linkExternalWrap = document.getElementById("linkExternalWrap");
+            const linkInternalWrap = document.getElementById("linkInternalWrap");
+            const linkPostSelect = document.getElementById("linkPostSelect");
 
             const pickerA = document.getElementById("pickerA");
             const pickerB = document.getElementById("pickerB");
@@ -279,8 +384,12 @@
             const scaleBVal = document.getElementById("scaleBVal");
             const removeImageABtn = document.getElementById("removeImageABtn");
             const removeImageBBtn = document.getElementById("removeImageBBtn");
+            const selectedTagsWrap = document.getElementById("selectedTagsWrap");
+            const tagAddBtn = document.getElementById("tagAddBtn");
+            const tagAddMenu = document.getElementById("tagAddMenu");
 
             let blogsRaw = [];
+            let selectedTags = [];
             let selectedFileA = null;
             let selectedFileB = null;
             let existingImageAName = null;
@@ -288,6 +397,108 @@
             let editingId = null;
             let previewADataUrl = null;
             let previewBDataUrl = null;
+
+            function normalizeEditorTags(raw) {
+                const allowed = new Set(window.BLOG_TAGS || []);
+                const input = Array.isArray(raw) ? raw : [];
+                const seen = new Set();
+                const normalized = [];
+                (window.BLOG_TAGS || []).forEach((tag) => {
+                    if (input.includes(tag) && !seen.has(tag)) {
+                        seen.add(tag);
+                        normalized.push(tag);
+                    }
+                });
+                input.forEach((tag) => {
+                    if (allowed.has(tag) && !seen.has(tag)) {
+                        seen.add(tag);
+                        normalized.push(tag);
+                    }
+                });
+                return normalized;
+            }
+
+            function closeTagMenu() {
+                tagAddMenu.classList.add("hidden");
+                tagAddBtn.setAttribute("aria-expanded", "false");
+            }
+
+            function openTagMenu() {
+                const available = (window.BLOG_TAGS || []).filter((tag) => !selectedTags.includes(tag));
+                if (!available.length) return;
+                tagAddMenu.innerHTML = "";
+                available.forEach((tag) => {
+                    const li = document.createElement("li");
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.textContent = tag;
+                    btn.addEventListener("click", () => {
+                        selectedTags = normalizeEditorTags(selectedTags.concat(tag));
+                        renderSelectedTags();
+                        closeTagMenu();
+                    });
+                    li.appendChild(btn);
+                    tagAddMenu.appendChild(li);
+                });
+                tagAddMenu.classList.remove("hidden");
+                tagAddBtn.setAttribute("aria-expanded", "true");
+            }
+
+            function renderSelectedTags() {
+                selectedTagsWrap.innerHTML = "";
+                selectedTags.forEach((tag) => {
+                    const pill = document.createElement("span");
+                    pill.className = "blog-tag";
+                    pill.setAttribute("data-tag", tag);
+                    pill.appendChild(document.createTextNode(tag));
+
+                    const removeBtn = document.createElement("button");
+                    removeBtn.type = "button";
+                    removeBtn.className = "blog-tag-remove";
+                    removeBtn.setAttribute("aria-label", `Fjern tag ${tag}`);
+                    removeBtn.textContent = "×";
+                    removeBtn.addEventListener("click", () => {
+                        selectedTags = selectedTags.filter((entry) => entry !== tag);
+                        renderSelectedTags();
+                    });
+                    pill.appendChild(removeBtn);
+                    selectedTagsWrap.appendChild(pill);
+                });
+
+                const availableCount = (window.BLOG_TAGS || []).filter((tag) => !selectedTags.includes(tag)).length;
+                tagAddBtn.disabled = availableCount === 0;
+            }
+
+            function updateLinkFieldsVisibility() {
+                const isExternal = linkExternalCheckbox.checked;
+                linkExternalWrap.classList.toggle("hidden", !isExternal);
+                linkInternalWrap.classList.toggle("hidden", isExternal);
+            }
+
+            function populateLinkPostSelect(excludeId) {
+                linkPostSelect.innerHTML = "";
+                const placeholder = document.createElement("option");
+                placeholder.value = "";
+                placeholder.textContent = "Vaelg blog-post";
+                linkPostSelect.appendChild(placeholder);
+
+                sortPostsDescending(blogsRaw).forEach(({ post }) => {
+                    if (!post || !post.id || post.id === excludeId) return;
+                    const option = document.createElement("option");
+                    option.value = post.id;
+                    const title = String(post.titel || post.id).trim();
+                    const date = String(post.dato || "").trim();
+                    option.textContent = date ? `${title} (${date})` : title;
+                    linkPostSelect.appendChild(option);
+                });
+            }
+
+            function getInternalLinkLabel(post, targetPostId) {
+                const name = String(post.linkNavn || "").trim();
+                if (name) return name;
+                const target = blogsRaw.find((entry) => entry && entry.id === targetPostId);
+                return target ? String(target.titel || targetPostId) : targetPostId;
+            }
 
             function todayParts() {
                 const now = new Date();
@@ -395,6 +606,10 @@
                 textCInput.value = "";
                 linkNavnInput.value = "";
                 linkWebInput.value = "";
+                linkExternalCheckbox.checked = true;
+                linkPostSelect.value = "";
+                populateLinkPostSelect(null);
+                updateLinkFieldsVisibility();
                 selectedFileA = null;
                 selectedFileB = null;
                 existingImageAName = null;
@@ -416,6 +631,9 @@
                 if (monthInput.value !== parts.month) {
                     monthInput.selectedIndex = Math.max(0, monthNames.indexOf(parts.month));
                 }
+                selectedTags = [];
+                renderSelectedTags();
+                closeTagMenu();
                 setMode(null);
                 updatePreviews();
             }
@@ -444,7 +662,12 @@
                 textCInput.value = String(sectionValue(post, "Ctekst") || "");
 
                 linkNavnInput.value = String(post.linkNavn || "");
-                linkWebInput.value = String(post.linkUrl || "");
+                const isExternal = post.linkType !== "internal";
+                linkExternalCheckbox.checked = isExternal;
+                linkWebInput.value = isExternal ? String(post.linkUrl || "") : "";
+                populateLinkPostSelect(post.id);
+                linkPostSelect.value = isExternal ? "" : String(post.linkPostId || "");
+                updateLinkFieldsVisibility();
 
                 existingImageAName = sectionValue(post, "Abillede");
                 existingImageBName = sectionValue(post, "Bbillede");
@@ -464,6 +687,9 @@
                 fileBName.textContent = existingImageBName ? `Eksisterende: ${existingImageBName}` : "Klik for at vaelge fil";
                 previewADataUrl = existingImageAName ? `blog/images_blog/${existingImageAName}` : null;
                 previewBDataUrl = existingImageBName ? `blog/images_blog/${existingImageBName}` : null;
+                selectedTags = normalizeEditorTags(post.tags || []);
+                renderSelectedTags();
+                closeTagMenu();
                 updatePreviews();
                 updateImageRemoveButtons();
                 statusText.textContent = "";
@@ -556,9 +782,16 @@
             }
 
             function renderPostLink(parent, post) {
-                const href = normalizeBlogUrl(post.linkUrl);
-                if (!href) return;
                 const name = String(post.linkNavn || "").trim();
+                const isInternal = post.linkType === "internal";
+                const internalId = String(post.linkPostId || "").trim();
+                const externalHref = normalizeBlogUrl(post.linkUrl);
+                if (isInternal) {
+                    if (!internalId) return;
+                } else if (!externalHref) {
+                    return;
+                }
+
                 const wrap = document.createElement("div");
                 wrap.className = "blog-post-link";
                 const p1 = document.createElement("p");
@@ -567,10 +800,16 @@
                 const p2 = document.createElement("p");
                 p2.className = "blog-post-link-line";
                 const a = document.createElement("a");
-                a.href = href;
-                a.target = "_blank";
-                a.rel = "noopener noreferrer";
-                a.textContent = linkSecondaryLabel(href);
+                if (isInternal) {
+                    a.href = `#${internalId}`;
+                    a.className = "blog-post-link-internal";
+                    a.textContent = getInternalLinkLabel(post, internalId);
+                } else {
+                    a.href = externalHref;
+                    a.target = "_blank";
+                    a.rel = "noopener noreferrer";
+                    a.textContent = linkSecondaryLabel(externalHref);
+                }
                 p2.appendChild(a);
                 wrap.appendChild(p1);
                 wrap.appendChild(p2);
@@ -600,6 +839,7 @@
                     if (!response.ok) throw new Error(data.error || "Kunne ikke slette blog");
                     blogsRaw = Array.isArray(data.blogs) ? data.blogs : [];
                     renderPosts(blogsRaw);
+                    populateLinkPostSelect(editingId);
                     if (editingId === postId) clearFormToNew();
                     statusText.textContent = "Blog slettet.";
                 } catch (err) {
@@ -626,12 +866,23 @@
                     const h = document.createElement("h3");
                     h.textContent = post.titel || `Blog ${displayIndex + 1}`;
                     titleWrap.appendChild(h);
+
+                    const meta = document.createElement("div");
+                    meta.className = "blog-meta";
                     if (post.dato) {
                         const chip = document.createElement("span");
                         chip.className = "blog-date";
                         chip.textContent = post.dato;
-                        titleWrap.appendChild(chip);
+                        meta.appendChild(chip);
                     }
+                    normalizeEditorTags(post.tags || []).forEach((tag) => {
+                        const pill = document.createElement("span");
+                        pill.className = "blog-tag";
+                        pill.setAttribute("data-tag", tag);
+                        pill.textContent = tag;
+                        meta.appendChild(pill);
+                    });
+                    if (meta.childElementCount) titleWrap.appendChild(meta);
 
                     const actions = document.createElement("div");
                     actions.className = "post-actions";
@@ -673,6 +924,7 @@
                 if (!response.ok) throw new Error(data.error || "Kunne ikke hente blogs");
                 blogsRaw = Array.isArray(data.blogs) ? data.blogs : [];
                 renderPosts(blogsRaw);
+                populateLinkPostSelect(editingId);
             }
 
             async function buildPayload() {
@@ -701,7 +953,10 @@
                     textB,
                     textC,
                     linkNavn: linkNavnInput.value.trim(),
-                    linkUrl: linkWebInput.value.trim(),
+                    linkType: linkExternalCheckbox.checked ? "external" : "internal",
+                    linkUrl: linkExternalCheckbox.checked ? linkWebInput.value.trim() : "",
+                    linkPostId: linkExternalCheckbox.checked ? "" : linkPostSelect.value.trim(),
+                    tags: selectedTags,
                     imageAScale: normalizeScale(scaleA.value),
                     imageBScale: normalizeScale(scaleB.value),
                     existingImageAName,
@@ -727,6 +982,7 @@
                     if (!response.ok) throw new Error(data.error || "Kunne ikke gemme ny blog");
                     blogsRaw = Array.isArray(data.blogs) ? data.blogs : [];
                     renderPosts(blogsRaw);
+                    populateLinkPostSelect(editingId);
                     clearFormToNew();
                     statusText.textContent = wasEditing ? "Ny kopi gemt." : "Blog gemt.";
                 } catch (err) {
@@ -820,6 +1076,17 @@
                 if (editingId !== null) deletePost(editingId);
             });
             cancelEditBtn.addEventListener("click", () => clearFormToNew());
+            linkExternalCheckbox.addEventListener("change", updateLinkFieldsVisibility);
+            tagAddBtn.addEventListener("click", (event) => {
+                event.stopPropagation();
+                if (tagAddMenu.classList.contains("hidden")) openTagMenu();
+                else closeTagMenu();
+            });
+            document.addEventListener("click", (event) => {
+                if (!tagAddMenu.classList.contains("hidden") && !event.target.closest(".tag-add-wrap")) {
+                    closeTagMenu();
+                }
+            });
             removeImageABtn.addEventListener("click", removeImageA);
             removeImageBBtn.addEventListener("click", removeImageB);
 
@@ -848,6 +1115,9 @@
             document.querySelectorAll(".scale-row, .picker-tools, .picker-preview").forEach(preventPickerOpenOnControl);
 
             populateMonthSelect();
+            populateLinkPostSelect(null);
+            updateLinkFieldsVisibility();
+            renderSelectedTags();
             clearFormToNew();
             loadBlogs().catch((err) => {
                 blogList.innerHTML = `<p class="status-msg">Kunne ikke hente blogs: ${err.message || "ukendt fejl"}</p>`;

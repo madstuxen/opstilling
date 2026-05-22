@@ -12,6 +12,7 @@ const POSTS_START = "<!-- BLOG_POSTS_START -->";
 const POSTS_END = "<!-- BLOG_POSTS_END -->";
 const ALLOWED_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif"]);
 const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/gif"]);
+const { BLOG_TAGS } = require("./assets/blog-tags.js");
 
 const MONTH_NAMES = [
   "january", "february", "march", "april", "may", "june",
@@ -49,6 +50,48 @@ function escapeAttr(raw) {
 
 function stripTags(raw) {
   return String(raw ?? "").replace(/<[^>]*>/g, "");
+}
+
+function normalizeTags(raw) {
+  const allowed = new Set(BLOG_TAGS);
+  const input = Array.isArray(raw)
+    ? raw
+    : String(raw ?? "")
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+  const seen = new Set();
+  const normalized = [];
+  BLOG_TAGS.forEach((tag) => {
+    if (input.includes(tag) && !seen.has(tag)) {
+      seen.add(tag);
+      normalized.push(tag);
+    }
+  });
+  input.forEach((tag) => {
+    if (allowed.has(tag) && !seen.has(tag)) {
+      seen.add(tag);
+      normalized.push(tag);
+    }
+  });
+  return normalized;
+}
+
+function parseTagsFromArticle(openTag, articleHtml) {
+  const attrTags = attrFromArticle(openTag, "data-tags");
+  if (attrTags) return normalizeTags(attrTags.split(","));
+  const tagMatches = Array.from(articleHtml.matchAll(/<span class="blog-tag"[^>]*data-tag="([^"]+)"[^>]*>/gi));
+  if (tagMatches.length) {
+    return normalizeTags(tagMatches.map((match) => match[1]));
+  }
+  return [];
+}
+
+function buildTagSpans(tags) {
+  return normalizeTags(tags).map((tag) =>
+    `                                <span class="blog-tag" data-tag="${escapeAttr(tag)}">${escapeHtml(tag)}</span>`
+  ).join("\n");
 }
 
 function sanitizeBaseName(name) {
@@ -136,6 +179,43 @@ function linkSecondaryLabel(canonicalHref) {
   } catch {
     return canonicalHref;
   }
+}
+
+function parseInternalPostIdFromHref(rawHref) {
+  const href = String(rawHref ?? "").trim();
+  if (!href) return null;
+  if (/^#post-[a-z0-9-]+$/i.test(href)) return href.slice(1);
+  const hashMatch = href.match(/#(post-[a-z0-9-]+)$/i);
+  if (hashMatch) return hashMatch[1];
+  return null;
+}
+
+function parseLinkFromArticle(articleHtml) {
+  const linkBlockMatch = articleHtml.match(/<div class="blog-post-link">[\s\S]*?<\/div>/i);
+  if (!linkBlockMatch) return null;
+  const block = linkBlockMatch[0];
+  const anchorMatch = block.match(/<a\b([^>]*)>([\s\S]*?)<\/a>/i);
+  if (!anchorMatch) return null;
+  const attrs = anchorMatch[1];
+  const hrefMatch = attrs.match(/href="([^"]+)"/i);
+  if (!hrefMatch) return null;
+  const href = hrefMatch[1].trim();
+  const internalId = parseInternalPostIdFromHref(href);
+  if (internalId || /class="[^"]*blog-post-link-internal/i.test(attrs)) {
+    const postId = internalId || parseInternalPostIdFromHref(href);
+    if (postId) return { linkType: "internal", linkPostId: postId };
+  }
+  const url = normalizeBlogUrl(href);
+  if (url) return { linkType: "external", linkUrl: url };
+  return null;
+}
+
+function postsByIdFromList(posts) {
+  const map = new Map();
+  (Array.isArray(posts) ? posts : []).forEach((post) => {
+    if (post && post.id) map.set(post.id, post);
+  });
+  return map;
 }
 
 function collectRequestBody(req) {
@@ -264,21 +344,33 @@ function parsePostFromArticle(articleHtml, fallbackIndex) {
   const imageBScale = imgMatches[1] ? parseScaleFromImgTag(imgMatches[1][0]) : 1;
 
   const dato = (dateChipMatch ? stripTags(dateChipMatch[1]) : dateAttr || "").trim();
+  const tags = parseTagsFromArticle(openTag, articleHtml);
   const post = {
     id,
     titel: (titleMatch ? stripTags(titleMatch[1]) : "").trim(),
     dato,
+    tags,
     sektioner: [{ Atekst: textA }]
   };
   if (imageAName) post.sektioner.push({ Abillede: imageAName, AbilledeScale: imageAScale });
   post.sektioner.push({ Btekst: textB });
   if (imageBName) post.sektioner.push({ Bbillede: imageBName, BbilledeScale: imageBScale });
   post.sektioner.push({ Ctekst: textC });
-  if (linkAnchorMatch && linkAnchorMatch[1]) {
-    post.linkUrl = linkAnchorMatch[1].trim();
-  }
+  const linkInfo = parseLinkFromArticle(articleHtml);
   if (linkNameMatch && linkNameMatch[1]) {
     post.linkNavn = stripTags(linkNameMatch[1]).trim();
+  }
+  if (linkInfo) {
+    if (linkInfo.linkType === "internal") {
+      post.linkType = "internal";
+      post.linkPostId = linkInfo.linkPostId;
+    } else {
+      post.linkType = "external";
+      post.linkUrl = linkInfo.linkUrl;
+    }
+  } else if (linkAnchorMatch && linkAnchorMatch[1]) {
+    post.linkType = "external";
+    post.linkUrl = linkAnchorMatch[1].trim();
   }
   return post;
 }
@@ -303,11 +395,26 @@ function buildImageTag(fileName, alignClass, altText, scale) {
   return `                            <img class="blog-image ${alignClass}" src="blog/images_blog/${escapeAttr(fileName)}" alt="${escapeAttr(altText)}" loading="lazy" decoding="async" style="max-width:min(${Math.round(460 * normalizedScale)}px, ${Math.round(60 * normalizedScale)}%);">`;
 }
 
-function buildLinkBlock(post) {
-  const href = normalizeBlogUrl(post.linkUrl);
-  if (!href) return "";
+function buildLinkBlock(post, postsById) {
   const name = String(post.linkNavn || "").trim();
   const label = name ? `Link: ${escapeHtml(name)}` : "Link:";
+  const linkType = post.linkType === "internal" ? "internal" : "external";
+
+  if (linkType === "internal") {
+    const postId = String(post.linkPostId || "").trim();
+    if (!postId || !/^post-[a-z0-9-]+$/i.test(postId)) return "";
+    const targetPost = postsById.get(postId);
+    const secondary = escapeHtml(name || (targetPost && targetPost.titel) || postId);
+    return [
+      '                            <div class="blog-post-link">',
+      `                                <p class="blog-post-link-line">${label}</p>`,
+      `                                <p class="blog-post-link-line"><a href="#${escapeAttr(postId)}" class="blog-post-link-internal">${secondary}</a></p>`,
+      "                            </div>"
+    ].join("\n");
+  }
+
+  const href = normalizeBlogUrl(post.linkUrl);
+  if (!href) return "";
   const secondary = escapeHtml(linkSecondaryLabel(href));
   return [
     '                            <div class="blog-post-link">',
@@ -327,7 +434,7 @@ function sectionValue(post, key) {
   return null;
 }
 
-function buildArticleHtml(post, index) {
+function buildArticleHtml(post, index, postsById) {
   const title = String(post.titel || "").trim() || `Blog ${index + 1}`;
   const safeDate = parseDateFromDatoString(post.dato) || parseDateFromDatoString(post.dataDate) || "";
   const postId = String(post.id || post.postId || "").trim() || `post-${slugify(title, `post-${index + 1}`)}`;
@@ -338,11 +445,17 @@ function buildArticleHtml(post, index) {
   const imageBName = sectionValue(post, "Bbillede");
   const imageAScale = clampScale(sectionValue(post, "AbilledeScale"));
   const imageBScale = clampScale(sectionValue(post, "BbilledeScale"));
+  const tags = normalizeTags(post.tags);
+  const tagsAttr = tags.join(",");
+  const tagSpans = buildTagSpans(tags);
 
   const lines = [
-    `                        <article class="blog-post" id="${escapeAttr(postId)}" data-post-id="${escapeAttr(postId)}" data-date="${escapeAttr(safeDate)}">`,
+    `                        <article class="blog-post" id="${escapeAttr(postId)}" data-post-id="${escapeAttr(postId)}" data-date="${escapeAttr(safeDate)}" data-tags="${escapeAttr(tagsAttr)}">`,
     `                            <h2>${escapeHtml(title)}</h2>`,
-    `                            <span class="blog-date">${escapeHtml(safeDate)}</span>`,
+    "                            <div class=\"blog-meta\">",
+    `                                <span class="blog-date">${escapeHtml(safeDate)}</span>`,
+    tagSpans,
+    "                            </div>",
     `                            <p>${escapeHtml(textA)}</p>`
   ];
 
@@ -352,7 +465,7 @@ function buildArticleHtml(post, index) {
   const imageB = buildImageTag(imageBName, "blog-image-right", `${title} billede 2`, imageBScale);
   if (imageB) lines.push(imageB);
   lines.push(`                            <p>${escapeHtml(textC)}</p>`);
-  const linkBlock = buildLinkBlock(post);
+  const linkBlock = buildLinkBlock(post, postsById);
   if (linkBlock) lines.push(linkBlock);
   lines.push("                        </article>");
   return lines.join("\n");
@@ -360,7 +473,8 @@ function buildArticleHtml(post, index) {
 
 function replacePostRegion(html, posts) {
   const { before, after } = getPostsRegion(html);
-  const renderedPosts = posts.map((post, index) => buildArticleHtml(post, index)).join("\n\n");
+  const postsById = postsByIdFromList(posts);
+  const renderedPosts = posts.map((post, index) => buildArticleHtml(post, index, postsById)).join("\n\n");
   return `${before}\n${renderedPosts}\n                        ${after}`;
 }
 
@@ -378,7 +492,7 @@ async function mutatePosts(mutator) {
   return nextPosts;
 }
 
-function payloadToPost(body, fallbackId) {
+function payloadToPost(body, fallbackId, allPosts = []) {
   const title = String(body.title || "").trim();
   const textA = String(body.textA || "");
   const textB = String(body.textB || "");
@@ -405,10 +519,30 @@ function payloadToPost(body, fallbackId) {
   if (imageBName) post.sektioner.push({ Bbillede: imageBName, BbilledeScale: imageBScale });
   post.sektioner.push({ Ctekst: textC });
 
-  const linkUrl = normalizeBlogUrl(body.linkUrl);
   const linkNavn = String(body.linkNavn || "").trim();
-  if (linkUrl) post.linkUrl = linkUrl;
-  if (linkNavn) post.linkNavn = linkNavn;
+  const linkType = body.linkType === "internal" ? "internal" : "external";
+  if (linkType === "internal") {
+    const linkPostId = String(body.linkPostId || "").trim();
+    if (linkPostId) {
+      if (linkPostId === postId) {
+        throw new Error("Internt link kan ikke pege pa samme post");
+      }
+      if (allPosts.length && !allPosts.some((entry) => entry && entry.id === linkPostId)) {
+        throw new Error("Valgt blog-post findes ikke");
+      }
+      post.linkType = "internal";
+      post.linkPostId = linkPostId;
+      if (linkNavn) post.linkNavn = linkNavn;
+    }
+  } else {
+    const linkUrl = normalizeBlogUrl(body.linkUrl);
+    if (linkUrl || linkNavn) {
+      post.linkType = "external";
+      if (linkUrl) post.linkUrl = linkUrl;
+      if (linkNavn) post.linkNavn = linkNavn;
+    }
+  }
+  post.tags = normalizeTags(body.tags);
 
   return post;
 }
@@ -443,7 +577,7 @@ async function handleApi(req, res) {
       const body = JSON.parse(bodyRaw || "{}");
       const withUploads = await resolvePayloadWithUploads(body);
       const blogs = await mutatePosts(async (posts) => {
-        const post = payloadToPost(withUploads, `post-${posts.length + 1}`);
+        const post = payloadToPost(withUploads, `post-${posts.length + 1}`, posts);
         posts.push(post);
         return posts;
       });
@@ -466,7 +600,7 @@ async function handleApi(req, res) {
           e.code = 404;
           throw e;
         }
-        const nextPost = payloadToPost({ ...withUploads, postId: targetId }, targetId);
+        const nextPost = payloadToPost({ ...withUploads, postId: targetId }, targetId, posts);
         posts[idx] = nextPost;
         return posts;
       });
