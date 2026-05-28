@@ -1650,21 +1650,21 @@ const firebaseConfig = {
                 box.style.cssText = 'background:#fff;border-radius:12px;padding:32px;max-width:360px;width:90%;display:flex;flex-direction:column;gap:16px';
 
                 const title = document.createElement('p');
-                title.textContent = 'Din dagbog er krypteret. Indtast dit krypteringsord.';
+                title.textContent = 'Your journal is encrypted. Enter your encryption key.';
                 title.style.cssText = 'font-size:16px;font-weight:600;margin:0';
 
                 const input = document.createElement('input');
                 input.type = 'password';
-                input.placeholder = 'Krypteringsord';
+                input.placeholder = 'Key';
                 input.style.cssText = 'border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:16px';
 
                 const error = document.createElement('p');
                 error.style.cssText = 'color:#b91c1c;font-size:14px;margin:0;display:none';
-                error.textContent = 'Noget gik galt. Prøv igen.';
+                error.textContent = 'Something went wrong. Please try again.';
 
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.textContent = 'Lås op';
+                btn.textContent = 'Unlock';
                 btn.style.cssText = 'background:#000;color:#fff;border:none;border-radius:8px;padding:12px;font-size:16px;cursor:pointer';
 
                 async function submitEncryptionUnlock() {
@@ -1697,8 +1697,8 @@ const firebaseConfig = {
                         resolveModal();
                     } catch (e) {
                         error.textContent = (e && e.message === INVALID_ENC_PASSWORD)
-                            ? 'Forkert krypteringsord. Prøv igen.'
-                            : 'Noget gik galt. Prøv igen.';
+                            ? 'Incorrect encryption key. Please try again.'
+                            : 'Something went wrong. Please try again.';
                         error.style.display = 'block';
                     } finally {
                         btn.disabled = false;
