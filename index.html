@@ -1761,7 +1761,11 @@ const firebaseConfig = {
                             dataToSave.user = data.user;
                         }
                         const isPremium = (data.subscription && data.subscription.isPremium === true) || false;
-                        const createdAt = data.createdAt ? data.createdAt.toMillis() : null;
+                        const createdAt = data.createdAt
+                            ? (typeof data.createdAt.toMillis === 'function'
+                                ? data.createdAt.toMillis()
+                                : data.createdAt.seconds ? data.createdAt.seconds * 1000 : null)
+                            : null;
                         dataToSave.isPremium = isPremium;
                         dataToSave.createdAt = createdAt;
                         localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
@@ -1775,7 +1779,11 @@ const firebaseConfig = {
                             dataToSave.user = data.user;
                         }
                         const isPremium = (data.subscription && data.subscription.isPremium === true) || false;
-                        const createdAt = data.createdAt ? data.createdAt.toMillis() : null;
+                        const createdAt = data.createdAt
+                            ? (typeof data.createdAt.toMillis === 'function'
+                                ? data.createdAt.toMillis()
+                                : data.createdAt.seconds ? data.createdAt.seconds * 1000 : null)
+                            : null;
                         dataToSave.isPremium = isPremium;
                         dataToSave.createdAt = createdAt;
                         localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
