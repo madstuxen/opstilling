@@ -241,10 +241,6 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-        #logbogRecoverBtn {
-            color: #111111;
-        }
-
         .content {
             padding: 10px;
             padding-right: 10px;
@@ -1516,140 +1512,6 @@
             text-align: center;
         }
 
-        .recover-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.55);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 5200;
-            padding: 20px;
-        }
-
-        .recover-modal.show {
-            display: flex;
-        }
-
-        .recover-modal-content {
-            width: min(760px, 100%);
-            max-height: 88vh;
-            overflow-y: auto;
-            border-radius: 16px;
-            background: #ffffff;
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
-        }
-
-        .recover-modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 16px 18px;
-            background: #573920;
-            color: #ffffff;
-            border-radius: 16px 16px 0 0;
-        }
-
-        .recover-modal-header h2 {
-            margin: 0;
-            font-size: 1.15rem;
-            font-weight: 600;
-        }
-
-        .recover-modal-close {
-            border: none;
-            background: rgba(255, 255, 255, 0.2);
-            color: #ffffff;
-            width: 34px;
-            height: 34px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.25rem;
-            line-height: 1;
-        }
-
-        .recover-modal-close:hover {
-            background: rgba(255, 255, 255, 0.32);
-        }
-
-        .recover-modal-body {
-            padding: 16px 18px 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .recover-warning {
-            margin: 0;
-            color: #111827;
-            line-height: 1.45;
-            font-size: 0.95rem;
-        }
-
-        .recover-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .recover-terms {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            margin: 2px 0 2px;
-            color: #b45309;
-            line-height: 1.4;
-            font-size: 0.9rem;
-        }
-
-        .recover-terms input[type="checkbox"] {
-            margin-top: 2px;
-        }
-
-        .recover-btn {
-            border: none;
-            border-radius: 10px;
-            padding: 10px 14px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #ffffff;
-        }
-
-        .recover-btn:disabled {
-            opacity: 0.65;
-            cursor: not-allowed;
-        }
-
-        .recover-btn-download {
-            background: #2563eb;
-        }
-
-        .recover-btn-upload {
-            background: #7c3aed;
-        }
-
-        .recover-file-input {
-            width: 100%;
-            padding: 9px 10px;
-            border: 1px solid #d1d5db;
-            border-radius: 9px;
-            font-size: 0.92rem;
-        }
-
-        .recover-status {
-            margin: 0;
-            font-size: 0.9rem;
-            color: #374151;
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 10px 12px;
-            min-height: 40px;
-            white-space: pre-wrap;
-        }
-
         .collapse-btn {
             background: #4f46e5;
             border: none;
@@ -1706,7 +1568,6 @@
             <div class="site-header-actions">
                 <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
                 <button type="button" class="logbog-nav-logout" id="logbogFeedbackBtn">Send feedback</button>
-                <button type="button" class="logbog-nav-logout" id="logbogRecoverBtn">Recover</button>
             </div>
         </header>
         <div class="header" id="pageHeader">
@@ -1832,34 +1693,6 @@
                 <h3 data-i18n="colorTitle">Pick a color</h3>
             </div>
             <div class="log-history-color-grid" id="logHistoryColorGrid"></div>
-        </div>
-    </div>
-
-    <div class="recover-modal" id="recoverModal" role="dialog" aria-modal="true" aria-labelledby="recoverModalTitle">
-        <div class="recover-modal-content" onclick="event.stopPropagation()">
-            <div class="recover-modal-header">
-                <h2 id="recoverModalTitle">Recover</h2>
-                <button type="button" class="recover-modal-close" id="recoverModalClose" aria-label="Close">&times;</button>
-            </div>
-            <div class="recover-modal-body">
-                <p class="recover-warning">
-                    Warning: Recovery export/import is an advanced migration operation. Exported JSON can contain sensitive personal
-                    records and falls outside platform security controls once downloaded. Proceed entirely at your own risk. Download
-                    eligibility requires an active account, account age above 3 months, and at least 3 months since your previous export.
-                    Export does not delete any server-side data. Upload merges into your active account and can overwrite month/day
-                    records where keys overlap.
-                </p>
-                <label class="recover-terms" for="recoverTermsAgree">
-                    <input type="checkbox" id="recoverTermsAgree">
-                    <span>I have read and accept these recovery terms. I understand exported data may be exposed outside encrypted storage controls and is my responsibility.</span>
-                </label>
-                <div class="recover-actions">
-                    <button type="button" class="recover-btn recover-btn-download" id="recoverDownloadBtn" disabled>Download my data</button>
-                    <button type="button" class="recover-btn recover-btn-upload" id="recoverUploadBtn" disabled>Upload data</button>
-                </div>
-                <input class="recover-file-input" id="recoverFileInput" type="file" accept="application/json,.json">
-                <pre class="recover-status" id="recoverStatus" aria-live="polite"></pre>
-            </div>
         </div>
     </div>
 
@@ -4309,8 +4142,6 @@
         let auth = null;
         let db = null;
         let fns = null;
-        let exportJournalCallable = null;
-        let importJournalCallable = null;
         let currentUser = null;
         
         // Global cache of all user-related Firestore data (shared via window)
@@ -4330,24 +4161,8 @@
             auth = firebase.auth();
             db = firebase.firestore();
             fns = firebase.app().functions('europe-west4');
-            exportJournalCallable = fns.httpsCallable('exportJournalData');
-            importJournalCallable = fns.httpsCallable('importJournalData');
         } catch (error) {
             console.error('Firebase initialization error:', error);
-        }
-
-        const RECOVER_ERROR_MESSAGES = {
-            'permission-denied': 'Action denied: account eligibility requirements are not satisfied.',
-            'resource-exhausted': 'Export cooldown active: you can export only once every 3 months.',
-            'unauthenticated': 'You must be signed in.',
-            'invalid-argument': 'Invalid import file format.',
-            'not-found': 'Cloud Function not found. Verify region and deployment.',
-            'unavailable': 'Cloud Function is currently unavailable.'
-        };
-
-        function setRecoverStatus(msg) {
-            const statusEl = document.getElementById('recoverStatus');
-            if (statusEl) statusEl.textContent = msg || '';
         }
 
         const ENC_SESSION_UID_KEY = 'enc_session_uid';
@@ -4440,51 +4255,6 @@
             return encKey;
         }
 
-        function formatFriendlyRecoverDate(isoString) {
-            const date = new Date(isoString);
-            if (Number.isNaN(date.getTime())) return null;
-            return new Intl.DateTimeFormat('en-GB', {
-                year: 'numeric',
-                month: 'short',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            }).format(date);
-        }
-
-        function mapRecoverError(err) {
-            const detailsMessage = err && err.details && err.details.message ? String(err.details.message) : '';
-            const rawMessage = err && err.message ? String(err.message) : '';
-            const cooldownSource = detailsMessage || rawMessage;
-            const cooldownMatch = cooldownSource.match(/next export is available after\s+([0-9TZ:.\-]+)\.?/i);
-            if (cooldownMatch && cooldownMatch[1]) {
-                const friendlyDate = formatFriendlyRecoverDate(cooldownMatch[1]);
-                if (friendlyDate) {
-                    return `Export cooldown active. Next export available on ${friendlyDate}.`;
-                }
-            }
-
-            const detailsCode = err && err.details && err.details.code ? String(err.details.code) : '';
-            if (detailsCode && RECOVER_ERROR_MESSAGES[detailsCode]) return RECOVER_ERROR_MESSAGES[detailsCode];
-            const code = err && err.code ? String(err.code).replace('functions/', '') : '';
-            if (code && RECOVER_ERROR_MESSAGES[code]) return RECOVER_ERROR_MESSAGES[code];
-            return rawMessage || 'Unknown error';
-        }
-
-        function triggerRecoverDownload(filename, data) {
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
         function deriveKeyFromSession(base64Key) {
             // Nøglen er allerede afledt og gemt som base64 raw bytes – importer den direkte
             const keyBytes = base64ToBytes(base64Key);
@@ -4497,35 +4267,6 @@
             );
         }
 
-        function openRecoverModal() {
-            const modal = document.getElementById('recoverModal');
-            if (!modal) return;
-            modal.classList.add('show');
-            const agreeCheckbox = document.getElementById('recoverTermsAgree');
-            if (agreeCheckbox) agreeCheckbox.checked = false;
-            syncRecoverAgreementState();
-            setRecoverStatus('Recovery console ready. Accept terms to unlock export/import actions.');
-        }
-
-        function closeRecoverModal() {
-            const modal = document.getElementById('recoverModal');
-            if (!modal) return;
-            modal.classList.remove('show');
-            const agreeCheckbox = document.getElementById('recoverTermsAgree');
-            if (agreeCheckbox) agreeCheckbox.checked = false;
-            syncRecoverAgreementState();
-            setRecoverStatus('');
-        }
-
-        function syncRecoverAgreementState() {
-            const agreeCheckbox = document.getElementById('recoverTermsAgree');
-            const recoverDownloadBtn = document.getElementById('recoverDownloadBtn');
-            const recoverUploadBtn = document.getElementById('recoverUploadBtn');
-            const isAgreed = !!(agreeCheckbox && agreeCheckbox.checked);
-            if (recoverDownloadBtn) recoverDownloadBtn.disabled = !isAgreed;
-            if (recoverUploadBtn) recoverUploadBtn.disabled = !isAgreed;
-        }
-        
         // Check auth state - create a promise that resolves when auth state is determined
         let authStateReady = false;
         let authStateResolver = null;
@@ -5720,13 +5461,6 @@
 
             initIdleLogout();
 
-            const logbogRecoverBtn = document.getElementById('logbogRecoverBtn');
-            if (logbogRecoverBtn) {
-                logbogRecoverBtn.addEventListener('click', function() {
-                    openRecoverModal();
-                });
-            }
-
             const logbogFeedbackBtn = document.getElementById('logbogFeedbackBtn');
             if (logbogFeedbackBtn) {
                 logbogFeedbackBtn.addEventListener('click', function() {
@@ -5748,12 +5482,6 @@
                 });
             }
 
-            const recoverModal = document.getElementById('recoverModal');
-            const recoverModalClose = document.getElementById('recoverModalClose');
-            const recoverDownloadBtn = document.getElementById('recoverDownloadBtn');
-            const recoverUploadBtn = document.getElementById('recoverUploadBtn');
-            const recoverFileInput = document.getElementById('recoverFileInput');
-            const recoverTermsAgree = document.getElementById('recoverTermsAgree');
             const missingTodayModal = document.getElementById('missingTodayModal');
             const missingTodayCloseBtn = document.getElementById('missingTodayCloseBtn');
             const missingTodayDismissBtn = document.getElementById('missingTodayDismissBtn');
@@ -5776,121 +5504,6 @@
                 });
             }
 
-            if (recoverModal) {
-                recoverModal.addEventListener('click', function(e) {
-                    if (e.target === recoverModal) {
-                        closeRecoverModal();
-                    }
-                });
-            }
-            if (recoverModalClose) {
-                recoverModalClose.addEventListener('click', function() {
-                    closeRecoverModal();
-                });
-            }
-
-            if (recoverTermsAgree) {
-                recoverTermsAgree.addEventListener('change', function() {
-                    syncRecoverAgreementState();
-                    if (recoverTermsAgree.checked) {
-                        setRecoverStatus('Terms accepted. Export/import actions are now enabled.');
-                    } else {
-                        setRecoverStatus('Recovery actions locked until terms are accepted.');
-                    }
-                });
-            }
-            syncRecoverAgreementState();
-
-            if (recoverDownloadBtn) {
-                recoverDownloadBtn.addEventListener('click', async function() {
-                    if (!currentUser) {
-                        setRecoverStatus('You must be signed in.');
-                        return;
-                    }
-                    if (!exportJournalCallable) {
-                        setRecoverStatus('Export function is not initialized.');
-                        return;
-                    }
-                    recoverDownloadBtn.disabled = true;
-                    setRecoverStatus('Requesting backup payload from server...');
-                    try {
-                        const accountEncrypted = await isAccountEncryptedInFirestore();
-                        const encKey = requireEncKeyWhenAccountEncrypted(accountEncrypted);
-                        if (accountEncrypted && !encKey) return;
-                        const res = await exportJournalCallable();
-                        const payload = res && res.data ? res.data : {};
-                        if (accountEncrypted && encKey && payload.months) {
-                            const cryptoKey = await deriveKeyFromSession(encKey);
-                            for (const monthKey of Object.keys(payload.months)) {
-                                const month = payload.months[monthKey];
-                                if (month && month.encrypted && typeof month.encrypted === 'string') {
-                                    payload.months[monthKey] = await decryptMonth(month, cryptoKey);
-                                }
-                            }
-                        }
-                        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-                        triggerRecoverDownload(`journal-export-${stamp}.json`, payload);
-                        setRecoverStatus('Export complete. JSON download started.');
-                    } catch (err) {
-                        console.error('[RECOVER] Export failed:', err);
-                        setRecoverStatus('Export failed: ' + mapRecoverError(err));
-                    } finally {
-                        syncRecoverAgreementState();
-                    }
-                });
-            }
-
-            if (recoverUploadBtn) {
-                recoverUploadBtn.addEventListener('click', async function() {
-                    if (!currentUser) {
-                        setRecoverStatus('You must be signed in.');
-                        return;
-                    }
-                    if (!importJournalCallable) {
-                        setRecoverStatus('Import function is not initialized.');
-                        return;
-                    }
-                    const file = recoverFileInput && recoverFileInput.files ? recoverFileInput.files[0] : null;
-                    if (!file) {
-                        setRecoverStatus('Select a JSON file before import.');
-                        return;
-                    }
-                    recoverUploadBtn.disabled = true;
-                    setRecoverStatus('Reading local JSON file...');
-                    try {
-                        const text = await file.text();
-                        const json = JSON.parse(text);
-                        setRecoverStatus('Uploading payload to server...');
-                        const accountEncrypted = await isAccountEncryptedInFirestore();
-                        const encKey = requireEncKeyWhenAccountEncrypted(accountEncrypted);
-                        if (accountEncrypted && !encKey) return;
-                        if (accountEncrypted && encKey && json.months) {
-                            const cryptoKey = await deriveKeyFromSession(encKey);
-                            for (const monthKey of Object.keys(json.months)) {
-                                const month = json.months[monthKey];
-                                if (month && !month.encrypted) {
-                                    json.months[monthKey] = await encryptMonth(month, cryptoKey);
-                                }
-                            }
-                        }
-                        const res = await importJournalCallable(json);
-                        const result = res && res.data ? res.data : {};
-                        const monthsWritten = result.monthsWritten != null ? result.monthsWritten : 0;
-                        const monthsReceived = result.monthsReceived != null ? result.monthsReceived : 0;
-                        setRecoverStatus(`Import complete. monthsWritten=${monthsWritten}, monthsReceived=${monthsReceived}`);
-                    } catch (err) {
-                        if (err instanceof SyntaxError) {
-                            setRecoverStatus('The selected file is not valid JSON.');
-                        } else {
-                            console.error('[RECOVER] Import failed:', err);
-                            setRecoverStatus('Import failed: ' + mapRecoverError(err));
-                        }
-                    } finally {
-                        syncRecoverAgreementState();
-                    }
-                });
-            }
-            
             initCheckinDaysButtons();
             initCheckinViewToggle();
             initCheckinModal();
@@ -6036,11 +5649,6 @@
             // Close color picker on Escape key
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
-                    const recoverM = document.getElementById('recoverModal');
-                    if (recoverM && recoverM.classList.contains('show')) {
-                        closeRecoverModal();
-                        return;
-                    }
                     const missingTodayM = document.getElementById('missingTodayModal');
                     if (missingTodayM && missingTodayM.classList.contains('show')) {
                         closeMissingTodayModal();
