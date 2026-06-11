@@ -1695,7 +1695,13 @@
                 </a>
                 <span class="brand">Journal App</span>
                 <span class="header-divider" aria-hidden="true"></span>
-                <a href="index.html">Home</a>
+                <nav class="site-nav" aria-label="Primary">
+                    <a class="site-nav-link" href="index.html">Home</a>
+                    <a class="site-nav-link" href="feature-list.html">Feature list</a>
+                    <a class="site-nav-link" href="about.html">About</a>
+                    <a class="site-nav-link" href="blog.html">Blog</a>
+                    <a class="site-nav-link" href="data.html">Data</a>
+                </nav>
             </div>
             <div class="site-header-actions">
                 <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
@@ -1878,6 +1884,18 @@
     </div>
 
     <script>
+        function computeAccessLevel() {
+            const raw = localStorage.getItem('indexuserData');
+            if (!raw) return 'free';
+            const userData = JSON.parse(raw);
+            if (userData.isPremium) return 'subscriber';
+            if (userData.createdAt) {
+                const trialDays = (Date.now() - userData.createdAt) / (1000 * 60 * 60 * 24);
+                if (trialDays < 30) return 'trial';
+            }
+            return 'free';
+        }
+
         const LOGBOOK_STORAGE_KEY = 'logbogData';
         const BODYMAP_STORAGE_KEY = 'bodymapData';
 
@@ -5660,6 +5678,13 @@
             // 2. Check if user is logged in - require login
             if (!currentUser) {
                 alert(getLogbogStrings().needLogin);
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const accessLevel = computeAccessLevel();
+            if (accessLevel === 'free') {
+                alert('Your free trial has expired. Subscribe in the app to continue.');
                 window.location.href = 'index.html';
                 return;
             }

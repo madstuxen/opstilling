@@ -1180,6 +1180,7 @@
                 <a class="site-nav-link" href="feature-list.html">Feature list</a>
                 <a class="site-nav-link" href="about.html">About</a>
                 <a class="site-nav-link" href="blog.html">Blog</a>
+                <a class="site-nav-link" href="data.html">Data</a>
             </nav>
         </div>
         <div class="site-header-actions" id="headerGuestActions">
@@ -1199,6 +1200,7 @@
                 <a class="site-nav-link" href="feature-list.html">Feature list</a>
                 <a class="site-nav-link" href="about.html">About</a>
                 <a class="site-nav-link" href="blog.html">Blog</a>
+                <a class="site-nav-link" href="data.html">Data</a>
             </div>
         </nav>
     </div>
@@ -1758,6 +1760,10 @@ const firebaseConfig = {
                         if (data.user && typeof data.user === 'object') {
                             dataToSave.user = data.user;
                         }
+                        const isPremium = (data.subscription && data.subscription.isPremium === true) || false;
+                        const createdAt = data.createdAt ? data.createdAt.toMillis() : null;
+                        dataToSave.isPremium = isPremium;
+                        dataToSave.createdAt = createdAt;
                         localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
                         console.log('UserData saved to localStorage:', dataToSave);
                     } else {
@@ -1768,6 +1774,10 @@ const firebaseConfig = {
                         if (data.user && typeof data.user === 'object') {
                             dataToSave.user = data.user;
                         }
+                        const isPremium = (data.subscription && data.subscription.isPremium === true) || false;
+                        const createdAt = data.createdAt ? data.createdAt.toMillis() : null;
+                        dataToSave.isPremium = isPremium;
+                        dataToSave.createdAt = createdAt;
                         localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
                         console.log('Empty userData created in localStorage with timezone');
                     }
@@ -1787,6 +1797,18 @@ const firebaseConfig = {
                 // Create empty userData on error
                 localStorage.setItem('indexuserData', JSON.stringify({}));
             }
+        }
+
+        function computeAccessLevel() {
+            const raw = localStorage.getItem('indexuserData');
+            if (!raw) return 'free';
+            const userData = JSON.parse(raw);
+            if (userData.isPremium) return 'subscriber';
+            if (userData.createdAt) {
+                const trialDays = (Date.now() - userData.createdAt) / (1000 * 60 * 60 * 24);
+                if (trialDays < 30) return 'trial';
+            }
+            return 'free';
         }
 
         /** Load session, close login UI, then encryption unlock if needed. */
@@ -1815,6 +1837,11 @@ const firebaseConfig = {
             saveGlobalFirestoreToggle(true);
             const canOpenJournal = await afterAuthPrepareSessionAndUnlock(user);
             if (canOpenJournal) {
+                const level = computeAccessLevel();
+                if (level === 'free') {
+                    alert('Your free trial has expired. Subscribe in the app to continue.');
+                    return;
+                }
                 window.location.href = 'logbog_01.html';
             }
         }

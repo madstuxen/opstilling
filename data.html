@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="canonical" href="https://www.me-and-them.com/data.html">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <title>Data — Me &amp; Them</title>
+    <script src="crypto.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --site-brown: #573920;
+            --site-brown-dark: rgba(47, 32, 20, 0.92);
+            --site-cream: #f5efe7;
+            --site-accent: #6366f1;
+            --site-accent-dark: #4f46e5;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--site-brown);
+            color: var(--site-cream);
+            min-height: 100vh;
+        }
+
+        .site-layout {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .site-header {
+            position: relative;
+            z-index: 50;
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 12px 20px;
+            height: 64px;
+            min-height: 64px;
+            max-height: 64px;
+            box-sizing: border-box;
+            padding: 0 22px;
+            background: var(--site-brown-dark);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .site-header-left {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            margin-right: auto;
+        }
+
+        .site-header-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .site-header .brand {
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .site-header .header-divider {
+            width: 1px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .site-header-actions {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .header-signin-btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--site-accent) 0%, var(--site-accent-dark) 100%);
+            color: #fff;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .header-signin-btn:hover {
+            filter: brightness(1.05);
+        }
+
+        .account-strip {
+            display: none;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 8px 12px;
+            padding: 0 10px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+        }
+
+        .account-strip.show {
+            display: flex;
+        }
+
+        .account-strip .user-email {
+            font-size: 0.9rem;
+            line-height: 1.2;
+            opacity: 0.9;
+            min-width: 0;
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #fff;
+        }
+
+        .account-strip button,
+        .account-strip a.btn-journal {
+            padding: 8px 18px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 15px;
+            line-height: 1.2;
+            white-space: nowrap;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .account-strip .btn-journal {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #fff;
+        }
+
+        .account-strip .btn-logout {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .site-main {
+            flex: 1;
+            width: 100%;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 32px 22px 48px;
+        }
+
+        .page-intro {
+            margin-bottom: 24px;
+        }
+
+        .page-intro h1 {
+            font-size: clamp(1.6rem, 3vw, 2rem);
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .page-intro p {
+            color: var(--site-cream);
+            line-height: 1.55;
+            opacity: 0.95;
+        }
+
+        .login-section {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 32px 28px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            color: #1f2937;
+        }
+
+        .login-section h2 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #1e1b4b;
+            margin-bottom: 12px;
+        }
+
+        .login-section-intro {
+            font-size: 0.95rem;
+            line-height: 1.55;
+            color: #4b5563;
+            margin-bottom: 20px;
+        }
+
+        .oauth-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .btn-oauth-icon {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+            object-fit: contain;
+            display: block;
+        }
+
+        .btn-oauth-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #dadce0;
+            border-radius: 10px;
+            background: #fff;
+            color: #3c4043;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-oauth-google:hover {
+            background: #f8f9fa;
+        }
+
+        .btn-oauth-apple {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            background: #000;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-oauth-apple:hover {
+            opacity: 0.88;
+        }
+
+        .login-divider {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin: 4px 0 12px;
+        }
+
+        details.email-alt-details summary {
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: var(--site-accent-dark);
+            user-select: none;
+        }
+
+        details.email-alt-details summary:hover {
+            text-decoration: underline;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            background: white;
+            color: #1f2937;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--site-accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--site-accent) 0%, var(--site-accent-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .recover-section {
+            display: none;
+            border-radius: 16px;
+            background: #ffffff;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+            overflow: hidden;
+            color: #111827;
+        }
+
+        .recover-section.show {
+            display: block;
+        }
+
+        .recover-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 16px 18px;
+            background: var(--site-brown);
+            color: #ffffff;
+        }
+
+        .recover-section-header h2 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
+        .recover-section-body {
+            padding: 16px 18px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .recover-warning {
+            margin: 0;
+            color: #111827;
+            line-height: 1.45;
+            font-size: 0.95rem;
+        }
+
+        .recover-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .recover-terms {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 2px 0 2px;
+            color: #b45309;
+            line-height: 1.4;
+            font-size: 0.9rem;
+        }
+
+        .recover-terms input[type="checkbox"] {
+            margin-top: 2px;
+        }
+
+        .recover-btn {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .recover-btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .recover-btn-download {
+            background: #2563eb;
+        }
+
+        .recover-btn-upload {
+            background: #7c3aed;
+        }
+
+        .recover-file-input {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 9px;
+            font-size: 0.92rem;
+        }
+
+        .recover-status {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #374151;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 10px 12px;
+            min-height: 40px;
+            white-space: pre-wrap;
+        }
+
+        .site-footer {
+            padding: 18px 22px 22px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.75);
+            background: rgba(30, 20, 12, 0.85);
+        }
+
+        .site-footer-inner {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px 24px;
+        }
+
+        .site-footer-logo {
+            height: 40px;
+            width: auto;
+            display: block;
+        }
+
+        .site-footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            margin-left: auto;
+        }
+
+        .site-footer-links a {
+            color: #e5e7eb;
+            text-decoration: none;
+        }
+
+        .site-footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .account-strip .user-email {
+                display: none;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="assets/nav.css">
+</head>
+<body>
+    <div class="site-layout">
+        <header class="site-header" data-mobile-nav>
+            <div class="site-header-left">
+                <a class="site-header-logo-link" href="index.html" aria-label="Home">
+                    <img class="site-header-logo" src="imagefiles/ios-light.png" alt="" width="48" height="48" decoding="async">
+                </a>
+                <button
+                    type="button"
+                    class="site-nav-toggle"
+                    aria-label="Open menu"
+                    aria-controls="mobileLayerData"
+                    aria-expanded="false">☰</button>
+                <span class="brand">Journal App</span>
+                <span class="header-divider" aria-hidden="true"></span>
+                <nav class="site-nav" aria-label="Primary">
+                    <a class="site-nav-link" href="index.html">Home</a>
+                    <a class="site-nav-link" href="feature-list.html">Feature list</a>
+                    <a class="site-nav-link" href="about.html">About</a>
+                    <a class="site-nav-link" href="blog.html">Blog</a>
+                    <a class="site-nav-link" href="data.html" aria-current="page">Data</a>
+                </nav>
+            </div>
+            <div class="site-header-actions" id="headerGuestActions">
+                <a class="header-signin-btn" href="index.html">Logbook</a>
+            </div>
+            <div class="site-header-actions account-strip" id="headerAccountStrip">
+                <span class="user-email" id="userEmail"></span>
+                <a class="btn-journal" href="logbog_01.html">Open journal</a>
+                <button type="button" class="btn-logout" id="logoutButton">Log out</button>
+            </div>
+        </header>
+
+        <div class="site-mobile-layer" id="mobileLayerData" aria-hidden="true">
+            <div class="site-mobile-backdrop"></div>
+            <nav class="site-mobile-menu" aria-label="Mobile primary">
+                <div class="site-nav">
+                    <a class="site-nav-link" href="index.html">Home</a>
+                    <a class="site-nav-link" href="feature-list.html">Feature list</a>
+                    <a class="site-nav-link" href="about.html">About</a>
+                    <a class="site-nav-link" href="blog.html">Blog</a>
+                    <a class="site-nav-link" href="data.html" aria-current="page">Data</a>
+                </div>
+            </nav>
+        </div>
+
+        <main class="site-main">
+            <div class="page-intro">
+                <h1>Journal data</h1>
+                <p>Export or import your journal data. Sign in with the same account as in the app.</p>
+            </div>
+
+            <section class="login-section" id="loginSection">
+                <h2>Sign in</h2>
+                <p class="login-section-intro">Sign in with the same account as in the app. Use Google or Apple if you use those in the app.</p>
+                <div class="error-message" id="errorMessage"></div>
+                <div class="oauth-row">
+                    <button type="button" class="btn-oauth-google" id="btnGoogleSignIn">
+                        <img class="btn-oauth-icon" src="imagefiles/google_logo.svg" alt="" width="22" height="22">
+                        Continue with Google
+                    </button>
+                    <button type="button" class="btn-oauth-apple" id="btnAppleSignIn">
+                        <img class="btn-oauth-icon" src="imagefiles/Apple_logo_white.svg" alt="" width="22" height="22">
+                        Sign in with Apple
+                    </button>
+                </div>
+                <p class="login-divider">or</p>
+                <details class="email-alt-details">
+                    <summary>Other sign-in options (email)</summary>
+                    <form id="login-form" style="margin-top: 14px;">
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" placeholder="Email" required autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password">
+                        </div>
+                        <button type="submit" class="login-button" id="loginSubmitBtn">Sign in with email</button>
+                    </form>
+                </details>
+            </section>
+
+            <section class="recover-section" id="recoverSection" aria-labelledby="recoverSectionTitle">
+                <div class="recover-section-header">
+                    <h2 id="recoverSectionTitle">Recover</h2>
+                </div>
+                <div class="recover-section-body">
+                    <p class="recover-warning">
+                        Warning: Recovery export/import is an advanced migration operation. Exported JSON can contain sensitive personal
+                        records and falls outside platform security controls once downloaded. Proceed entirely at your own risk. Download
+                        eligibility requires an active account, account age above 3 months, and at least 3 months since your previous export.
+                        Export does not delete any server-side data. Upload merges into your active account and can overwrite month/day
+                        records where keys overlap.
+                    </p>
+                    <label class="recover-terms" for="recoverTermsAgree">
+                        <input type="checkbox" id="recoverTermsAgree">
+                        <span>I have read and accept these recovery terms. I understand exported data may be exposed outside encrypted storage controls and is my responsibility.</span>
+                    </label>
+                    <div class="recover-actions">
+                        <button type="button" class="recover-btn recover-btn-download" id="recoverDownloadBtn" disabled>Download my data</button>
+                        <button type="button" class="recover-btn recover-btn-upload" id="recoverUploadBtn" disabled>Upload data</button>
+                    </div>
+                    <input class="recover-file-input" id="recoverFileInput" type="file" accept="application/json,.json">
+                    <pre class="recover-status" id="recoverStatus" aria-live="polite"></pre>
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <div class="site-footer-inner">
+                <a class="site-footer-logo-link" href="https://www.grafiskkooperativ.dk" target="_blank" rel="noopener noreferrer" aria-label="Grafisk Kooperativ">
+                    <img class="site-footer-logo" src="imagefiles/Grr_logo_White.svg" alt="" width="346" height="213" decoding="async">
+                </a>
+                <div class="site-footer-links">
+                    <a href="blog.html">Blog</a>
+                    <a href="privacy.html">Privacy Policy</a>
+                    <a href="terms.html">Terms of Service</a>
+                    <a href="delete-account.html">Delete account</a>
+                    <a href="support.html">Support</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="assets/nav.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCl6ZYtkfYx3kFF9329eGpeazsmJAPMKzA",
+            authDomain: "relationer-fe5fe.firebaseapp.com",
+            projectId: "relationer-fe5fe",
+            storageBucket: "relationer-fe5fe.firebasestorage.app",
+            messagingSenderId: "156720560629",
+            appId: "1:156720560629:web:1a138e4e89f02a131f88bc",
+            measurementId: "G-K5W7J8JHZG"
+        };
+
+        let auth = null;
+        let db = null;
+        let fns = null;
+        let exportJournalCallable = null;
+        let importJournalCallable = null;
+        let currentUser = null;
+        let encryptionUnlockContext = null;
+        let encryptionUnlockPromise = null;
+        let afterAuthPrepareInFlight = null;
+
+        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
+        const INVALID_ENC_PASSWORD = 'INVALID_ENC_PASSWORD';
+        const ENC_SESSION_UID_KEY = 'enc_session_uid';
+
+        const RECOVER_ERROR_MESSAGES = {
+            'permission-denied': 'Action denied: account eligibility requirements are not satisfied.',
+            'resource-exhausted': 'Export cooldown active: you can export only once every 3 months.',
+            'unauthenticated': 'You must be signed in.',
+            'invalid-argument': 'Invalid import file format.',
+            'not-found': 'Cloud Function not found. Verify region and deployment.',
+            'unavailable': 'Cloud Function is currently unavailable.'
+        };
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            fns = firebase.app().functions('europe-west4');
+            exportJournalCallable = fns.httpsCallable('exportJournalData');
+            importJournalCallable = fns.httpsCallable('importJournalData');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
+
+        const loginForm = document.getElementById('login-form');
+        const errorMessage = document.getElementById('errorMessage');
+        const loginSection = document.getElementById('loginSection');
+        const recoverSection = document.getElementById('recoverSection');
+        const headerGuestActions = document.getElementById('headerGuestActions');
+        const headerAccountStrip = document.getElementById('headerAccountStrip');
+        const btnGoogleSignIn = document.getElementById('btnGoogleSignIn');
+        const btnAppleSignIn = document.getElementById('btnAppleSignIn');
+        const userEmailEl = document.getElementById('userEmail');
+        const logoutButton = document.getElementById('logoutButton');
+        const recoverDownloadBtn = document.getElementById('recoverDownloadBtn');
+        const recoverUploadBtn = document.getElementById('recoverUploadBtn');
+        const recoverFileInput = document.getElementById('recoverFileInput');
+        const recoverTermsAgree = document.getElementById('recoverTermsAgree');
+
+        function saveGlobalFirestoreToggle(value) {
+            try {
+                localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
+                window.dispatchEvent(new CustomEvent('firestoreToggleChanged', { detail: value }));
+            } catch (e) {
+                console.error('Error saving global Firestore toggle:', e);
+            }
+        }
+
+        function formatAuthError(error) {
+            const errorCode = error && error.code ? error.code : '';
+            let errorMsgText = error && error.message ? error.message : '';
+            try {
+                if (typeof errorMsgText === 'string' && errorMsgText.startsWith('{')) {
+                    const parsed = JSON.parse(errorMsgText);
+                    if (parsed.error && parsed.error.message) {
+                        errorMsgText = parsed.error.message;
+                    }
+                }
+            } catch (parseErr) { /* ignore */ }
+            let errorMsg = 'Sign-in failed. Please try again.';
+            if (errorCode === 'auth/user-not-found' ||
+                errorCode === 'auth/internal-error' ||
+                (errorMsgText && errorMsgText.includes('INVALID_LOGIN_CREDENTIALS'))) {
+                errorMsg = 'No account found or wrong password.';
+            } else if (errorCode === 'auth/wrong-password') {
+                errorMsg = 'Wrong password. Try again.';
+            } else if (errorCode === 'auth/invalid-email') {
+                errorMsg = 'Invalid email address.';
+            } else if (errorCode === 'auth/user-disabled') {
+                errorMsg = 'This account has been disabled.';
+            } else if (errorCode === 'auth/too-many-requests') {
+                errorMsg = 'Too many attempts. Try again later.';
+            } else if (errorCode === 'auth/network-request-failed') {
+                errorMsg = 'Network error. Check your connection.';
+            } else if (errorCode === 'auth/popup-closed-by-user' || errorCode === 'auth/cancelled-popup-request') {
+                errorMsg = 'Sign-in was cancelled.';
+            } else if (errorMsgText && !errorMsgText.includes('{') && !errorMsgText.includes('error')) {
+                errorMsg = errorMsgText;
+            }
+            return errorMsg;
+        }
+
+        function userDisplayLine(user) {
+            if (!user) return '';
+            return user.email || user.displayName || ('Account ' + user.uid.slice(0, 8) + '…');
+        }
+
+        function clearEncryptionSession() {
+            sessionStorage.removeItem('enc_key');
+            sessionStorage.removeItem('is_encrypted');
+            sessionStorage.removeItem('needs_enc_unlock');
+            sessionStorage.removeItem('pending_enc_salt');
+            sessionStorage.removeItem(ENC_SESSION_UID_KEY);
+            encryptionUnlockPromise = null;
+        }
+
+        function getUserEncryptionFields(docData) {
+            const user = (docData && docData.user && typeof docData.user === 'object') ? docData.user : {};
+            return {
+                isEncrypted: user.isEncrypted === true,
+                encryptionSalt: user.encryptionSalt || null,
+                encryptionVerifier: user.encryptionVerifier || null,
+            };
+        }
+
+        function syncEncryptionSessionFromFirestore(user, data) {
+            const uid = user.uid;
+            const prevUid = sessionStorage.getItem(ENC_SESSION_UID_KEY);
+            if (prevUid !== uid) clearEncryptionSession();
+            sessionStorage.setItem(ENC_SESSION_UID_KEY, uid);
+
+            const enc = getUserEncryptionFields(data || {});
+            const accountEncrypted = enc.isEncrypted && !!enc.encryptionSalt;
+
+            if (!accountEncrypted) {
+                sessionStorage.removeItem('enc_key');
+                sessionStorage.removeItem('is_encrypted');
+                sessionStorage.removeItem('needs_enc_unlock');
+                sessionStorage.removeItem('pending_enc_salt');
+                encryptionUnlockContext = null;
+                encryptionUnlockPromise = null;
+                return;
+            }
+
+            sessionStorage.setItem('is_encrypted', 'true');
+            sessionStorage.setItem('pending_enc_salt', enc.encryptionSalt);
+            encryptionUnlockContext = {
+                uid,
+                encryptionVerifier: enc.encryptionVerifier,
+                monthsIndex: parseMonthsIndexForUnlock(data),
+            };
+
+            if (sessionStorage.getItem('enc_key')) {
+                sessionStorage.removeItem('needs_enc_unlock');
+            } else {
+                sessionStorage.removeItem('enc_key');
+                sessionStorage.setItem('needs_enc_unlock', 'true');
+                encryptionUnlockPromise = null;
+            }
+        }
+
+        function parseMonthsIndexForUnlock(raw) {
+            if (!raw || typeof raw !== 'object') return {};
+            const pick = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null);
+            return (
+                pick((raw.user || {}).monthsIndex) ||
+                pick((raw.user || {}).monthIndex) ||
+                pick(raw.monthsIndex) ||
+                pick(raw.monthIndex) ||
+                pick((raw.userData || {}).monthsIndex) ||
+                pick((raw.userData || {}).monthIndex) ||
+                {}
+            );
+        }
+
+        function detectUserTimezone() {
+            try {
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (timezone && typeof timezone === 'string') return timezone;
+            } catch (e) { /* ignore */ }
+            return 'Europe/Copenhagen';
+        }
+
+        async function loadAndSaveUserData(user) {
+            if (!user || !db) return;
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    const data = userDoc.data();
+                    const userData = data.userData || (data.user && data.user.profile ? {
+                        displayName: data.user.profile.nickname || '',
+                        email: data.user.profile.email || '',
+                        color: data.user.profile.defaultColor || '',
+                        language: data.user.profile.language || 'en',
+                        monthsIndex: data.user.monthsIndex || {},
+                    } : null);
+                    const dataToSave = userData ? {
+                        ...userData,
+                        You: userData.displayName || '',
+                        timezone: userData.timezone || detectUserTimezone()
+                    } : { timezone: detectUserTimezone() };
+                    if (data.user && typeof data.user === 'object') dataToSave.user = data.user;
+                    const isPremium = (data.subscription && data.subscription.isPremium === true) || false;
+                    const createdAt = data.createdAt ? data.createdAt.toMillis() : null;
+                    dataToSave.isPremium = isPremium;
+                    dataToSave.createdAt = createdAt;
+                    localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
+                    syncEncryptionSessionFromFirestore(user, data);
+                } else {
+                    localStorage.setItem('indexuserData', JSON.stringify({ timezone: detectUserTimezone() }));
+                    clearEncryptionSession();
+                    sessionStorage.setItem(ENC_SESSION_UID_KEY, user.uid);
+                }
+            } catch (error) {
+                console.error('Error loading userData from Firestore:', error);
+                localStorage.setItem('indexuserData', JSON.stringify({}));
+            }
+        }
+
+        async function ensureEncryptionUnlockContext() {
+            if (encryptionUnlockContext && encryptionUnlockContext.uid) return encryptionUnlockContext;
+            if (!currentUser || !db) throw new Error('Missing user for encryption unlock');
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            const data = userDoc.exists ? (userDoc.data() || {}) : {};
+            const enc = getUserEncryptionFields(data);
+            encryptionUnlockContext = {
+                uid: currentUser.uid,
+                encryptionVerifier: enc.encryptionVerifier,
+                monthsIndex: parseMonthsIndexForUnlock(data),
+            };
+            return encryptionUnlockContext;
+        }
+
+        async function fetchNewestEncryptedMonthDoc(uid, monthKeysSortedDesc) {
+            if (!db || !uid || !monthKeysSortedDesc.length) return null;
+            const userDocRef = db.collection('users').doc(uid);
+            let rootData = null;
+            for (const monthKey of monthKeysSortedDesc) {
+                const monthDoc = await userDocRef.collection('months').doc(monthKey).get();
+                if (monthDoc.exists) {
+                    const data = monthDoc.data() || {};
+                    if (data.encrypted && typeof data.encrypted === 'string') return data;
+                }
+                if (!rootData) {
+                    const userSnap = await userDocRef.get();
+                    rootData = userSnap.exists ? (userSnap.data() || {}) : {};
+                }
+                const legacy = rootData[monthKey];
+                if (legacy && legacy.encrypted && typeof legacy.encrypted === 'string') return legacy;
+            }
+            return null;
+        }
+
+        async function validateDerivedEncryptionKey(cryptoKey, unlockContext) {
+            const verifier = unlockContext.encryptionVerifier;
+            if (verifier && verifier.encrypted && verifier.iv) {
+                let decoded;
+                try {
+                    decoded = await decryptMonth(verifier, cryptoKey);
+                } catch (e) {
+                    throw new Error(INVALID_ENC_PASSWORD);
+                }
+                if (!(decoded && decoded._verify === true && decoded.app === 'me-and-them')) {
+                    throw new Error(INVALID_ENC_PASSWORD);
+                }
+                return { usedMonthTest: false };
+            }
+            const monthKeys = Object.keys(unlockContext.monthsIndex || {})
+                .filter((k) => /^\d{4}-\d{2}$/.test(k))
+                .sort((a, b) => b.localeCompare(a));
+            if (monthKeys.length > 0) {
+                const encryptedPayload = await fetchNewestEncryptedMonthDoc(unlockContext.uid, monthKeys);
+                if (encryptedPayload) {
+                    try {
+                        await decryptMonth(encryptedPayload, cryptoKey);
+                    } catch (e) {
+                        throw new Error(INVALID_ENC_PASSWORD);
+                    }
+                    return { usedMonthTest: true };
+                }
+            }
+            return { usedMonthTest: false };
+        }
+
+        async function backfillEncryptionVerifier(uid, cryptoKey) {
+            const verifier = await encryptMonth({ _verify: true, app: 'me-and-them' }, cryptoKey);
+            const userDocRef = db.collection('users').doc(uid);
+            const snap = await userDocRef.get();
+            const existingUser = (snap.exists && snap.data().user) || {};
+            await userDocRef.set({
+                user: { ...existingUser, encryptionVerifier: verifier },
+            }, { merge: true });
+            if (encryptionUnlockContext && encryptionUnlockContext.uid === uid) {
+                encryptionUnlockContext.encryptionVerifier = verifier;
+            }
+        }
+
+        async function maybeShowEncryptionUnlock() {
+            const needsUnlock = sessionStorage.getItem('needs_enc_unlock') === 'true';
+            if (!needsUnlock) return;
+            if (encryptionUnlockPromise) return encryptionUnlockPromise;
+
+            encryptionUnlockPromise = (async () => {
+                let salt = sessionStorage.getItem('pending_enc_salt');
+                if (!salt && currentUser && db) {
+                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                    const data = userDoc.exists ? (userDoc.data() || {}) : {};
+                    const enc = getUserEncryptionFields(data);
+                    if (enc.encryptionSalt) {
+                        salt = enc.encryptionSalt;
+                        sessionStorage.setItem('pending_enc_salt', salt);
+                        sessionStorage.setItem('is_encrypted', 'true');
+                    }
+                }
+                if (!salt) return;
+
+                await new Promise((resolveModal) => {
+                    document.querySelectorAll('[data-encryption-unlock-overlay]').forEach((el) => el.remove());
+                    const overlay = document.createElement('div');
+                    overlay.setAttribute('data-encryption-unlock-overlay', 'true');
+                    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10001';
+
+                    const box = document.createElement('div');
+                    box.style.cssText = 'background:#fff;border-radius:12px;padding:32px;max-width:360px;width:90%;display:flex;flex-direction:column;gap:16px';
+
+                    const title = document.createElement('p');
+                    title.textContent = 'Your journal is encrypted. Enter your encryption key.';
+                    title.style.cssText = 'font-size:16px;font-weight:600;margin:0;color:#111';
+
+                    const input = document.createElement('input');
+                    input.type = 'password';
+                    input.placeholder = 'Key';
+                    input.style.cssText = 'border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:16px';
+
+                    const error = document.createElement('p');
+                    error.style.cssText = 'color:#b91c1c;font-size:14px;margin:0;display:none';
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.textContent = 'Unlock';
+                    btn.style.cssText = 'background:#000;color:#fff;border:none;border-radius:8px;padding:12px;font-size:16px;cursor:pointer';
+
+                    async function submitEncryptionUnlock() {
+                        if (btn.disabled) return;
+                        try {
+                            error.style.display = 'none';
+                            btn.disabled = true;
+                            input.disabled = true;
+                            const cryptoKey = await deriveKey(input.value, salt);
+                            const unlockContext = await ensureEncryptionUnlockContext();
+                            const validation = await validateDerivedEncryptionKey(cryptoKey, unlockContext);
+                            const hadVerifier = !!(unlockContext.encryptionVerifier &&
+                                unlockContext.encryptionVerifier.encrypted &&
+                                unlockContext.encryptionVerifier.iv);
+                            if (validation.usedMonthTest && !hadVerifier) {
+                                await backfillEncryptionVerifier(unlockContext.uid, cryptoKey);
+                            }
+                            const rawKey = await crypto.subtle.exportKey('raw', cryptoKey);
+                            sessionStorage.setItem('enc_key', bytesToBase64(new Uint8Array(rawKey)));
+                            sessionStorage.removeItem('needs_enc_unlock');
+                            sessionStorage.removeItem('pending_enc_salt');
+                            document.body.removeChild(overlay);
+                            resolveModal();
+                        } catch (e) {
+                            error.textContent = (e && e.message === INVALID_ENC_PASSWORD)
+                                ? 'Incorrect encryption key. Please try again.'
+                                : 'Something went wrong. Please try again.';
+                            error.style.display = 'block';
+                        } finally {
+                            btn.disabled = false;
+                            input.disabled = false;
+                        }
+                    }
+
+                    btn.addEventListener('click', submitEncryptionUnlock);
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            submitEncryptionUnlock();
+                        }
+                    });
+
+                    box.appendChild(title);
+                    box.appendChild(input);
+                    box.appendChild(error);
+                    box.appendChild(btn);
+                    overlay.appendChild(box);
+                    document.body.appendChild(overlay);
+                    input.focus();
+                });
+            })();
+
+            try {
+                await encryptionUnlockPromise;
+            } finally {
+                encryptionUnlockPromise = null;
+            }
+        }
+
+        async function afterAuthPrepareSessionAndUnlock(user) {
+            if (!user) return false;
+            if (afterAuthPrepareInFlight) return afterAuthPrepareInFlight;
+
+            afterAuthPrepareInFlight = (async () => {
+                try {
+                    await loadAndSaveUserData(user);
+                    if (loginForm) loginForm.reset();
+                    await maybeShowEncryptionUnlock();
+                    return sessionStorage.getItem('needs_enc_unlock') !== 'true';
+                } finally {
+                    afterAuthPrepareInFlight = null;
+                }
+            })();
+
+            return afterAuthPrepareInFlight;
+        }
+
+        function showLoginView() {
+            if (loginSection) loginSection.style.display = '';
+            if (recoverSection) recoverSection.classList.remove('show');
+            if (headerGuestActions) headerGuestActions.style.display = '';
+            if (headerAccountStrip) headerAccountStrip.classList.remove('show');
+            if (loginForm) loginForm.reset();
+            if (errorMessage) errorMessage.classList.remove('show');
+        }
+
+        function showRecoverView(user) {
+            if (loginSection) loginSection.style.display = 'none';
+            if (recoverSection) recoverSection.classList.add('show');
+            if (headerGuestActions) headerGuestActions.style.display = 'none';
+            if (headerAccountStrip) headerAccountStrip.classList.add('show');
+            if (userEmailEl && user) userEmailEl.textContent = userDisplayLine(user);
+            if (recoverTermsAgree) recoverTermsAgree.checked = false;
+            syncRecoverAgreementState();
+            setRecoverStatus('Recovery console ready. Accept terms to unlock export/import actions.');
+        }
+
+        function showAuthError(err) {
+            if (!errorMessage) return;
+            errorMessage.textContent = formatAuthError(err);
+            errorMessage.classList.add('show');
+        }
+
+        async function handleAuthenticatedUser(user) {
+            if (!user) {
+                showLoginView();
+                return;
+            }
+            currentUser = user;
+            saveGlobalFirestoreToggle(true);
+            const ready = await afterAuthPrepareSessionAndUnlock(user);
+            if (ready) {
+                showRecoverView(user);
+            } else {
+                showLoginView();
+            }
+        }
+
+        async function isAccountEncryptedInFirestore() {
+            if (!currentUser || !db) return false;
+            const userSnap = await db.collection('users').doc(currentUser.uid).get();
+            if (!userSnap.exists) return false;
+            const data = userSnap.data() || {};
+            const enc = getUserEncryptionFields(data);
+            return enc.isEncrypted && !!enc.encryptionSalt;
+        }
+
+        function requireEncKeyWhenAccountEncrypted(accountEncrypted) {
+            if (!accountEncrypted) return null;
+            const encKey = sessionStorage.getItem('enc_key');
+            if (!encKey) {
+                sessionStorage.setItem('needs_enc_unlock', 'true');
+                maybeShowEncryptionUnlock();
+                return null;
+            }
+            return encKey;
+        }
+
+        function setRecoverStatus(msg) {
+            const statusEl = document.getElementById('recoverStatus');
+            if (statusEl) statusEl.textContent = msg || '';
+        }
+
+        function formatFriendlyRecoverDate(isoString) {
+            const date = new Date(isoString);
+            if (Number.isNaN(date.getTime())) return null;
+            return new Intl.DateTimeFormat('en-GB', {
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).format(date);
+        }
+
+        function mapRecoverError(err) {
+            const detailsMessage = err && err.details && err.details.message ? String(err.details.message) : '';
+            const rawMessage = err && err.message ? String(err.message) : '';
+            const cooldownSource = detailsMessage || rawMessage;
+            const cooldownMatch = cooldownSource.match(/next export is available after\s+([0-9TZ:.\-]+)\.?/i);
+            if (cooldownMatch && cooldownMatch[1]) {
+                const friendlyDate = formatFriendlyRecoverDate(cooldownMatch[1]);
+                if (friendlyDate) {
+                    return `Export cooldown active. Next export available on ${friendlyDate}.`;
+                }
+            }
+            const detailsCode = err && err.details && err.details.code ? String(err.details.code) : '';
+            if (detailsCode && RECOVER_ERROR_MESSAGES[detailsCode]) return RECOVER_ERROR_MESSAGES[detailsCode];
+            const code = err && err.code ? String(err.code).replace('functions/', '') : '';
+            if (code && RECOVER_ERROR_MESSAGES[code]) return RECOVER_ERROR_MESSAGES[code];
+            return rawMessage || 'Unknown error';
+        }
+
+        function triggerRecoverDownload(filename, data) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function deriveKeyFromSession(base64Key) {
+            const keyBytes = base64ToBytes(base64Key);
+            return crypto.subtle.importKey(
+                'raw',
+                keyBytes,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        function syncRecoverAgreementState() {
+            const isAgreed = !!(recoverTermsAgree && recoverTermsAgree.checked);
+            if (recoverDownloadBtn) recoverDownloadBtn.disabled = !isAgreed;
+            if (recoverUploadBtn) recoverUploadBtn.disabled = !isAgreed;
+        }
+
+        async function finishSignIn(user) {
+            if (!user) return;
+            await handleAuthenticatedUser(user);
+        }
+
+        if (btnGoogleSignIn) {
+            btnGoogleSignIn.addEventListener('click', function() {
+                if (errorMessage) errorMessage.classList.remove('show');
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider)
+                    .then(async function(cred) { await finishSignIn(cred.user); })
+                    .catch(showAuthError);
+            });
+        }
+
+        if (btnAppleSignIn) {
+            btnAppleSignIn.addEventListener('click', function() {
+                if (errorMessage) errorMessage.classList.remove('show');
+                const provider = new firebase.auth.OAuthProvider('apple.com');
+                provider.addScope('email');
+                provider.addScope('name');
+                auth.signInWithPopup(provider)
+                    .then(async function(cred) { await finishSignIn(cred.user); })
+                    .catch(showAuthError);
+            });
+        }
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (errorMessage) errorMessage.classList.remove('show');
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(async function(userCredential) { await finishSignIn(userCredential.user); })
+                    .catch(showAuthError);
+            });
+        }
+
+        if (logoutButton) {
+            logoutButton.addEventListener('click', function() {
+                auth.signOut()
+                    .then(function() {
+                        currentUser = null;
+                        encryptionUnlockContext = null;
+                        clearEncryptionSession();
+                        saveGlobalFirestoreToggle(false);
+                        showLoginView();
+                    })
+                    .catch(function(error) {
+                        alert('Could not sign out: ' + error.message);
+                    });
+            });
+        }
+
+        if (recoverTermsAgree) {
+            recoverTermsAgree.addEventListener('change', function() {
+                syncRecoverAgreementState();
+                if (recoverTermsAgree.checked) {
+                    setRecoverStatus('Terms accepted. Export/import actions are now enabled.');
+                } else {
+                    setRecoverStatus('Recovery actions locked until terms are accepted.');
+                }
+            });
+        }
+
+        if (recoverDownloadBtn) {
+            recoverDownloadBtn.addEventListener('click', async function() {
+                if (!currentUser) {
+                    setRecoverStatus('You must be signed in.');
+                    return;
+                }
+                if (!exportJournalCallable) {
+                    setRecoverStatus('Export function is not initialized.');
+                    return;
+                }
+                recoverDownloadBtn.disabled = true;
+                setRecoverStatus('Requesting backup payload from server...');
+                try {
+                    const accountEncrypted = await isAccountEncryptedInFirestore();
+                    const encKey = requireEncKeyWhenAccountEncrypted(accountEncrypted);
+                    if (accountEncrypted && !encKey) return;
+                    const res = await exportJournalCallable();
+                    const payload = res && res.data ? res.data : {};
+                    if (accountEncrypted && encKey && payload.months) {
+                        const cryptoKey = await deriveKeyFromSession(encKey);
+                        for (const monthKey of Object.keys(payload.months)) {
+                            const month = payload.months[monthKey];
+                            if (month && month.encrypted && typeof month.encrypted === 'string') {
+                                payload.months[monthKey] = await decryptMonth(month, cryptoKey);
+                            }
+                        }
+                    }
+                    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    triggerRecoverDownload(`journal-export-${stamp}.json`, payload);
+                    setRecoverStatus('Export complete. JSON download started.');
+                } catch (err) {
+                    console.error('[RECOVER] Export failed:', err);
+                    setRecoverStatus('Export failed: ' + mapRecoverError(err));
+                } finally {
+                    syncRecoverAgreementState();
+                }
+            });
+        }
+
+        if (recoverUploadBtn) {
+            recoverUploadBtn.addEventListener('click', async function() {
+                if (!currentUser) {
+                    setRecoverStatus('You must be signed in.');
+                    return;
+                }
+                if (!importJournalCallable) {
+                    setRecoverStatus('Import function is not initialized.');
+                    return;
+                }
+                const file = recoverFileInput && recoverFileInput.files ? recoverFileInput.files[0] : null;
+                if (!file) {
+                    setRecoverStatus('Select a JSON file before import.');
+                    return;
+                }
+                recoverUploadBtn.disabled = true;
+                setRecoverStatus('Reading local JSON file...');
+                try {
+                    const text = await file.text();
+                    const json = JSON.parse(text);
+                    setRecoverStatus('Uploading payload to server...');
+                    const accountEncrypted = await isAccountEncryptedInFirestore();
+                    const encKey = requireEncKeyWhenAccountEncrypted(accountEncrypted);
+                    if (accountEncrypted && !encKey) return;
+                    if (accountEncrypted && encKey && json.months) {
+                        const cryptoKey = await deriveKeyFromSession(encKey);
+                        for (const monthKey of Object.keys(json.months)) {
+                            const month = json.months[monthKey];
+                            if (month && !month.encrypted) {
+                                json.months[monthKey] = await encryptMonth(month, cryptoKey);
+                            }
+                        }
+                    }
+                    const res = await importJournalCallable(json);
+                    const result = res && res.data ? res.data : {};
+                    const monthsWritten = result.monthsWritten != null ? result.monthsWritten : 0;
+                    const monthsReceived = result.monthsReceived != null ? result.monthsReceived : 0;
+                    setRecoverStatus(`Import complete. monthsWritten=${monthsWritten}, monthsReceived=${monthsReceived}`);
+                } catch (err) {
+                    if (err instanceof SyntaxError) {
+                        setRecoverStatus('The selected file is not valid JSON.');
+                    } else {
+                        console.error('[RECOVER] Import failed:', err);
+                        setRecoverStatus('Import failed: ' + mapRecoverError(err));
+                    }
+                } finally {
+                    syncRecoverAgreementState();
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            syncRecoverAgreementState();
+
+            if (!auth) {
+                showLoginView();
+                return;
+            }
+
+            auth.onAuthStateChanged(async function(user) {
+                if (user) {
+                    await handleAuthenticatedUser(user);
+                } else {
+                    currentUser = null;
+                    encryptionUnlockContext = null;
+                    clearEncryptionSession();
+                    saveGlobalFirestoreToggle(false);
+                    showLoginView();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

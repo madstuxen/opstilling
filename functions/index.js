@@ -45,7 +45,7 @@ async function readEligibility(uid) {
   const snap = await userRef.get();
   const data = snap.exists ? snap.data() || {} : {};
 
-  const isPremium = data.isPremium === true;
+  const isPremium = (data.subscription && data.subscription.isPremium === true) || false;
   const createdAt = toDate(data.createdAt);
   const lastExportAt = toDate(data.lastExportAt);
 
@@ -53,27 +53,7 @@ async function readEligibility(uid) {
 }
 
 function assertEligibleForExport(state) {
-  const now = new Date();
-  const minDate = subtractMonths(now, THREE_MONTHS);
-
-  if (!state.isPremium) {
-    throw new functions.https.HttpsError(
-      "permission-denied",
-      "Export denied: premium subscription is required."
-    );
-  }
-  if (!state.createdAt || state.createdAt > minDate) {
-    throw new functions.https.HttpsError(
-      "permission-denied",
-      "Export denied: account must be at least 3 months old."
-    );
-  }
-  if (state.lastExportAt && state.lastExportAt > minDate) {
-    throw new functions.https.HttpsError(
-      "resource-exhausted",
-      "Export denied: you can export once every 3 months."
-    );
-  }
+  // Export er tilgængeligt for alle loggede brugere — ingen premium eller cooldown krav
 }
 
 exports.exportJournalData = functions.https.onCall(async (_data, context) => {
