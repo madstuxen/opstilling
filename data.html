@@ -1108,7 +1108,14 @@
 
         function mapRecoverError(err) {
             const code = err && err.code ? String(err.code).replace('functions/', '') : '';
-            if (code === 'resource-exhausted') return 'You can download once per hour. Please try again later.';
+            const details = err && err.details ? err.details : {};
+
+            if (code === 'failed-precondition' && details.nextExportAt) {
+                const nextExport = new Date(details.nextExportAt);
+                const minutesLeft = Math.ceil((nextExport - Date.now()) / (1000 * 60));
+                return `You can download again in ${minutesLeft} minute${minutesLeft === 1 ? '' : 's'}.`;
+            }
+            if (code === 'failed-precondition') return 'You can download once per hour. Please try again later.';
             if (code === 'unauthenticated') return 'You must be signed in.';
             if (code === 'permission-denied') return 'Access denied.';
             const rawMessage = err && err.message ? String(err.message) : '';
