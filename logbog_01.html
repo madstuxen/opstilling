@@ -1546,10 +1546,178 @@
             color: #6b7280;
             font-size: 1rem;
         }
+
+        .logbog-login-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: #573920;
+        }
+
+        .logbog-login-panel {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(47, 32, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 28px 24px;
+            color: #f5efe7;
+        }
+
+        .logbog-login-panel h2 {
+            font-size: 1.35rem;
+            margin-bottom: 8px;
+        }
+
+        .logbog-login-intro {
+            font-size: 0.95rem;
+            color: rgba(245, 239, 231, 0.85);
+            margin-bottom: 16px;
+            line-height: 1.45;
+        }
+
+        .logbog-login-panel .error-message {
+            color: #fca5a5;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            display: none;
+        }
+
+        .logbog-login-panel .error-message.show {
+            display: block;
+        }
+
+        .logbog-login-panel .oauth-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .logbog-login-panel .btn-oauth-google,
+        .logbog-login-panel .btn-oauth-apple {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        .logbog-login-panel .btn-oauth-google {
+            background: #fff;
+            color: #1f2937;
+        }
+
+        .logbog-login-panel .btn-oauth-apple {
+            background: #000;
+        }
+
+        .logbog-login-panel .login-divider {
+            text-align: center;
+            color: rgba(245, 239, 231, 0.6);
+            font-size: 0.85rem;
+            margin: 12px 0;
+        }
+
+        .logbog-login-panel .form-group {
+            margin-bottom: 12px;
+        }
+
+        .logbog-login-panel label {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .logbog-login-panel input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .logbog-login-panel .login-button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #6366f1;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+
+        .logbog-login-panel .email-alt-details summary {
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: rgba(245, 239, 231, 0.85);
+        }
+
+        .logbog-login-back {
+            display: inline-block;
+            margin-top: 16px;
+            color: rgba(245, 239, 231, 0.75);
+            font-size: 0.9rem;
+            text-decoration: none;
+        }
+
+        .logbog-login-back:hover {
+            color: #fff;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="logbogLoginGate" class="logbog-login-gate" style="display: none;" aria-hidden="true">
+        <div class="logbog-login-panel">
+            <h2>Sign in to your journal</h2>
+            <p class="logbog-login-intro">Sign in with the same account as in the app. Use Google or Apple if you use those in the app.</p>
+            <div class="error-message" id="logbogLoginError"></div>
+            <div class="oauth-row">
+                <button type="button" class="btn-oauth-google" id="logbogBtnGoogleSignIn">
+                    <img src="imagefiles/google_logo.svg" alt="" width="22" height="22">
+                    Continue with Google
+                </button>
+                <button type="button" class="btn-oauth-apple" id="logbogBtnAppleSignIn">
+                    <img src="imagefiles/Apple_logo_white.svg" alt="" width="22" height="22">
+                    Sign in with Apple
+                </button>
+            </div>
+            <p class="login-divider">or</p>
+            <details class="email-alt-details">
+                <summary>Other sign-in options (email)</summary>
+                <form id="logbog-login-form" style="margin-top: 14px;">
+                    <div class="form-group">
+                        <label for="logbogEmail">Email</label>
+                        <input type="email" id="logbogEmail" name="email" placeholder="Email" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="logbogPassword">Password</label>
+                        <input type="password" id="logbogPassword" name="password" placeholder="Password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="login-button" id="logbogLoginSubmitBtn">Sign in with email</button>
+                </form>
+            </details>
+            <a class="logbog-login-back" href="index.html">Back to home</a>
+        </div>
+    </div>
+    <div class="container" id="logbogApp" style="display: none;">
         <header class="site-header">
             <div class="site-header-left">
                 <a class="site-header-logo-link" href="index.html" aria-label="Home">
@@ -1717,15 +1885,36 @@
     </div>
 
     <script>
+        function parseFirestoreCreatedAtMs(createdAt) {
+            if (!createdAt) return null;
+            if (typeof createdAt.toMillis === 'function') return createdAt.toMillis();
+            if (createdAt.seconds) return createdAt.seconds * 1000;
+            return null;
+        }
+
+        function computeAccessLevelFromDoc(docData) {
+            if (!docData || typeof docData !== 'object') return 'free';
+            const isPremium = (docData.subscription && docData.subscription.isPremium === true) || false;
+            if (isPremium) return 'subscriber';
+            const createdAt = parseFirestoreCreatedAtMs(docData.createdAt);
+            if (createdAt) {
+                const trialDays = (Date.now() - createdAt) / (1000 * 60 * 60 * 24);
+                if (trialDays < 30) return 'trial';
+            }
+            return 'free';
+        }
+
         function computeAccessLevel() {
             const raw = localStorage.getItem('indexuserData');
             if (!raw) return 'free';
-            const userData = JSON.parse(raw);
-            if (userData.isPremium) return 'subscriber';
-            if (userData.createdAt) {
-                const trialDays = (Date.now() - userData.createdAt) / (1000 * 60 * 60 * 24);
-                if (trialDays < 30) return 'trial';
-            }
+            try {
+                const userData = JSON.parse(raw);
+                if (userData.isPremium) return 'subscriber';
+                if (userData.createdAt) {
+                    const trialDays = (Date.now() - userData.createdAt) / (1000 * 60 * 60 * 24);
+                    if (trialDays < 30) return 'trial';
+                }
+            } catch (e) { /* ignore */ }
             return 'free';
         }
 
@@ -2470,7 +2659,7 @@
                             const encKey = sessionStorage.getItem('enc_key');
                             if (!encKey) {
                                 console.warn('[LOAD] Month is encrypted but no enc_key in sessionStorage');
-                                redirectToEncryptionUnlock();
+                                await promptEncryptionUnlockIfNeeded();
                                 return null;
                             }
                             try {
@@ -2478,7 +2667,7 @@
                                 return await decryptMonth(monthDataFromSub, cryptoKey);
                             } catch (e) {
                                 console.warn('[LOAD] Failed to decrypt month:', monthKey, e);
-                                redirectToEncryptionUnlock();
+                                await promptEncryptionUnlockIfNeeded();
                                 return null;
                             }
                         }
@@ -2500,7 +2689,7 @@
                         const encKey = sessionStorage.getItem('enc_key');
                         if (!encKey) {
                             console.warn('[LOAD] Month is encrypted but no enc_key in sessionStorage');
-                            redirectToEncryptionUnlock();
+                            await promptEncryptionUnlockIfNeeded();
                             return null;
                         }
                         try {
@@ -2508,7 +2697,7 @@
                             return await decryptMonth(monthDataFromMain, cryptoKey);
                         } catch (e) {
                             console.warn('[LOAD] Failed to decrypt month from main doc:', monthKey, e);
-                            redirectToEncryptionUnlock();
+                            await promptEncryptionUnlockIfNeeded();
                             return null;
                         }
                     }
@@ -2841,17 +3030,15 @@
             return hasMonthlyStructure;
         }
 
-        function getEncKeyOrRedirect() {
+        async function getEncKeyOrPrompt() {
             const encKey = sessionStorage.getItem('enc_key');
             const isEncrypted = sessionStorage.getItem('is_encrypted') === 'true';
 
-            // Ikke-krypteret konto — ingen guard nødvendig
             if (!isEncrypted) return null;
 
-            // Krypteret konto uden nøgle — send til unlock
             if (!encKey) {
-                redirectToEncryptionUnlock();
-                return null;
+                const unlocked = await promptEncryptionUnlockIfNeeded();
+                return unlocked || null;
             }
             return encKey;
         }
@@ -2871,7 +3058,7 @@
 
             try {
                 if (hasMonthlyStructure) {
-                    const encKey = getEncKeyOrRedirect() ?? sessionStorage.getItem('enc_key');
+                    const encKey = await getEncKeyOrPrompt() ?? sessionStorage.getItem('enc_key');
                     if (sessionStorage.getItem('is_encrypted') === 'true' && !encKey) return false;
 
                     const monthKey = dk.substring(0, 7);
@@ -2947,7 +3134,7 @@
 
             try {
                 if (hasMonthlyStructure) {
-                    const encKey = getEncKeyOrRedirect() ?? sessionStorage.getItem('enc_key');
+                    const encKey = await getEncKeyOrPrompt() ?? sessionStorage.getItem('enc_key');
                     if (sessionStorage.getItem('is_encrypted') === 'true' && !encKey) return false;
 
                     const monthKey = dk.substring(0, 7);
@@ -4040,7 +4227,7 @@
             const logbookEntryEl = document.getElementById('logbookEntry');
             if (!logbookEntryEl) return;
             if (!isJournalFieldDirty()) return;
-            if (sessionStorage.getItem('is_encrypted') === 'true' && !getEncKeyOrRedirect()) return false;
+            if (sessionStorage.getItem('is_encrypted') === 'true' && !(await getEncKeyOrPrompt())) return false;
             if (journalSaveBtn) journalSaveBtn.textContent = s.saving || 'Gemmer...';
             const ok = await saveLogbogDayPatchToFirestore(activeLogDate, { dagbog: logbookEntryEl.value });
             if (ok) {
@@ -4061,7 +4248,7 @@
             const dreamEntryEl = document.getElementById('dreamEntry');
             if (!dreamEntryEl) return;
             if (!isDreamsFieldDirty()) return;
-            if (sessionStorage.getItem('is_encrypted') === 'true' && !getEncKeyOrRedirect()) return false;
+            if (sessionStorage.getItem('is_encrypted') === 'true' && !(await getEncKeyOrPrompt())) return false;
             if (dreamsSaveBtn) dreamsSaveBtn.textContent = s.saving || 'Gemmer...';
             const ok = await saveLogbogDayPatchToFirestore(activeLogDate, { dreams: dreamEntryEl.value });
             if (ok) {
@@ -4143,6 +4330,14 @@
         let db = null;
         let fns = null;
         let currentUser = null;
+        let encryptionUnlockContext = null;
+        let encryptionUnlockPromise = null;
+        let afterAuthPrepareInFlight = null;
+        let journalBootstrapComplete = false;
+        let journalBootstrapInFlight = null;
+
+        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
+        const INVALID_ENC_PASSWORD = 'INVALID_ENC_PASSWORD';
         
         // Global cache of all user-related Firestore data (shared via window)
         // {
@@ -4167,12 +4362,379 @@
 
         const ENC_SESSION_UID_KEY = 'enc_session_uid';
 
+        function saveGlobalFirestoreToggle(value) {
+            try {
+                localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
+                window.dispatchEvent(new CustomEvent('firestoreToggleChanged', { detail: value }));
+            } catch (e) {
+                console.error('Error saving global Firestore toggle:', e);
+            }
+        }
+
+        function formatAuthError(error) {
+            const errorCode = error && error.code ? error.code : '';
+            let errorMsgText = error && error.message ? error.message : '';
+            try {
+                if (typeof errorMsgText === 'string' && errorMsgText.startsWith('{')) {
+                    const parsed = JSON.parse(errorMsgText);
+                    if (parsed.error && parsed.error.message) errorMsgText = parsed.error.message;
+                }
+            } catch (parseErr) { /* ignore */ }
+            let errorMsg = 'Sign-in failed. Please try again.';
+            if (errorCode === 'auth/user-not-found' ||
+                errorCode === 'auth/internal-error' ||
+                (errorMsgText && errorMsgText.includes('INVALID_LOGIN_CREDENTIALS'))) {
+                errorMsg = 'No account found or wrong password.';
+            } else if (errorCode === 'auth/wrong-password') {
+                errorMsg = 'Wrong password. Try again.';
+            } else if (errorCode === 'auth/invalid-email') {
+                errorMsg = 'Invalid email address.';
+            } else if (errorCode === 'auth/user-disabled') {
+                errorMsg = 'This account has been disabled.';
+            } else if (errorCode === 'auth/too-many-requests') {
+                errorMsg = 'Too many attempts. Try again later.';
+            } else if (errorCode === 'auth/network-request-failed') {
+                errorMsg = 'Network error. Check your connection.';
+            } else if (errorCode === 'auth/popup-closed-by-user' || errorCode === 'auth/cancelled-popup-request') {
+                errorMsg = 'Sign-in was cancelled.';
+            } else if (errorMsgText && !errorMsgText.includes('{') && !errorMsgText.includes('error')) {
+                errorMsg = errorMsgText;
+            }
+            return errorMsg;
+        }
+
+        function showLogbogLoginGate() {
+            const gate = document.getElementById('logbogLoginGate');
+            const app = document.getElementById('logbogApp');
+            if (gate) {
+                gate.style.display = 'flex';
+                gate.setAttribute('aria-hidden', 'false');
+            }
+            if (app) app.style.display = 'none';
+            journalBootstrapComplete = false;
+        }
+
+        function showLogbogApp() {
+            const gate = document.getElementById('logbogLoginGate');
+            const app = document.getElementById('logbogApp');
+            if (gate) {
+                gate.style.display = 'none';
+                gate.setAttribute('aria-hidden', 'true');
+            }
+            if (app) app.style.display = '';
+        }
+
+        function showLogbogLoginError(err) {
+            const el = document.getElementById('logbogLoginError');
+            if (!el) return;
+            el.textContent = formatAuthError(err);
+            el.classList.add('show');
+        }
+
+        function detectUserTimezone() {
+            try {
+                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (timezone && typeof timezone === 'string') return timezone;
+            } catch (e) { /* ignore */ }
+            return 'Europe/Copenhagen';
+        }
+
+        async function loadAndSaveUserData(user) {
+            if (!user || !db) return null;
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    const data = userDoc.data();
+                    const userData = data.userData || (data.user && data.user.profile ? {
+                        displayName: data.user.profile.nickname || '',
+                        email: data.user.profile.email || '',
+                        color: data.user.profile.defaultColor || '',
+                        language: data.user.profile.language || 'en',
+                        monthsIndex: data.user.monthsIndex || {},
+                    } : null);
+                    const dataToSave = userData ? {
+                        ...userData,
+                        You: userData.displayName || '',
+                        timezone: userData.timezone || detectUserTimezone()
+                    } : { timezone: detectUserTimezone() };
+                    if (data.user && typeof data.user === 'object') dataToSave.user = data.user;
+                    const isPremium = (data.subscription && data.subscription.isPremium === true) || false;
+                    const createdAt = parseFirestoreCreatedAtMs(data.createdAt);
+                    dataToSave.isPremium = isPremium;
+                    dataToSave.createdAt = createdAt;
+                    localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
+                    syncEncryptionSessionFromFirestore(user, data);
+                    return data;
+                }
+                localStorage.setItem('indexuserData', JSON.stringify({ timezone: detectUserTimezone() }));
+                clearEncryptionSession();
+                sessionStorage.setItem(ENC_SESSION_UID_KEY, user.uid);
+                return null;
+            } catch (error) {
+                console.error('Error loading userData from Firestore:', error);
+                localStorage.setItem('indexuserData', JSON.stringify({}));
+                return null;
+            }
+        }
+
         function clearEncryptionSession() {
             sessionStorage.removeItem('enc_key');
             sessionStorage.removeItem('is_encrypted');
             sessionStorage.removeItem('needs_enc_unlock');
             sessionStorage.removeItem('pending_enc_salt');
             sessionStorage.removeItem(ENC_SESSION_UID_KEY);
+            encryptionUnlockPromise = null;
+        }
+
+        function syncEncryptionSessionFromFirestore(user, data) {
+            const uid = user.uid;
+            const prevUid = sessionStorage.getItem(ENC_SESSION_UID_KEY);
+            if (prevUid !== uid) clearEncryptionSession();
+            sessionStorage.setItem(ENC_SESSION_UID_KEY, uid);
+
+            const enc = getUserEncryptionFields(data || {});
+            const accountEncrypted = enc.isEncrypted && !!enc.encryptionSalt;
+
+            if (!accountEncrypted) {
+                sessionStorage.removeItem('enc_key');
+                sessionStorage.removeItem('is_encrypted');
+                sessionStorage.removeItem('needs_enc_unlock');
+                sessionStorage.removeItem('pending_enc_salt');
+                encryptionUnlockContext = null;
+                encryptionUnlockPromise = null;
+                return;
+            }
+
+            sessionStorage.setItem('is_encrypted', 'true');
+            sessionStorage.setItem('pending_enc_salt', enc.encryptionSalt);
+            encryptionUnlockContext = {
+                uid,
+                encryptionVerifier: enc.encryptionVerifier,
+                monthsIndex: parseMonthsIndexForUnlock(data),
+            };
+
+            if (sessionStorage.getItem('enc_key')) {
+                sessionStorage.removeItem('needs_enc_unlock');
+            } else {
+                sessionStorage.removeItem('enc_key');
+                sessionStorage.setItem('needs_enc_unlock', 'true');
+                encryptionUnlockPromise = null;
+            }
+        }
+
+        function parseMonthsIndexForUnlock(raw) {
+            if (!raw || typeof raw !== 'object') return {};
+            const pick = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null);
+            return (
+                pick((raw.user || {}).monthsIndex) ||
+                pick((raw.user || {}).monthIndex) ||
+                pick(raw.monthsIndex) ||
+                pick(raw.monthIndex) ||
+                pick((raw.userData || {}).monthsIndex) ||
+                pick((raw.userData || {}).monthIndex) ||
+                {}
+            );
+        }
+
+        async function ensureEncryptionUnlockContext() {
+            if (encryptionUnlockContext && encryptionUnlockContext.uid) return encryptionUnlockContext;
+            if (!currentUser || !db) throw new Error('Missing user for encryption unlock');
+            const userDoc = await db.collection('users').doc(currentUser.uid).get();
+            const data = userDoc.exists ? (userDoc.data() || {}) : {};
+            const enc = getUserEncryptionFields(data);
+            encryptionUnlockContext = {
+                uid: currentUser.uid,
+                encryptionVerifier: enc.encryptionVerifier,
+                monthsIndex: parseMonthsIndexForUnlock(data),
+            };
+            return encryptionUnlockContext;
+        }
+
+        async function fetchNewestEncryptedMonthDoc(uid, monthKeysSortedDesc) {
+            if (!db || !uid || !monthKeysSortedDesc.length) return null;
+            const userDocRef = db.collection('users').doc(uid);
+            let rootData = null;
+            for (const monthKey of monthKeysSortedDesc) {
+                const monthDoc = await userDocRef.collection('months').doc(monthKey).get();
+                if (monthDoc.exists) {
+                    const data = monthDoc.data() || {};
+                    if (data.encrypted && typeof data.encrypted === 'string') return data;
+                }
+                if (!rootData) {
+                    const userSnap = await userDocRef.get();
+                    rootData = userSnap.exists ? (userSnap.data() || {}) : {};
+                }
+                const legacy = rootData[monthKey];
+                if (legacy && legacy.encrypted && typeof legacy.encrypted === 'string') return legacy;
+            }
+            return null;
+        }
+
+        async function validateDerivedEncryptionKey(cryptoKey, unlockContext) {
+            const verifier = unlockContext.encryptionVerifier;
+            if (verifier && verifier.encrypted && verifier.iv) {
+                let decoded;
+                try {
+                    decoded = await decryptMonth(verifier, cryptoKey);
+                } catch (e) {
+                    throw new Error(INVALID_ENC_PASSWORD);
+                }
+                if (!(decoded && decoded._verify === true && decoded.app === 'me-and-them')) {
+                    throw new Error(INVALID_ENC_PASSWORD);
+                }
+                return { usedMonthTest: false };
+            }
+
+            const monthKeys = Object.keys(unlockContext.monthsIndex || {})
+                .filter((k) => /^\d{4}-\d{2}$/.test(k))
+                .sort((a, b) => b.localeCompare(a));
+            if (monthKeys.length > 0) {
+                const encryptedPayload = await fetchNewestEncryptedMonthDoc(unlockContext.uid, monthKeys);
+                if (encryptedPayload) {
+                    try {
+                        await decryptMonth(encryptedPayload, cryptoKey);
+                    } catch (e) {
+                        throw new Error(INVALID_ENC_PASSWORD);
+                    }
+                    return { usedMonthTest: true };
+                }
+            }
+
+            return { usedMonthTest: false };
+        }
+
+        async function backfillEncryptionVerifier(uid, cryptoKey) {
+            const verifier = await encryptMonth({ _verify: true, app: 'me-and-them' }, cryptoKey);
+            const userDocRef = db.collection('users').doc(uid);
+            const snap = await userDocRef.get();
+            const existingUser = (snap.exists && snap.data().user) || {};
+            await userDocRef.set({
+                user: { ...existingUser, encryptionVerifier: verifier },
+            }, { merge: true });
+            if (encryptionUnlockContext && encryptionUnlockContext.uid === uid) {
+                encryptionUnlockContext.encryptionVerifier = verifier;
+            }
+        }
+
+        async function maybeShowEncryptionUnlock() {
+            const needsUnlock = sessionStorage.getItem('needs_enc_unlock') === 'true';
+            if (!needsUnlock) return;
+            if (encryptionUnlockPromise) return encryptionUnlockPromise;
+
+            encryptionUnlockPromise = (async () => {
+                let salt = sessionStorage.getItem('pending_enc_salt');
+                if (!salt && currentUser && db) {
+                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                    const data = userDoc.exists ? (userDoc.data() || {}) : {};
+                    const enc = getUserEncryptionFields(data);
+                    if (enc.encryptionSalt) {
+                        salt = enc.encryptionSalt;
+                        sessionStorage.setItem('pending_enc_salt', salt);
+                        sessionStorage.setItem('is_encrypted', 'true');
+                    }
+                }
+                if (!salt) return;
+
+                await new Promise((resolveModal) => {
+                    document.querySelectorAll('[data-encryption-unlock-overlay]').forEach((el) => el.remove());
+                    const overlay = document.createElement('div');
+                    overlay.setAttribute('data-encryption-unlock-overlay', 'true');
+                    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10001';
+
+                    const box = document.createElement('div');
+                    box.style.cssText = 'background:#fff;border-radius:12px;padding:32px;max-width:360px;width:90%;display:flex;flex-direction:column;gap:16px';
+
+                    const title = document.createElement('p');
+                    title.textContent = 'Your journal is encrypted. Enter your encryption key.';
+                    title.style.cssText = 'font-size:16px;font-weight:600;margin:0;color:#111';
+
+                    const input = document.createElement('input');
+                    input.type = 'password';
+                    input.placeholder = 'Key';
+                    input.style.cssText = 'border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:16px';
+
+                    const error = document.createElement('p');
+                    error.style.cssText = 'color:#b91c1c;font-size:14px;margin:0;display:none';
+
+                    const btnRow = document.createElement('div');
+                    btnRow.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap';
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.textContent = 'Unlock';
+                    btn.style.cssText = 'background:#000;color:#fff;border:none;border-radius:8px;padding:12px 16px;font-size:16px;cursor:pointer;flex:1';
+
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.type = 'button';
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.style.cssText = 'background:#e5e7eb;color:#111;border:none;border-radius:8px;padding:12px 16px;font-size:16px;cursor:pointer;flex:1';
+
+                    let cancelled = false;
+
+                    async function submitEncryptionUnlock() {
+                        if (btn.disabled || cancelled) return;
+                        try {
+                            error.style.display = 'none';
+                            btn.disabled = true;
+                            input.disabled = true;
+                            const cryptoKey = await deriveKey(input.value, salt);
+                            const unlockContext = await ensureEncryptionUnlockContext();
+                            const validation = await validateDerivedEncryptionKey(cryptoKey, unlockContext);
+                            const hadVerifier = !!(unlockContext.encryptionVerifier &&
+                                unlockContext.encryptionVerifier.encrypted &&
+                                unlockContext.encryptionVerifier.iv);
+                            if (validation.usedMonthTest && !hadVerifier) {
+                                await backfillEncryptionVerifier(unlockContext.uid, cryptoKey);
+                            }
+                            const rawKey = await crypto.subtle.exportKey('raw', cryptoKey);
+                            sessionStorage.setItem('enc_key', bytesToBase64(new Uint8Array(rawKey)));
+                            sessionStorage.removeItem('needs_enc_unlock');
+                            sessionStorage.removeItem('pending_enc_salt');
+                            document.body.removeChild(overlay);
+                            resolveModal();
+                        } catch (e) {
+                            error.textContent = (e && e.message === INVALID_ENC_PASSWORD)
+                                ? 'Incorrect encryption key. Please try again.'
+                                : 'Something went wrong. Please try again.';
+                            error.style.display = 'block';
+                        } finally {
+                            if (!cancelled) {
+                                btn.disabled = false;
+                                input.disabled = false;
+                            }
+                        }
+                    }
+
+                    btn.addEventListener('click', submitEncryptionUnlock);
+                    cancelBtn.addEventListener('click', function() {
+                        cancelled = true;
+                        document.body.removeChild(overlay);
+                        window.location.href = 'index.html';
+                    });
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            submitEncryptionUnlock();
+                        }
+                    });
+
+                    btnRow.appendChild(btn);
+                    btnRow.appendChild(cancelBtn);
+                    box.appendChild(title);
+                    box.appendChild(input);
+                    box.appendChild(error);
+                    box.appendChild(btnRow);
+                    overlay.appendChild(box);
+                    document.body.appendChild(overlay);
+                    input.focus();
+                });
+            })();
+
+            try {
+                await encryptionUnlockPromise;
+            } finally {
+                encryptionUnlockPromise = null;
+            }
         }
 
         /** Encryption metadata lives under users/{uid}.user (app canonical). */
@@ -4185,10 +4747,11 @@
             };
         }
 
-        function redirectToEncryptionUnlock() {
+        async function promptEncryptionUnlockIfNeeded() {
             sessionStorage.removeItem('enc_key');
             sessionStorage.setItem('needs_enc_unlock', 'true');
-            window.location.href = 'index.html?unlock=1';
+            await maybeShowEncryptionUnlock();
+            return sessionStorage.getItem('enc_key');
         }
 
         /** Firestore is source of truth for encryption (not sessionStorage enc_key). */
@@ -4202,8 +4765,8 @@
         }
 
         /**
-         * Sync session encryption flags from Firestore; redirect to index if encrypted but locked.
-         * @returns {Promise<boolean>} false if redirecting to unlock
+         * Sync session encryption flags from Firestore; prompt inline unlock if encrypted but locked.
+         * @returns {Promise<boolean>} false if unlock was cancelled or failed
          */
         async function ensureEncryptionReadyForJournal() {
             if (!currentUser || !db) return true;
@@ -4232,6 +4795,11 @@
 
             sessionStorage.setItem('is_encrypted', 'true');
             sessionStorage.setItem('pending_enc_salt', enc.encryptionSalt);
+            encryptionUnlockContext = {
+                uid,
+                encryptionVerifier: enc.encryptionVerifier,
+                monthsIndex: parseMonthsIndexForUnlock(data),
+            };
 
             if (sessionStorage.getItem('enc_key')) {
                 sessionStorage.removeItem('needs_enc_unlock');
@@ -4240,17 +4808,21 @@
 
             sessionStorage.removeItem('enc_key');
             sessionStorage.setItem('needs_enc_unlock', 'true');
-            redirectToEncryptionUnlock();
-            return false;
+            await maybeShowEncryptionUnlock();
+            if (!sessionStorage.getItem('enc_key')) {
+                return false;
+            }
+            sessionStorage.removeItem('needs_enc_unlock');
+            return true;
         }
 
         /** Require unlock key only when Firestore marks the account encrypted. */
-        function requireEncKeyWhenAccountEncrypted(accountEncrypted) {
+        async function requireEncKeyWhenAccountEncrypted(accountEncrypted) {
             if (!accountEncrypted) return null;
             const encKey = sessionStorage.getItem('enc_key');
             if (!encKey) {
-                redirectToEncryptionUnlock();
-                return null;
+                const unlocked = await promptEncryptionUnlockIfNeeded();
+                return unlocked || null;
             }
             return encKey;
         }
@@ -4291,11 +4863,6 @@
                     clearEncryptionSession();
                 }
 
-                if (user) {
-                    const encReady = await ensureEncryptionReadyForJournal();
-                    if (!encReady) return;
-                }
-                
                 // Mark auth as ready and resolve promise
                 if (!authStateReady) {
                     authStateReady = true;
@@ -4305,8 +4872,19 @@
                     }
                 }
                 
-                // When user logs in, reload data
                 if (user) {
+                    saveGlobalFirestoreToggle(true);
+                    if (!journalBootstrapComplete) {
+                        const bootOk = await bootstrapJournal();
+                        if (bootOk) await runJournalAppInitIfNeeded();
+                    }
+                } else {
+                    saveGlobalFirestoreToggle(false);
+                    showLogbogLoginGate();
+                }
+
+                // When user logs in and journal is ready, reload data
+                if (user && journalBootstrapComplete) {
                     await setActiveLogDate(activeLogDate);
                     await renderLogHistory();
                     const tankerEntryEl = document.getElementById('tankerEntry');
@@ -5395,68 +5973,99 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            logbogLocale = resolveLocaleFromUserData();
+        let journalAppInitDone = false;
 
-            // GUARD 1: Extend initial load period - wait for ALL
-            
-            // 1. Wait for auth state (max 3 seconds)
-            try {
-                await Promise.race([
-                    authStatePromise,
-                    new Promise(resolve => setTimeout(resolve, 3000))
-                ]);
-            } catch (e) {
-                console.warn('Auth state wait error:', e);
-            }
-            
-            // Resolve manually if not resolved yet
-            if (!authStateReady && authStateResolver) {
-                authStateResolver();
-                authStateResolver = null;
-            }
-            
-            // 2. Check if user is logged in - require login
-            if (!currentUser) {
-                alert(getLogbogStrings().needLogin);
-                window.location.href = 'index.html';
-                return;
+        function initLogbogLoginHandlers() {
+            const loginForm = document.getElementById('logbog-login-form');
+            const loginError = document.getElementById('logbogLoginError');
+            const btnGoogle = document.getElementById('logbogBtnGoogleSignIn');
+            const btnApple = document.getElementById('logbogBtnAppleSignIn');
+
+            if (btnGoogle && auth) {
+                btnGoogle.addEventListener('click', function() {
+                    if (loginError) loginError.classList.remove('show');
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    auth.signInWithPopup(provider).catch(function(e) {
+                        showLogbogLoginError(e);
+                    });
+                });
             }
 
-            const accessLevel = computeAccessLevel();
-            if (accessLevel === 'free') {
-                alert('Your free trial has expired. Subscribe in the app to continue.');
-                window.location.href = 'index.html';
-                return;
+            if (btnApple && auth) {
+                btnApple.addEventListener('click', function() {
+                    if (loginError) loginError.classList.remove('show');
+                    const provider = new firebase.auth.OAuthProvider('apple.com');
+                    provider.addScope('email');
+                    provider.addScope('name');
+                    auth.signInWithPopup(provider).catch(function(e) {
+                        showLogbogLoginError(e);
+                    });
+                });
             }
 
-            const encryptionReady = await ensureEncryptionReadyForJournal();
-            if (!encryptionReady) return;
+            if (loginForm && auth) {
+                loginForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    if (loginError) loginError.classList.remove('show');
+                    const email = document.getElementById('logbogEmail').value;
+                    const password = document.getElementById('logbogPassword').value;
+                    auth.signInWithEmailAndPassword(email, password).catch(function(err) {
+                        showLogbogLoginError(err);
+                    });
+                });
+            }
+        }
 
-            // Locale from Firestore: user.profile.language lives on doc root (sibling to userData)
-            if (db) {
+        async function bootstrapJournal() {
+            if (journalBootstrapComplete) return true;
+            if (journalBootstrapInFlight) return journalBootstrapInFlight;
+
+            journalBootstrapInFlight = (async () => {
                 try {
-                    const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                    if (userDoc.exists) {
-                        const docData = userDoc.data() || {};
-                        logbogLocale = resolveLocaleFromFirestoreUserDoc(docData);
-                        try {
-                            const prevRaw = localStorage.getItem('indexuserData');
-                            const prev = prevRaw ? JSON.parse(prevRaw) : {};
-                            const freshUd = docData.userData && typeof docData.userData === 'object' ? docData.userData : {};
-                            const mergedLs = { ...prev, ...freshUd };
-                            if (docData.user && typeof docData.user === 'object') {
-                                mergedLs.user = docData.user;
-                            }
-                            localStorage.setItem('indexuserData', JSON.stringify(mergedLs));
-                        } catch (mergeErr) { /* ignore */ }
+                    if (!currentUser) {
+                        showLogbogLoginGate();
+                        return false;
                     }
-                } catch (e) {
-                    console.warn('Could not refresh locale from Firestore:', e);
-                }
-            }
 
-            applyLogbogLocale(logbogLocale);
+                    saveGlobalFirestoreToggle(true);
+                    const docData = await loadAndSaveUserData(currentUser);
+                    if (docData) {
+                        logbogLocale = resolveLocaleFromFirestoreUserDoc(docData);
+                    } else {
+                        logbogLocale = resolveLocaleFromUserData();
+                    }
+                    applyLogbogLocale(logbogLocale);
+
+                    const accessLevel = computeAccessLevelFromDoc(docData || {});
+                    if (accessLevel === 'free') {
+                        alert('Your free trial has expired. Subscribe in the app to continue.');
+                        window.location.href = 'index.html';
+                        return false;
+                    }
+
+                    const encryptionReady = await ensureEncryptionReadyForJournal();
+                    if (!encryptionReady) {
+                        return false;
+                    }
+
+                    showLogbogApp();
+                    journalBootstrapComplete = true;
+                    return true;
+                } finally {
+                    journalBootstrapInFlight = null;
+                }
+            })();
+
+            return journalBootstrapInFlight;
+        }
+
+        async function runJournalAppInitIfNeeded() {
+            if (journalAppInitDone) {
+                await updateHeaderActiveLogDisplay();
+                return;
+            }
+            journalAppInitDone = true;
+
             await updateHeaderActiveLogDisplay();
 
             initIdleLogout();
@@ -5473,11 +6082,9 @@
                 logbogLogoutBtn.addEventListener('click', function() {
                     clearIdleLogoutTimers();
                     clearEncryptionSession();
-                    auth.signOut().then(function() {
-                        window.location.href = 'index.html';
-                    }).catch(function(err) {
+                    encryptionUnlockContext = null;
+                    auth.signOut().catch(function(err) {
                         console.error(err);
-                        window.location.href = 'index.html';
                     });
                 });
             }
@@ -5665,6 +6272,33 @@
                     }
                 }
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initLogbogLoginHandlers();
+
+            try {
+                await Promise.race([
+                    authStatePromise,
+                    new Promise(resolve => setTimeout(resolve, 3000))
+                ]);
+            } catch (e) {
+                console.warn('Auth state wait error:', e);
+            }
+
+            if (!authStateReady && authStateResolver) {
+                authStateResolver();
+                authStateResolver = null;
+            }
+
+            if (!currentUser) {
+                showLogbogLoginGate();
+                return;
+            }
+
+            const bootOk = await bootstrapJournal();
+            if (!bootOk) return;
+            await runJournalAppInitIfNeeded();
         });
 
     </script>

@@ -7,13 +7,10 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
     <title>Journal — web companion</title>
-    <script src="crypto.js"></script>
     <!-- Firebase App (the core Firebase SDK) - Using v8 for compatibility -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Authentication -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <!-- Firestore -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         * {
             margin: 0;
@@ -1184,7 +1181,7 @@
             </nav>
         </div>
         <div class="site-header-actions" id="headerGuestActions">
-            <button type="button" class="header-signin-btn" id="openLoginOverlayBtn">Logbook</button>
+            <a class="header-signin-btn" href="logbog_01.html">Logbook</a>
         </div>
         <div class="site-header-actions account-strip" id="headerAccountStrip" style="display: none;">
             <span class="user-email" id="userEmail"></span>
@@ -1266,45 +1263,6 @@
         </div>
     </footer>
 
-    <div class="login-entry-overlay" id="loginEntryOverlay" aria-hidden="true">
-        <div class="login-entry-backdrop" id="loginEntryBackdrop"></div>
-        <div class="login-entry-panel" role="dialog" aria-modal="true" aria-labelledby="loginEntryTitle">
-            <div class="login-entry-header">
-                <h2 id="loginEntryTitle">Logbook</h2>
-                <button type="button" class="login-entry-close" id="loginEntryClose" title="Close">×</button>
-            </div>
-            <p class="login-entry-intro">Sign in with the same account as in the app. An active subscription is required. Use Google or Apple if you use those in the app.</p>
-            <div class="error-message" id="errorMessage"></div>
-            <div class="oauth-row">
-                <button type="button" class="btn-oauth-google" id="btnGoogleSignIn">
-                    <img class="btn-oauth-icon" src="imagefiles/google_logo.svg" alt="" width="22" height="22">
-                    Continue with Google
-                </button>
-                <button type="button" class="btn-oauth-apple" id="btnAppleSignIn">
-                    <img class="btn-oauth-icon" src="imagefiles/Apple_logo_white.svg" alt="" width="22" height="22">
-                    Sign in with Apple
-                </button>
-            </div>
-            <p class="login-divider">or</p>
-            <details class="email-alt-details">
-                <summary>Other sign-in options (email)</summary>
-                <form id="login-form" style="margin-top: 14px;">
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" placeholder="Email" required autocomplete="email">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password">
-                    </div>
-                    <button type="submit" class="login-button" id="loginSubmitBtn">Sign in with email</button>
-                </form>
-            </details>
-        </div>
-    </div>
-
-    <div class="login-container" id="loggedInContainer" style="display: none !important;" aria-hidden="true"></div>
-
     <script>
         // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -1328,84 +1286,29 @@ const firebaseConfig = {
             }
         
         const auth = firebase.auth();
-        const db = firebase.firestore();
 
-        function formatAuthError(error) {
-            const errorCode = error && error.code ? error.code : '';
-            let errorMsgText = error && error.message ? error.message : '';
-            try {
-                if (typeof errorMsgText === 'string' && errorMsgText.startsWith('{')) {
-                    const parsed = JSON.parse(errorMsgText);
-                    if (parsed.error && parsed.error.message) {
-                        errorMsgText = parsed.error.message;
-                    }
-                }
-            } catch (parseErr) { /* ignore */ }
-            let errorMsg = 'Sign-in failed. Please try again.';
-            if (errorCode === 'auth/user-not-found' ||
-                errorCode === 'auth/internal-error' ||
-                (errorMsgText && errorMsgText.includes('INVALID_LOGIN_CREDENTIALS'))) {
-                errorMsg = 'No account found or wrong password.';
-            } else if (errorCode === 'auth/wrong-password') {
-                errorMsg = 'Wrong password. Try again.';
-            } else if (errorCode === 'auth/invalid-email') {
-                errorMsg = 'Invalid email address.';
-            } else if (errorCode === 'auth/user-disabled') {
-                errorMsg = 'This account has been disabled.';
-            } else if (errorCode === 'auth/too-many-requests') {
-                errorMsg = 'Too many attempts. Try again later.';
-            } else if (errorCode === 'auth/network-request-failed') {
-                errorMsg = 'Network error. Check your connection.';
-            } else if (errorCode === 'auth/popup-closed-by-user' || errorCode === 'auth/cancelled-popup-request') {
-                errorMsg = 'Sign-in was cancelled.';
-            } else if (errorMsgText && !errorMsgText.includes('{') && !errorMsgText.includes('error')) {
-                errorMsg = errorMsgText;
-            }
-            return errorMsg;
-        }
+        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
+        const ENC_SESSION_UID_KEY = 'enc_session_uid';
+
+        const headerGuestActions = document.getElementById('headerGuestActions');
+        const headerAccountStrip = document.getElementById('headerAccountStrip');
+        const userEmailEl = document.getElementById('userEmail');
+        const goToLogbogBtn = document.getElementById('goToLogbogBtn');
+        const logoutButton = document.getElementById('logoutButton');
 
         function userDisplayLine(user) {
             if (!user) return '';
             return user.email || user.displayName || ('Account ' + user.uid.slice(0, 8) + '…');
         }
 
-        // Global Firestore toggle key (same as other pages)
-        const GLOBAL_FIRESTORE_TOGGLE_KEY = 'global_useFirestore';
-
-        // Save global Firestore toggle state
         function saveGlobalFirestoreToggle(value) {
             try {
                 localStorage.setItem(GLOBAL_FIRESTORE_TOGGLE_KEY, String(value));
-                // Dispatch custom event to notify other tabs
                 window.dispatchEvent(new CustomEvent('firestoreToggleChanged', { detail: value }));
-                console.log('Global Firestore toggle set to:', value);
             } catch (e) {
                 console.error('Error saving global Firestore toggle:', e);
             }
         }
-
-        // Get DOM elements
-        console.log('Getting DOM elements...');
-        const loginForm = document.getElementById('login-form');
-        const errorMessage = document.getElementById('errorMessage');
-        const headerGuestActions = document.getElementById('headerGuestActions');
-        const headerAccountStrip = document.getElementById('headerAccountStrip');
-        const loginEntryOverlay = document.getElementById('loginEntryOverlay');
-        const loginEntryBackdrop = document.getElementById('loginEntryBackdrop');
-        const loginEntryClose = document.getElementById('loginEntryClose');
-        const openLoginOverlayBtn = document.getElementById('openLoginOverlayBtn');
-        const btnGoogleSignIn = document.getElementById('btnGoogleSignIn');
-        const btnAppleSignIn = document.getElementById('btnAppleSignIn');
-        const userEmailEl = document.getElementById('userEmail');
-        const goToLogbogBtn = document.getElementById('goToLogbogBtn');
-        const logoutButton = document.getElementById('logoutButton');
-        let currentUser = null;
-        let encryptionUnlockContext = null;
-        let encryptionUnlockPromise = null;
-        let afterAuthPrepareInFlight = null;
-
-        const INVALID_ENC_PASSWORD = 'INVALID_ENC_PASSWORD';
-        const ENC_SESSION_UID_KEY = 'enc_session_uid';
 
         function clearEncryptionSession() {
             sessionStorage.removeItem('enc_key');
@@ -1413,632 +1316,57 @@ const firebaseConfig = {
             sessionStorage.removeItem('needs_enc_unlock');
             sessionStorage.removeItem('pending_enc_salt');
             sessionStorage.removeItem(ENC_SESSION_UID_KEY);
-            encryptionUnlockPromise = null;
         }
 
-        /** Encryption metadata lives under users/{uid}.user (app canonical). */
-        function getUserEncryptionFields(docData) {
-            const user = (docData && docData.user && typeof docData.user === 'object') ? docData.user : {};
-            return {
-                isEncrypted: user.isEncrypted === true,
-                encryptionSalt: user.encryptionSalt || null,
-                encryptionVerifier: user.encryptionVerifier || null,
-            };
-        }
-
-        function syncEncryptionSessionFromFirestore(user, data) {
-            const uid = user.uid;
-            const prevUid = sessionStorage.getItem(ENC_SESSION_UID_KEY);
-            const uidChanged = prevUid !== uid;
-
-            if (uidChanged) {
-                clearEncryptionSession();
-            }
-            sessionStorage.setItem(ENC_SESSION_UID_KEY, uid);
-
-            const enc = getUserEncryptionFields(data || {});
-            const accountEncrypted = enc.isEncrypted && !!enc.encryptionSalt;
-
-            if (!accountEncrypted) {
-                sessionStorage.removeItem('enc_key');
-                sessionStorage.removeItem('is_encrypted');
-                sessionStorage.removeItem('needs_enc_unlock');
-                sessionStorage.removeItem('pending_enc_salt');
-                encryptionUnlockContext = null;
-                encryptionUnlockPromise = null;
-                return;
-            }
-
-            sessionStorage.setItem('is_encrypted', 'true');
-            sessionStorage.setItem('pending_enc_salt', enc.encryptionSalt);
-            encryptionUnlockContext = {
-                uid,
-                encryptionVerifier: enc.encryptionVerifier,
-                monthsIndex: parseMonthsIndexForUnlock(data),
-            };
-
-            if (sessionStorage.getItem('enc_key')) {
-                sessionStorage.removeItem('needs_enc_unlock');
-            } else {
-                sessionStorage.removeItem('enc_key');
-                sessionStorage.setItem('needs_enc_unlock', 'true');
-                encryptionUnlockPromise = null;
-            }
-        }
-
-        function parseMonthsIndexForUnlock(raw) {
-            if (!raw || typeof raw !== 'object') return {};
-            const pick = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null);
-            return (
-                pick((raw.user || {}).monthsIndex) ||
-                pick((raw.user || {}).monthIndex) ||
-                pick(raw.monthsIndex) ||
-                pick(raw.monthIndex) ||
-                pick((raw.userData || {}).monthsIndex) ||
-                pick((raw.userData || {}).monthIndex) ||
-                {}
-            );
-        }
-
-        async function ensureEncryptionUnlockContext() {
-            if (encryptionUnlockContext && encryptionUnlockContext.uid) {
-                return encryptionUnlockContext;
-            }
-            if (!currentUser || !db) {
-                throw new Error('Missing user for encryption unlock');
-            }
-            const userDoc = await db.collection('users').doc(currentUser.uid).get();
-            const data = userDoc.exists ? (userDoc.data() || {}) : {};
-            const enc = getUserEncryptionFields(data);
-            encryptionUnlockContext = {
-                uid: currentUser.uid,
-                encryptionVerifier: enc.encryptionVerifier,
-                monthsIndex: parseMonthsIndexForUnlock(data),
-            };
-            return encryptionUnlockContext;
-        }
-
-        async function fetchNewestEncryptedMonthDoc(uid, monthKeysSortedDesc) {
-            if (!db || !uid || !monthKeysSortedDesc.length) return null;
-            const userDocRef = db.collection('users').doc(uid);
-            let rootData = null;
-            for (const monthKey of monthKeysSortedDesc) {
-                const monthDoc = await userDocRef.collection('months').doc(monthKey).get();
-                if (monthDoc.exists) {
-                    const data = monthDoc.data() || {};
-                    if (data.encrypted && typeof data.encrypted === 'string') return data;
-                }
-                if (!rootData) {
-                    const userSnap = await userDocRef.get();
-                    rootData = userSnap.exists ? (userSnap.data() || {}) : {};
-                }
-                const legacy = rootData[monthKey];
-                if (legacy && legacy.encrypted && typeof legacy.encrypted === 'string') return legacy;
-            }
-            return null;
-        }
-
-        async function validateDerivedEncryptionKey(cryptoKey, unlockContext) {
-            const verifier = unlockContext.encryptionVerifier;
-            if (verifier && verifier.encrypted && verifier.iv) {
-                let decoded;
-                try {
-                    decoded = await decryptMonth(verifier, cryptoKey);
-                } catch (e) {
-                    throw new Error(INVALID_ENC_PASSWORD);
-                }
-                if (!(decoded && decoded._verify === true && decoded.app === 'me-and-them')) {
-                    throw new Error(INVALID_ENC_PASSWORD);
-                }
-                return { usedMonthTest: false };
-            }
-
-            const monthKeys = Object.keys(unlockContext.monthsIndex || {})
-                .filter((k) => /^\d{4}-\d{2}$/.test(k))
-                .sort((a, b) => b.localeCompare(a));
-            if (monthKeys.length > 0) {
-                const encryptedPayload = await fetchNewestEncryptedMonthDoc(unlockContext.uid, monthKeys);
-                if (encryptedPayload) {
-                    try {
-                        await decryptMonth(encryptedPayload, cryptoKey);
-                    } catch (e) {
-                        throw new Error(INVALID_ENC_PASSWORD);
-                    }
-                    return { usedMonthTest: true };
-                }
-            }
-
-            return { usedMonthTest: false };
-        }
-
-        async function backfillEncryptionVerifier(uid, cryptoKey) {
-            const verifier = await encryptMonth({ _verify: true, app: 'me-and-them' }, cryptoKey);
-            const userDocRef = db.collection('users').doc(uid);
-            const snap = await userDocRef.get();
-            const existingUser = (snap.exists && snap.data().user) || {};
-            await userDocRef.set({
-                user: {
-                    ...existingUser,
-                    encryptionVerifier: verifier,
-                },
-            }, { merge: true });
-            if (encryptionUnlockContext && encryptionUnlockContext.uid === uid) {
-                encryptionUnlockContext.encryptionVerifier = verifier;
-            }
-        }
-
-        console.log('DOM elements check:');
-        console.log('loginForm:', loginForm ? 'found' : 'NOT FOUND');
-        console.log('errorMessage:', errorMessage ? 'found' : 'NOT FOUND');
-        
-
-        function openLoginEntryOverlay() {
-            if (!loginEntryOverlay) return;
-            loginEntryOverlay.classList.add('show');
-            loginEntryOverlay.setAttribute('aria-hidden', 'false');
-            if (errorMessage) errorMessage.classList.remove('show');
-            const emailInput = document.getElementById('email');
-            setTimeout(() => {
-                if (emailInput) emailInput.focus();
-            }, 50);
-        }
-
-        function closeLoginEntryOverlay() {
-            if (!loginEntryOverlay) return;
-            loginEntryOverlay.classList.remove('show');
-            loginEntryOverlay.setAttribute('aria-hidden', 'true');
-        }
-
-        /**
-         * Auto-detecter brugerens timezone fra browser
-         * Fallback til 'Europe/Copenhagen' hvis detection fejler
-         */
-        function detectUserTimezone() {
-            try {
-                const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                if (timezone && typeof timezone === 'string') {
-                    return timezone;
-                }
-            } catch (e) {
-                console.warn('Kunne ikke auto-detecte timezone:', e);
-            }
-            return 'Europe/Copenhagen'; // Default fallback
-        }
-
-        function wantsEncryptionUnlockFromUrl() {
-            try {
-                return new URLSearchParams(window.location.search).get('unlock') === '1';
-            } catch (e) {
-                return false;
-            }
-        }
-
-        async function maybeShowEncryptionUnlock() {
-            const needsUnlock =
-                sessionStorage.getItem('needs_enc_unlock') === 'true' ||
-                wantsEncryptionUnlockFromUrl();
-            if (!needsUnlock) return;
-            if (needsUnlock && sessionStorage.getItem('needs_enc_unlock') !== 'true') {
-                sessionStorage.setItem('needs_enc_unlock', 'true');
-            }
-
-            if (encryptionUnlockPromise) return encryptionUnlockPromise;
-
-            encryptionUnlockPromise = (async () => {
-                let salt = sessionStorage.getItem('pending_enc_salt');
-                if (!salt && currentUser && db) {
-                    try {
-                        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-                        const data = userDoc.exists ? (userDoc.data() || {}) : {};
-                        const enc = getUserEncryptionFields(data);
-                        if (enc.encryptionSalt) {
-                            salt = enc.encryptionSalt;
-                            sessionStorage.setItem('pending_enc_salt', salt);
-                            sessionStorage.setItem('is_encrypted', 'true');
-                        }
-                    } catch (e) {
-                        console.warn('Could not load encryption salt:', e);
-                    }
-                }
-                if (!salt) return;
-
-                await new Promise((resolveModal) => {
-                document.querySelectorAll('[data-encryption-unlock-overlay]').forEach((el) => el.remove());
-                const overlay = document.createElement('div');
-                overlay.setAttribute('data-encryption-unlock-overlay', 'true');
-                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:10001';
-
-                const box = document.createElement('div');
-                box.style.cssText = 'background:#fff;border-radius:12px;padding:32px;max-width:360px;width:90%;display:flex;flex-direction:column;gap:16px';
-
-                const title = document.createElement('p');
-                title.textContent = 'Your journal is encrypted. Enter your encryption key.';
-                title.style.cssText = 'font-size:16px;font-weight:600;margin:0';
-
-                const input = document.createElement('input');
-                input.type = 'password';
-                input.placeholder = 'Key';
-                input.style.cssText = 'border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:16px';
-
-                const error = document.createElement('p');
-                error.style.cssText = 'color:#b91c1c;font-size:14px;margin:0;display:none';
-                error.textContent = 'Something went wrong. Please try again.';
-
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.textContent = 'Unlock';
-                btn.style.cssText = 'background:#000;color:#fff;border:none;border-radius:8px;padding:12px;font-size:16px;cursor:pointer';
-
-                async function submitEncryptionUnlock() {
-                    if (btn.disabled) return;
-                    try {
-                        error.style.display = 'none';
-                        btn.disabled = true;
-                        input.disabled = true;
-                        const cryptoKey = await deriveKey(input.value, salt);
-                        const unlockContext = await ensureEncryptionUnlockContext();
-                        const validation = await validateDerivedEncryptionKey(cryptoKey, unlockContext);
-                        const hadVerifier = !!(unlockContext.encryptionVerifier &&
-                            unlockContext.encryptionVerifier.encrypted &&
-                            unlockContext.encryptionVerifier.iv);
-                        if (validation.usedMonthTest && !hadVerifier) {
-                            await backfillEncryptionVerifier(unlockContext.uid, cryptoKey);
-                        }
-                        const rawKey = await crypto.subtle.exportKey('raw', cryptoKey);
-                        const base64Key = bytesToBase64(new Uint8Array(rawKey));
-                        sessionStorage.setItem('enc_key', base64Key);
-                        sessionStorage.removeItem('needs_enc_unlock');
-                        sessionStorage.removeItem('pending_enc_salt');
-                        if (wantsEncryptionUnlockFromUrl()) {
-                            try {
-                                const cleanUrl = window.location.pathname + window.location.hash;
-                                window.history.replaceState({}, '', cleanUrl);
-                            } catch (e) { /* ignore */ }
-                        }
-                        document.body.removeChild(overlay);
-                        resolveModal();
-                    } catch (e) {
-                        error.textContent = (e && e.message === INVALID_ENC_PASSWORD)
-                            ? 'Incorrect encryption key. Please try again.'
-                            : 'Something went wrong. Please try again.';
-                        error.style.display = 'block';
-                    } finally {
-                        btn.disabled = false;
-                        input.disabled = false;
-                    }
-                }
-
-                btn.addEventListener('click', submitEncryptionUnlock);
-                input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        submitEncryptionUnlock();
-                    }
-                });
-
-                box.appendChild(title);
-                box.appendChild(input);
-                box.appendChild(error);
-                box.appendChild(btn);
-                overlay.appendChild(box);
-                document.body.appendChild(overlay);
-                input.focus();
-                });
-            })();
-
-            try {
-                await encryptionUnlockPromise;
-            } finally {
-                encryptionUnlockPromise = null;
-            }
-        }
-
-        // Function to load and save userData to localStorage
-        async function loadAndSaveUserData(user) {
-            if (!user || !db) return;
-            
-            try {
-                console.log('🔥 FIRESTORE READ - index.html - loadAndSaveUserData');
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                if (userDoc.exists) {
-                    const data = userDoc.data();
-                    const userData = data.userData || (data.user && data.user.profile ? {
-                        displayName: data.user.profile.nickname || '',
-                        email: data.user.profile.email || '',
-                        color: data.user.profile.defaultColor || '',
-                        language: data.user.profile.language || 'en',
-                        monthsIndex: data.user.monthsIndex || {},
-                    } : null);
-                    // Save to localStorage
-                    if (userData) {
-                        // Add "You" field and ensure timezone exists; include root user.map (profile.language lives there)
-                        const dataToSave = {
-                            ...userData,
-                            You: userData.displayName || '',
-                            timezone: userData.timezone || detectUserTimezone() // Tilføj timezone
-                        };
-                        if (data.user && typeof data.user === 'object') {
-                            dataToSave.user = data.user;
-                        }
-                        const isPremium = (data.subscription && data.subscription.isPremium === true) || false;
-                        const createdAt = data.createdAt
-                            ? (typeof data.createdAt.toMillis === 'function'
-                                ? data.createdAt.toMillis()
-                                : data.createdAt.seconds ? data.createdAt.seconds * 1000 : null)
-                            : null;
-                        dataToSave.isPremium = isPremium;
-                        dataToSave.createdAt = createdAt;
-                        localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
-                        console.log('UserData saved to localStorage:', dataToSave);
-                    } else {
-                        // If userData doesn't exist, create empty object with timezone (still copy root user for profile.language)
-                        const dataToSave = {
-                            timezone: detectUserTimezone()
-                        };
-                        if (data.user && typeof data.user === 'object') {
-                            dataToSave.user = data.user;
-                        }
-                        const isPremium = (data.subscription && data.subscription.isPremium === true) || false;
-                        const createdAt = data.createdAt
-                            ? (typeof data.createdAt.toMillis === 'function'
-                                ? data.createdAt.toMillis()
-                                : data.createdAt.seconds ? data.createdAt.seconds * 1000 : null)
-                            : null;
-                        dataToSave.isPremium = isPremium;
-                        dataToSave.createdAt = createdAt;
-                        localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
-                        console.log('Empty userData created in localStorage with timezone');
-                    }
-                    syncEncryptionSessionFromFirestore(user, data);
-                } else {
-                    // If document doesn't exist, create empty userData with timezone
-                    const dataToSave = {
-                        timezone: detectUserTimezone()
-                    };
-                    localStorage.setItem('indexuserData', JSON.stringify(dataToSave));
-                    console.log('User document not found, created empty userData in localStorage with timezone');
-                    clearEncryptionSession();
-                    sessionStorage.setItem(ENC_SESSION_UID_KEY, user.uid);
-                }
-            } catch (error) {
-                console.error('Error loading userData from Firestore:', error);
-                // Create empty userData on error
-                localStorage.setItem('indexuserData', JSON.stringify({}));
-            }
-        }
-
-        function computeAccessLevel() {
-            const raw = localStorage.getItem('indexuserData');
-            if (!raw) return 'free';
-            const userData = JSON.parse(raw);
-            if (userData.isPremium) return 'subscriber';
-            if (userData.createdAt) {
-                const trialDays = (Date.now() - userData.createdAt) / (1000 * 60 * 60 * 24);
-                if (trialDays < 30) return 'trial';
-            }
-            return 'free';
-        }
-
-        /** Load session, close login UI, then encryption unlock if needed. */
-        async function afterAuthPrepareSessionAndUnlock(user) {
-            if (!user) return false;
-            if (afterAuthPrepareInFlight) return afterAuthPrepareInFlight;
-
-            afterAuthPrepareInFlight = (async () => {
-                try {
-                    await loadAndSaveUserData(user);
-                    if (loginForm) loginForm.reset();
-                    showLoggedInSection(user);
-                    await maybeShowEncryptionUnlock();
-                    return sessionStorage.getItem('needs_enc_unlock') !== 'true';
-                } finally {
-                    afterAuthPrepareInFlight = null;
-                }
-            })();
-
-            return afterAuthPrepareInFlight;
-        }
-
-        async function finishSignInAndGoToJournal(user) {
-            if (!user) return;
-            currentUser = user;
-            saveGlobalFirestoreToggle(true);
-            const canOpenJournal = await afterAuthPrepareSessionAndUnlock(user);
-            if (canOpenJournal) {
-                const level = computeAccessLevel();
-                if (level === 'free') {
-                    alert('Your free trial has expired. Subscribe in the app to continue.');
-                    return;
-                }
-                window.location.href = 'logbog_01.html';
-            }
-        }
-
-        // getRedirectResult — midlertidigt udkommenteret til test (redirect-flow bruges ikke med signInWithPopup)
-        // auth.getRedirectResult().then(async function(result) {
-        //     if (result && result.user) {
-        //         await finishSignInAndGoToJournal(result.user);
-        //     }
-        // }).catch(function(e) {
-        //     console.warn('getRedirectResult:', e);
-        // });
-
-        // Check if user is already logged in
-        auth.onAuthStateChanged(async user => {
-            console.log('Auth state changed:', user ? 'Logged in' : 'Not logged in');
-            if (user) {
-                console.log('User is logged in:', user.email);
-                currentUser = user;
-                // Set global_useFirestore to true when user logs in
-                saveGlobalFirestoreToggle(true);
-                await afterAuthPrepareSessionAndUnlock(user);
-            } else {
-                console.log('User is not logged in, showing login form');
-                currentUser = null;
-                encryptionUnlockContext = null;
-                encryptionUnlockPromise = null;
-                // Set global_useFirestore to false when user logs out
-                saveGlobalFirestoreToggle(false);
-                showLoginForm();
-            }
-        });
-
-        async function ensureEncryptionUnlockPromptIfNeeded() {
-            if (
-                sessionStorage.getItem('needs_enc_unlock') !== 'true' &&
-                !wantsEncryptionUnlockFromUrl()
-            ) {
-                return;
-            }
-            let waited = 0;
-            while (!currentUser && waited < 8000) {
-                await new Promise((resolve) => setTimeout(resolve, 100));
-                waited += 100;
-            }
-            if (!currentUser) return;
-            await afterAuthPrepareSessionAndUnlock(currentUser);
-        }
-
-        function showAuthErrorInOverlay(err) {
-            if (!errorMessage) return;
-            errorMessage.textContent = formatAuthError(err);
-            errorMessage.classList.add('show');
-        }
-
-        if (btnGoogleSignIn) {
-            btnGoogleSignIn.addEventListener('click', function() {
-                if (errorMessage) errorMessage.classList.remove('show');
-                const provider = new firebase.auth.GoogleAuthProvider();
-                auth.signInWithPopup(provider).then(async function(cred) {
-                    await finishSignInAndGoToJournal(cred.user);
-                }).catch(function(e) {
-                    showAuthErrorInOverlay(e);
-                });
-            });
-        }
-
-        if (btnAppleSignIn) {
-            btnAppleSignIn.addEventListener('click', function() {
-                if (errorMessage) errorMessage.classList.remove('show');
-                const provider = new firebase.auth.OAuthProvider('apple.com');
-                provider.addScope('email');
-                provider.addScope('name');
-                auth.signInWithPopup(provider).then(async function(cred) {
-                    await finishSignInAndGoToJournal(cred.user);
-                }).catch(function(e) {
-                    showAuthErrorInOverlay(e);
-                });
-            });
-        }
-
-        // Login form submit handler (email / password)
-        if (loginForm) {
-            loginForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                if (errorMessage) errorMessage.classList.remove('show');
-
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
-
-                auth.signInWithEmailAndPassword(email, password)
-                    .then(async function(userCredential) {
-                        await finishSignInAndGoToJournal(userCredential.user);
-                    })
-                    .catch(function(error) {
-                        if (errorMessage) {
-                            errorMessage.textContent = formatAuthError(error);
-                            errorMessage.classList.add('show');
-                        }
-                    });
-            });
-        }
-
-        function showLoginForm() {
-            closeLoginEntryOverlay();
+        function showGuestHeader() {
             if (headerGuestActions) headerGuestActions.style.display = '';
             if (headerAccountStrip) {
                 headerAccountStrip.style.display = 'none';
                 headerAccountStrip.classList.remove('show');
             }
-            if (loginForm) loginForm.reset();
-            if (errorMessage) errorMessage.classList.remove('show');
         }
 
-        function showLoggedInSection(user) {
-            closeLoginEntryOverlay();
+        function showLoggedInStrip(user) {
             if (headerGuestActions) headerGuestActions.style.display = 'none';
             if (headerAccountStrip) {
                 headerAccountStrip.style.display = 'flex';
                 headerAccountStrip.classList.add('show');
             }
-            if (errorMessage) errorMessage.classList.remove('show');
             if (userEmailEl && user) {
                 userEmailEl.textContent = userDisplayLine(user);
             }
         }
 
-        if (openLoginOverlayBtn) {
-            openLoginOverlayBtn.addEventListener('click', function() {
-                openLoginEntryOverlay();
-            });
-        }
-        if (loginEntryClose) {
-            loginEntryClose.addEventListener('click', function() {
-                closeLoginEntryOverlay();
-            });
-        }
-        if (loginEntryBackdrop) {
-            loginEntryBackdrop.addEventListener('click', function() {
-                closeLoginEntryOverlay();
-            });
-        }
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && loginEntryOverlay && loginEntryOverlay.classList.contains('show')) {
-                closeLoginEntryOverlay();
+        auth.onAuthStateChanged(function(user) {
+            if (user) {
+                saveGlobalFirestoreToggle(true);
+                showLoggedInStrip(user);
+            } else {
+                saveGlobalFirestoreToggle(false);
+                showGuestHeader();
             }
         });
 
         if (goToLogbogBtn) {
-            goToLogbogBtn.addEventListener('click', async function() {
-                if (!currentUser) {
-                    openLoginEntryOverlay();
-                    return;
-                }
-                const canOpenJournal = await afterAuthPrepareSessionAndUnlock(currentUser);
-                if (canOpenJournal) {
-                    window.location.href = 'logbog_01.html';
-                }
+            goToLogbogBtn.addEventListener('click', function() {
+                window.location.href = 'logbog_01.html';
             });
         }
-        
-        // Logout button handler
+
         if (logoutButton) {
             logoutButton.addEventListener('click', function() {
                 auth.signOut()
-                    .then(() => {
-                        console.log('User logged out');
-                        currentUser = null;
-                        encryptionUnlockContext = null;
+                    .then(function() {
                         clearEncryptionSession();
-                        // Set global_useFirestore to false on logout
                         saveGlobalFirestoreToggle(false);
-                        showLoginForm();
-                        loginForm.reset();
+                        showGuestHeader();
                     })
-                    .catch(error => {
+                    .catch(function(error) {
                         console.error('Error logging out:', error);
                         alert('Could not sign out: ' + error.message);
                     });
             });
         }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Content Loaded');
-            console.log('Login form element:', loginForm);
-            console.log('Auth object:', auth);
-            console.log('DB object:', db);
-            ensureEncryptionUnlockPromptIfNeeded();
-        });
     </script>
     <script>
         (function () {
