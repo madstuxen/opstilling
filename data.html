@@ -572,15 +572,14 @@
                 </div>
                 <div class="recover-section-body">
                     <p class="recover-warning">
-                        Warning: Recovery export/import is an advanced migration operation. Exported JSON can contain sensitive personal
-                        records and falls outside platform security controls once downloaded. Proceed entirely at your own risk. Download
-                        eligibility requires an active account, account age above 3 months, and at least 3 months since your previous export.
-                        Export does not delete any server-side data. Upload merges into your active account and can overwrite month/day
-                        records where keys overlap.
+                        This is your data your words. Download it anytime and keep a personal copy.
+                        If you ever switch platforms or want to move your journal to a new account, simply upload your file and pick up where you left off.
+                        You can download once per hour.
+                        Uploaded data is merged into your active account — entries may be overwritten where dates overlap.
                     </p>
                     <label class="recover-terms" for="recoverTermsAgree">
                         <input type="checkbox" id="recoverTermsAgree">
-                        <span>I have read and accept these recovery terms. I understand exported data may be exposed outside encrypted storage controls and is my responsibility.</span>
+                        <span>I understand that downloaded data is my own responsibility to keep safe.</span>
                     </label>
                     <div class="recover-actions">
                         <button type="button" class="recover-btn recover-btn-download" id="recoverDownloadBtn" disabled>Download my data</button>
@@ -1108,20 +1107,11 @@
         }
 
         function mapRecoverError(err) {
-            const detailsMessage = err && err.details && err.details.message ? String(err.details.message) : '';
-            const rawMessage = err && err.message ? String(err.message) : '';
-            const cooldownSource = detailsMessage || rawMessage;
-            const cooldownMatch = cooldownSource.match(/next export is available after\s+([0-9TZ:.\-]+)\.?/i);
-            if (cooldownMatch && cooldownMatch[1]) {
-                const friendlyDate = formatFriendlyRecoverDate(cooldownMatch[1]);
-                if (friendlyDate) {
-                    return `Export cooldown active. Next export available on ${friendlyDate}.`;
-                }
-            }
-            const detailsCode = err && err.details && err.details.code ? String(err.details.code) : '';
-            if (detailsCode && RECOVER_ERROR_MESSAGES[detailsCode]) return RECOVER_ERROR_MESSAGES[detailsCode];
             const code = err && err.code ? String(err.code).replace('functions/', '') : '';
-            if (code && RECOVER_ERROR_MESSAGES[code]) return RECOVER_ERROR_MESSAGES[code];
+            if (code === 'resource-exhausted') return 'You can download once per hour. Please try again later.';
+            if (code === 'unauthenticated') return 'You must be signed in.';
+            if (code === 'permission-denied') return 'Access denied.';
+            const rawMessage = err && err.message ? String(err.message) : '';
             return rawMessage || 'Unknown error';
         }
 
@@ -1222,25 +1212,19 @@
 
         if (recoverDownloadBtn) {
             recoverDownloadBtn.addEventListener('click', async function() {
-                if (!currentUser) {
-                    setRecoverStatus('You must be signed in.');
-                    return;
-                }
-                if (!exportJournalCallable) {
-                    setRecoverStatus('Export function is not initialized.');
-                    return;
-                }
+                if (!currentUser) { setRecoverStatus('You must be signed in.'); return; }
+                if (!exportJournalCallable) { setRecoverStatus('Export function is not initialized.'); return; }
                 recoverDownloadBtn.disabled = true;
                 setRecoverStatus('Requesting backup payload from server...');
                 try {
-                    const accountEncrypted = await isAccountEncryptedInFirestore();
-                    const encKey = requireEncKeyWhenAccountEncrypted(accountEncrypted);
-                    if (accountEncrypted && !encKey) return;
                     const res = await exportJournalCallable();
                     const payload = res && res.data ? res.data : {};
-                    if (accountEncrypted && encKey && payload.months) {
+                    const accountEncrypted = await isAccountEncryptedInFirestore();
+                    if (accountEncrypted) {
+                        const encKey = requireEncKeyWhenAccountEncrypted(accountEncrypted);
+                        if (!encKey) return;
                         const cryptoKey = await deriveKeyFromSession(encKey);
-                        for (const monthKey of Object.keys(payload.months)) {
+                        for (const monthKey of Object.keys(payload.months || {})) {
                             const month = payload.months[monthKey];
                             if (month && month.encrypted && typeof month.encrypted === 'string') {
                                 payload.months[monthKey] = await decryptMonth(month, cryptoKey);
