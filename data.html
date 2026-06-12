@@ -1242,6 +1242,11 @@
                     triggerRecoverDownload(`journal-export-${stamp}.json`, payload);
                     setRecoverStatus('Export complete. JSON download started.');
                 } catch (err) {
+                    console.log('[RECOVER] Error object:', JSON.stringify({
+                        code: err?.code,
+                        message: err?.message,
+                        details: err?.details,
+                    }));
                     console.error('[RECOVER] Export failed:', err);
                     setRecoverStatus('Export failed: ' + mapRecoverError(err));
                 } finally {
