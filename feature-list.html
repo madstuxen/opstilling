@@ -108,9 +108,36 @@
             color: #fff;
         }
 
+        h3 {
+            font-size: clamp(1.05rem, 1.4vw, 1.2rem);
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
         p {
             margin-bottom: 12px;
             color: #f5efe7;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin: 0 0 16px;
+        }
+
+        .feature-list li {
+            padding: 8px 0 8px 1.4em;
+            position: relative;
+            font-size: 0.98rem;
+            opacity: 0.95;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #a7f3d0;
+            font-weight: 700;
         }
 
         @media (max-width: 640px) {
@@ -167,40 +194,49 @@
                 <h1>Feature list</h1>
 
             <section>
-                <h2>Daily practice</h2>
-                <p><strong>Daily check-in:</strong> Score your mood on a slider, receive a thought to reflect on, and note what you're grateful for today.</p>
-                <p><strong>Mood graph:</strong> Track your mood over time. Check in once a day — or more often if you want to follow yourself more closely.</p>
-                <p><strong>Dream journal:</strong> Write down your dreams in a dark, quiet interface — designed not to disturb you at night.</p>
+                <h2>Always free</h2>
+
+                <h3>Daily practice</h3>
+                <ul class="feature-list">
+                    <li><strong>Daily check-in:</strong> Score your mood on a slider, receive a thought to reflect on, and note what you're grateful for today.</li>
+                    <li><strong>Mood graph:</strong> Track your mood over time. Check in once a day, or more often if you want to follow yourself more closely.</li>
+                    <li><strong>Dream journal:</strong> Write down your dreams in a dark, quiet interface, designed not to disturb you at night.</li>
+                </ul>
+
+                <h3>The journal</h3>
+                <ul class="feature-list">
+                    <li><strong>Guided journaling:</strong> Write your journal by answering 5 simple questions in a chat-like interface. Your coach asks, you answer.</li>
+                    <li><strong>Free journaling:</strong> Write freely whenever you have something on your mind. No structure, just you and the page.</li>
+                </ul>
+
+                <ul class="feature-list">
+                    <li><strong>Up to 3 notifications a day:</strong> Set reminders when it suits you, no more than you want.</li>
+                    <li><strong>Biometric login:</strong> Log in with Face ID or fingerprint. The screen locks automatically.</li>
+                    <li><strong>Download your data:</strong> Your journal belongs to you. Your data is available for download upon request.</li>
+                    <li><strong>No ads:</strong> No data sales. No AI training. Ever. Your inner work is not a product.</li>
+                    <li><strong>All data in the cloud:</strong> If you lose your phone, you don't lose your journal.</li>
+                    <li><strong>Blog:</strong> A blog that guides you on how to get started writing your journal.</li>
+                </ul>
             </section>
 
             <section>
-                <h2>The journal</h2>
-                <p><strong>Guided journaling:</strong> Write your journal by answering 5 simple questions in a chat-like interface. Your coach asks, you answer.</p>
-                <p><strong>Free journaling:</strong> Write freely whenever you have something on your mind. No structure — just you and the page.</p>
-                <p><strong>Web access:</strong> Prefer writing from a computer? Continue your journal on the website with a full keyboard.</p>
-            </section>
+                <h2>Unlocked with Premium</h2>
 
-            <section>
-                <h2>Inner work — exercises</h2>
-                <p><strong>Mirroring:</strong> Explore what you think about others — and what it tells you about yourself. You start with someone else and end up learning something new about you.</p>
-                <p><strong>Dialogue:</strong> Switch between two voices. Rehearse a difficult conversation, talk to your inner critic, or ask a role model for advice.</p>
-                <p><strong>Constellation:</strong> Place your relationships on a canvas as figures. Give them size, colour, and body language — and see the connections more clearly.</p>
-                <p><strong>Body scan:</strong> Check in with your body. Add labels and sliders to your sensations and track them over time.</p>
-            </section>
+                <h3>Inner work, exercises</h3>
+                <p>Combine journaling with these exercises for deeper inner work:</p>
+                <ul class="feature-list">
+                    <li><strong>Mirroring:</strong> Explore what you think about others, and what it tells you about yourself. You start with someone else and end up learning something new about you.</li>
+                    <li><strong>Dialogue:</strong> Switch between two voices. Rehearse a difficult conversation, talk to your inner critic, or ask a role model for advice.</li>
+                    <li><strong>Constellation:</strong> Place your relationships on a canvas as figures. Give them size, colour, and body language, and see the connections more clearly.</li>
+                    <li><strong>Body scan:</strong> Check in with your body. Add labels and sliders to your sensations and track them over time.</li>
+                    <li><strong>Assignments:</strong> Guided tasks to help you use the exercises.</li>
+                </ul>
 
-            <section>
-                <h2>Inspiration and reminders</h2>
-                <p><strong>Inspiring exercises:</strong> Small practices and reflections that challenge you to see yourself and your relationships from new angles.</p>
-                <p><strong>Up to 3 notifications a day:</strong> Set reminders when it suits you — no more than you want.</p>
-            </section>
-
-            <section>
-                <h2>Privacy and security</h2>
-                <p><strong>Encrypted cloud storage:</strong> All your data is stored encrypted. Only you have access.</p>
-                <p><strong>Biometric login:</strong> Log in with Face ID or fingerprint. The screen locks automatically.</p>
-                <p><strong>Download your data:</strong> Your journal belongs to you. Your data is available for download upon request.</p>
-                <p><strong>No ads:</strong> No data sales. No AI training. Ever. Your inner work is not a product.</p>
-                <p><strong>Cancel anytime:</strong> 14 days free, full access. Then a monthly fee. Cancel whenever you want — no tricks.</p>
+                <h3>Plus</h3>
+                <ul class="feature-list">
+                    <li><strong>Web access:</strong> Prefer writing from a computer? Continue your journal on the website with a full keyboard.</li>
+                    <li><strong>256-bit encryption:</strong> All your notes are encrypted. Nobody can read your data.</li>
+                </ul>
             </section>
             </main>
         </div>
