@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Me and Them uses end-to-end encryption. Your journals can only be read by you. Learn how we handle your data.">
     <link rel="canonical" href="https://www.me-and-them.com/data.html">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <title>Data — Me &amp; Them</title>
+    <title>Your Data - Me and Them</title>
     <script src="crypto.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -575,7 +576,7 @@
                         This is your data your words. Download it anytime and keep a personal copy.
                         If you ever switch platforms or want to move your journal to a new account, simply upload your file and pick up where you left off.
                         You can download once per hour.
-                        Uploaded data is merged into your active account — entries may be overwritten where dates overlap.
+                        Uploaded data is merged into your active account - entries may be overwritten where dates overlap.
                     </p>
                     <label class="recover-terms" for="recoverTermsAgree">
                         <input type="checkbox" id="recoverTermsAgree">
@@ -1242,11 +1243,6 @@
                     triggerRecoverDownload(`journal-export-${stamp}.json`, payload);
                     setRecoverStatus('Export complete. JSON download started.');
                 } catch (err) {
-                    console.log('[RECOVER] Error object:', JSON.stringify({
-                        code: err?.code,
-                        message: err?.message,
-                        details: err?.details,
-                    }));
                     console.error('[RECOVER] Export failed:', err);
                     setRecoverStatus('Export failed: ' + mapRecoverError(err));
                 } finally {
