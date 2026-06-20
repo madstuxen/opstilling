@@ -104,11 +104,6 @@
             margin-bottom: 0;
         }
 
-        .landing-copy .hero-store-lead {
-            font-size: 0.95rem;
-            margin-top: 8px;
-        }
-
         .landing-copy-with-cards {
             position: relative;
             flex: 1 1 50%;
@@ -620,20 +615,6 @@
             opacity: 0.92;
             transition: transform 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
         }
-        .store-badge-img-wrap.is-coming-soon,
-        .qr-wrap.is-coming-soon {
-            position: relative;
-            overflow: hidden;
-        }
-        .store-badge-img-wrap.is-coming-soon::after,
-        .qr-wrap.is-coming-soon::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.45);
-            pointer-events: none;
-            border-radius: inherit;
-        }
         .store-badge-img-wrap:hover {
             transform: translateY(-2px);
             opacity: 1;
@@ -902,21 +883,20 @@
                     <li>Secure and password protected - no tracking, no ads, no AI.</li>
                     <li>Optional end-to-end encryption - your journal, your data</li>
                 </ul>
-                <p class="lead hero-store-lead">Get the app (Google is coming soon!):</p>
                 <div class="store-row">
                     <a class="store-badge-img-wrap" href="https://apps.apple.com/dk/app/me-them/id6759327572" target="_blank" rel="noopener noreferrer" aria-label="Download on the App Store">
                         <img class="store-badge-img" src="imagefiles/appstoreBlack.svg" alt="" width="144" height="48" decoding="async">
                     </a>
-                    <span class="store-badge-img-wrap is-coming-soon" aria-label="Google Play - coming soon">
+                    <a class="store-badge-img-wrap" href="https://play.google.com/store/apps/details?id=dk.grafiskkooperativ.migdem" target="_blank" rel="noopener noreferrer" aria-label="Get it on Google Play">
                         <img class="store-badge-img" src="imagefiles/googlePlayblack.svg" alt="" width="144" height="48" decoding="async">
-                    </span>
+                    </a>
                 </div>
                 <div class="qr-row" aria-label="QR codes for app stores">
                     <span class="qr-wrap" aria-label="App Store QR code">
                         <img src="imagefiles/qr-code_appstore.jpg" alt="QR code to Me & Them on App Store" decoding="async">
                     </span>
-                    <span class="qr-wrap is-coming-soon" aria-label="Google Play QR code coming soon">
-                        <img src="imagefiles/qr-code_appstore.jpg" alt="QR code placeholder for Google Play" decoding="async">
+                    <span class="qr-wrap" aria-label="Google Play QR code">
+                        <img src="imagefiles/qr-code_google_play.jpg" alt="QR code to Me & Them on Google Play" decoding="async">
                     </span>
                 </div>
             </div>
