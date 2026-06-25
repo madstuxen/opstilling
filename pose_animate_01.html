@@ -12,6 +12,13 @@
             padding: 0;
             box-sizing: border-box;
         }
+
+        :root {
+            --figure-color-light: #fbbf24;
+            --figure-color: #f59e0b;
+            --figure-color-limb: #d08609;
+            --figure-head-text-color: #ffffff;
+        }
         
         body {
             font-family: 'Arial', sans-serif;
@@ -326,28 +333,120 @@
             height: 12px;
         }
 
+        .ik-end-effector-right {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f97316;
+            border: 2px solid #ea580c;
+            cursor: grab;
+            z-index: 25;
+            transform: translate(-50%, -50%);
+            display: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        }
+
+        .ik-end-effector-right.visible {
+            display: block;
+        }
+
+        .ik-end-effector-right.dragging {
+            cursor: grabbing;
+        }
+
+        .ik-end-effector-left {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f97316;
+            border: 2px solid #ea580c;
+            cursor: grab;
+            z-index: 25;
+            transform: translate(-50%, -50%);
+            display: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        }
+
+        .ik-end-effector-left.visible {
+            display: block;
+        }
+
+        .ik-end-effector-left.dragging {
+            cursor: grabbing;
+        }
+
+        .ik-end-effector-left-leg,
+        .ik-end-effector-right-leg {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f97316;
+            border: 2px solid #ea580c;
+            cursor: grab;
+            z-index: 25;
+            transform: translate(-50%, -50%);
+            display: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        }
+
+        .ik-end-effector-left-leg.visible,
+        .ik-end-effector-right-leg.visible {
+            display: block;
+        }
+
+        .ik-end-effector-left-leg.dragging,
+        .ik-end-effector-right-leg.dragging {
+            cursor: grabbing;
+        }
+
+        #shoulder_handle_right,
+        #shoulder_handle_left,
+        #hip_handle_left,
+        #hip_handle_right {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            border: 2px solid #7c3aed;
+            cursor: grab;
+            z-index: 26;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        }
+
+        #shoulder_handle_right.dragging,
+        #shoulder_handle_left.dragging,
+        #hip_handle_left.dragging,
+        #hip_handle_right.dragging {
+            cursor: grabbing;
+        }
+
         /* Control positions around figure */
         .left-arm-controls {
             top: 20px;
-            left: 50px;
+            left: 10px;
             width: 150px;
         }
 
         .right-arm-controls {
             top: 20px;
-            right: 50px;
+            right: 10px;
             width: 150px;
         }
 
         .left-leg-controls {
-            bottom: 20px;
-            left: 50px;
+            bottom: -30px;
+            left: 10px;
             width: 150px;
         }
 
         .right-leg-controls {
-            bottom: 20px;
-            right: 50px;
+            bottom: -30px;
+            right: 10px;
             width: 150px;
         }
 
@@ -438,19 +537,28 @@
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-    border: 3px solid #fbbf24;
+    background: linear-gradient(135deg, var(--figure-color-light) 0%, var(--figure-color) 100%);
     top: 30px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--figure-head-text-color);
+    font-weight: bold;
+    font-size: 11px;
+    text-align: center;
+    padding: 4px;
+    line-height: 1.1;
+    word-break: break-word;
 }
 
 .mini-figure .torso {
     position: absolute;
     width: 55px;
     height: 80px;
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    background: linear-gradient(135deg, var(--figure-color-light) 0%, var(--figure-color) 100%);
     border-radius: 22px 22px 15px 15px;
     top: 104px;
     left: 50%;
@@ -486,7 +594,7 @@
 .mini-figure .arm_geo_right {
     width: 50px;
     height: 18px;
-    background: #f59e0b;
+    background: var(--figure-color-limb);
     border-radius: 9px;
     position: relative;
     top: -1px;
@@ -499,7 +607,7 @@
 .mini-figure .laar_geo_right {
     width: 18px;
     height: 55px;
-    background: #f59e0b;
+    background: var(--figure-color-limb);
     border-radius: 9px;
     position: relative;
     top: -1px;
@@ -525,7 +633,7 @@
 .mini-figure .albue_geo_right,
 .mini-figure .skinneben_geo_left,
 .mini-figure .skinneben_geo_right {
-    background: #f59e0b;
+    background: var(--figure-color-limb);
     border-radius: 9px;
     position: relative;
     top: -1px;
@@ -595,16 +703,15 @@
             width: 72px;
             height: 72px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            background: linear-gradient(135deg, var(--figure-color-light) 0%, var(--figure-color) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--figure-head-text-color);
             font-weight: bold;
             font-size: 11px;
             text-align: center;
             box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-            border: 3px solid #fbbf24;
             top: 30px;
             left: 50%;
             transform: translateX(-50%);
@@ -616,7 +723,7 @@
             position: absolute;
             width: 55px;
             height: 80px;
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            background: linear-gradient(135deg, var(--figure-color-light) 0%, var(--figure-color) 100%);
             border-radius: 22px 22px 15px 15px;
             box-shadow: 0 3px 12px rgba(0,0,0,0.15);
             top: 104px;
@@ -632,13 +739,13 @@
             left: 162px;
             width: 15px;
             height: 15px;
-            background: rgba(59, 130, 246, 0.0);
+            background: rgba(0, 0, 0, 0);
         }
         
         .skulder_rotate_right {
             width: 100%;
             height: 100%;
-            background: rgba(239, 68, 68, 0.0);
+            background: rgba(0, 0, 0, 0);
             transform-origin: center center;
         }
 		
@@ -649,7 +756,7 @@
         .arm_geo_right {
 			width: 50px;
             height: 18px;
-            background: #f59e0b;
+            background: var(--figure-color-limb);
             border-radius: 9px;
             position: relative;
             top: -1px;
@@ -662,7 +769,7 @@
             left: 34px;
             width: 15px;
             height: 15px;
-            background: rgba(16, 185, 129, 0.0);
+            background: rgba(0, 0, 0, 0);
             transform-origin: center center;
         }
         
@@ -672,7 +779,7 @@
             left: 1px;
     	    width: 50px;
     	    height: 18px;
-            background: #f59e0b;
+            background: var(--figure-color-limb);
             border-radius: 9px;
             z-index: 4;
         }
@@ -689,13 +796,13 @@
             left: 123px;
             width: 15px;
             height: 15px;
-            background: rgba(59, 130, 246, 0.0);
+            background: rgba(0, 0, 0, 0);
         }
         
         .skulder_rotate_left {
             width: 100%;
             height: 100%;
-            background: rgba(239, 68, 68, 0.0);
+            background: rgba(0, 0, 0, 0);
             transform-origin: center center;
         }
 		
@@ -706,7 +813,7 @@
         .arm_geo_left {
             width: 50px;
             height: 18px;
-            background: #f59e0b;
+            background: var(--figure-color-limb);
             border-radius: 9px;
             position: relative;
             top: -1px;
@@ -719,7 +826,7 @@
             left: 0px; 
             width: 15px;
             height: 15px;
-            background: rgba(16, 185, 129, 0.0);
+            background: rgba(0, 0, 0, 0);
             transform-origin: center center;
         }
         
@@ -729,7 +836,7 @@
 			left: -33px;
 			width: 50px;
 			height: 18px;
-			background: #f59e0b;
+			background: var(--figure-color-limb);
 			border-radius: 9px;
 			z-index: 4;
 		}
@@ -746,20 +853,20 @@
             left: 158px;
             width: 15px;
             height: 15px;
-            background: rgba(59, 130, 246, 0.2);
+            background: rgba(0, 0, 0, 0);
         }
 
         .hofte_rotate_right {
             width: 100%;
             height: 100%;
-            background: rgba(239, 68, 68, 0.0);
+            background: rgba(0, 0, 0, 0);
             transform-origin: center center;
         }
 
         .laar_geo_right {
             width: 18px;
             height: 55px;
-            background: #f59e0b;
+            background: var(--figure-color-limb);
             border-radius: 9px;
             position: relative;
             top: -1px;
@@ -772,7 +879,7 @@
             left: 1px;
             width: 15px;
             height: 15px;
-            background: rgba(16, 185, 129, 0.2);
+            background: rgba(0, 0, 0, 0);
             transform-origin: center center;
         }
 
@@ -782,7 +889,7 @@
             left: -1px;
             width: 18px;
             height: 50px;
-            background: #f59e0b;
+            background: var(--figure-color-limb);
             border-radius: 9px;
         }
 
@@ -793,20 +900,20 @@
             left: 126px;
             width: 15px;
             height: 15px;
-            background: rgba(59, 130, 246, 0.2);
+            background: rgba(0, 0, 0, 0);
         }
 
         .hofte_rotate_left {
             width: 100%;
             height: 100%;
-            background: rgba(239, 68, 68, 0.0);
+            background: rgba(0, 0, 0, 0);
             transform-origin: center center;
         }
 
         .laar_geo_left {
             width: 18px;
             height: 55px;
-            background: #f59e0b;
+            background: var(--figure-color-limb);
             border-radius: 9px;
             position: relative;
             top: -1px;
@@ -819,7 +926,7 @@
             left: 1px;
             width: 15px;
             height: 15px;
-            background: rgba(16, 185, 129, 0.2);
+            background: rgba(0, 0, 0, 0);
             transform-origin: center center;
         }
 
@@ -829,7 +936,7 @@
             left: -1px;
             width: 18px;
             height: 50px;
-            background: #f59e0b;
+            background: var(--figure-color-limb);
             border-radius: 9px;
         }
 		
@@ -856,6 +963,54 @@
 .timeline-slide:hover .delete-slide-btn {
     opacity: 0.7; /* Vis ved hover over slide */
 }
+
+        .color-picker-full { display: inline-block; }
+        .color-picker-full__btn {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 600; font-size: 14px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+        }
+        .color-picker-full__backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+        .color-picker-full__backdrop.is-open { display: flex; }
+        .color-picker-full__modal {
+            background: #fff;
+            border-radius: 14px;
+            padding: 18px 16px 16px;
+            width: 100%;
+            max-width: 420px;
+            max-height: min(80vh, 520px);
+            overflow-y: auto;
+            box-shadow: 0 18px 45px rgba(0,0,0,0.25);
+        }
+        .color-picker-full__title {
+            margin: 0 0 12px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .color-picker-full__row {
+            display: flex; justify-content: center; margin-bottom: 2px;
+        }
+        .color-picker-full__swatch {
+            width: 24px; height: 24px; border-radius: 4px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            cursor: pointer; margin-right: 2px; padding: 0;
+        }
+        .color-picker-full__swatch:last-child { margin-right: 0; }
+        .color-picker-full__swatch.is-selected { border: 2px solid #1f2937; }
 
 .timeline-slide .delete-slide-btn:hover {
     opacity: 1 !important; /* Fuld opacity ved hover over knappen selv */
@@ -939,11 +1094,34 @@
 				
             </div>
 
+            <div class="export-section" style="background:#fef3c7; border:2px solid #f59e0b; border-radius:10px; padding:15px; margin-bottom:20px;">
+                <h3 style="color:#b45309; margin-bottom:10px; font-size:16px;">Eksport</h3>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                    <label style="font-size:12px;">Figur farve:</label>
+                    <div class="color-picker-full" id="guideFigureColorPicker">
+                        <button type="button" class="color-picker-full__btn" aria-label="Vælg figur farve">C</button>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                    <input type="checkbox" id="transparent_bg" checked>
+                    <label for="transparent_bg" style="font-size:12px;">Transparent baggrund</label>
+                </div>
+                <button class="btn btn-primary" onclick="exportFigurePNG()">Gem PNG</button>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:10px; margin-bottom:10px;">
+                    <label for="export_fps" style="font-size:12px;">FPS:</label>
+                    <input type="number" id="export_fps" value="24" min="1" max="60" style="width:60px; padding:4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
+                </div>
+                <button class="btn btn-primary" id="export_sequence_btn" onclick="exportPNGSequence()">Eksporter sekvens (ZIP)</button>
+            </div>
+
             <!-- Current Pose -->
             <div class="current-pose">
                 <h3>Aktuel Pose</h3>
                 
                 <input type="text" class="pose-input" id="poseName" placeholder="Pose navn...">
+
+                <label for="head_text" style="display:block; font-size:12px; color:#0284c7; margin-bottom:4px;">Hoved tekst:</label>
+                <input type="text" class="pose-input" id="head_text" value="Hoved" maxlength="24">
                 
                 <div class="button-group">
     			<button class="btn btn-success" onclick="savePoseToLibrary()">Gem Pose</button>
@@ -995,6 +1173,14 @@
     				<input type="checkbox" id="left_arm_front" onchange="toggleArmLayer('left')">
     				<label for="left_arm_front">Foran torso</label>
     				</div>
+                    <div class="mini-checkbox">
+                        <input type="checkbox" id="ik_left">
+                        <label for="ik_left">IK</label>
+                    </div>
+                    <div class="mini-checkbox">
+                        <input type="checkbox" id="flip_left">
+                        <label for="flip_left">Flip</label>
+                    </div>
                 </div>
 
                 <!-- Højre Arm Controls -->
@@ -1024,6 +1210,14 @@
     				<input type="checkbox" id="right_arm_front" onchange="toggleArmLayer('right')">
     				<label for="right_arm_front">Foran torso</label>
     				</div>
+                    <div class="mini-checkbox">
+                        <input type="checkbox" id="ik_right">
+                        <label for="ik_right">IK</label>
+                    </div>
+                    <div class="mini-checkbox">
+                        <input type="checkbox" id="flip_right">
+                        <label for="flip_right">Flip</label>
+                    </div>
                 </div>
 
                 <!-- Venstre Ben Controls -->
@@ -1046,8 +1240,16 @@
                     </div>
                     <div class="mini-slider">
                         <label>Knæ:</label>
-                        <input type="range" id="knae_rot_left" min="-175" max="175" value="0">
+                        <input type="range" id="knae_rot_left" min="-180" max="180" value="0">
                         <div class="mini-value" id="knae_rot_left_val">0°</div>
+                    </div>
+                    <div class="mini-checkbox">
+                        <input type="checkbox" id="ik_left_leg">
+                        <label for="ik_left_leg">IK</label>
+                    </div>
+                    <div class="mini-checkbox">
+                        <input type="checkbox" id="flip_left_leg">
+                        <label for="flip_left_leg">Flip</label>
                     </div>
                 </div>
 
@@ -1071,16 +1273,30 @@
                     </div>
                     <div class="mini-slider">
                         <label>Knæ:</label>
-                        <input type="range" id="knae_rot_right" min="-135" max="135" value="0">
+                        <input type="range" id="knae_rot_right" min="-180" max="180" value="0">
                         <div class="mini-value" id="knae_rot_right_val">0°</div>
+                    </div>
+                    <div class="mini-checkbox">
+                        <input type="checkbox" id="ik_right_leg">
+                        <label for="ik_right_leg">IK</label>
+                    </div>
+                    <div class="mini-checkbox">
+                        <input type="checkbox" id="flip_right_leg">
+                        <label for="flip_right_leg">Flip</label>
                     </div>
                 </div>
 
                 <!-- Figure -->
+                <div id="shoulder_handle_left"></div>
+                <div id="shoulder_handle_right"></div>
+                <div id="hip_handle_left"></div>
+                <div id="hip_handle_right"></div>
                 <div class="figure-container">
+                    <div id="ik_end_effector_left" class="ik-end-effector-left"></div>
+                    <div id="ik_end_effector_right" class="ik-end-effector-right"></div>
                     <!-- Hoved -->
                     <div class="head">
-                        <span>Hoved</span>
+                        <span id="figure_head_text">Hoved</span>
                     </div>
                     
                     <!-- Torso -->
@@ -1150,7 +1366,201 @@
         </div>
     </div>
 
+    <div class="color-picker-full__backdrop" id="figureColorModal" aria-hidden="true">
+        <div class="color-picker-full__modal" role="dialog" aria-modal="true" aria-labelledby="figureColorModalTitle">
+            <h4 class="color-picker-full__title" id="figureColorModalTitle">Vælg figur farve</h4>
+            <div class="color-picker-full__grid" id="figureColorModalGrid"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
+        const FIGURE_COLOR_DEFAULT = '#f59e0b';
+        const COLOR_PRESETS = [
+            '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
+            '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8',
+        ];
+
+        function hexToRgb(hex) {
+            const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : null;
+        }
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h = 0, s = 0;
+            const l = (max + min) / 2;
+            if (max !== min) {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                    case g: h = ((b - r) / d + 2) / 6; break;
+                    case b: h = ((r - g) / d + 4) / 6; break;
+                }
+            }
+            return { h: h * 360, s: s * 100, l: l * 100 };
+        }
+        function hslToRgb(h, s, l) {
+            h /= 360; s /= 100; l /= 100;
+            if (s === 0) return { r: Math.round(l * 255), g: Math.round(l * 255), b: Math.round(l * 255) };
+            const hue2rgb = (p, q, t) => {
+                if (t < 0) t += 1; if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                return p;
+            };
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            return {
+                r: Math.round(hue2rgb(p, q, h + 1/3) * 255),
+                g: Math.round(hue2rgb(p, q, h) * 255),
+                b: Math.round(hue2rgb(p, q, h - 1/3) * 255),
+            };
+        }
+        function adjustColorLightness(hex, deltaL) {
+            const rgb = hexToRgb(hex);
+            if (!rgb) return hex;
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            hsl.l = Math.max(5, Math.min(95, hsl.l + deltaL));
+            const c = hslToRgb(hsl.h, hsl.s, hsl.l);
+            return rgbToHex(c.r, c.g, c.b);
+        }
+        function darkenColor(hex, percent) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const r = (num >> 16) & 255;
+            const g = (num >> 8) & 255;
+            const b = num & 255;
+            const newR = Math.max(0, Math.floor(r * (1 - percent)));
+            const newG = Math.max(0, Math.floor(g * (1 - percent)));
+            const newB = Math.max(0, Math.floor(b * (1 - percent)));
+            return `#${((newR << 16) | (newG << 8) | newB).toString(16).padStart(6, '0')}`;
+        }
+        function getRelativeLuminance(hex) {
+            const rgb = hexToRgb(hex);
+            if (!rgb) return 0;
+            const linear = [rgb.r, rgb.g, rgb.b].map(v => {
+                v /= 255;
+                return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            });
+            return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+        }
+        function getHeadTextColor(color) {
+            const bodyLight = adjustColorLightness(color, 6);
+            return getRelativeLuminance(bodyLight) > 0.55 ? '#1f2937' : '#ffffff';
+        }
+        function applyFigureColor(color) {
+            const bodyLight = adjustColorLightness(color, 6);
+            const limbColor = darkenColor(color, 0.15);
+            document.documentElement.style.setProperty('--figure-color-light', bodyLight);
+            document.documentElement.style.setProperty('--figure-color', color);
+            document.documentElement.style.setProperty('--figure-color-limb', limbColor);
+            document.documentElement.style.setProperty('--figure-head-text-color', getHeadTextColor(color));
+        }
+        function generateColorVariation(baseColor, rowIndex) {
+            const rgb = hexToRgb(baseColor);
+            if (!rgb) return baseColor;
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            let newLightness, newSaturation;
+            const isGray = hsl.s < 15 || baseColor.toLowerCase() === '#94a3b8';
+            if (isGray) {
+                if (rowIndex === 6) newLightness = hsl.l;
+                else if (rowIndex < 6) newLightness = 90 - (rowIndex * (90 - hsl.l) / 6);
+                else newLightness = hsl.l - ((rowIndex - 6) * (hsl.l - 10) / 5);
+                newSaturation = Math.max(0, Math.min(5, hsl.s));
+            } else if (rowIndex === 6) {
+                newLightness = hsl.l; newSaturation = hsl.s;
+            } else if (rowIndex < 6) {
+                newLightness = 90 - (rowIndex * (90 - hsl.l) / 6);
+                newSaturation = 30 + (rowIndex * (hsl.s - 30) / 6);
+            } else {
+                newLightness = hsl.l - ((rowIndex - 6) * (hsl.l - 10) / 5);
+                newSaturation = hsl.s + ((rowIndex - 6) * (100 - hsl.s) / 5);
+                if (newSaturation > 100) newSaturation = 100;
+            }
+            newLightness = Math.max(5, Math.min(95, newLightness));
+            newSaturation = Math.max(0, Math.min(100, newSaturation));
+            const c = hslToRgb(hsl.h, newSaturation, newLightness);
+            return rgbToHex(c.r, c.g, c.b);
+        }
+        function generateColorGrid() {
+            const rows = [1, 3, 5, 7, 9, 11];
+            return rows.map(row => COLOR_PRESETS.map(base => generateColorVariation(base, row)));
+        }
+        function createColorPickerFull(container, options = {}) {
+            let selectedColor = options.selectedColor ?? FIGURE_COLOR_DEFAULT;
+            const onColorSelect = options.onColorSelect ?? (() => {});
+            const size = options.size ?? 28;
+            const colorGrid = generateColorGrid();
+            const btn = container.querySelector('.color-picker-full__btn');
+            const backdrop = document.getElementById('figureColorModal');
+            const gridEl = document.getElementById('figureColorModalGrid');
+            const modal = backdrop.querySelector('.color-picker-full__modal');
+
+            btn.style.width = btn.style.height = size + 'px';
+            btn.style.borderRadius = size / 2 + 'px';
+
+            function closeModal() {
+                backdrop.classList.remove('is-open');
+                backdrop.setAttribute('aria-hidden', 'true');
+            }
+
+            function openModal() {
+                renderGrid();
+                backdrop.classList.add('is-open');
+                backdrop.setAttribute('aria-hidden', 'false');
+            }
+
+            function updateButton() { btn.style.backgroundColor = selectedColor; }
+
+            function renderGrid() {
+                gridEl.innerHTML = '';
+                colorGrid.forEach((row) => {
+                    const rowEl = document.createElement('div');
+                    rowEl.className = 'color-picker-full__row';
+                    row.forEach((color) => {
+                        const swatch = document.createElement('button');
+                        swatch.type = 'button';
+                        swatch.className = 'color-picker-full__swatch' + (color === selectedColor ? ' is-selected' : '');
+                        swatch.style.backgroundColor = color;
+                        swatch.setAttribute('aria-label', color);
+                        swatch.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            selectedColor = color;
+                            onColorSelect(color);
+                            renderGrid();
+                            updateButton();
+                        });
+                        rowEl.appendChild(swatch);
+                    });
+                    gridEl.appendChild(rowEl);
+                });
+            }
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openModal();
+            });
+            backdrop.addEventListener('click', closeModal);
+            modal.addEventListener('click', e => e.stopPropagation());
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && backdrop.classList.contains('is-open')) {
+                    closeModal();
+                }
+            });
+
+            updateButton();
+            return {
+                getColor: () => selectedColor,
+                setColor: (color) => { selectedColor = color; updateButton(); renderGrid(); },
+            };
+        }
+
         // Session pose library
         let poseLibrary = [];
         let currentPoseId = null;
@@ -1169,8 +1579,20 @@
                 translate_x_right_leg: 0, translate_y_right_leg: 0, hofte_rot_right: 0, knae_rot_right: 0,
                 left_arm_front: false,
                 right_arm_front: false,
+                head_text: 'Hoved',
                 duration: 0.1
             };
+        }
+
+        function setHeadTextDisplay(text) {
+            const headSpan = document.getElementById('figure_head_text');
+            if (headSpan) headSpan.textContent = text || '';
+        }
+
+        function syncHeadTextInput(pose) {
+            const value = pose.head_text !== undefined && pose.head_text !== null ? pose.head_text : 'Hoved';
+            document.getElementById('head_text').value = value;
+            setHeadTextDisplay(value);
         }
 		
 		
@@ -1186,8 +1608,10 @@
 			
 			const leftCheck = document.getElementById('left_arm_front');
 			const rightCheck = document.getElementById('right_arm_front');
+			const headTextInput = document.getElementById('head_text');
 			leftCheck.removeEventListener('change', updateTransforms);
 			rightCheck.removeEventListener('change', updateTransforms);
+			headTextInput.removeEventListener('input', updateTransforms);
 			
 			// Update slider values
 			sliders.forEach(slider => {
@@ -1197,6 +1621,7 @@
 			// Update checkboxes
 			leftCheck.checked = pose.left_arm_front || false;
 			rightCheck.checked = pose.right_arm_front || false;
+			syncHeadTextInput(pose);
 			
 			// Update currentPose
 			currentPose = {...pose};
@@ -1255,6 +1680,16 @@
 			});
 			leftCheck.addEventListener('change', updateTransforms);
 			rightCheck.addEventListener('change', updateTransforms);
+			headTextInput.addEventListener('input', updateTransforms);
+
+			syncRightArmIKEndEffector();
+			syncLeftArmIKEndEffector();
+			syncShoulderHandleRight();
+			syncShoulderHandleLeft();
+			syncLeftLegIKEndEffector();
+			syncRightLegIKEndEffector();
+			syncHipHandleLeft();
+			syncHipHandleRight();
 		}
 		
 		function updateSingleSlideDisplay(index) {
@@ -1292,6 +1727,8 @@ function testSlideData() {
 			// Get checkbox states
 			currentPose.left_arm_front = document.getElementById('left_arm_front').checked;
 			currentPose.right_arm_front = document.getElementById('right_arm_front').checked;
+			currentPose.head_text = document.getElementById('head_text').value;
+			setHeadTextDisplay(currentPose.head_text);
 
 			// Update timeline slide with current pose
 		if (currentSlideIndex >= 0 && currentSlideIndex < timelineSlides.length) {
@@ -1341,6 +1778,9 @@ function testSlideData() {
 					updateMiniPoseTransforms(miniFigure, currentPose);
 				}
 			}
+
+			syncHipHandleLeft();
+			syncHipHandleRight();
 		}
         
         function toggleArmLayer(side) {
@@ -1399,9 +1839,19 @@ function testSlideData() {
                 document.getElementById('right_arm_front').checked = pose.right_arm_front;
                 toggleArmLayer('right');
             }
+
+            syncHeadTextInput(pose);
             
             currentPose = {...pose};
             updateTransforms();
+            syncRightArmIKEndEffector();
+            syncLeftArmIKEndEffector();
+            syncShoulderHandleRight();
+            syncShoulderHandleLeft();
+            syncLeftLegIKEndEffector();
+            syncRightLegIKEndEffector();
+            syncHipHandleLeft();
+            syncHipHandleRight();
         }
         
         function flipPose() {
@@ -1733,7 +2183,7 @@ function moveTimelineSlide(fromIndex, direction) {
 					${index < timelineSlides.length - 1 ? `<button class="move-slide-btn move-slide-right" onclick="moveTimelineSlide(${index}, 1); event.stopPropagation();">›</button>` : ''}
 					<!-- resten af din HTML -->
 					<div class="mini-figure">
-						<div class="head"></div>
+						<div class="head"><span>Hoved</span></div>
 						<div class="torso"></div>
 						
 						<div class="skulder_translate_left">
@@ -1851,6 +2301,11 @@ function moveTimelineSlide(fromIndex, direction) {
 					`rotate(${poseData.hofte_rot_right || 0}deg)`;
 				miniElement.querySelector('.knae_rotate_right').style.transform = 
 					`rotate(${poseData.knae_rot_right || 0}deg)`;
+
+				const miniHead = miniElement.querySelector('.head span');
+				if (miniHead) {
+					miniHead.textContent = poseData.head_text !== undefined && poseData.head_text !== null ? poseData.head_text : 'Hoved';
+				}
 			}
 
 
@@ -1955,6 +2410,7 @@ animatedElements.forEach(selector => {
             knae_rot_right: slide.knae_rot_right || 0,
             left_arm_front: slide.left_arm_front || false,
             right_arm_front: slide.right_arm_front || false,
+            head_text: slide.head_text ?? 'Hoved',
             duration: slide.duration || 0.1
         }))
     };
@@ -2019,6 +2475,7 @@ function importTimelineSlides(event) {
                         knae_rot_right: slide.knae_rot_right || 0,
                         left_arm_front: slide.left_arm_front || false,
                         right_arm_front: slide.right_arm_front || false,
+                        head_text: slide.head_text ?? 'Hoved',
                         duration: slide.duration || 0.1
                     });
                 }
@@ -2078,6 +2535,7 @@ function exportForJavaScript() {
         knae_rot_right: slide.knae_rot_right || 0,
         left_arm_front: slide.left_arm_front || false,
         right_arm_front: slide.right_arm_front || false,
+        head_text: slide.head_text ?? 'Hoved',
         duration: slide.duration || 0.1
     }));
     
@@ -2093,6 +2551,864 @@ function exportForJavaScript() {
     
     alert(`Animation "${animationName}" eksporteret!\n\nCopy-paste indholdet fra filen ind i dit animations objekt.`);
 }		
+
+        // Right arm IK (2-bone, law of cosines / isosceles triangle)
+        const ARM_LENGTH = 50;
+        const RIGHT_SHOULDER_BASE_X = 162;
+        const RIGHT_SHOULDER_BASE_Y = 105;
+        const LEFT_SHOULDER_BASE_X = 139;
+        const LEFT_SHOULDER_BASE_Y = 105;
+        const LEFT_ARM_ANGLE_OFFSET = 180;
+
+        let ikRightTargetX = 0;
+        let ikRightTargetY = 0;
+        let ikRightDragging = false;
+        let ikLeftTargetX = 0;
+        let ikLeftTargetY = 0;
+        let ikLeftDragging = false;
+        let shoulderHandleDragging = false;
+        let shoulderHandleLeftDragging = false;
+        let shoulderHandlePrevX = 0;
+        let shoulderHandlePrevY = 0;
+        let shoulderHandleLeftPrevX = 0;
+        let shoulderHandleLeftPrevY = 0;
+
+        function getRightShoulderPos() {
+            return {
+                x: RIGHT_SHOULDER_BASE_X + (parseInt(document.getElementById('translate_x').value, 10) || 0),
+                y: RIGHT_SHOULDER_BASE_Y + (parseInt(document.getElementById('translate_y').value, 10) || 0) + 9
+            };
+        }
+
+        function getLeftShoulderPos() {
+            return {
+                x: LEFT_SHOULDER_BASE_X + (parseInt(document.getElementById('translate_x_left').value, 10) || 0),
+                y: LEFT_SHOULDER_BASE_Y + (parseInt(document.getElementById('translate_y_left').value, 10) || 0) + 9
+            };
+        }
+
+        function cssAngleToVector(deg) {
+            const rad = deg * Math.PI / 180;
+            return { x: Math.cos(rad), y: Math.sin(rad) };
+        }
+
+        function getRightHandPos() {
+            const shoulder = getRightShoulderPos();
+            const skulderRot = parseInt(document.getElementById('skulder_rot').value, 10) || 0;
+            const albueRot = parseInt(document.getElementById('albue_rot').value, 10) || 0;
+
+            const upperDir = cssAngleToVector(skulderRot);
+            const elbowX = shoulder.x + ARM_LENGTH * upperDir.x;
+            const elbowY = shoulder.y + ARM_LENGTH * upperDir.y;
+
+            const forearmDir = cssAngleToVector(skulderRot + albueRot);
+            return {
+                x: elbowX + ARM_LENGTH * forearmDir.x,
+                y: elbowY + ARM_LENGTH * forearmDir.y
+            };
+        }
+
+        function getLeftHandPos() {
+            const shoulder = getLeftShoulderPos();
+            const skulderRot = parseInt(document.getElementById('skulder_rot_left').value, 10) || 0;
+            const albueRot = parseInt(document.getElementById('albue_rot_left').value, 10) || 0;
+
+            const upperDir = cssAngleToVector(skulderRot + LEFT_ARM_ANGLE_OFFSET);
+            const elbowX = shoulder.x + ARM_LENGTH * upperDir.x;
+            const elbowY = shoulder.y + ARM_LENGTH * upperDir.y;
+
+            const forearmDir = cssAngleToVector(skulderRot + LEFT_ARM_ANGLE_OFFSET + albueRot);
+            return {
+                x: elbowX + ARM_LENGTH * forearmDir.x,
+                y: elbowY + ARM_LENGTH * forearmDir.y
+            };
+        }
+
+        function solveLeftArmIK(targetX, targetY) {
+            const shoulder = getLeftShoulderPos();
+            const target = { x: targetX, y: targetY };
+            const dx = target.x - shoulder.x;
+            const dy = target.y - shoulder.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const clampedDist = Math.max(1, Math.min(dist, ARM_LENGTH * 2));
+
+            if (dist > ARM_LENGTH * 2) {
+                const scale = (ARM_LENGTH * 2 - 0.001) / dist;
+                target.x = shoulder.x + dx * scale;
+                target.y = shoulder.y + dy * scale;
+            }
+
+            const baseAngle = Math.atan2(target.y - shoulder.y, target.x - shoulder.x);
+            const halfAngle = Math.acos(Math.max(-1, Math.min(1, clampedDist / (2 * ARM_LENGTH))));
+            const sign = document.getElementById('flip_left').checked ? 1 : -1;
+
+            const a1 = baseAngle + Math.PI + sign * halfAngle;
+            const a1World = a1 - Math.PI;
+
+            const elbowX = shoulder.x + Math.cos(a1World) * ARM_LENGTH;
+            const elbowY = shoulder.y + Math.sin(a1World) * ARM_LENGTH;
+
+            const a2world = Math.atan2(target.y - elbowY, target.x - elbowX);
+            let a2rel = a2world - a1World;
+            while (a2rel > Math.PI) a2rel -= 2 * Math.PI;
+            while (a2rel < -Math.PI) a2rel += 2 * Math.PI;
+
+            const skulderDeg = a1World * 180 / Math.PI - LEFT_ARM_ANGLE_OFFSET;
+            const albueDeg = a2rel * 180 / Math.PI;
+
+            let skulder_rot_left = skulderDeg;
+            while (skulder_rot_left > 180) skulder_rot_left -= 360;
+            while (skulder_rot_left < -180) skulder_rot_left += 360;
+
+            let albue_rot_left = albueDeg;
+            while (albue_rot_left > 180) albue_rot_left -= 360;
+            while (albue_rot_left < -180) albue_rot_left += 360;
+            albue_rot_left = Math.max(-175, Math.min(175, albue_rot_left));
+
+            return { skulder_rot_left, albue_rot_left, targetX: target.x, targetY: target.y };
+        }
+
+        function solveRightArmIK(targetX, targetY) {
+            const shoulder = getRightShoulderPos();
+            let dx = targetX - shoulder.x;
+            let dy = targetY - shoulder.y;
+            let dist = Math.hypot(dx, dy);
+            const maxReach = ARM_LENGTH * 2;
+
+            if (dist > maxReach) {
+                dist = maxReach - 0.001;
+                const scale = dist / Math.hypot(dx, dy);
+                dx *= scale;
+                dy *= scale;
+                targetX = shoulder.x + dx;
+                targetY = shoulder.y + dy;
+            }
+            if (dist < 0.001) {
+                dist = 0.001;
+                dx = dist;
+                dy = 0;
+            }
+
+            const baseAngle = Math.atan2(dy, dx);
+            const halfAngle = Math.acos(Math.min(1, Math.max(-1, dist / (2 * ARM_LENGTH))));
+            const sign = document.getElementById('flip_right').checked ? -1 : 1;
+
+            const a1 = baseAngle + sign * halfAngle;
+            const a2 = -2 * sign * halfAngle;
+
+            let skulder_rot = Math.round(a1 * 180 / Math.PI);
+            let albue_rot = Math.round(a2 * 180 / Math.PI);
+
+            skulder_rot = Math.max(-180, Math.min(180, skulder_rot));
+            albue_rot = Math.max(-175, Math.min(175, albue_rot));
+
+            return { skulder_rot, albue_rot, targetX, targetY };
+        }
+
+        function positionLeftArmEndEffector(x, y) {
+            const dot = document.getElementById('ik_end_effector_left');
+            dot.style.left = `${x}px`;
+            dot.style.top = `${y}px`;
+        }
+
+        function positionRightArmEndEffector(x, y) {
+            const dot = document.getElementById('ik_end_effector_right');
+            dot.style.left = `${x}px`;
+            dot.style.top = `${y}px`;
+        }
+
+        function figureLocalToFixed(localX, localY) {
+            const rect = document.querySelector('.figure-container').getBoundingClientRect();
+            return {
+                x: rect.left + localX,
+                y: rect.top + localY
+            };
+        }
+
+        function syncShoulderHandleLeft() {
+            const pos = getLeftShoulderPos();
+            const screen = figureLocalToFixed(pos.x, pos.y);
+            const handle = document.getElementById('shoulder_handle_left');
+            handle.style.left = `${screen.x}px`;
+            handle.style.top = `${screen.y}px`;
+        }
+
+        function syncShoulderHandleRight() {
+            const pos = getRightShoulderPos();
+            const screen = figureLocalToFixed(pos.x, pos.y);
+            const handle = document.getElementById('shoulder_handle_right');
+            handle.style.left = `${screen.x}px`;
+            handle.style.top = `${screen.y}px`;
+        }
+
+        function setLeftArmRotationSlidersEnabled(enabled) {
+            document.getElementById('skulder_rot_left').disabled = !enabled;
+            document.getElementById('albue_rot_left').disabled = !enabled;
+        }
+
+        function setRightArmRotationSlidersEnabled(enabled) {
+            document.getElementById('skulder_rot').disabled = !enabled;
+            document.getElementById('albue_rot').disabled = !enabled;
+        }
+
+        function applyLeftArmIK(targetX, targetY) {
+            const result = solveLeftArmIK(targetX, targetY);
+            ikLeftTargetX = result.targetX;
+            ikLeftTargetY = result.targetY;
+
+            document.getElementById('skulder_rot_left').value = result.skulder_rot_left;
+            document.getElementById('albue_rot_left').value = result.albue_rot_left;
+            positionLeftArmEndEffector(result.targetX, result.targetY);
+            updateTransforms();
+        }
+
+        function applyRightArmIK(targetX, targetY) {
+            const result = solveRightArmIK(targetX, targetY);
+            ikRightTargetX = result.targetX;
+            ikRightTargetY = result.targetY;
+
+            document.getElementById('skulder_rot').value = result.skulder_rot;
+            document.getElementById('albue_rot').value = result.albue_rot;
+            positionRightArmEndEffector(result.targetX, result.targetY);
+            updateTransforms();
+        }
+
+        function syncLeftArmIKEndEffector() {
+            if (!document.getElementById('ik_left').checked) return;
+            const hand = getLeftHandPos();
+            ikLeftTargetX = hand.x;
+            ikLeftTargetY = hand.y;
+            positionLeftArmEndEffector(hand.x, hand.y);
+        }
+
+        function syncRightArmIKEndEffector() {
+            if (!document.getElementById('ik_right').checked) return;
+            const hand = getRightHandPos();
+            ikRightTargetX = hand.x;
+            ikRightTargetY = hand.y;
+            positionRightArmEndEffector(hand.x, hand.y);
+        }
+
+        function toggleLeftArmIK() {
+            const enabled = document.getElementById('ik_left').checked;
+            const dot = document.getElementById('ik_end_effector_left');
+
+            setLeftArmRotationSlidersEnabled(!enabled);
+
+            if (enabled) {
+                const hand = getLeftHandPos();
+                ikLeftTargetX = hand.x;
+                ikLeftTargetY = hand.y;
+                positionLeftArmEndEffector(hand.x, hand.y);
+                dot.classList.add('visible');
+            } else {
+                dot.classList.remove('visible');
+                dot.classList.remove('dragging');
+            }
+        }
+
+        function toggleRightArmIK() {
+            const enabled = document.getElementById('ik_right').checked;
+            const dot = document.getElementById('ik_end_effector_right');
+
+            setRightArmRotationSlidersEnabled(!enabled);
+
+            if (enabled) {
+                const hand = getRightHandPos();
+                ikRightTargetX = hand.x;
+                ikRightTargetY = hand.y;
+                positionRightArmEndEffector(hand.x, hand.y);
+                dot.classList.add('visible');
+            } else {
+                dot.classList.remove('visible');
+                dot.classList.remove('dragging');
+            }
+        }
+
+        function onLeftArmTranslateWhileIK() {
+            syncShoulderHandleLeft();
+            if (document.getElementById('ik_left').checked) {
+                applyLeftArmIK(ikLeftTargetX, ikLeftTargetY);
+            }
+        }
+
+        function onRightArmTranslateWhileIK() {
+            syncShoulderHandleRight();
+            if (document.getElementById('ik_right').checked) {
+                applyRightArmIK(ikRightTargetX, ikRightTargetY);
+            }
+        }
+
+        function onShoulderHandleDragLeft(event) {
+            const dx = event.clientX - shoulderHandleLeftPrevX;
+            const dy = event.clientY - shoulderHandleLeftPrevY;
+            shoulderHandleLeftPrevX = event.clientX;
+            shoulderHandleLeftPrevY = event.clientY;
+
+            const txSlider = document.getElementById('translate_x_left');
+            const tySlider = document.getElementById('translate_y_left');
+            let newX = (parseInt(txSlider.value, 10) || 0) + dx;
+            let newY = (parseInt(tySlider.value, 10) || 0) + dy;
+            txSlider.value = Math.max(-30, Math.min(30, Math.round(newX)));
+            tySlider.value = Math.max(-30, Math.min(30, Math.round(newY)));
+
+            updateTransforms();
+            if (document.getElementById('ik_left').checked) {
+                applyLeftArmIK(ikLeftTargetX, ikLeftTargetY);
+            }
+            syncShoulderHandleLeft();
+        }
+
+        function onShoulderHandleDrag(event) {
+            const dx = event.clientX - shoulderHandlePrevX;
+            const dy = event.clientY - shoulderHandlePrevY;
+            shoulderHandlePrevX = event.clientX;
+            shoulderHandlePrevY = event.clientY;
+
+            const txSlider = document.getElementById('translate_x');
+            const tySlider = document.getElementById('translate_y');
+            let newX = (parseInt(txSlider.value, 10) || 0) + dx;
+            let newY = (parseInt(tySlider.value, 10) || 0) + dy;
+            txSlider.value = Math.max(-30, Math.min(30, Math.round(newX)));
+            tySlider.value = Math.max(-30, Math.min(30, Math.round(newY)));
+
+            updateTransforms();
+            if (document.getElementById('ik_right').checked) {
+                applyRightArmIK(ikRightTargetX, ikRightTargetY);
+            }
+            syncShoulderHandleRight();
+        }
+
+        function getFigureContainerCoords(clientX, clientY) {
+            const rect = document.querySelector('.figure-container').getBoundingClientRect();
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        // Leg IK (2-bone, law of cosines)
+        const LEG_LENGTH = 52;
+        const LEFT_HIP_BASE_X = 133;
+        const LEFT_HIP_BASE_Y = 168;
+        const RIGHT_HIP_BASE_X = 165;
+        const RIGHT_HIP_BASE_Y = 168;
+        const LEG_ANGLE_OFFSET = 90;
+
+        let ikLeftLegTargetX = 0;
+        let ikLeftLegTargetY = 0;
+        let ikLeftLegDragging = false;
+        let ikRightLegTargetX = 0;
+        let ikRightLegTargetY = 0;
+        let ikRightLegDragging = false;
+        let hipHandleLeftDragging = false;
+        let hipHandleRightDragging = false;
+        let hipHandleLeftPrevX = 0;
+        let hipHandleLeftPrevY = 0;
+        let hipHandleRightPrevX = 0;
+        let hipHandleRightPrevY = 0;
+
+        function getLeftHipPos() {
+            return {
+                x: LEFT_HIP_BASE_X + (parseInt(document.getElementById('translate_x_left_leg').value, 10) || 0),
+                y: LEFT_HIP_BASE_Y + (parseInt(document.getElementById('translate_y_left_leg').value, 10) || 0) + 9
+            };
+        }
+
+        function getRightHipPos() {
+            return {
+                x: RIGHT_HIP_BASE_X + (parseInt(document.getElementById('translate_x_right_leg').value, 10) || 0),
+                y: RIGHT_HIP_BASE_Y + (parseInt(document.getElementById('translate_y_right_leg').value, 10) || 0) + 9
+            };
+        }
+
+        function getLeftFootPos() {
+            const hip = getLeftHipPos();
+            const hofteRot = parseInt(document.getElementById('hofte_rot_left').value, 10) || 0;
+            const knaeRot = parseInt(document.getElementById('knae_rot_left').value, 10) || 0;
+
+            const upperDir = cssAngleToVector(hofteRot + LEG_ANGLE_OFFSET);
+            const kneeX = hip.x + LEG_LENGTH * upperDir.x;
+            const kneeY = hip.y + LEG_LENGTH * upperDir.y;
+
+            const lowerDir = cssAngleToVector(hofteRot + LEG_ANGLE_OFFSET + knaeRot);
+            return {
+                x: kneeX + LEG_LENGTH * lowerDir.x,
+                y: kneeY + LEG_LENGTH * lowerDir.y - 18
+            };
+        }
+
+        function getRightFootPos() {
+            const hip = getRightHipPos();
+            const hofteRot = parseInt(document.getElementById('hofte_rot_right').value, 10) || 0;
+            const knaeRot = parseInt(document.getElementById('knae_rot_right').value, 10) || 0;
+
+            const upperDir = cssAngleToVector(hofteRot + LEG_ANGLE_OFFSET);
+            const kneeX = hip.x + LEG_LENGTH * upperDir.x;
+            const kneeY = hip.y + LEG_LENGTH * upperDir.y;
+
+            const lowerDir = cssAngleToVector(hofteRot + LEG_ANGLE_OFFSET + knaeRot);
+            return {
+                x: kneeX + LEG_LENGTH * lowerDir.x,
+                y: kneeY + LEG_LENGTH * lowerDir.y - 18
+            };
+        }
+
+        function solveLegIK(hip, targetX, targetY, flipCheckboxId, kneeMin, kneeMax) {
+            const target = { x: targetX, y: targetY };
+            const dx = target.x - hip.x;
+            const dy = target.y - hip.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const clampedDist = Math.max(1, Math.min(dist, LEG_LENGTH * 2));
+
+            if (dist > LEG_LENGTH * 2) {
+                const scale = (LEG_LENGTH * 2 - 0.001) / dist;
+                target.x = hip.x + dx * scale;
+                target.y = hip.y + dy * scale;
+            }
+
+            const baseAngle = Math.atan2(target.y - hip.y, target.x - hip.x);
+            const halfAngle = Math.acos(Math.max(-1, Math.min(1, clampedDist / (2 * LEG_LENGTH))));
+            const flipChecked = document.getElementById(flipCheckboxId).checked;
+            const sign = flipCheckboxId === 'flip_right_leg'
+                ? (flipChecked ? 1 : -1)
+                : (flipChecked ? -1 : 1);
+
+            const a1 = baseAngle + sign * halfAngle;
+
+            const kneeX = hip.x + Math.cos(a1) * LEG_LENGTH;
+            const kneeY = hip.y + Math.sin(a1) * LEG_LENGTH;
+
+            const a2world = Math.atan2(target.y - kneeY, target.x - kneeX);
+            let a2rel = a2world - a1;
+            while (a2rel > Math.PI) a2rel -= 2 * Math.PI;
+            while (a2rel < -Math.PI) a2rel += 2 * Math.PI;
+
+            let hofte_rot = a1 * 180 / Math.PI - LEG_ANGLE_OFFSET;
+            while (hofte_rot > 180) hofte_rot -= 360;
+            while (hofte_rot < -180) hofte_rot += 360;
+
+            let knae_rot = a2rel * 180 / Math.PI;
+            while (knae_rot > 180) knae_rot -= 360;
+            while (knae_rot < -180) knae_rot += 360;
+            knae_rot = Math.max(kneeMin, Math.min(kneeMax, knae_rot));
+
+            return { hofte_rot, knae_rot, targetX: target.x, targetY: target.y };
+        }
+
+        function solveLeftLegIK(targetX, targetY) {
+            const result = solveLegIK(getLeftHipPos(), targetX, targetY, 'flip_left_leg', -180, 180);
+            return {
+                hofte_rot_left: result.hofte_rot,
+                knae_rot_left: result.knae_rot,
+                targetX: result.targetX,
+                targetY: result.targetY
+            };
+        }
+
+        function solveRightLegIK(targetX, targetY) {
+            const result = solveLegIK(getRightHipPos(), targetX, targetY, 'flip_right_leg', -180, 180);
+            return {
+                hofte_rot_right: result.hofte_rot,
+                knae_rot_right: result.knae_rot,
+                targetX: result.targetX,
+                targetY: result.targetY
+            };
+        }
+
+        function positionLeftLegEndEffector(x, y) {
+            const dot = document.getElementById('ik_end_effector_left_leg');
+            dot.style.left = `${x}px`;
+            dot.style.top = `${y}px`;
+        }
+
+        function positionRightLegEndEffector(x, y) {
+            const dot = document.getElementById('ik_end_effector_right_leg');
+            dot.style.left = `${x}px`;
+            dot.style.top = `${y}px`;
+        }
+
+        function syncHipHandleLeft() {
+            const pos = getLeftHipPos();
+            const screen = figureLocalToFixed(pos.x, pos.y);
+            const handle = document.getElementById('hip_handle_left');
+            handle.style.left = `${screen.x}px`;
+            handle.style.top = `${screen.y}px`;
+        }
+
+        function syncHipHandleRight() {
+            const pos = getRightHipPos();
+            const screen = figureLocalToFixed(pos.x, pos.y);
+            const handle = document.getElementById('hip_handle_right');
+            handle.style.left = `${screen.x}px`;
+            handle.style.top = `${screen.y}px`;
+        }
+
+        function setLeftLegRotationSlidersEnabled(enabled) {
+            document.getElementById('hofte_rot_left').disabled = !enabled;
+            document.getElementById('knae_rot_left').disabled = !enabled;
+        }
+
+        function setRightLegRotationSlidersEnabled(enabled) {
+            document.getElementById('hofte_rot_right').disabled = !enabled;
+            document.getElementById('knae_rot_right').disabled = !enabled;
+        }
+
+        function applyLeftLegIK(targetX, targetY) {
+            const result = solveLeftLegIK(targetX, targetY);
+            ikLeftLegTargetX = result.targetX;
+            ikLeftLegTargetY = result.targetY;
+
+            document.getElementById('hofte_rot_left').value = result.hofte_rot_left;
+            document.getElementById('knae_rot_left').value = result.knae_rot_left;
+            positionLeftLegEndEffector(result.targetX, result.targetY);
+            updateTransforms();
+        }
+
+        function applyRightLegIK(targetX, targetY) {
+            const result = solveRightLegIK(targetX, targetY);
+            ikRightLegTargetX = result.targetX;
+            ikRightLegTargetY = result.targetY;
+
+            document.getElementById('hofte_rot_right').value = result.hofte_rot_right;
+            document.getElementById('knae_rot_right').value = result.knae_rot_right;
+            positionRightLegEndEffector(result.targetX, result.targetY);
+            updateTransforms();
+        }
+
+        function syncLeftLegIKEndEffector() {
+            if (!document.getElementById('ik_left_leg').checked) return;
+            const foot = getLeftFootPos();
+            ikLeftLegTargetX = foot.x;
+            ikLeftLegTargetY = foot.y;
+            positionLeftLegEndEffector(foot.x, foot.y);
+        }
+
+        function syncRightLegIKEndEffector() {
+            if (!document.getElementById('ik_right_leg').checked) return;
+            const foot = getRightFootPos();
+            ikRightLegTargetX = foot.x;
+            ikRightLegTargetY = foot.y;
+            positionRightLegEndEffector(foot.x, foot.y);
+        }
+
+        function toggleLeftLegIK() {
+            const enabled = document.getElementById('ik_left_leg').checked;
+            const dot = document.getElementById('ik_end_effector_left_leg');
+
+            setLeftLegRotationSlidersEnabled(!enabled);
+
+            if (enabled) {
+                const foot = getLeftFootPos();
+                ikLeftLegTargetX = foot.x;
+                ikLeftLegTargetY = foot.y;
+                positionLeftLegEndEffector(foot.x, foot.y);
+                dot.classList.add('visible');
+            } else {
+                dot.classList.remove('visible');
+                dot.classList.remove('dragging');
+            }
+        }
+
+        function toggleRightLegIK() {
+            const enabled = document.getElementById('ik_right_leg').checked;
+            const dot = document.getElementById('ik_end_effector_right_leg');
+
+            setRightLegRotationSlidersEnabled(!enabled);
+
+            if (enabled) {
+                const foot = getRightFootPos();
+                ikRightLegTargetX = foot.x;
+                ikRightLegTargetY = foot.y;
+                positionRightLegEndEffector(foot.x, foot.y);
+                dot.classList.add('visible');
+            } else {
+                dot.classList.remove('visible');
+                dot.classList.remove('dragging');
+            }
+        }
+
+        function onLeftLegTranslateWhileIK() {
+            syncHipHandleLeft();
+            if (document.getElementById('ik_left_leg').checked) {
+                applyLeftLegIK(ikLeftLegTargetX, ikLeftLegTargetY);
+            }
+        }
+
+        function onRightLegTranslateWhileIK() {
+            syncHipHandleRight();
+            if (document.getElementById('ik_right_leg').checked) {
+                applyRightLegIK(ikRightLegTargetX, ikRightLegTargetY);
+            }
+        }
+
+        function onHipHandleDragLeft(event) {
+            const dx = event.clientX - hipHandleLeftPrevX;
+            const dy = event.clientY - hipHandleLeftPrevY;
+            hipHandleLeftPrevX = event.clientX;
+            hipHandleLeftPrevY = event.clientY;
+
+            const txSlider = document.getElementById('translate_x_left_leg');
+            const tySlider = document.getElementById('translate_y_left_leg');
+            let newX = (parseInt(txSlider.value, 10) || 0) + dx;
+            let newY = (parseInt(tySlider.value, 10) || 0) + dy;
+            txSlider.value = Math.max(-30, Math.min(30, Math.round(newX)));
+            tySlider.value = Math.max(-30, Math.min(30, Math.round(newY)));
+
+            updateTransforms();
+            if (document.getElementById('ik_left_leg').checked) {
+                applyLeftLegIK(ikLeftLegTargetX, ikLeftLegTargetY);
+            }
+            syncHipHandleLeft();
+        }
+
+        function onHipHandleDragRight(event) {
+            const dx = event.clientX - hipHandleRightPrevX;
+            const dy = event.clientY - hipHandleRightPrevY;
+            hipHandleRightPrevX = event.clientX;
+            hipHandleRightPrevY = event.clientY;
+
+            const txSlider = document.getElementById('translate_x_right_leg');
+            const tySlider = document.getElementById('translate_y_right_leg');
+            let newX = (parseInt(txSlider.value, 10) || 0) + dx;
+            let newY = (parseInt(tySlider.value, 10) || 0) + dy;
+            txSlider.value = Math.max(-30, Math.min(30, Math.round(newX)));
+            tySlider.value = Math.max(-30, Math.min(30, Math.round(newY)));
+
+            updateTransforms();
+            if (document.getElementById('ik_right_leg').checked) {
+                applyRightLegIK(ikRightLegTargetX, ikRightLegTargetY);
+            }
+            syncHipHandleRight();
+        }
+
+        function ensureLegEndEffector(id, className) {
+            const container = document.querySelector('.figure-container');
+            let dot = document.getElementById(id);
+            if (!dot) {
+                dot = document.createElement('div');
+                dot.id = id;
+                dot.className = className;
+            } else if (dot.parentElement !== container) {
+                dot.parentElement.removeChild(dot);
+            }
+            if (dot.parentElement !== container) {
+                container.appendChild(dot);
+            }
+            return dot;
+        }
+
+        function initLeftLegIK() {
+            const ikCheckbox = document.getElementById('ik_left_leg');
+            const flipCheckbox = document.getElementById('flip_left_leg');
+            const endEffector = ensureLegEndEffector('ik_end_effector_left_leg', 'ik-end-effector-left-leg');
+            const hipHandle = document.getElementById('hip_handle_left');
+
+            ikCheckbox.addEventListener('change', toggleLeftLegIK);
+
+            flipCheckbox.addEventListener('change', () => {
+                if (ikCheckbox.checked) {
+                    applyLeftLegIK(ikLeftLegTargetX, ikLeftLegTargetY);
+                }
+            });
+
+            document.getElementById('translate_x_left_leg').addEventListener('input', onLeftLegTranslateWhileIK);
+            document.getElementById('translate_y_left_leg').addEventListener('input', onLeftLegTranslateWhileIK);
+
+            hipHandle.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                hipHandleLeftDragging = true;
+                hipHandleLeftPrevX = event.clientX;
+                hipHandleLeftPrevY = event.clientY;
+                hipHandle.classList.add('dragging');
+            });
+
+            endEffector.addEventListener('mousedown', (event) => {
+                if (!ikCheckbox.checked) return;
+                event.preventDefault();
+                ikLeftLegDragging = true;
+                endEffector.classList.add('dragging');
+            });
+
+            syncHipHandleLeft();
+        }
+
+        function initRightLegIK() {
+            const ikCheckbox = document.getElementById('ik_right_leg');
+            const flipCheckbox = document.getElementById('flip_right_leg');
+            const endEffector = ensureLegEndEffector('ik_end_effector_right_leg', 'ik-end-effector-right-leg');
+            const hipHandle = document.getElementById('hip_handle_right');
+
+            ikCheckbox.addEventListener('change', toggleRightLegIK);
+
+            flipCheckbox.addEventListener('change', () => {
+                if (ikCheckbox.checked) {
+                    applyRightLegIK(ikRightLegTargetX, ikRightLegTargetY);
+                }
+            });
+
+            document.getElementById('translate_x_right_leg').addEventListener('input', onRightLegTranslateWhileIK);
+            document.getElementById('translate_y_right_leg').addEventListener('input', onRightLegTranslateWhileIK);
+
+            hipHandle.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                hipHandleRightDragging = true;
+                hipHandleRightPrevX = event.clientX;
+                hipHandleRightPrevY = event.clientY;
+                hipHandle.classList.add('dragging');
+            });
+
+            endEffector.addEventListener('mousedown', (event) => {
+                if (!ikCheckbox.checked) return;
+                event.preventDefault();
+                ikRightLegDragging = true;
+                endEffector.classList.add('dragging');
+            });
+
+            syncHipHandleRight();
+        }
+
+        function initLeftArmIK() {
+            const ikCheckbox = document.getElementById('ik_left');
+            const flipCheckbox = document.getElementById('flip_left');
+            const endEffector = document.getElementById('ik_end_effector_left');
+            const shoulderHandle = document.getElementById('shoulder_handle_left');
+
+            ikCheckbox.addEventListener('change', toggleLeftArmIK);
+
+            flipCheckbox.addEventListener('change', () => {
+                if (ikCheckbox.checked) {
+                    applyLeftArmIK(ikLeftTargetX, ikLeftTargetY);
+                }
+            });
+
+            document.getElementById('translate_x_left').addEventListener('input', onLeftArmTranslateWhileIK);
+            document.getElementById('translate_y_left').addEventListener('input', onLeftArmTranslateWhileIK);
+
+            shoulderHandle.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                shoulderHandleLeftDragging = true;
+                shoulderHandleLeftPrevX = event.clientX;
+                shoulderHandleLeftPrevY = event.clientY;
+                shoulderHandle.classList.add('dragging');
+            });
+
+            endEffector.addEventListener('mousedown', (event) => {
+                if (!ikCheckbox.checked) return;
+                event.preventDefault();
+                ikLeftDragging = true;
+                endEffector.classList.add('dragging');
+            });
+
+            syncShoulderHandleLeft();
+        }
+
+        function initRightArmIK() {
+            const ikCheckbox = document.getElementById('ik_right');
+            const flipCheckbox = document.getElementById('flip_right');
+            const endEffector = document.getElementById('ik_end_effector_right');
+            const shoulderHandle = document.getElementById('shoulder_handle_right');
+
+            ikCheckbox.addEventListener('change', toggleRightArmIK);
+
+            flipCheckbox.addEventListener('change', () => {
+                if (ikCheckbox.checked) {
+                    applyRightArmIK(ikRightTargetX, ikRightTargetY);
+                }
+            });
+
+            document.getElementById('translate_x').addEventListener('input', onRightArmTranslateWhileIK);
+            document.getElementById('translate_y').addEventListener('input', onRightArmTranslateWhileIK);
+
+            shoulderHandle.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                shoulderHandleDragging = true;
+                shoulderHandlePrevX = event.clientX;
+                shoulderHandlePrevY = event.clientY;
+                shoulderHandle.classList.add('dragging');
+            });
+
+            endEffector.addEventListener('mousedown', (event) => {
+                if (!ikCheckbox.checked) return;
+                event.preventDefault();
+                ikRightDragging = true;
+                endEffector.classList.add('dragging');
+            });
+
+            document.addEventListener('mousemove', (event) => {
+                if (hipHandleLeftDragging) {
+                    onHipHandleDragLeft(event);
+                    return;
+                }
+                if (hipHandleRightDragging) {
+                    onHipHandleDragRight(event);
+                    return;
+                }
+                if (shoulderHandleLeftDragging) {
+                    onShoulderHandleDragLeft(event);
+                    return;
+                }
+                if (shoulderHandleDragging) {
+                    onShoulderHandleDrag(event);
+                    return;
+                }
+                if (ikLeftLegDragging && document.getElementById('ik_left_leg').checked) {
+                    const coords = getFigureContainerCoords(event.clientX, event.clientY);
+                    applyLeftLegIK(coords.x, coords.y);
+                    return;
+                }
+                if (ikRightLegDragging && document.getElementById('ik_right_leg').checked) {
+                    const coords = getFigureContainerCoords(event.clientX, event.clientY);
+                    applyRightLegIK(coords.x, coords.y);
+                    return;
+                }
+                if (ikLeftDragging && document.getElementById('ik_left').checked) {
+                    const coords = getFigureContainerCoords(event.clientX, event.clientY);
+                    applyLeftArmIK(coords.x, coords.y);
+                    return;
+                }
+                if (!ikRightDragging || !ikCheckbox.checked) return;
+                const coords = getFigureContainerCoords(event.clientX, event.clientY);
+                applyRightArmIK(coords.x, coords.y);
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (hipHandleLeftDragging) {
+                    hipHandleLeftDragging = false;
+                    document.getElementById('hip_handle_left').classList.remove('dragging');
+                }
+                if (hipHandleRightDragging) {
+                    hipHandleRightDragging = false;
+                    document.getElementById('hip_handle_right').classList.remove('dragging');
+                }
+                if (shoulderHandleLeftDragging) {
+                    shoulderHandleLeftDragging = false;
+                    document.getElementById('shoulder_handle_left').classList.remove('dragging');
+                }
+                if (shoulderHandleDragging) {
+                    shoulderHandleDragging = false;
+                    shoulderHandle.classList.remove('dragging');
+                }
+                if (ikLeftLegDragging) {
+                    ikLeftLegDragging = false;
+                    document.getElementById('ik_end_effector_left_leg').classList.remove('dragging');
+                }
+                if (ikRightLegDragging) {
+                    ikRightLegDragging = false;
+                    document.getElementById('ik_end_effector_right_leg').classList.remove('dragging');
+                }
+                if (ikLeftDragging) {
+                    ikLeftDragging = false;
+                    document.getElementById('ik_end_effector_left').classList.remove('dragging');
+                }
+                if (!ikRightDragging) return;
+                ikRightDragging = false;
+                endEffector.classList.remove('dragging');
+            });
+
+            syncShoulderHandleRight();
+        }
+		
 		
 
         // Initialize
@@ -2103,8 +3419,199 @@ function exportForJavaScript() {
         // Add checkbox listeners
         document.getElementById('left_arm_front').addEventListener('change', updateTransforms);
         document.getElementById('right_arm_front').addEventListener('change', updateTransforms);
+        document.getElementById('head_text').addEventListener('input', updateTransforms);
+
+        initLeftArmIK();
+        initRightArmIK();
+        initLeftLegIK();
+        initRightLegIK();
+
+        async function exportFigurePNG() {
+            if (typeof html2canvas === 'undefined') {
+                alert('Eksport-biblioteket html2canvas er ikke indlæst.');
+                return;
+            }
+
+            const figureContainer = document.querySelector('.figure-container');
+            const hideIds = [
+                'shoulder_handle_left', 'shoulder_handle_right',
+                'ik_end_effector_left', 'ik_end_effector_right',
+                'ik_end_effector_left_leg', 'ik_end_effector_right_leg',
+                'hip_handle_left', 'hip_handle_right'
+            ];
+            const restored = [];
+
+            hideIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && figureContainer.contains(el)) {
+                    restored.push({ el, display: el.style.display });
+                    el.style.display = 'none';
+                }
+            });
+
+            const transparentBg = document.getElementById('transparent_bg').checked;
+
+            try {
+                const scale = 3;
+                const canvas = await html2canvas(figureContainer, {
+                    backgroundColor: transparentBg ? null : '#ffffff',
+                    scale: scale,
+                    useCORS: true,
+                    logging: false
+                });
+
+                const link = document.createElement('a');
+                link.download = 'figure.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } finally {
+                restored.forEach(({ el, display }) => {
+                    el.style.display = display;
+                });
+            }
+        }
+
+        async function exportPNGSequence() {
+            if (typeof html2canvas === 'undefined') {
+                alert('Eksport-biblioteket html2canvas er ikke indlæst.');
+                return;
+            }
+            if (typeof JSZip === 'undefined') {
+                alert('Eksport-biblioteket JSZip er ikke indlæst.');
+                return;
+            }
+            if (timelineSlides.length === 0) {
+                alert('Ingen timeline slides at eksportere!');
+                return;
+            }
+
+            const exportBtn = document.getElementById('export_sequence_btn');
+            const originalBtnText = exportBtn.textContent;
+            exportBtn.disabled = true;
+
+            const savedPose = {...currentPose};
+            const figureContainer = document.querySelector('.figure-container');
+            const hideIds = [
+                'shoulder_handle_left', 'shoulder_handle_right',
+                'ik_end_effector_left', 'ik_end_effector_right',
+                'ik_end_effector_left_leg', 'ik_end_effector_right_leg',
+                'hip_handle_left', 'hip_handle_right'
+            ];
+            const hiddenElements = [];
+
+            hideIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && figureContainer.contains(el)) {
+                    hiddenElements.push({ el, display: el.style.display });
+                    el.style.display = 'none';
+                }
+            });
+
+            const numericKeys = [
+                'translate_x_left', 'translate_y_left', 'skulder_rot_left', 'albue_rot_left',
+                'translate_x', 'translate_y', 'skulder_rot', 'albue_rot',
+                'translate_x_left_leg', 'translate_y_left_leg', 'hofte_rot_left', 'knae_rot_left',
+                'translate_x_right_leg', 'translate_y_right_leg', 'hofte_rot_right', 'knae_rot_right'
+            ];
+            const booleanKeys = ['left_arm_front', 'right_arm_front'];
+
+            function interpolatePose(poseA, poseB, t) {
+                const result = {};
+                numericKeys.forEach(key => {
+                    const a = poseA[key] || 0;
+                    const b = poseB[key] || 0;
+                    result[key] = a + (b - a) * t;
+                });
+                booleanKeys.forEach(key => {
+                    result[key] = t < 0.5 ? !!poseA[key] : !!poseB[key];
+                });
+                return result;
+            }
+
+            function getPoseAtTime(time) {
+                const slides = timelineSlides;
+                if (slides.length === 1) {
+                    const single = {...slides[0]};
+                    delete single.duration;
+                    return single;
+                }
+
+                let acc = 0;
+                for (let seg = 0; seg < slides.length; seg++) {
+                    const dur = slides[seg].duration || 0.1;
+                    if (time < acc + dur || seg === slides.length - 1) {
+                        if (seg === slides.length - 1) {
+                            const last = {...slides[seg]};
+                            delete last.duration;
+                            return last;
+                        }
+                        const localT = Math.max(0, Math.min(1, (time - acc) / dur));
+                        return interpolatePose(slides[seg], slides[seg + 1], localT);
+                    }
+                    acc += dur;
+                }
+
+                const fallback = {...slides[slides.length - 1]};
+                delete fallback.duration;
+                return fallback;
+            }
+
+            function waitForPaint() {
+                return new Promise(resolve => {
+                    requestAnimationFrame(() => requestAnimationFrame(resolve));
+                });
+            }
+
+            try {
+                const fps = parseInt(document.getElementById('export_fps').value, 10) || 24;
+                const totalFrames = Math.max(1, Math.round(
+                    timelineSlides.reduce((sum, s) => sum + (s.duration || 0.1), 0) * fps
+                ));
+                const zip = new JSZip();
+
+                for (let frame = 0; frame < totalFrames; frame++) {
+                    exportBtn.textContent = `Renderer frame ${frame + 1} af ${totalFrames}...`;
+
+                    const time = frame / fps;
+                    const pose = getPoseAtTime(time);
+                    applyPoseSilently(pose);
+                    await waitForPaint();
+
+                    const canvas = await html2canvas(figureContainer, {
+                        backgroundColor: null,
+                        scale: 3,
+                        useCORS: true,
+                        logging: false
+                    });
+
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const base64 = dataUrl.split(',')[1];
+                    zip.file(`frame.${String(frame).padStart(4, '0')}.png`, base64, { base64: true });
+                }
+
+                exportBtn.textContent = 'Pakker ZIP...';
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'figure_sequence.zip';
+                link.click();
+                URL.revokeObjectURL(link.href);
+            } finally {
+                hiddenElements.forEach(({ el, display }) => {
+                    el.style.display = display;
+                });
+                applyPoseSilently(savedPose);
+                exportBtn.textContent = originalBtnText;
+                exportBtn.disabled = false;
+            }
+        }
                 
         // Initialize with default state
+        createColorPickerFull(document.getElementById('guideFigureColorPicker'), {
+            selectedColor: FIGURE_COLOR_DEFAULT,
+            onColorSelect: applyFigureColor,
+        });
+        applyFigureColor(FIGURE_COLOR_DEFAULT);
         newPose();
         updateTimelineDisplay();
     </script>
