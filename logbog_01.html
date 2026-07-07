@@ -5033,7 +5033,8 @@
                         date: dateObj,
                         status: Math.max(0, Math.min(100, Number(checkin.status))),
                         dateKey: entry.date,
-                        time: checkin.time || '12:00'
+                        time: checkin.time || '12:00',
+                        color: entry.color || DEFAULT_HISTORY_COLOR
                     });
                 });
             });
@@ -5113,7 +5114,8 @@
                             date: dateKey,
                             time: dayEntries[0].time,
                             size: 100,
-                            originalDate: dayEntries[0].date
+                            originalDate: dayEntries[0].date,
+                            color: dayEntries[0].color || DEFAULT_HISTORY_COLOR
                         });
                     } else {
                         // Multiple entries: use precise time position for each
@@ -5138,7 +5140,8 @@
                                 date: dateKey,
                                 time: entry.time,
                                 size: 80,
-                                originalDate: entry.date
+                                originalDate: entry.date,
+                                color: entry.color || DEFAULT_HISTORY_COLOR
                             });
                         });
                     }
@@ -5156,7 +5159,8 @@
                         date: dateKey,
                         count: dayEntries.length,
                         size: 100,
-                        originalDate: dayEntries[0].date
+                        originalDate: dayEntries[0].date,
+                        color: dayEntries[0].color || DEFAULT_HISTORY_COLOR
                     };
                 });
                 return { data: processedData, labels: allUniqueDates, totalDays: allUniqueDates.length };
@@ -5390,21 +5394,22 @@
                     x, y, radius, point
                 });
 
+                const pointColor = point.color || DEFAULT_HISTORY_COLOR;
+
                 if (isHollow) {
                     // Hollow circle for multiple entries in simple view
                     ctx.beginPath();
                     ctx.arc(x, y, radius, 0, Math.PI * 2);
                     ctx.fillStyle = 'white';
                     ctx.fill();
-                    ctx.strokeStyle = '#8b5cf6';
+                    ctx.strokeStyle = pointColor;
                     ctx.lineWidth = 2;
                     ctx.stroke();
                 } else {
-                    // Filled circle - darker for single entries (size 100)
+                    // Filled circle
                     ctx.beginPath();
                     ctx.arc(x, y, radius, 0, Math.PI * 2);
-                    const isSingleEntry = point.size === 100;
-                    ctx.fillStyle = isSingleEntry ? '#6d28d9' : '#8b5cf6'; // Darker purple for single entries
+                    ctx.fillStyle = pointColor;
                     ctx.fill();
                 }
             });
