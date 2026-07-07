@@ -4179,6 +4179,9 @@
                 }
                 const sortedEntries = await getSortedLogEntries();
                 await renderLogHistory(sortedEntries);
+                if (typeof renderCheckinChart === 'function') {
+                    renderCheckinChart();
+                }
             }
             logHistoryColorPickerTarget = null;
             const modal = document.getElementById('logHistoryColorPickerModal');
@@ -4207,6 +4210,9 @@
             if (headerColorBtn && logHistoryColorPickerTarget === activeLogDate) {
                 headerColorBtn.style.background = color;
                 headerColorBtn.style.color = '#ffffff';
+            }
+            if (typeof renderCheckinChart === 'function') {
+                renderCheckinChart();
             }
             // Don't close overlay - only close when clicking outside or pressing Escape
         }
@@ -5006,6 +5012,13 @@
                 if (!entry.date || !Array.isArray(entry.checkins)) {
                     return;
                 }
+
+                let entryColor = entry.color || DEFAULT_HISTORY_COLOR;
+                const pending = window._pendingLogHistoryColorChanges;
+                if (pending && pending.has(entry.date)) {
+                    const p = pending.get(entry.date);
+                    entryColor = p === null ? DEFAULT_HISTORY_COLOR : p;
+                }
                 
                 entry.checkins.forEach(checkin => {
                     if (typeof checkin.status !== 'number') {
@@ -5034,7 +5047,7 @@
                         status: Math.max(0, Math.min(100, Number(checkin.status))),
                         dateKey: entry.date,
                         time: checkin.time || '12:00',
-                        color: entry.color || DEFAULT_HISTORY_COLOR
+                        color: entryColor
                     });
                 });
             });
