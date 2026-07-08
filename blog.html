@@ -1122,7 +1122,24 @@ See what comes up.</p>
                 });
             }
 
-            function buildToc(visiblePosts, latestPost) {
+            function getPostsWithLatestDate(releasedPosts) {
+                if (!releasedPosts.length) return [];
+
+                const latestDate = getPostDate(releasedPosts[releasedPosts.length - 1]);
+                if (!latestDate) return [];
+
+                const latestTime = latestDate.getTime();
+                const latestPosts = [];
+                for (let i = releasedPosts.length - 1; i >= 0; i--) {
+                    const date = getPostDate(releasedPosts[i]);
+                    if (!date || date.getTime() !== latestTime) break;
+                    latestPosts.unshift(releasedPosts[i]);
+                }
+                return latestPosts;
+            }
+
+            function buildToc(visiblePosts, latestPosts) {
+                const latestSet = new Set(latestPosts);
                 blogToc.innerHTML = "";
                 visiblePosts.forEach((article, index) => {
                     const titleEl = article.querySelector("h2");
@@ -1131,7 +1148,7 @@ See what comes up.</p>
                     const li = document.createElement("li");
                     const link = document.createElement("a");
                     link.href = "#" + article.id;
-                    if (article === latestPost) {
+                    if (latestSet.has(article)) {
                         const badge = document.createElement("span");
                         badge.className = "blog-toc-new-badge";
                         badge.textContent = "New!";
@@ -1195,33 +1212,36 @@ See what comes up.</p>
                 return visiblePosts;
             }
 
-            function markLatestPost(releasedPosts, displayedPosts) {
+            function markLatestPosts(releasedPosts, displayedPosts) {
                 allPosts.forEach(function (article) {
                     article.classList.remove("is-latest");
                     const existingBadge = article.querySelector(".blog-new-badge");
                     if (existingBadge) existingBadge.remove();
                 });
 
-                const latestPost = releasedPosts[releasedPosts.length - 1];
-                if (!latestPost || displayedPosts.indexOf(latestPost) < 0) {
-                    return null;
-                }
+                const displayedSet = new Set(displayedPosts);
+                const latestPosts = getPostsWithLatestDate(releasedPosts).filter(function (article) {
+                    return displayedSet.has(article);
+                });
 
-                latestPost.classList.add("is-latest");
-                const meta = latestPost.querySelector(".blog-meta");
-                const dateChip = latestPost.querySelector(".blog-date");
-                if (!meta || !dateChip) return latestPost;
+                latestPosts.forEach(function (article) {
+                    article.classList.add("is-latest");
+                    const meta = article.querySelector(".blog-meta");
+                    const dateChip = article.querySelector(".blog-date");
+                    if (!meta || !dateChip) return;
 
-                const badge = document.createElement("span");
-                badge.className = "blog-new-badge";
-                badge.textContent = "New!";
-                const insertBefore = dateChip.nextElementSibling;
-                if (insertBefore && insertBefore.classList.contains("blog-tag")) {
-                    meta.insertBefore(badge, insertBefore);
-                } else {
-                    dateChip.insertAdjacentElement("afterend", badge);
-                }
-                return latestPost;
+                    const badge = document.createElement("span");
+                    badge.className = "blog-new-badge";
+                    badge.textContent = "New!";
+                    const insertBefore = dateChip.nextElementSibling;
+                    if (insertBefore && insertBefore.classList.contains("blog-tag")) {
+                        meta.insertBefore(badge, insertBefore);
+                    } else {
+                        dateChip.insertAdjacentElement("afterend", badge);
+                    }
+                });
+
+                return latestPosts;
             }
 
             function renderView() {
@@ -1259,8 +1279,8 @@ See what comes up.</p>
                     blogContent.appendChild(article);
                 });
 
-                const latestPost = markLatestPost(releasedPosts, visiblePosts);
-                buildToc(visiblePosts, latestPost);
+                const latestPosts = markLatestPosts(releasedPosts, visiblePosts);
+                buildToc(visiblePosts, latestPosts);
             }
 
             function getPostIdFromHash() {
