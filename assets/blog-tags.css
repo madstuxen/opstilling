@@ -34,7 +34,7 @@
     background: #f9a8d4;
 }
 
-.blog-tag[data-tag="Mirroring"] {
+.blog-tag[data-tag="Reflection"] {
     color: #1f1308;
     background: #c4b5fd;
 }
@@ -43,7 +43,7 @@
 .blog-tag[data-tag="Dialogue"] .blog-tag-remove,
 .blog-tag[data-tag="Constellation"] .blog-tag-remove,
 .blog-tag[data-tag="BodyScan"] .blog-tag-remove,
-.blog-tag[data-tag="Mirroring"] .blog-tag-remove {
+.blog-tag[data-tag="Reflection"] .blog-tag-remove {
     color: rgba(31, 19, 8, 0.72);
 }
 
@@ -51,6 +51,6 @@
 .blog-tag[data-tag="Dialogue"] .blog-tag-remove:hover,
 .blog-tag[data-tag="Constellation"] .blog-tag-remove:hover,
 .blog-tag[data-tag="BodyScan"] .blog-tag-remove:hover,
-.blog-tag[data-tag="Mirroring"] .blog-tag-remove:hover {
+.blog-tag[data-tag="Reflection"] .blog-tag-remove:hover {
     color: #1f1308;
 }

@@ -6,7 +6,7 @@ const BLOG_TAGS = [
   "Journaling",
   "Constellation",
   "BodyScan",
-  "Mirroring"
+  "Reflection"
 ];
 
 if (typeof module !== "undefined" && module.exports) {

@@ -12,7 +12,12 @@ const POSTS_START = "<!-- BLOG_POSTS_START -->";
 const POSTS_END = "<!-- BLOG_POSTS_END -->";
 const ALLOWED_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif"]);
 const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/gif"]);
-const { BLOG_TAGS } = require("./assets/blog-tags.js");
+const BLOG_TAGS_MODULE = path.join(ROOT, "assets", "blog-tags.js");
+
+function getBlogTags() {
+  delete require.cache[require.resolve(BLOG_TAGS_MODULE)];
+  return require(BLOG_TAGS_MODULE).BLOG_TAGS;
+}
 
 const MONTH_NAMES = [
   "january", "february", "march", "april", "may", "june",
@@ -53,6 +58,7 @@ function stripTags(raw) {
 }
 
 function normalizeTags(raw) {
+  const BLOG_TAGS = getBlogTags();
   const allowed = new Set(BLOG_TAGS);
   const input = Array.isArray(raw)
     ? raw
