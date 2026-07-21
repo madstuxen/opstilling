@@ -1,0 +1,4597 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+	<script src="https://cdn.jsdelivr.net/npm/modern-screenshot@4.4.39/dist/index.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="imagefiles/apple-touch-icon.png">
+    <title>image_poser_01</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 0px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 0px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 16px 24px;
+            padding-top: calc(env(safe-area-inset-top) + 16px);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        
+        .header h1 {
+            font-size: 2.0em;
+            margin-bottom: 0px;
+            font-weight: 300;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .toolbar {
+            background: #f8fafc;
+            padding: 12px 20px;
+
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .toolbar select, .toolbar input, .toolbar button {
+			padding: 8px 16px;
+			border: 2px solid #e2e8f0;
+			border-radius: 10px;
+			font-size: 16px;
+			transition: all 0.3s ease;
+		}
+        
+        .toolbar select {
+            background: white;
+            min-width: 180px;
+            font-family: inherit;
+        }
+        
+        .toolbar input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+        }
+
+        /* Limit part name input width */
+        #partName {
+            max-width: 250px;
+        }
+        
+        .toolbar input[type="text"]:focus, .toolbar select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .toolbar button {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .toolbar button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .clear-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        }
+        
+        .clear-btn:hover {
+            box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3) !important;
+        }
+        
+        button[onclick="addPart()"] {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            color: white !important;
+        }
+        
+        button[onclick="addPart()"]:hover {
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3) !important;
+        }
+        
+		.export-btn {
+			background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+		}
+
+		.export-btn:hover {
+			box-shadow: 0 5px 15px rgba(249, 115, 22, 0.3) !important;
+		}
+
+		.save-project-btn {
+			background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+		}
+
+		.save-project-btn:hover {
+			box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3) !important;
+		}
+
+		.load-project-btn {
+			background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%) !important;
+		}
+
+		.load-project-btn:hover {
+			box-shadow: 0 5px 15px rgba(20, 184, 166, 0.3) !important;
+		}
+        
+        .toolbar-separator {
+            width: 1px;
+            height: 30px;
+            background: #e2e8f0;
+            margin: 0 8px;
+            flex-shrink: 0;
+        }
+        
+        .main-content {
+            position: relative;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
+        }
+        
+        .workspace-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+            position: relative;
+        }
+        
+        .workspace {
+            flex: 1;
+            position: relative;
+            height: 960px;
+            max-height: 960px;
+            min-height: 960px;
+            width: 100%;
+            max-width: 1200px;
+            min-width: 0;
+            position: relative;
+            background: #fafafa;
+            overflow: auto;
+            cursor: crosshair;
+            touch-action: auto;
+            -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
+            /* Force workspace to respect max-width and not grow with viewport */
+            display: block;
+        }
+        
+        /* Create a fixed-size scrollable content area */
+        .workspace-content {
+            position: relative;
+            width: 1200px;
+            height: 960px;
+            min-width: 1200px;
+            min-height: 960px;
+        }
+        
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        .part {
+			position: absolute;
+			width: 80px;
+			height: 80px;
+			cursor: move;
+                transition: transform 0.44s ease-in-out, filter 0.44s ease-in-out;
+			user-select: none;
+                -webkit-user-select: none;
+			touch-action: none;
+			z-index: 10;
+			will-change: transform;
+			backface-visibility: hidden;
+		}
+
+        body.loading-opstilling .part {
+            transition: none !important;
+            filter: none !important;
+            animation: none !important;
+        }
+
+        .suppress-transitions,
+        .suppress-transitions * {
+            transition: none !important;
+            animation: none !important;
+        }
+
+        .suppress-transitions {
+            opacity: 0;
+        }
+
+/* Disable transitions while dragging to avoid lag/hitches */
+.part.dragging {
+    transition: none !important;
+}
+
+.part:hover {
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25)) brightness(1.0);
+    z-index: 100;
+}
+
+			.part.dragging {
+                transition: filter 0.44s ease-in-out;
+				filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25)) brightness(1.0);
+				z-index: 1000;
+			}
+
+/* selection styling removed */
+        
+			/* Global body toggle - skjul kun torso, arme og ben */
+			.hide-bodies .torso,
+			.hide-bodies .skulder_translate_left,
+			.hide-bodies .skulder_translate_right,
+			.hide-bodies .hofte_translate_left,
+			.hide-bodies .hofte_translate_right {
+				display: none !important;
+			}
+		
+		.head {
+			position: absolute;
+			top: -74px; left: 50%; transform: translateX(-50%);
+			width:72px;
+			height: 72px;
+			border-radius: 50%;
+			background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			font-weight: bold;
+			font-size: 12px;
+			text-align: center;
+			box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+			
+			padding: 10px;
+			line-height: 1.2;
+			z-index: 5;
+		}
+		
+			.head {
+		pointer-events: auto;
+		}
+
+		.part-name {
+			pointer-events: auto;
+			font-size: 12px;
+			display: inline-block;
+			min-width: 20px;
+			min-height: 16px;
+			padding: 2px 4px;
+			word-break: break-word;
+			overflow-wrap: break-word;
+			hyphens: auto;
+		}
+				
+        /* Krop (underkomponent af part) */
+        .body {
+            position: absolute;
+            top: 77px;
+            left: 50%;
+            transform: translateX(-50%);
+            transform-origin: 40px -77px;
+            transition: transform 0.2s ease-out;
+            z-index: -1;
+            pointer-events: none;
+            will-change: transform;
+            backface-visibility: hidden;
+        }
+        
+        /* Disable transitions during drag to avoid conflicts */
+        .part.dragging .body {
+            transition: none;
+        }
+        
+        /* Also disable transitions when settling back to neutral */
+        .body {
+            transition: none !important;
+        }
+        
+        
+        /* Torso */
+        .torso {
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            margin: 0 auto;
+            border-radius: 30px 30px 20px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            position: relative;
+            z-index: 5;
+        }
+        
+       /* Højre arm hierarki */
+		.skulder_translate_right {
+			position: absolute;
+			top: 2px;
+			left: 41px;
+			width: 15px;
+			height: 15px;
+			background: rgba(59, 130, 246, 0.0);
+			z-index: 3;
+		}
+
+		.skulder_translate_right.front-arm {
+			z-index: 15;
+		}
+
+		.skulder_rotate_right {
+			width: 100%;
+			height: 100%;
+			background: rgba(239, 68, 68, 0.0);
+			transform-origin: center center;
+		}
+
+		.arm_geo_right {
+			width: 50px;
+			height: 18px;
+			background: #f59e0b;
+			border-radius: 9px;
+			position: relative;
+			top: -1px;
+			left: -1px;
+		}
+
+		.albue_rotate_right {
+			position: relative;
+			top: 1px;
+			left: 34px;
+			width: 15px;
+			height: 15px;
+			background: rgba(16, 185, 129, 0.0);
+			transform-origin: center center;
+		}
+
+		.albue_geo_right {
+			position: relative;
+			top: -1px;
+			left: 1px;
+			width: 50px;
+			height: 18px;
+			background: #f59e0b;
+			border-radius: 9px;
+			z-index: 4;
+		}
+
+		.albue_geo_right.front {
+			z-index: 20 !important;
+			position: relative;
+		}
+
+		/* Venstre arm hierarki */
+		.skulder_translate_left {
+			position: absolute;
+			top: 2px;
+			left: 4px;
+			width: 15px;
+			height: 15px;
+			background: rgba(59, 130, 246, 0.0);
+			z-index: 3;
+		}
+
+		.skulder_translate_left.front-arm {
+			z-index: 15;
+		}
+
+		.skulder_rotate_left {
+			width: 100%;
+			height: 100%;
+			background: rgba(239, 68, 68, 0.0);
+			transform-origin: center center;
+		}
+
+		.arm_geo_left {
+			width: 50px;
+			height: 18px;
+			background: #f59e0b;
+			border-radius: 9px;
+			position: relative;
+			top: -1px;
+			left: -34px;
+		}
+
+		.albue_rotate_left {
+			position: relative;
+			top: 1px;
+			left: 0px;
+			width: 15px;
+			height: 15px;
+			background: rgba(16, 185, 129, 0.0);
+			transform-origin: center center;
+		}
+
+		.albue_geo_left {
+			position: relative;
+			top: -1px;
+			left: -33px;
+			width: 50px;
+			height: 18px;
+			background: #f59e0b;
+			border-radius: 9px;
+			z-index: 4;
+		}
+
+		.albue_geo_left.front {
+			z-index: 20 !important;
+			position: relative;
+		}
+
+		/* Højre ben hierarki */
+		.hofte_translate_right {
+			position: absolute;
+			top: 68px;
+			left: 40px;
+			width: 15px;
+			height: 15px;
+			background: rgba(59, 130, 246, 0.0);
+		}
+
+		.hofte_rotate_right {
+			width: 100%;
+			height: 100%;
+			background: rgba(239, 68, 68, 0.0);
+			transform-origin: center center;
+		}
+
+		.laar_geo_right {
+			width: 18px;
+			height: 55px;
+			background: #f59e0b;
+			border-radius: 9px;
+			position: relative;
+			top: -1px;
+			left: -1px;
+		}
+
+		.knae_rotate_right {
+			position: relative;
+			top: 38px;
+			left: 1px;
+			width: 15px;
+			height: 15px;
+			background: rgba(16, 185, 129, 0.0);
+			transform-origin: center center;
+		}
+
+		.skinneben_geo_right {
+			position: relative;
+			top: -1px;
+			left: -1px;
+			width: 18px;
+			height: 50px;
+			background: #f59e0b;
+			border-radius: 9px;
+		}
+
+		/* Venstre ben hierarki */
+		.hofte_translate_left {
+			position: absolute;
+			top: 68px;
+			left: 4px;
+			width: 15px;
+			height: 15px;
+			background: rgba(59, 130, 246, 0.0);
+		}
+
+		.hofte_rotate_left {
+			width: 100%;
+			height: 100%;
+			background: rgba(239, 68, 68, 0.0);
+			transform-origin: center center;
+		}
+
+		.laar_geo_left {
+			width: 18px;
+			height: 55px;
+			background: #f59e0b;
+			border-radius: 9px;
+			position: relative;
+			top: -1px;
+			left: -1px;
+		}
+
+		.knae_rotate_left {
+			position: relative;
+			top: 38px;
+			left: 1px;
+			width: 15px;
+			height: 15px;
+			background: rgba(16, 185, 129, 0.0);
+			transform-origin: center center;
+		}
+
+		.skinneben_geo_left {
+			position: relative;
+			top: -1px;
+			left: -1px;
+			width: 18px;
+			height: 50px;
+			background: #f59e0b;
+			border-radius: 9px;
+		}
+		
+		
+		
+		
+        .part-keywords {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #374151;
+            font-size: 12px;
+            text-align: center;
+            font-weight: normal;
+            line-height: 1.1;
+            width: 100px;
+            white-space: nowrap;
+            z-index: 15;
+        }
+        
+        .keywords-above {
+            bottom: calc(50% + 15px);
+        }
+        
+        .keywords-below {
+            top: calc(50% + 15px);
+        }
+        
+        .control-btn {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 50%;
+            font-size: 14px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            z-index: 1000;
+            color: white;
+            padding: 0;
+            margin: 0;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            pointer-events: none;
+        }
+
+        .part:hover .control-btn {
+            display: flex !important;
+            pointer-events: auto;
+        }
+
+        /* On mobile (tap selection), show controls when selected too */
+        /* selection-based control visibility removed */
+        
+        .delete-btn {
+            transform: translate(18px, -52px);
+            background: #ef4444;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+        
+        .layer-up {
+            transform: translate(-52px, -52px);
+            background: #4f46e5;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+        }
+        
+        .size-plus {
+            transform: translate(-17px, -52px);
+            background: #059669;
+            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+        }
+        
+        .edit-btn {
+            transform: translate(18px, -17px);
+            background: #f59e0b;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+        
+        .layer-down {
+            transform: translate(-52px, 18px);
+            background: #4f46e5;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+        }
+        
+        .size-minus {
+            transform: translate(-17px, 18px);
+            background: #059669;
+            box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+        }
+
+        .color-btn {
+            transform: translate(18px, 18px);
+            background: #a855f7;
+            box-shadow: 0 2px 8px rgba(168, 85, 247, 0.3);
+        }
+		
+		.pose-btn {
+			transform: translate(18px, -17px);
+			background: #06b6d4;
+			box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+		}
+		
+		.note-btn {
+			transform: translate(-52px, -17px);
+			background: #f97316;
+			box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+		}
+
+
+        
+        .delete-btn:hover {
+            transform: translate(18px, -52px) scale(1.1);
+            background: #dc2626;
+        }
+        
+        .layer-up:hover {
+            transform: translate(-52px, -52px) scale(1.1);
+            background: #3730a3;
+        }
+        
+        .size-plus:hover {
+            transform: translate(-17px, -52px) scale(1.1);
+            background: #047857;
+        }
+        
+        .edit-btn:hover {
+            transform: translate(18px, -17px) scale(1.1);
+            background: #b8650c;
+        }
+        
+        .layer-down:hover {
+            transform: translate(-52px, 18px) scale(1.1);
+            background: #3730a3;
+        }
+        
+        .size-minus:hover {
+            transform: translate(-17px, 18px) scale(1.1);
+            background: #047857;
+        }
+
+        .color-btn:hover {
+            transform: translate(18px, 18px) scale(1.1);
+            background: #9333ea;
+        }
+		
+		.pose-btn:hover {
+			transform: translate(18px, -17px) scale(1.1);
+			background: #0891b2;
+		}
+		
+		.note-btn:hover {
+			transform: translate(-52px, -17px) scale(1.1);
+			background: #ea580c;
+		}
+		
+		/* Name Editor Overlay Styles */
+		.note-overlay {
+			position: fixed;
+			background: rgba(255, 255, 255, 0.95);
+			border-radius: 8px;
+			padding: 8px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+			border: 3px solid rgba(226, 232, 240, 0.5);
+			z-index: 10000;
+			width: 105px;
+			display: none;
+		}
+		
+		.note-overlay.show {
+			display: block;
+		}
+		
+		.note-overlay textarea {
+			width: 100%;
+			height: auto;
+			min-height: auto;
+			max-height: 110px;
+			padding: 6px 10px;
+			border: 3px solid rgba(226, 232, 240, 0.8);
+			border-radius: 6px;
+			font-size: 16px;
+			font-family: 'Arial', sans-serif;
+			resize: none;
+			box-sizing: border-box;
+			background: rgba(255, 255, 255, 0.9);
+			color: #374151;
+			line-height: 1.4;
+			overflow-y: auto;
+			word-break: break-word;
+			overflow-wrap: break-word;
+			hyphens: auto;
+		}
+		
+		.note-overlay textarea:focus {
+			outline: none;
+			border-color: #f97316;
+			box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+		}
+				
+        /* Color Picker Styles */
+        .color-picker-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        
+        .color-picker-modal.show {
+            display: flex;
+        }
+        
+        .picker {
+            width: 224px;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 0;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            position: relative;
+        }
+        
+        .picker-drag-bar {
+            width: 100%;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px 12px 0 0;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+        }
+        
+        .picker-drag-bar::before {
+            content: '';
+            width: 40px;
+            height: 4px;
+            background: rgba(148, 163, 184, 0.5);
+            border-radius: 2px;
+        }
+        
+        .picker-content {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .swatch {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+            border: 1px solid rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .swatch:hover {
+            transform: scale(1.2);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 15px);
+            grid-template-rows: repeat(6, 15px);
+            gap: 2px;
+            background: transparent;
+        }
+        
+        .swatch:focus {
+            outline: 2px solid #4f46e5;
+            outline-offset: 1px;
+        }
+		
+		
+		/* Pose Picker Styles */
+		.pose-picker-modal {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: transparent;
+			display: none;
+			align-items: center;
+			justify-content: center;
+			z-index: 3000;
+		}
+
+		.pose-picker-modal.show {
+			display: flex;
+		}
+
+		.pose-picker {
+			width: 280px;
+			background: transparent;
+			padding: 15px;
+			border-radius: 12px;
+			box-shadow: none;
+			border: none;
+		}
+
+		.pose-mirror-section {
+			text-align: center;
+			margin-bottom: 15px;
+			padding-bottom: 10px;
+			border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+		}
+
+		.pose-mirror-label {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			font-size: 14px;
+			font-weight: 500;
+			color: #374151;
+			cursor: move;
+			background: white;
+			padding: 8px 16px;
+			border-radius: 8px;
+			position: relative;
+			user-select: none;
+			-webkit-user-select: none;
+			touch-action: none;
+			pointer-events: auto;
+		}
+		
+		.pose-mirror-label input[type="checkbox"] {
+			cursor: pointer;
+			pointer-events: auto;
+		}
+		
+		.pose-mirror-label span {
+			cursor: move;
+			pointer-events: none;
+		}
+
+		.pose-mirror-label input[type="checkbox"] {
+			width: 16px;
+			height: 16px;
+			transform: scale(1.2);
+		}
+
+		.pose-grid {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 8px;
+		}
+
+		.pose-button {
+			padding: 8px 12px;
+			border: 2px solid rgba(226, 232, 240, 0.5);
+			border-radius: 8px;
+			background: rgba(255, 255, 255, 0.6);
+			color: #374151;
+			font-size: 12px;
+			font-weight: 500;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			text-align: center;
+		}
+
+		.pose-button:hover {
+			border-color: #3b82f6;
+			background: #f0f9ff;
+			color: #1d4ed8;
+		}
+
+		.pose-button.active {
+			border-color: #3b82f6;
+			background: #3b82f6;
+			color: white;
+		}
+		
+		
+		
+        
+        /* .instructions removed */
+        
+        .groups-section {
+			flex: 0 0 250px;
+			min-width: 250px;
+            display: none !important;
+		}
+        
+        .groups-section h4 {
+            margin: 0 0 10px 0;
+            color: #475569;
+            font-size: 16px;
+        }
+        
+        .group-input-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .group-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+        }
+        
+        .group-color-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            background: #ef4444;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .group-color-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .keywords-section {
+            flex: 0 0 auto;
+            min-width: 150px;
+            max-width: 200px;
+            display: none !important;
+        }
+        
+        .keywords-section h4 {
+            margin: 0 0 10px 0;
+            color: #475569;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .visibility-checkbox {
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+        
+        .keyword-input {
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+        }
+        
+        .group-dropdown {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            margin-bottom: 10px;
+            display: none !important;
+        }
+        
+        .group-input:focus, .keyword-input:focus, .group-dropdown:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .name-input {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #4f46e5;
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: inherit;
+            font-weight: bold;
+            text-align: center;
+            color: #1f2937;
+            width: 90%;
+            max-width: 100px;
+        }
+        
+        .name-input:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.3);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .part {
+            animation: fadeIn 0.5s ease-out;
+        }
+		
+		/* Keywords Popup Modal */
+.keywords-popup-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+
+.keywords-popup-modal.show {
+    display: flex;
+}
+
+.keywords-popup {
+    width: 400px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    border: 1px solid #e2e8f0;
+}
+
+.keywords-popup h3 {
+    margin: 0 0 15px 0;
+    color: #374151;
+    font-size: 18px;
+}
+
+.keywords-popup-input {
+    width: 100%;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    background: white;
+}
+
+.keywords-popup-input:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.keywords-popup-button {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.keywords-popup-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
+}
+
+
+
+
+		
+		
+		
+    	/* Mobile adjustments */
+	@media (hover: none) and (pointer: coarse) {
+		body {
+			padding: 0px;
+		}
+		.container {
+			border-radius: 0px;
+		}
+    		.header {
+			padding: 16px 24px;
+			padding-top: calc(env(safe-area-inset-top) + 16px);
+    		}
+		.header h1 {
+			font-size: 2.0em;
+			margin-bottom: 0;
+		}
+		.toolbar {
+			padding: 8px 12px;
+			gap: 10px;
+		}
+		.toolbar select, .toolbar input, .toolbar button {
+			padding: 6px 10px;
+			font-size: 13px;
+			border-radius: 8px;
+			min-width: auto;
+		}
+		.workspace {
+			height: 65vh;
+			max-height: 65vh;
+			min-height: 65vh;
+			width: 100%;
+			max-width: 100%;
+			min-width: 0;
+			overflow: auto;
+			-webkit-overflow-scrolling: touch;
+			touch-action: pan-x pan-y;
+			box-sizing: border-box;
+		}
+		.groups-section h4, .keywords-section h4 { font-size: 14px; }
+		.keyword-input, .group-input, .group-dropdown { font-size: 13px; }
+    	}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>image_poser_01</h1>
+        </div>
+        
+        <div class="toolbar">
+            <select id="themeSelect" onchange="changeTheme()" style="display:none;">
+				<option value="">Vælg tema...</option>
+				<option value="ifs_default">IFS Standard</option>
+				<option value="Skygge">Skyggearbejde</option>
+			</select>
+			
+            <input type="text" id="partName" placeholder="Navn på del (f.eks. Beskytteren, Den Kritiske, Det Sårede Barn...)" maxlength="30">
+            <button onclick="addPart()">Ny Deltager</button>
+            <button onclick="loadProject()" class="load-project-btn">Indlæs Projekt</button>
+            <button onclick="exportProject()" class="save-project-btn">Gem Projekt</button>
+            <button onclick="exportAsImage()" class="export-btn">Gem Billede</button>
+            <label style="display: flex; align-items: center; gap: 5px; font-size: 14px; color: #475569; cursor: pointer;">
+                <input type="checkbox" id="transparentBackground" style="width: 16px; height: 16px; cursor: pointer;">
+                Trans
+            </label>
+            <button onclick="clearAll()" class="clear-btn">Ryd Alt</button>
+            <div class="toolbar-separator"></div>
+        </div>
+        
+        <div class="main-content">
+            <div class="workspace-container">
+                <div class="workspace" id="workspace">
+                    <div class="workspace-content"></div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <input type="file" id="fileInput" accept=".json,.csv" style="display: none;">
+
+    <!-- Color Picker Modal -->
+    <div class="color-picker-modal" id="colorPickerModal">
+        <div class="picker">
+            <div class="picker-drag-bar"></div>
+            <div class="picker-content">
+                <div class="color-grid" id="colorGrid"></div>
+            </div>
+        </div>
+    </div>
+	
+	<!-- Pose Picker Modal -->
+	<div class="pose-picker-modal" id="posePickerModal">
+		<div class="pose-picker">
+			<div class="pose-mirror-section">
+				<label class="pose-mirror-label">
+					<input type="checkbox" id="posePickerMirror" onchange="togglePosePickerMirror()">
+					<span>Spejl</span>
+				</label>
+			</div>
+			<div class="pose-grid" id="poseGrid"></div>
+		</div>
+	</div>
+	
+	<!-- Note Overlay -->
+	<div class="note-overlay" id="noteOverlay">
+		<textarea id="noteTextarea" placeholder="Navn..." maxlength="24"></textarea>
+	</div>
+	
+	<!-- Keywords Popup Modal -->
+	<div class="keywords-popup-modal" id="keywordsPopupModal">
+		<div class="keywords-popup">
+			<h3>Stikord for <span id="keywordsPopupName"></span></h3>
+			<input type="text" class="keywords-popup-input" id="popupKeyword1" placeholder="Alder" maxlength="70">
+			<input type="text" class="keywords-popup-input" id="popupKeyword2" placeholder="Relation" maxlength="70">
+			<input type="text" class="keywords-popup-input" id="popupKeyword3" placeholder="Køn" maxlength="70">
+			<input type="text" class="keywords-popup-input" id="popupKeyword4" placeholder="Stikord 4" maxlength="70">
+			<input type="text" class="keywords-popup-input" id="popupKeyword5" placeholder="Stikord 5" maxlength="70">
+			<input type="text" class="keywords-popup-input" id="popupKeyword6" placeholder="Stikord 6" maxlength="70">
+			<button class="keywords-popup-button" onclick="closeKeywordsPopup()">Senere</button>
+		</div>
+	</div>
+	
+    <script>
+        const OPSTILLING_STORAGE_KEY = 'opstilling_data';
+
+        let currentGroupBtn = null;
+		let currentKeywordsPart = null;
+        
+        // Original functionality variables
+        let partCounter = 0;
+        let draggedElement = null;
+        let offset = { x: 0, y: 0 };
+        let selectedPart = null; // selection disabled; kept for compatibility but unused
+        let colorIndex = 0;
+        
+        // Color picker variables
+        let currentPart = null;
+
+        let isLoadingSetup = false;
+        
+        // New persistent data model for Opstilling (flat structure, no collections)
+        let OpstillingData = null; // { version, updated, activeSetupId, setups: [...] }
+
+        function loadOpstillingData() {
+            try {
+                const raw = localStorage.getItem(OPSTILLING_STORAGE_KEY);
+                if (!raw) return null;
+
+                OpstillingData = JSON.parse(raw);
+                if (OpstillingData) {
+                    deduplicateOpstillingData();
+                }
+                return OpstillingData;
+            } catch (error) {
+                console.error('[LOAD] Error loading from localStorage:', error);
+                return null;
+            }
+        }
+
+        function saveOpstillingDataToLocalStorage() {
+            if (!OpstillingData) return false;
+
+            if (!OpstillingData.setups || !Array.isArray(OpstillingData.setups) || OpstillingData.setups.length === 0) {
+                console.error('[SAVE] Attempted to save empty opstillingData - blocked');
+                return false;
+            }
+
+            try {
+                OpstillingData.updated = new Date().toISOString();
+                localStorage.setItem(OPSTILLING_STORAGE_KEY, JSON.stringify(OpstillingData));
+                return true;
+            } catch (error) {
+                console.error('[SAVE] Error saving to localStorage:', error);
+                return false;
+            }
+        }
+
+        async function ensureDefaultOpstillingData() {
+            let dataWasCreated = false;
+            
+            if (!OpstillingData || !Array.isArray(OpstillingData.setups)) {
+                OpstillingData = {
+                    version: '2.0',
+                    updated: new Date().toISOString(),
+                    activeSetupId: 1,
+                    setups: []
+                };
+                dataWasCreated = true;
+            }
+            if (!Array.isArray(OpstillingData.setups) || OpstillingData.setups.length === 0) {
+                const now = new Date().toISOString();
+                const initialSetup = {
+                    id: 1,
+                    name: 'Opstilling 1',
+                    parts: [],
+                    timestamp: now,
+                    updated: now
+                };
+                OpstillingData.setups = [initialSetup];
+                OpstillingData.activeSetupId = 1;
+                dataWasCreated = true;
+            }
+            // Ensure all setups have timestamps and colors
+            OpstillingData.setups.forEach((setup, idx) => {
+                if (!setup.timestamp) {
+                    setup.timestamp = setup.updated || new Date().toISOString();
+                }
+                if (!setup.updated) {
+                    setup.updated = setup.timestamp || new Date().toISOString();
+                }
+                if (!setup.color) {
+                    setup.color = COLLECTION_COLOR_PRESETS[idx % COLLECTION_COLOR_PRESETS.length];
+                }
+            });
+        }
+        
+        
+        function getActiveSetup() {
+            if (!OpstillingData || !Array.isArray(OpstillingData.setups)) return null;
+            return OpstillingData.setups.find(s => s.id === OpstillingData.activeSetupId) || OpstillingData.setups[0] || null;
+        }
+        
+        /**
+         * Deduplicates setups in OpstillingData in-place.
+         * Returns true if any duplicates were found and removed.
+         */
+        function deduplicateOpstillingData() {
+            if (!OpstillingData || !Array.isArray(OpstillingData.setups)) {
+                return false;
+            }
+            
+            let foundDuplicates = false;
+            
+            // Deduplicate setups by ID (keep first occurrence)
+            const seenSetupIds = new Map(); // Map<id, setup>
+            const uniqueSetups = [];
+            
+            OpstillingData.setups.forEach(setup => {
+                if (seenSetupIds.has(setup.id)) {
+                    console.warn('[DEDUPE] Removing duplicate setup ID:', setup.id, 
+                                'Name:', setup.name, 
+                                'Original:', seenSetupIds.get(setup.id).name);
+                    foundDuplicates = true;
+                } else {
+                    seenSetupIds.set(setup.id, setup);
+                    uniqueSetups.push(setup);
+                }
+            });
+            
+            OpstillingData.setups = uniqueSetups;
+            
+            return foundDuplicates;
+        }
+        
+        // Color presets for collections
+        const COLLECTION_COLOR_PRESETS = [
+            '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
+            '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8'
+        ];
+        
+        // Standard farve for opstillinger
+        const DEFAULT_HISTORY_COLOR = '#6366f1'; // Samme indigo som bogikon (Logbog)
+        
+        // Helper functions for colors
+        function hexToRgba(hex, alpha) {
+            if (!hex) {
+                return `rgba(232, 220, 198, ${alpha})`;
+            }
+            const normalized = hex.replace('#', '');
+            if (normalized.length === 3) {
+                const r = parseInt(normalized[0] + normalized[0], 16);
+                const g = parseInt(normalized[1] + normalized[1], 16);
+                const b = parseInt(normalized[2] + normalized[2], 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            if (normalized.length === 6) {
+                const r = parseInt(normalized.substring(0, 2), 16);
+                const g = parseInt(normalized.substring(2, 4), 16);
+                const b = parseInt(normalized.substring(4, 6), 16);
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+            return hex;
+        }
+        
+        function lightenHex(hex, amount = 0.5) {
+            if (!hex) return '#f2e7d2';
+            const normalized = hex.replace('#', '');
+            const expand = normalized.length === 3
+                ? normalized.split('').map(ch => ch + ch).join('')
+                : normalized.padEnd(6, '0');
+            const r = parseInt(expand.substring(0, 2), 16);
+            const g = parseInt(expand.substring(2, 4), 16);
+            const b = parseInt(expand.substring(4, 6), 16);
+            const clampAmount = Math.max(0, Math.min(1, amount));
+            const newR = Math.round(r + (255 - r) * clampAmount);
+            const newG = Math.round(g + (255 - g) * clampAmount);
+            const newB = Math.round(b + (255 - b) * clampAmount);
+            return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+        }
+
+        function darkenHex(hex, amount = 0.5) {
+            if (!hex) return '#000000';
+            const normalized = hex.replace('#', '');
+            const expand = normalized.length === 3
+                ? normalized.split('').map(ch => ch + ch).join('')
+                : normalized.padEnd(6, '0');
+            const r = parseInt(expand.substring(0, 2), 16);
+            const g = parseInt(expand.substring(2, 4), 16);
+            const b = parseInt(expand.substring(4, 6), 16);
+            const clampAmount = Math.max(0, Math.min(1, amount));
+            const newR = Math.round(r * (1 - clampAmount));
+            const newG = Math.round(g * (1 - clampAmount));
+            const newB = Math.round(b * (1 - clampAmount));
+            return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+        }
+        
+        /**
+         * Læser brugerens timezone fra userData (indexuserData i localStorage)
+         * Fallback hierarki:
+         * 1. userData.timezone
+         * 2. Browser's timezone (Intl API)
+         * 3. 'Europe/Copenhagen' (default)
+         */
+        function getUserTimezone() {
+            try {
+                // 1. Prøv at læse fra userData
+                const userDataStr = localStorage.getItem('indexuserData');
+                if (userDataStr) {
+                    const userData = JSON.parse(userDataStr);
+                    if (userData.timezone && isValidTimezone(userData.timezone)) {
+                        return userData.timezone;
+                    }
+                }
+            } catch (e) {
+                console.warn('Kunne ikke læse timezone fra userData:', e);
+            }
+            
+            // 2. Fallback til browser's timezone
+            try {
+                const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (browserTimezone && isValidTimezone(browserTimezone)) {
+                    return browserTimezone;
+                }
+            } catch (e) {
+                console.warn('Kunne ikke læse browser timezone:', e);
+            }
+            
+            // 3. Ultimate fallback
+            return 'Europe/Copenhagen';
+        }
+
+        /**
+         * Validerer om en timezone string er gyldig
+         */
+        function isValidTimezone(tz) {
+            if (!tz || typeof tz !== 'string') return false;
+            try {
+                Intl.DateTimeFormat(undefined, { timeZone: tz });
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        /**
+         * Konverterer Date eller ISO string til lokal dato (YYYY-MM-DD) i brugerens timezone
+         * @param {Date|string|null} date - Dato at konvertere (default: nu)
+         * @returns {string|null} - Dato i YYYY-MM-DD format eller null ved fejl
+         */
+        function getLocalDateKey(date = null) {
+            const d = date ? new Date(date) : new Date();
+            if (isNaN(d.getTime())) return null;
+            
+            const timezone = getUserTimezone();
+            
+            // Konverter til lokal tid ved at formatere med da-DK locale og brugerens timezone
+            const localDateStr = d.toLocaleDateString('da-DK', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            
+            // Format er "DD.MM.YYYY" - konverter til "YYYY-MM-DD"
+            const [day, month, year] = localDateStr.split('.');
+            return `${year}-${month}-${day}`;
+        }
+
+        function exportCurrentPartsToModel() {
+            const parts = document.querySelectorAll('.part');
+            const result = [];
+            const workspaceContent = document.querySelector('.workspace-content');
+            const workspaceWidth = workspaceContent ? workspaceContent.offsetWidth : 1200;
+            const workspaceHeight = workspaceContent ? workspaceContent.offsetHeight : 960;
+            
+            parts.forEach(part => {
+                const name = part.querySelector('.part-name')?.textContent || '';
+                const xPixels = parseInt(part.style.left) || 0;
+                const yPixels = parseInt(part.style.top) || 0;
+                // Convert pixels to percentage
+                const x = (xPixels / workspaceWidth) * 100;
+                const y = (yPixels / workspaceHeight) * 100;
+                const size = parseFloat(part.getAttribute('data-part-scale') || '1') || 1;
+                const poseAttr = part.getAttribute('data-pose') || '';
+                const pose = poseAttr; // keep raw pose id/name for now
+                const flipped = part.getAttribute('data-mirror') === 'true';
+                const layer = parseInt(part.getAttribute('data-layer') || '1') || 1;
+                const colorIndexAttr = Number.parseInt(part.getAttribute('data-color-index'), 10);
+                const fallbackColorIndex = Number.isNaN(colorIndexAttr) ? 0 : colorIndexAttr;
+                const color = part.getAttribute('data-custom-color') || partColors[fallbackColorIndex] || DEFAULT_PART_COLOR;
+                result.push({ name, x, y, size, pose, flipped, layer, color });
+            });
+            return result;
+        }
+        
+        async function syncCurrentWorkspaceToActiveSetup() {
+            if (!OpstillingData) {
+                return;
+            }
+            const setup = getActiveSetup();
+            if (!setup) {
+                return;
+            }
+            
+            const exportedParts = exportCurrentPartsToModel();
+            setup.parts = exportedParts;
+            const now = new Date().toISOString();
+            setup.updated = now;
+            if (!setup.timestamp) {
+                setup.timestamp = now;
+            }
+        }
+        
+
+        // Load setup from opstillingData structure
+        async function loadSetupFromOpstillingData(setup) {
+            if (!setup) return false;
+            
+            // Set flag FIRST
+            isLoadingSetup = true;
+            
+            try {
+                // Ensure setup has timestamp
+                if (!setup.timestamp) {
+                    setup.timestamp = setup.updated || new Date().toISOString();
+                }
+                if (!setup.updated) {
+                    setup.updated = setup.timestamp || new Date().toISOString();
+                }
+                
+                // Clear current workspace
+                const workspace = document.getElementById('workspace');
+                const workspaceContent = workspace.querySelector('.workspace-content');
+                workspaceContent.innerHTML = '';
+                selectedPart = null;
+                draggedElement = null;
+                colorIndex = 0;
+                
+                // Load parts - check success
+                if (Array.isArray(setup.parts) && setup.parts.length > 0) {
+                    setup.parts.forEach(p => {
+                        try {
+                            loadPartFromData({
+                                name: p.name || '',
+                                x: Number(p.x) || 0,
+                                y: Number(p.y) || 0,
+                                size: Number(p.size) || 1,
+                                color: p.color || '',
+                                borderColor: '',
+                                layer: Number(p.layer) || 1,
+                                notes: '',
+                                keywords: [],
+                                groupIndex: '',
+                                group: '',
+                                poseName: (p.pose || ''),
+                                mirror: !!p.flipped
+                            });
+                        } catch (e) {
+                            console.error('Failed to load part:', e);
+                        }
+                    });
+                    
+                    // Verify parts were actually loaded
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    const loadedCount = document.querySelectorAll('.part').length;
+                    if (loadedCount !== setup.parts.length) {
+                        console.error('Parts mismatch: expected', setup.parts.length, 
+                                    'but loaded', loadedCount);
+                    }
+                } else {
+                    // If setup.parts is empty or doesn't exist, ensure it's an empty array
+                    if (!Array.isArray(setup.parts)) {
+                        setup.parts = [];
+                    }
+                }
+                
+                return true;
+            } catch (e) {
+                console.error('Fejl ved indlæsning fra opstillingData:', e);
+                return false;
+            } finally {
+                // Only after parts are fully loaded
+                await new Promise(resolve => setTimeout(resolve, 200));
+                isLoadingSetup = false;
+            }
+        }
+        
+        // Load active setup from opstillingData, or fallback to legacy storage
+        async function loadActiveOpstilling() {
+            // First try to load from new opstillingData structure
+            if (OpstillingData && Array.isArray(OpstillingData.setups) && OpstillingData.setups.length > 0) {
+                const activeSetup = getActiveSetup();
+                if (activeSetup) {
+                    // Always load setup to update workspace with positions and notes, even if empty
+                    const loaded = await loadSetupFromOpstillingData(activeSetup);
+                    if (loaded) {
+                        // Verify that parts were actually loaded
+                        const partsInDOM = document.querySelectorAll('.part').length;
+                        const partsInData = Array.isArray(activeSetup.parts) ? activeSetup.parts.length : 0;
+                        if (partsInData > 0 && partsInDOM === 0) {
+                            console.warn('Parts in data but not loaded to DOM. Retrying...');
+                            // Retry loading after a short delay
+                            setTimeout(async () => {
+                                await loadSetupFromOpstillingData(activeSetup);
+                            }, 500);
+                        }
+                        return true;
+                    }
+                }
+            }
+            
+            // Legacy localStorage fallback for single-setup CSV format
+            return false;
+        }
+        
+        
+        const partColors = [
+            '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
+            '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8',
+        ];
+        const DEFAULT_PART_COLOR = '#b8735e';
+        const COLOR_PRESETS = partColors;
+        const COLOR_GRID_ROW_INDICES = [1, 3, 5, 7, 9, 11];
+
+        function hexToRgb(hex) {
+            const normalized = hex.replace('#', '');
+            const expand = normalized.length === 3
+                ? normalized.split('').map(ch => ch + ch).join('')
+                : normalized.padEnd(6, '0');
+            return {
+                r: parseInt(expand.substring(0, 2), 16),
+                g: parseInt(expand.substring(2, 4), 16),
+                b: parseInt(expand.substring(4, 6), 16),
+            };
+        }
+
+        function rgbToHex(r, g, b) {
+            const toHex = (n) => Math.round(Math.max(0, Math.min(255, n))).toString(16).padStart(2, '0');
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            let h = 0;
+            let s = 0;
+            const l = (max + min) / 2;
+
+            if (max !== min) {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                    case g: h = ((b - r) / d + 2) / 6; break;
+                    default: h = ((r - g) / d + 4) / 6; break;
+                }
+            }
+
+            return { h: h * 360, s: s * 100, l: l * 100 };
+        }
+
+        function hslToRgb(h, s, l) {
+            h /= 360;
+            s /= 100;
+            l /= 100;
+
+            if (s === 0) {
+                const val = l * 255;
+                return { r: val, g: val, b: val };
+            }
+
+            const hue2rgb = (p, q, t) => {
+                let channel = t;
+                if (channel < 0) channel += 1;
+                if (channel > 1) channel -= 1;
+                if (channel < 1 / 6) return p + (q - p) * 6 * channel;
+                if (channel < 1 / 2) return q;
+                if (channel < 2 / 3) return p + (q - p) * (2 / 3 - channel) * 6;
+                return p;
+            };
+
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            return {
+                r: hue2rgb(p, q, h + 1 / 3) * 255,
+                g: hue2rgb(p, q, h) * 255,
+                b: hue2rgb(p, q, h - 1 / 3) * 255,
+            };
+        }
+
+        function generateColorVariation(baseColor, rowIndex) {
+            const { r, g, b } = hexToRgb(baseColor);
+            let { h, s, l } = rgbToHsl(r, g, b);
+            const baseLightness = l;
+            const baseSaturation = s;
+            const isGray = baseColor.toLowerCase() === '#94a3b8' || baseSaturation < 15;
+
+            if (isGray) {
+                if (rowIndex === 6) {
+                    // unchanged
+                } else if (rowIndex < 6) {
+                    s = Math.min(baseSaturation, 5);
+                    l = 90 - (90 - baseLightness) * (rowIndex / 6);
+                } else {
+                    s = Math.min(baseSaturation, 5);
+                    l = baseLightness - (baseLightness - 10) * ((rowIndex - 6) / 5);
+                }
+            } else if (rowIndex === 6) {
+                // unchanged
+            } else if (rowIndex < 6) {
+                l = 90 - (90 - baseLightness) * (rowIndex / 6);
+                s = 30 + (baseSaturation - 30) * (rowIndex / 6);
+            } else {
+                l = baseLightness - (baseLightness - 10) * ((rowIndex - 6) / 5);
+                s = baseSaturation + (100 - baseSaturation) * ((rowIndex - 6) / 5);
+            }
+
+            l = Math.max(5, Math.min(95, l));
+            s = Math.max(0, Math.min(100, s));
+
+            const rgb = hslToRgb(h, s, l);
+            return rgbToHex(rgb.r, rgb.g, rgb.b);
+        }
+
+        function generateColorGrid() {
+            const grid = [];
+            for (const rowIndex of COLOR_GRID_ROW_INDICES) {
+                const row = COLOR_PRESETS.map(baseColor => generateColorVariation(baseColor, rowIndex));
+                grid.push(row);
+            }
+            return grid;
+        }
+
+        function renderColorGrid() {
+            const grid = document.getElementById('colorGrid');
+            if (!grid) return;
+
+            grid.innerHTML = '';
+            const colors = generateColorGrid();
+            colors.forEach(row => {
+                row.forEach(hex => {
+                    const swatch = document.createElement('button');
+                    swatch.className = 'swatch';
+                    swatch.style.background = hex;
+                    swatch.dataset.hex = hex;
+                    swatch.title = hex;
+                    swatch.setAttribute('aria-label', `Farve ${hex}`);
+                    swatch.tabIndex = 0;
+                    swatch.addEventListener('click', () => selectColor(hex));
+                    grid.appendChild(swatch);
+                });
+            });
+        }
+        
+        const borderColors = partColors.map(color => darkenHex(color, 0.15));
+        
+        const groupColors = [...partColors];
+		
+		
+		
+		////pose bibliotek
+const POSE_LIBRARY_DATA = [
+  {
+    "name": "standard",
+    "pose": {
+      "translate_x_left": -3,
+      "translate_y_left": 0,
+      "skulder_rot_left": -70,
+      "albue_rot_left": 0,
+      "translate_x": 3,
+      "translate_y": 0,
+      "skulder_rot": 70,
+      "albue_rot": 0,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 6,
+      "knae_rot_left": 0,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": -6,
+      "knae_rot_right": 0,
+      "left_arm_front": false,
+      "right_arm_front": false,
+      "duration": 0.3
+    }
+  },
+  {
+    "name": "stærk",
+    "pose": {
+      "translate_x_left": -8,
+      "translate_y_left": 0,
+      "skulder_rot_left": -62,
+      "albue_rot_left": -29,
+      "translate_x": 8,
+      "translate_y": 0,
+      "skulder_rot": 63,
+      "albue_rot": 27,
+      "translate_x_left_leg": -2,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 4,
+      "knae_rot_left": -3,
+      "translate_x_right_leg": 2,
+      "translate_y_right_leg": 1,
+      "hofte_rot_right": -4,
+      "knae_rot_right": 6,
+      "left_arm_front": false,
+      "right_arm_front": false
+    }
+  },
+  {
+    "name": "tænke",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 0,
+      "skulder_rot_left": -37,
+      "albue_rot_left": -80,
+      "translate_x": 3,
+      "translate_y": 0,
+      "skulder_rot": -43,
+      "albue_rot": -106,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": -3,
+      "knae_rot_left": 0,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": 3,
+      "knae_rot_right": 0,
+      "left_arm_front": false,
+      "right_arm_front": false
+    }
+  },
+  {
+    "name": "ud",
+    "pose": {
+      "translate_x_left": -5,
+      "translate_y_left": 0,
+      "skulder_rot_left": 0,
+      "albue_rot_left": 0,
+      "translate_x": 0,
+      "translate_y": -2,
+      "skulder_rot": 50,
+      "albue_rot": 70,
+      "translate_x_left_leg": 4,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 0,
+      "knae_rot_left": 0,
+      "translate_x_right_leg": 1,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": 0,
+      "knae_rot_right": 0,
+      "left_arm_front": false,
+      "right_arm_front": true
+    }
+  },
+  {
+    "name": "hej",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 0,
+      "skulder_rot_left": 43,
+      "albue_rot_left": 32,
+      "translate_x": 0,
+      "translate_y": 0,
+      "skulder_rot": 57,
+      "albue_rot": 13,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 7,
+      "knae_rot_left": 0,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": -8,
+      "knae_rot_right": 0,
+      "left_arm_front": false,
+      "right_arm_front": false
+    }
+  },
+  {
+    "name": "leg",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 3,
+      "skulder_rot_left": -45,
+      "albue_rot_left": 74,
+      "translate_x": -4,
+      "translate_y": 1,
+      "skulder_rot": 23,
+      "albue_rot": -61,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 28,
+      "knae_rot_left": -36,
+      "translate_x_right_leg": -1,
+      "translate_y_right_leg": -2,
+      "hofte_rot_right": -14,
+      "knae_rot_right": -70,
+      "left_arm_front": false,
+      "right_arm_front": false
+    }
+  },
+  {
+    "name": "drejet",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 0,
+      "skulder_rot_left": -76,
+      "albue_rot_left": 18,
+      "translate_x": 0,
+      "translate_y": 0,
+      "skulder_rot": 72,
+      "albue_rot": 12,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 4,
+      "knae_rot_left": -15,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": -4,
+      "knae_rot_right": -18,
+      "left_arm_front": false,
+      "right_arm_front": true
+    }
+  },
+  {
+    "name": "vred",
+    "pose": {
+      "translate_x_left": -7,
+      "translate_y_left": 7,
+      "skulder_rot_left": 47,
+      "albue_rot_left": 32,
+      "translate_x": 2,
+      "translate_y": -2,
+      "skulder_rot": -90,
+      "albue_rot": 52,
+      "translate_x_left_leg": -1,
+      "translate_y_left_leg": -5,
+      "hofte_rot_left": -1,
+      "knae_rot_left": -2,
+      "translate_x_right_leg": 1,
+      "translate_y_right_leg": -3,
+      "hofte_rot_right": -9,
+      "knae_rot_right": 3,
+      "left_arm_front": false,
+      "right_arm_front": true
+    }
+  },
+  {
+    "name": "knæ",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 12,
+      "skulder_rot_left": -71,
+      "albue_rot_left": 47,
+      "translate_x": 0,
+      "translate_y": 9,
+      "skulder_rot": 74,
+      "albue_rot": 28,
+      "translate_x_left_leg": 2,
+      "translate_y_left_leg": -4,
+      "hofte_rot_left": 47,
+      "knae_rot_left": -135,
+      "translate_x_right_leg": -5,
+      "translate_y_right_leg": -3,
+      "hofte_rot_right": 33,
+      "knae_rot_right": -124,
+      "left_arm_front": false,
+      "right_arm_front": true
+    }
+  },
+  {
+    "name": "genert",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": -9,
+      "skulder_rot_left": -67,
+      "albue_rot_left": -33,
+      "translate_x": -3,
+      "translate_y": -2,
+      "skulder_rot": 87,
+      "albue_rot": -40,
+      "translate_x_left_leg": 2,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 0,
+      "knae_rot_left": 8,
+      "translate_x_right_leg": -4,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": 5,
+      "knae_rot_right": -19,
+      "left_arm_front": true,
+      "right_arm_front": false
+    }
+  },
+  {
+    "name": "modløs",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 8,
+      "skulder_rot_left": -71,
+      "albue_rot_left": -14,
+      "translate_x": 0,
+      "translate_y": 8,
+      "skulder_rot": 76,
+      "albue_rot": 12,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": -3,
+      "knae_rot_left": 9,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": 2,
+      "knae_rot_right": -10,
+      "left_arm_front": true,
+      "right_arm_front": true
+    }
+  },
+  {
+    "name": "lukket",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 0,
+      "skulder_rot_left": -97,
+      "albue_rot_left": -88,
+      "translate_x": 0,
+      "translate_y": 0,
+      "skulder_rot": 54,
+      "albue_rot": 135,
+      "translate_x_left_leg": 7,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 2,
+      "knae_rot_left": 10,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": 0,
+      "knae_rot_right": 0,
+      "left_arm_front": true,
+      "right_arm_front": true
+    }
+  },
+  {
+    "name": "zen",
+    "pose": {
+      "translate_x_left": -3,
+      "translate_y_left": 5,
+      "skulder_rot_left": -74,
+      "albue_rot_left": 22,
+      "translate_x": 2,
+      "translate_y": 4,
+      "skulder_rot": 65,
+      "albue_rot": -13,
+      "translate_x_left_leg": 20,
+      "translate_y_left_leg": -12,
+      "hofte_rot_left": 75,
+      "knae_rot_left": -135,
+      "translate_x_right_leg": -20,
+      "translate_y_right_leg": -11,
+      "hofte_rot_right": -78,
+      "knae_rot_right": 135,
+      "left_arm_front": false,
+      "right_arm_front": false
+    }
+  },
+  {
+    "name": "trist",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 0,
+      "skulder_rot_left": 54,
+      "albue_rot_left": 111,
+      "translate_x": 3,
+      "translate_y": 0,
+      "skulder_rot": -43,
+      "albue_rot": -110,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": -7,
+      "knae_rot_left": 12,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": -5,
+      "knae_rot_right": 14,
+      "left_arm_front": true,
+      "right_arm_front": true
+    }
+  },
+  {
+    "name": "kom",
+    "pose": {
+      "translate_x_left": 10,
+      "translate_y_left": 5,
+      "skulder_rot_left": -8,
+      "albue_rot_left": 20,
+      "translate_x": -22,
+      "translate_y": 8,
+      "skulder_rot": 131,
+      "albue_rot": 33,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 16,
+      "knae_rot_left": -9,
+      "translate_x_right_leg": -5,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": 0,
+      "knae_rot_right": -16,
+      "left_arm_front": false,
+      "right_arm_front": true
+    }
+  },
+  {
+    "name": "slapper",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 0,
+      "skulder_rot_left": 43,
+      "albue_rot_left": 88,
+      "translate_x": 0,
+      "translate_y": 0,
+      "skulder_rot": -51,
+      "albue_rot": -102,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": -15,
+      "knae_rot_left": 7,
+      "translate_x_right_leg": -5,
+      "translate_y_right_leg": -9,
+      "hofte_rot_right": 1,
+      "knae_rot_right": 65,
+      "left_arm_front": false,
+      "right_arm_front": false
+    }
+  },
+  {
+    "name": "baby",
+    "pose": {
+      "translate_x_left": 30,
+      "translate_y_left": 0,
+      "skulder_rot_left": 0,
+      "albue_rot_left": 26,
+      "translate_x": -30,
+      "translate_y": 0,
+      "skulder_rot": 0,
+      "albue_rot": -45,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": -30,
+      "hofte_rot_left": 0,
+      "knae_rot_left": 9,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": -30,
+      "hofte_rot_right": 0,
+      "knae_rot_right": -13,
+      "left_arm_front": false,
+      "right_arm_front": false
+    }
+  },
+  {
+    "name": "flyver",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 0,
+      "skulder_rot_left": 37,
+      "albue_rot_left": 57,
+      "translate_x": 0,
+      "translate_y": 0,
+      "skulder_rot": -57,
+      "albue_rot": 7,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": -27,
+      "knae_rot_left": -79,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": -18,
+      "knae_rot_right": -29,
+      "left_arm_front": false,
+      "right_arm_front": false
+    }
+  },
+  {
+    "name": "kram",
+    "pose": {
+      "translate_x_left": -4,
+      "translate_y_left": 4,
+      "skulder_rot_left": -28,
+      "albue_rot_left": 11,
+      "translate_x": 3,
+      "translate_y": 3,
+      "skulder_rot": 27,
+      "albue_rot": -13,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 4,
+      "knae_rot_left": -4,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": -4,
+      "knae_rot_right": 3,
+      "left_arm_front": false,
+      "right_arm_front": false
+    }
+  },
+  {
+    "name": "går",
+    "pose": {
+      "translate_x_left": 23,
+      "translate_y_left": 4,
+      "skulder_rot_left": -156,
+      "albue_rot_left": 33,
+      "translate_x": -20,
+      "translate_y": 12,
+      "skulder_rot": 145,
+      "albue_rot": 53,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 14,
+      "knae_rot_left": -3,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 5,
+      "hofte_rot_right": -6,
+      "knae_rot_right": -32,
+      "left_arm_front": false,
+      "right_arm_front": true,
+      "duration": 1
+    }
+  },
+  {
+    "name": "ryg",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 0,
+      "skulder_rot_left": -47,
+      "albue_rot_left": -87,
+      "translate_x": 0,
+      "translate_y": 0,
+      "skulder_rot": 69,
+      "albue_rot": -135,
+      "translate_x_left_leg": 9,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 0,
+      "knae_rot_left": 0,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": 0,
+      "knae_rot_right": 0,
+      "left_arm_front": false,
+      "right_arm_front": true,
+      "duration": 1
+    }
+  },
+  {
+    "name": "sidder",
+    "pose": {
+      "translate_x_left": 30,
+      "translate_y_left": 5,
+      "skulder_rot_left": -120,
+      "albue_rot_left": -4,
+      "translate_x": -15,
+      "translate_y": 9,
+      "skulder_rot": 63,
+      "albue_rot": 54,
+      "translate_x_left_leg": 9,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 93,
+      "knae_rot_left": -12,
+      "translate_x_right_leg": -30,
+      "translate_y_right_leg": -5,
+      "hofte_rot_right": 129,
+      "knae_rot_right": -86,
+      "left_arm_front": false,
+      "right_arm_front": true,
+      "duration": 1
+    }
+  },
+  {
+    "name": "beder",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 0,
+      "skulder_rot_left": -69,
+      "albue_rot_left": 135,
+      "translate_x": 0,
+      "translate_y": 0,
+      "skulder_rot": 140,
+      "albue_rot": 77,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 0,
+      "knae_rot_left": -81,
+      "translate_x_right_leg": -9,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": 0,
+      "knae_rot_right": -89,
+      "left_arm_front": true,
+      "right_arm_front": false,
+      "duration": 1
+    }
+  },
+  {
+    "name": "hænger",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 0,
+      "skulder_rot_left": -114,
+      "albue_rot_left": 96,
+      "translate_x": 0,
+      "translate_y": 3,
+      "skulder_rot": 51,
+      "albue_rot": 99,
+      "translate_x_left_leg": 5,
+      "translate_y_left_leg": 3,
+      "hofte_rot_left": 32,
+      "knae_rot_left": -114,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 6,
+      "hofte_rot_right": 14,
+      "knae_rot_right": -3,
+      "left_arm_front": false,
+      "right_arm_front": true,
+      "duration": 1
+    }
+  },
+  {
+    "name": "fast",
+    "pose": {
+      "translate_x_left": -5,
+      "translate_y_left": 2,
+      "skulder_rot_left": -14,
+      "albue_rot_left": -118,
+      "translate_x": 5,
+      "translate_y": 0,
+      "skulder_rot": 18,
+      "albue_rot": 119,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 15,
+      "knae_rot_left": -13,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": -11,
+      "knae_rot_right": 10,
+      "left_arm_front": false,
+      "right_arm_front": false,
+      "duration": 1
+    }
+  },
+  {
+    "name": "svane",
+    "pose": {
+      "translate_x_left": -7,
+      "translate_y_left": -5,
+      "skulder_rot_left": 20,
+      "albue_rot_left": 51,
+      "translate_x": 6,
+      "translate_y": -4,
+      "skulder_rot": -41,
+      "albue_rot": -33,
+      "translate_x_left_leg": 5,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": -3,
+      "knae_rot_left": -12,
+      "translate_x_right_leg": -4,
+      "translate_y_right_leg": 0,
+      "hofte_rot_right": 2,
+      "knae_rot_right": 18,
+      "left_arm_front": false,
+      "right_arm_front": false,
+      "duration": 1
+    }
+  },
+  {
+    "name": "balance",
+    "pose": {
+      "translate_x_left": -1,
+      "translate_y_left": 11,
+      "skulder_rot_left": -37,
+      "albue_rot_left": 22,
+      "translate_x": 6,
+      "translate_y": 7,
+      "skulder_rot": 31,
+      "albue_rot": -44,
+      "translate_x_left_leg": 7,
+      "translate_y_left_leg": -2,
+      "hofte_rot_left": 14,
+      "knae_rot_left": -63,
+      "translate_x_right_leg": -5,
+      "translate_y_right_leg": 11,
+      "hofte_rot_right": 24,
+      "knae_rot_right": 0,
+      "left_arm_front": false,
+      "right_arm_front": true,
+      "duration": 1
+    }
+  },
+  {
+    "name": "tak",
+    "pose": {
+      "translate_x_left": 0,
+      "translate_y_left": 7,
+      "skulder_rot_left": -86,
+      "albue_rot_left": -157,
+      "translate_x": 4,
+      "translate_y": 6,
+      "skulder_rot": 101,
+      "albue_rot": 135,
+      "translate_x_left_leg": 0,
+      "translate_y_left_leg": 0,
+      "hofte_rot_left": 0,
+      "knae_rot_left": -3,
+      "translate_x_right_leg": 0,
+      "translate_y_right_leg": 1,
+      "hofte_rot_right": 0,
+      "knae_rot_right": 0,
+      "left_arm_front": true,
+      "right_arm_front": true,
+      "duration": 0.1
+    }
+  }
+];
+
+let poseLibrary = [];
+
+function loadPoseLibrary() {
+    poseLibrary = POSE_LIBRARY_DATA.slice();
+    return Promise.resolve();
+}
+
+//////////	slut	// pose bibliotek
+		
+		function resetPose(part) {
+			// Apply the "standard" pose from poseLibrary if available; fallback to previous relaxed pose
+			const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+			if (standardIndex !== -1) {
+				// Persist selection so it is saved to storage for new parts
+				part.setAttribute('data-pose', standardIndex.toString());
+				part.setAttribute('data-mirror', 'false');
+				applyPose(part, standardIndex, false);
+				return;
+			}
+			const relaxedPose = {
+				translate_x_left: -3,
+				translate_y_left: 0,
+				skulder_rot_left: -70,
+				albue_rot_left: 0,
+				translate_x: 3,
+				translate_y: 0,
+				skulder_rot: 70,
+				albue_rot: 0,
+				translate_x_left_leg: 0,
+				translate_y_left_leg: 0,
+				hofte_rot_left: 6,
+				knae_rot_left: 0,
+				translate_x_right_leg: 0,
+				translate_y_right_leg: 0,
+				hofte_rot_right: -6,
+				knae_rot_right: 0,
+				left_arm_front: false,
+				right_arm_front: false
+			};
+			applyPoseData(part, relaxedPose);
+		}
+
+		function applyPose(part, poseIndex, mirror = false) {
+			if (poseIndex === '' || poseIndex === null) {
+				resetPose(part);
+				return;
+			}
+			
+			const pose = poseLibrary[poseIndex];
+			if (!pose) return;
+			
+			let poseData = pose.pose;
+			
+			// If mirror is checked, create mirrored version
+			if (mirror) {
+				poseData = {
+					translate_x_left: -(pose.pose.translate_x || 0),
+					translate_x: -(pose.pose.translate_x_left || 0),
+					translate_y_left: pose.pose.translate_y || 0,
+					translate_y: pose.pose.translate_y_left || 0,
+					skulder_rot_left: -(pose.pose.skulder_rot || 0),
+					skulder_rot: -(pose.pose.skulder_rot_left || 0),
+					albue_rot_left: -(pose.pose.albue_rot || 0),
+					albue_rot: -(pose.pose.albue_rot_left || 0),
+					translate_x_left_leg: -(pose.pose.translate_x_right_leg || 0),
+					translate_x_right_leg: -(pose.pose.translate_x_left_leg || 0),
+					translate_y_left_leg: pose.pose.translate_y_right_leg || 0,
+					translate_y_right_leg: pose.pose.translate_y_left_leg || 0,
+					hofte_rot_left: -(pose.pose.hofte_rot_right || 0),
+					hofte_rot_right: -(pose.pose.hofte_rot_left || 0),
+					knae_rot_left: -(pose.pose.knae_rot_right || 0),
+					knae_rot_right: -(pose.pose.knae_rot_left || 0),
+					left_arm_front: pose.pose.right_arm_front || false,
+					right_arm_front: pose.pose.left_arm_front || false
+				};
+			}
+			
+			applyPoseData(part, poseData);
+		}
+
+		function applyPoseData(part, poseData) {
+			const skulderLeft = part.querySelector('.skulder_translate_left');
+			const skulderRight = part.querySelector('.skulder_translate_right');
+			const hofteLeft = part.querySelector('.hofte_translate_left');
+			const hofteRight = part.querySelector('.hofte_translate_right');
+			
+			if (skulderLeft) {
+				skulderLeft.style.transform = `translate(${poseData.translate_x_left || 0}px, ${poseData.translate_y_left || 0}px)`;
+				const skulderRotLeft = skulderLeft.querySelector('.skulder_rotate_left');
+				if (skulderRotLeft) {
+					skulderRotLeft.style.transform = `rotate(${poseData.skulder_rot_left || 0}deg)`;
+					const albueRotLeft = skulderRotLeft.querySelector('.albue_rotate_left');
+					if (albueRotLeft) {
+						albueRotLeft.style.transform = `rotate(${poseData.albue_rot_left || 0}deg)`;
+					}
+				}
+			}
+			
+			if (skulderRight) {
+				skulderRight.style.transform = `translate(${poseData.translate_x || 0}px, ${poseData.translate_y || 0}px)`;
+				const skulderRotRight = skulderRight.querySelector('.skulder_rotate_right');
+				if (skulderRotRight) {
+					skulderRotRight.style.transform = `rotate(${poseData.skulder_rot || 0}deg)`;
+					const albueRotRight = skulderRotRight.querySelector('.albue_rotate_right');
+					if (albueRotRight) {
+						albueRotRight.style.transform = `rotate(${poseData.albue_rot || 0}deg)`;
+					}
+				}
+			}
+			
+			if (hofteLeft) {
+				hofteLeft.style.transform = `translate(${poseData.translate_x_left_leg || 0}px, ${poseData.translate_y_left_leg || 0}px)`;
+				const hofteRotLeft = hofteLeft.querySelector('.hofte_rotate_left');
+				if (hofteRotLeft) {
+					hofteRotLeft.style.transform = `rotate(${poseData.hofte_rot_left || 0}deg)`;
+					const knaeRotLeft = hofteRotLeft.querySelector('.knae_rotate_left');
+					if (knaeRotLeft) {
+						knaeRotLeft.style.transform = `rotate(${poseData.knae_rot_left || 0}deg)`;
+					}
+				}
+			}
+			
+			if (hofteRight) {
+				hofteRight.style.transform = `translate(${poseData.translate_x_right_leg || 0}px, ${poseData.translate_y_right_leg || 0}px)`;
+				const hofteRotRight = hofteRight.querySelector('.hofte_rotate_right');
+				if (hofteRotRight) {
+					hofteRotRight.style.transform = `rotate(${poseData.hofte_rot_right || 0}deg)`;
+					const knaeRotRight = hofteRotRight.querySelector('.knae_rotate_right');
+					if (knaeRotRight) {
+						knaeRotRight.style.transform = `rotate(${poseData.knae_rot_right || 0}deg)`;
+					}
+				}
+			}
+			
+			// Handle arm layering
+			if (poseData.left_arm_front) {
+				skulderLeft.classList.add('front-arm');
+			} else {
+				skulderLeft.classList.remove('front-arm');
+			}
+			
+			if (poseData.right_arm_front) {
+				skulderRight.classList.add('front-arm');
+			} else {
+				skulderRight.classList.remove('front-arm');
+			}
+			
+		}		
+		
+		function updatePoseDropdown() {
+			const dropdown = document.getElementById('partPoseSelect');
+			const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+			if (standardIndex !== -1) {
+				dropdown.innerHTML = '';
+			} else {
+				dropdown.innerHTML = '<option value="">Standard pose</option>';
+			}
+			
+			poseLibrary.forEach((pose, index) => {
+				const option = document.createElement('option');
+				option.value = index;
+				option.textContent = pose.name;
+				dropdown.appendChild(option);
+			});
+		}
+
+		function applyPartPose(poseIndex) {
+			if (!selectedPart) return;
+			
+			const mirror = document.getElementById('partMirrorPose').checked;
+			
+			// Save pose data to part (store as string for consistency)
+			selectedPart.setAttribute('data-pose', poseIndex.toString());
+			selectedPart.setAttribute('data-mirror', mirror.toString());
+			
+			// Apply the pose (convert to number for applyPose function)
+			const numericPoseIndex = poseIndex === '' ? '' : parseInt(poseIndex);
+			applyPose(selectedPart, numericPoseIndex, mirror);
+		}
+
+		function togglePartMirror() {
+			if (!selectedPart) return;
+			
+			const poseIndex = document.getElementById('partPoseSelect').value;
+			const mirror = document.getElementById('partMirrorPose').checked;
+			
+			// Save mirror state
+			selectedPart.setAttribute('data-mirror', mirror.toString());
+			
+			// Reapply current pose with new mirror setting (convert to number)
+			const numericPoseIndex = poseIndex === '' ? '' : parseInt(poseIndex);
+			applyPose(selectedPart, numericPoseIndex, mirror);
+		}		
+		
+		function openPosePicker(btn) {
+    currentPosePart = btn.closest('.part');
+    
+    const modal = document.getElementById('posePickerModal');
+    const picker = modal.querySelector('.pose-picker');
+    
+    // Populate pose grid
+    populatePoseGrid();
+    
+    // Set current mirror state
+    const currentMirror = currentPosePart.getAttribute('data-mirror') === 'true';
+    document.getElementById('posePickerMirror').checked = currentMirror;
+    
+    // Remove any previous positioning
+    picker.style.position = '';
+    picker.style.left = '';
+    picker.style.top = '';
+    
+    // Initialize drag functionality for mirror label
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialX = 0;
+    let initialY = 0;
+    
+    // Remove previous listeners if any and set up drag
+    const newMirrorLabel = picker.querySelector('.pose-mirror-label');
+    if (newMirrorLabel) {
+        // Clone and replace to remove old listeners
+        const newLabel = newMirrorLabel.cloneNode(true);
+        newMirrorLabel.parentNode.replaceChild(newLabel, newMirrorLabel);
+        
+        // Update mirrorLabel reference to point to new element
+        const actualMirrorLabel = newLabel;
+        
+        // Update startDrag to move entire picker when dragging from label
+        function actualStartDrag(e) {
+            // Don't start drag if clicking on checkbox
+            if (e.target.type === 'checkbox') {
+                return;
+            }
+            
+            // Prevent label from toggling checkbox
+            e.preventDefault();
+            e.stopPropagation();
+            
+            isDragging = true;
+            const pickerRect = picker.getBoundingClientRect();
+            startX = e.clientX;
+            startY = e.clientY;
+            initialX = pickerRect.left;
+            initialY = pickerRect.top;
+            
+            picker.style.position = 'fixed';
+            picker.style.zIndex = '10000';
+            
+            document.addEventListener('pointermove', actualDrag, { passive: false });
+            document.addEventListener('pointerup', stopDrag, { passive: false });
+        }
+        
+        function actualDrag(e) {
+            if (!isDragging) return;
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            picker.style.left = (initialX + deltaX) + 'px';
+            picker.style.top = (initialY + deltaY) + 'px';
+        }
+        
+        function stopDrag() {
+            if (isDragging) {
+                isDragging = false;
+                document.removeEventListener('pointermove', actualDrag);
+                document.removeEventListener('pointerup', stopDrag);
+            }
+        }
+        
+        // Re-attach checkbox change handler
+        const checkbox = newLabel.querySelector('#posePickerMirror');
+        if (checkbox) {
+            checkbox.addEventListener('change', togglePosePickerMirror);
+            
+            // Prevent label from toggling checkbox when clicking on label (not checkbox)
+            newLabel.addEventListener('click', function(e) {
+                // Only prevent if clicking on label itself, not checkbox
+                if (e.target.type !== 'checkbox' && e.target !== checkbox && e.target.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, true); // Use capture phase to catch before default label behavior
+        }
+        
+        // Add drag listener
+        newLabel.addEventListener('pointerdown', actualStartDrag, { passive: false });
+    }
+    
+    // Show modal - CSS flexbox will center it
+    modal.classList.add('show');
+}
+
+function populatePoseGrid() {
+    const grid = document.getElementById('poseGrid');
+    grid.innerHTML = '';
+    const currentPose = currentPosePart.getAttribute('data-pose') || '';
+    const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+    // Add all poses from library (including "standard")
+    poseLibrary.forEach((pose, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'pose-button';
+        btn.textContent = pose.name;
+        btn.onclick = () => selectPose(index);
+        
+        // Check if this is the current active pose
+        if (currentPose === index.toString() || (currentPose === '' && index === standardIndex)) {
+            btn.classList.add('active');
+        }
+        
+        grid.appendChild(btn);
+    });
+}
+
+function selectPose(poseIndex) {
+    if (!currentPosePart) return;
+    
+    const mirror = document.getElementById('posePickerMirror').checked;
+    
+    // Map empty selection to standard index if available
+    if (poseIndex === '') {
+        const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+        if (standardIndex !== -1) {
+            poseIndex = standardIndex;
+        }
+    }
+
+    // Save pose data
+    currentPosePart.setAttribute('data-pose', poseIndex);
+    currentPosePart.setAttribute('data-mirror', mirror.toString());
+    
+    // Apply pose
+    applyPose(currentPosePart, poseIndex, mirror);
+    
+    // Update active button
+    populatePoseGrid();
+}
+
+function togglePosePickerMirror() {
+    if (!currentPosePart) return;
+    
+    let poseIndex = currentPosePart.getAttribute('data-pose') || '';
+    const mirror = document.getElementById('posePickerMirror').checked;
+    
+    // Save mirror state
+    currentPosePart.setAttribute('data-mirror', mirror.toString());
+    
+    // Reapply pose with new mirror setting
+    if (poseIndex === '') {
+        const standardIndex = poseLibrary.findIndex(p => p && p.name === 'standard');
+        if (standardIndex !== -1) {
+            poseIndex = standardIndex;
+        }
+    }
+    applyPose(currentPosePart, poseIndex, mirror);
+}
+
+function closePosePicker() {
+    document.getElementById('posePickerModal').classList.remove('show');
+    // Save when pose overlay closes
+    if (currentPosePart) {
+        (async () => {
+            await syncCurrentWorkspaceToActiveSetup();
+            await saveOpstillingDataToLocalStorage();
+        })();
+    }
+    currentPosePart = null;
+}
+		
+        
+ // indtast stikord når figuren laves.
+ function openKeywordsPopup(part) {
+    currentKeywordsPart = part;
+    const modal = document.getElementById('keywordsPopupModal');
+    const popup = modal.querySelector('.keywords-popup');
+    const nameSpan = document.getElementById('keywordsPopupName');
+    const partName = part.querySelector('.part-name').textContent;
+    
+    nameSpan.textContent = partName;
+    
+    // Clear inputs
+    for (let i = 1; i <= 6; i++) {
+        document.getElementById(`popupKeyword${i}`).value = '';
+    }
+    
+    modal.classList.add('show');
+    
+    // Position popup next to the part
+    const partRect = part.getBoundingClientRect();
+    popup.style.position = 'absolute';
+    popup.style.left = (partRect.right + 20) + 'px';
+    popup.style.top = (partRect.top) + 'px';
+    
+    // Adjust if goes off screen
+    setTimeout(() => {
+        const popupRect = popup.getBoundingClientRect();
+        if (popupRect.right > window.innerWidth) {
+            popup.style.left = (partRect.left - popupRect.width - 20) + 'px';
+        }
+        if (popupRect.bottom > window.innerHeight) {
+            popup.style.top = (window.innerHeight - popupRect.height - 20) + 'px';
+        }
+        if (popupRect.top < 0) {
+            popup.style.top = '20px';
+        }
+    }, 10);
+    
+    // Focus first input
+    setTimeout(() => {
+        document.getElementById('popupKeyword1').focus();
+    }, 100);
+}
+
+async function closeKeywordsPopup() {
+    if (!currentKeywordsPart) return;
+    
+    // Save keywords to part
+    for (let i = 1; i <= 6; i++) {
+        const value = document.getElementById(`popupKeyword${i}`).value;
+        currentKeywordsPart.setAttribute(`data-keyword${i}`, value);
+    }
+    
+    // Update keywords display
+    updatePartKeywords(currentKeywordsPart);
+    
+    // Save when popup closes
+    await syncCurrentWorkspaceToActiveSetup();
+    await saveOpstillingDataToLocalStorage();
+    
+    // If this part is selected, update the bottom inputs too
+    if (selectedPart === currentKeywordsPart) {
+        for (let i = 1; i <= 6; i++) {
+            const value = currentKeywordsPart.getAttribute(`data-keyword${i}`) || '';
+            document.getElementById(`keyword${i}`).value = value;
+        }
+    }
+    
+    // Close modal
+    document.getElementById('keywordsPopupModal').classList.remove('show');
+    currentKeywordsPart = null;
+}
+       
+        
+        // Color picker functions
+        function darkenColor(hex, percent) {
+            const num = parseInt(hex.replace("#", ""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) - amt;
+            const G = (num >> 8 & 0x00FF) - amt;
+            const B = (num & 0x0000FF) - amt;
+            return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+        }
+        
+        function openColorPicker(btn) {
+            const isGroupBtn = btn.classList.contains('group-color-btn');
+
+            if (isGroupBtn) {
+                currentGroupBtn = btn;
+                currentPart = null;
+            } else {
+                currentPart = btn.closest('.part');
+                currentGroupBtn = null;
+            }
+            
+            const modal = document.getElementById('colorPickerModal');
+            const picker = modal.querySelector('.picker');
+            const dragBar = picker.querySelector('.picker-drag-bar');
+
+            // Remove any previous positioning
+            picker.style.position = '';
+            picker.style.left = '';
+            picker.style.top = '';
+
+            // Initialize drag functionality
+            let isDragging = false;
+            let startX = 0;
+            let startY = 0;
+            let initialX = 0;
+            let initialY = 0;
+
+            function startDrag(e) {
+                isDragging = true;
+                const pickerRect = picker.getBoundingClientRect();
+                startX = e.clientX;
+                startY = e.clientY;
+                initialX = pickerRect.left;
+                initialY = pickerRect.top;
+
+                picker.style.position = 'fixed';
+                picker.style.zIndex = '10000';
+
+                document.addEventListener('pointermove', drag, { passive: false });
+                document.addEventListener('pointerup', stopDrag, { passive: false });
+
+                e.preventDefault();
+            }
+
+            function drag(e) {
+                if (!isDragging) return;
+                if (e && typeof e.preventDefault === 'function') e.preventDefault();
+
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+
+                picker.style.left = (initialX + deltaX) + 'px';
+                picker.style.top = (initialY + deltaY) + 'px';
+            }
+
+            function stopDrag() {
+                if (isDragging) {
+                    isDragging = false;
+                    document.removeEventListener('pointermove', drag);
+                    document.removeEventListener('pointerup', stopDrag);
+                }
+            }
+
+            // Remove previous listeners if any and add drag listener to drag bar
+            if (dragBar) {
+                // Clone and replace to remove old listeners
+                const newDragBar = dragBar.cloneNode(true);
+                dragBar.parentNode.replaceChild(newDragBar, dragBar);
+                
+                // Add drag listener to new drag bar
+                newDragBar.addEventListener('pointerdown', startDrag, { passive: false });
+            }
+
+            // Prevent clicks inside picker from closing modal
+            picker.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+
+            // Show modal - CSS flexbox will center it
+            modal.classList.add('show');
+        }
+        
+        function closeColorPicker() {
+            document.getElementById('colorPickerModal').classList.remove('show');
+            // Save when color overlay closes
+            if (currentPart) {
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+            await saveOpstillingDataToLocalStorage();
+                })();
+            }
+            currentPart = null;
+        }
+        
+        let currentNotePart = null;
+        
+        function autoResizeTextarea(textarea) {
+            textarea.style.height = 'auto';
+            // Calculate height based on content, but ensure minimum size for one line
+            const scrollHeight = textarea.scrollHeight;
+            const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 22.4;
+            const minHeight = lineHeight + 12; // padding
+            textarea.style.height = Math.max(scrollHeight, minHeight) + 'px';
+        }
+        
+        function openNoteOverlay(btn) {
+            currentNotePart = btn.closest('.part');
+            const overlay = document.getElementById('noteOverlay');
+            const textarea = document.getElementById('noteTextarea');
+            
+            // Load existing name from part
+            const nameElement = currentNotePart.querySelector('.part-name');
+            const existingName = nameElement ? nameElement.textContent.trim() : '';
+            textarea.value = existingName;
+            
+            // Auto-resize textarea to fit content
+            autoResizeTextarea(textarea);
+            
+            // Position overlay near the button or over the part
+            const btnRect = btn.getBoundingClientRect();
+            const partRect = currentNotePart.getBoundingClientRect();
+            
+            // Position overlay to the right of button, or over part if button is on left
+            let overlayLeft = btnRect.right + 10;
+            let overlayTop = btnRect.top;
+            
+            // Get actual overlay dimensions
+            overlay.classList.add('show');
+            const overlayRect = overlay.getBoundingClientRect();
+            
+            // If overlay would go off screen, position it over the part
+            if (overlayLeft + overlayRect.width > window.innerWidth) {
+                overlayLeft = partRect.left + (partRect.width / 2) - (overlayRect.width / 2);
+                overlayTop = partRect.top + (partRect.height / 2) - (overlayRect.height / 2);
+            }
+            
+            // Adjust if goes off screen
+            if (overlayLeft < 10) overlayLeft = 10;
+            if (overlayLeft + overlayRect.width > window.innerWidth) overlayLeft = window.innerWidth - overlayRect.width - 10;
+            if (overlayTop < 10) overlayTop = 10;
+            if (overlayTop + overlayRect.height > window.innerHeight) overlayTop = window.innerHeight - overlayRect.height - 10;
+            
+            overlay.style.left = overlayLeft + 'px';
+            overlay.style.top = overlayTop + 'px';
+            
+            // Remove previous input listener and add new one
+            const newTextarea = textarea.cloneNode(true);
+            newTextarea.value = textarea.value;
+            textarea.parentNode.replaceChild(newTextarea, textarea);
+            newTextarea.addEventListener('input', function() {
+                autoResizeTextarea(newTextarea);
+            });
+            
+            // Close overlay on Enter key
+            newTextarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    closeNoteOverlay();
+                }
+            });
+            
+            // Focus textarea and select all text
+            setTimeout(() => {
+                newTextarea.focus();
+                newTextarea.select();
+            }, 50);
+        }
+        
+        async function closeNoteOverlay() {
+            const overlay = document.getElementById('noteOverlay');
+            const textarea = document.getElementById('noteTextarea');
+            
+            if (currentNotePart) {
+                // Save name to part
+                const nameText = textarea.value.trim();
+                const nameElement = currentNotePart.querySelector('.part-name');
+                if (nameElement) {
+                    nameElement.textContent = nameText;
+                }
+                
+                // Save when overlay closes
+                await syncCurrentWorkspaceToActiveSetup();
+                await saveOpstillingDataToLocalStorage();
+            }
+            
+            overlay.classList.remove('show');
+            currentNotePart = null;
+        }
+        
+        function selectColor(hex) {
+        if (currentPart) {
+			// Erklær alle variabler først
+			const head = currentPart.querySelector('.head');
+			const torso = currentPart.querySelector('.torso');
+			const armParts = currentPart.querySelectorAll('.arm_geo_left, .arm_geo_right, .albue_geo_left, .albue_geo_right');
+			const legParts = currentPart.querySelectorAll('.laar_geo_left, .laar_geo_right, .skinneben_geo_left, .skinneben_geo_right');
+			
+			// Funktion til at gøre farver mørkere
+			function darkenColor(color, factor) {
+				const r = parseInt(color.slice(1, 3), 16);
+				const g = parseInt(color.slice(3, 5), 16);
+				const b = parseInt(color.slice(5, 7), 16);
+				
+				if (factor === 20) {
+					// For border - gør mørkere med procent
+					const amt = Math.round(2.55 * factor);
+					const newR = Math.max(0, r - amt);
+					const newG = Math.max(0, g - amt);
+					const newB = Math.max(0, b - amt);
+					return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+				} else {
+					// For body parts - multiplicer med factor
+					const newR = Math.round(r * factor);
+					const newG = Math.round(g * factor);
+					const newB = Math.round(b * factor);
+					return `rgb(${newR}, ${newG}, ${newB})`;
+				}
+			}
+			
+			const borderColor = darkenColor(hex, 20);
+			const darkerColor = darkenColor(hex, 0.92);
+			
+			// Sæt farver på head
+						if (head) {
+				head.style.backgroundColor = hex;
+			}
+			
+			// Sæt farver på body parts
+			if (torso) torso.style.background = hex;
+			armParts.forEach(arm => arm.style.background = darkerColor);
+			legParts.forEach(leg => leg.style.background = darkerColor);
+			
+            currentPart.setAttribute('data-custom-color', hex);
+            currentPart.setAttribute('data-custom-border', borderColor);
+		} else if (currentGroupBtn) {
+			currentGroupBtn.style.backgroundColor = hex;
+			currentGroupBtn.setAttribute('data-custom-color', hex);
+			const groupNumber = currentGroupBtn.id.match(/\d+/)[0];
+			refreshPartsForGroup(groupNumber);
+		}
+	}
+
+        function changeColor(btn) {
+            try {
+                openColorPicker(btn);
+            } catch (error) {
+                console.error('Fejl i changeColor:', error);
+            }
+        }
+		
+		
+		// preset parsers isedet for at læse fra fil læses fra defaults
+		// Funktion til at parse grupper fra linjer
+			function parseGroupsFromLines(lines) { /* no-op */ }
+		
+		// Funktion til at parse labels fra linjer
+			function parseLabelsFromLines(lines) { /* no-op */ }
+
+			// Funktion til at indlæse preset
+			function loadPreset(presetName) { /* no-op */ }
+		
+		
+			// Funktion til at håndtere tema-ændring
+			function changeTheme() { /* no-op */ }
+        
+        // Part management functions
+        function selectPart(e) { /* selection disabled */ }
+        
+        function changeGroupColor(groupNumber) {
+            const colorBtn = document.getElementById(`groupColor${groupNumber}`);
+            openColorPicker(colorBtn);
+            refreshPartsForGroup(String(groupNumber));
+            updateGroupDropdown();
+         }
+        
+       function handleGroupSelection(selectElement) {
+		if (selectedPart) {
+			const index = selectElement.value;
+			if (index) {
+				const groupName = getGroupNameByIndex(index);
+				selectedPart.setAttribute('data-group-index', index);
+				selectedPart.setAttribute('data-group', groupName);
+				applyGroupStylingToPart(selectedPart, index);
+			} else {
+				selectedPart.setAttribute('data-group-index', '');
+				selectedPart.setAttribute('data-group', '');
+				clearGroupStyling(selectedPart);
+			}
+		}
+
+	}
+        
+        function updateGroupDropdown() {
+            const dropdown = document.getElementById('partGroupSelect');
+            dropdown.innerHTML = '<option value="">Vælg gruppe...</option>';
+            
+            for (let i = 1; i <= 6; i++) {
+                const groupInput = document.getElementById(`group${i}`);
+                const groupName = groupInput.value.trim();
+                if (groupName) {
+                    const option = document.createElement('option');
+                    option.value = String(i);
+                    option.textContent = groupName;
+                    dropdown.appendChild(option);
+                }
+            }
+        }
+        
+        function updateGroupsDisplay() { /* selection UI disabled */ }
+        
+        function updatePartKeywords(part) {
+            const keywordsAbove = part.querySelector('.keywords-above');
+            const keywordsBelow = part.querySelector('.keywords-below');
+            
+            const above = [];
+            for (let i = 1; i <= 3; i++) {
+                const keyword = part.getAttribute(`data-keyword${i}`);
+                if (keyword && keyword.trim()) {
+                    above.push(keyword.trim());
+                }
+            }
+            
+            const below = [];
+            for (let i = 4; i <= 6; i++) {
+                const keyword = part.getAttribute(`data-keyword${i}`);
+                if (keyword && keyword.trim()) {
+                    below.push(keyword.trim());
+                }
+            }
+            
+            keywordsAbove.innerHTML = above.join('<br>');
+            keywordsBelow.innerHTML = below.join('<br>');
+            
+            // Always show keywords (keywords toggle removed)
+            keywordsAbove.style.display = 'block';
+            keywordsBelow.style.display = 'block';
+        }
+        
+        function addPart(name = null, x = null, y = null, skipPopup = false, disableAnimations = false) {
+            try {
+                // Allow empty names or just whitespace - use the value as-is (trimmed or empty)
+                const partName = name !== null ? name : (document.getElementById('partName').value.trim() || '');
+                // No validation - allow empty names
+                
+                const workspace = document.getElementById('workspace');
+                const workspaceContent = workspace.querySelector('.workspace-content');
+                const part = document.createElement('div');
+                part.className = 'part';
+                if (disableAnimations) {
+                    part.classList.add('no-initial-animation');
+                    part.style.animation = 'none';
+                    part.style.opacity = '1';
+                }
+                partCounter++;
+                
+                let posX, posY;
+                if (x !== null && y !== null) {
+                    // Use provided coordinates
+                    posX = x;
+                    posY = y;
+                } else {
+                    // Calculate position within visible viewport
+                    const visibleWidth = workspace.clientWidth;
+                    const visibleHeight = workspace.clientHeight;
+                    const scrollLeft = workspace.scrollLeft;
+                    const scrollTop = workspace.scrollTop;
+                    
+                    // Calculate visible area bounds in workspace-content coordinates
+                    const visibleStartX = scrollLeft;
+                    const visibleEndX = Math.min(scrollLeft + visibleWidth, workspaceContent.offsetWidth);
+                    const visibleStartY = scrollTop;
+                    const visibleEndY = Math.min(scrollTop + visibleHeight, workspaceContent.offsetHeight);
+                    
+                    // Add randomness within visible area, but keep part fully visible
+                    // Part size is approximately 120px, so leave margin
+                    const margin = 60; // Half of part size
+                    const minX = Math.max(visibleStartX + margin, 0);
+                    const maxX = Math.min(visibleEndX - margin - 120, workspaceContent.offsetWidth - 120);
+                    const minY = Math.max(visibleStartY + margin, 0);
+                    const maxY = Math.min(visibleEndY - margin - 120, workspaceContent.offsetHeight - 120);
+                    
+                    // Ensure valid range
+                    if (maxX > minX && maxY > minY) {
+                        posX = minX + Math.random() * (maxX - minX);
+                        posY = minY + Math.random() * (maxY - minY);
+                    } else {
+                        // Fallback to center of visible area if calculation fails
+                        posX = visibleStartX + (visibleWidth / 2) - 60;
+                        posY = visibleStartY + (visibleHeight / 2) - 60;
+                    }
+                }
+                
+                part.style.left = posX + 'px';
+                part.style.top = posY + 'px';
+                
+                const existingParts = document.querySelectorAll('.part');
+                // Find max current layer to avoid duplicates if there are gaps or collisions
+                let maxLayer = 0;
+                existingParts.forEach(p => {
+                    const l = parseInt(p.getAttribute('data-layer')) || 0;
+                    if (l > maxLayer) maxLayer = l;
+                });
+                const newLayer = maxLayer + 1;
+                part.style.zIndex = newLayer + 10;
+                
+                const assignedColor = partColors[colorIndex % partColors.length];
+				const borderColor = borderColors[colorIndex % borderColors.length];
+
+				
+                
+                part.setAttribute('data-color-index', colorIndex.toString());
+                // per-part notes removed
+                part.setAttribute('data-layer', newLayer.toString());
+                part.setAttribute('data-group', '');
+				part.setAttribute('data-part-scale', '1');
+                part.setAttribute('data-keyword1', '');
+                part.setAttribute('data-keyword2', '');
+                part.setAttribute('data-keyword3', '');
+                part.setAttribute('data-keyword4', '');
+                part.setAttribute('data-keyword5', '');
+                part.setAttribute('data-keyword6', '');
+                part.setAttribute('data-custom-color', assignedColor);
+                part.setAttribute('data-custom-border', borderColor);
+                part.style.transform = 'scale(1)';
+                
+                colorIndex++;
+                
+                part.innerHTML = `
+                    <div class="keywords-above part-keywords"></div>
+						<div class="keywords-below part-keywords"></div>
+						
+						<div class="body">
+							<div class="head">
+								<span class="part-name">${partName}</span>
+							</div>
+							<div class="torso"></div>
+							
+							<!-- Venstre arm hierarki -->
+							<div class="skulder_translate_left">
+								<div class="skulder_rotate_left">
+									<div class="arm_geo_left">
+										<div class="albue_rotate_left">
+											<div class="albue_geo_left"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Højre arm hierarki -->
+							<div class="skulder_translate_right">
+								<div class="skulder_rotate_right">
+									<div class="arm_geo_right">
+										<div class="albue_rotate_right">
+											<div class="albue_geo_right"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Venstre ben hierarki -->
+							<div class="hofte_translate_left">
+								<div class="hofte_rotate_left">
+									<div class="laar_geo_left">
+										<div class="knae_rotate_left">
+											<div class="skinneben_geo_left"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Højre ben hierarki -->
+							<div class="hofte_translate_right">
+								<div class="hofte_rotate_right">
+									<div class="laar_geo_right">
+										<div class="knae_rotate_right">
+											<div class="skinneben_geo_right"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					
+					<button class="control-btn delete-btn" title="Slet del">×</button>
+                    
+                    <button class="control-btn layer-up" title="Bring frem">↑</button>
+                    <button class="control-btn layer-down" title="Send bagud">↓</button>
+                    <button class="control-btn size-plus" title="Gør større">+</button>
+                    <button class="control-btn size-minus" title="Gør mindre">−</button>
+                    <button class="control-btn color-btn" title="Skift farve">C</button>
+					<button class="control-btn pose-btn" title="Skift pose">P</button>
+					<button class="control-btn note-btn" title="Rediger navn">N</button>
+                `;
+				
+				// Name is only editable via the "N" button
+				
+				// Set colors on body parts
+				const head = part.querySelector('.head');
+				const torso = part.querySelector('.torso');
+				const armParts = part.querySelectorAll('.arm_geo_left, .arm_geo_right, .albue_geo_left, .albue_geo_right');
+				const legParts = part.querySelectorAll('.laar_geo_left, .laar_geo_right, .skinneben_geo_left, .skinneben_geo_right');
+
+				// Funktion til at gøre farver mørkere
+				function darkenColor(hex, factor = 0.92) {
+					const r = parseInt(hex.slice(1, 3), 16);
+					const g = parseInt(hex.slice(3, 5), 16);
+					const b = parseInt(hex.slice(5, 7), 16);
+					
+					const newR = Math.round(r * factor);
+					const newG = Math.round(g * factor);
+					const newB = Math.round(b * factor);
+					
+					return `rgb(${newR}, ${newG}, ${newB})`;
+				}
+
+				const darkerColor = darkenColor(assignedColor, 0.92);
+
+				if (head) {
+					head.style.background = assignedColor;
+					//head.style.border = `4px solid ${borderColor}`; -ingen border
+				}
+				if (torso) torso.style.background = assignedColor;
+				armParts.forEach(arm => arm.style.background = darkerColor);
+				legParts.forEach(leg => leg.style.background = darkerColor);
+                
+                part.addEventListener('pointerdown', startDrag);
+                // selection disabled
+                part.addEventListener('dragstart', (e) => e.preventDefault());
+                
+                const deleteBtn = part.querySelector('.delete-btn');
+                
+                const layerUpBtn = part.querySelector('.layer-up');
+                const layerDownBtn = part.querySelector('.layer-down');
+                const sizePlusBtn = part.querySelector('.size-plus');
+                const sizeMinusBtn = part.querySelector('.size-minus');
+                const colorBtn = part.querySelector('.color-btn');
+				const poseBtn = part.querySelector('.pose-btn');
+				const noteBtn = part.querySelector('.note-btn');
+                
+                deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); deletePart(deleteBtn); });
+                
+                layerUpBtn.addEventListener('click', (e) => { e.stopPropagation(); moveToFront(layerUpBtn); });
+                layerDownBtn.addEventListener('click', (e) => { e.stopPropagation(); moveToBack(layerDownBtn); });
+                sizePlusBtn.addEventListener('click', (e) => { e.stopPropagation(); increaseSize(sizePlusBtn); });
+                sizeMinusBtn.addEventListener('click', (e) => { e.stopPropagation(); decreaseSize(sizeMinusBtn); });
+                colorBtn.addEventListener('click', (e) => { e.stopPropagation(); changeColor(colorBtn); });
+                poseBtn.addEventListener('click', (e) => { e.stopPropagation(); openPosePicker(poseBtn); });
+				noteBtn.addEventListener('click', (e) => { e.stopPropagation(); openNoteOverlay(noteBtn); });
+				
+                workspaceContent.appendChild(part);
+				resetPose(part);
+				
+				// Name editing is only available via the "N" button
+				
+				// Save when user adds part (not when loading from storage)
+				if (!disableAnimations) {
+					(async () => {
+						await syncCurrentWorkspaceToActiveSetup();
+						await saveOpstillingDataToLocalStorage();
+					})();
+				}
+                
+                document.getElementById('partName').value = '';
+                document.getElementById('partName').placeholder = "Navn på del (f.eks. Beskytteren, Den Kritiske, Det Sårede Barn...)";
+                
+            } catch (error) {
+                console.error('Fejl i addPart:', error);
+            }
+        }
+        
+        function deletePart(btn) {
+            try {
+                const part = btn.closest('.part');
+                const deletedLayer = parseInt(part.getAttribute('data-layer')) || 1;
+                part.remove();
+                
+                if (selectedPart === part) {
+					selectedPart = null;
+					updateGroupsDisplay();
+					for (let i = 1; i <= 6; i++) {
+						document.getElementById(`keyword${i}`).value = '';
+					}
+				}
+                
+                const allParts = document.querySelectorAll('.part');
+                allParts.forEach(p => {
+                    const currentLayer = parseInt(p.getAttribute('data-layer')) || 1;
+                    if (currentLayer > deletedLayer) {
+                        const newLayer = currentLayer - 1;
+                        p.setAttribute('data-layer', newLayer.toString());
+                        p.style.zIndex = newLayer + 10;
+                    }
+                });
+                // Ensure layers are unique and compact after delete
+                normalizeLayers();
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+                    await saveOpstillingDataToLocalStorage();
+                })();
+                
+            } catch (error) {
+                console.error('Fejl i deletePart:', error);
+            }
+        }
+        
+        function moveToFront(btn) {
+            try {
+                const part = btn.closest('.part');
+                const currentLayer = parseInt(part.getAttribute('data-layer')) || 1;
+                const allParts = document.querySelectorAll('.part');
+                const maxLayer = allParts.length;
+                const targetLayer = currentLayer + 1;
+                
+                if (targetLayer > maxLayer) return;
+                
+                let targetPart = null;
+                allParts.forEach(p => {
+                    if (parseInt(p.getAttribute('data-layer')) === targetLayer) {
+                        targetPart = p;
+                    }
+                });
+                
+                // If there is a gap or duplicate layers, normalize and retry
+                if (!targetPart) {
+                    normalizeLayers();
+                    const refreshedParts = document.querySelectorAll('.part');
+                    refreshedParts.forEach(p => {
+                        if (parseInt(p.getAttribute('data-layer')) === currentLayer + 1) {
+                            targetPart = p;
+                        }
+                    });
+                }
+
+                if (targetPart) {
+                    part.setAttribute('data-layer', targetLayer.toString());
+                    part.style.zIndex = targetLayer + 10;
+                    targetPart.setAttribute('data-layer', currentLayer.toString());
+                    targetPart.style.zIndex = currentLayer + 10;
+                }
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+                    await saveOpstillingDataToLocalStorage();
+                })();
+            } catch (error) {
+                console.error('Fejl i moveToFront:', error);
+            }
+        }
+        
+        function moveToBack(btn) {
+            try {
+                const part = btn.closest('.part');
+                const currentLayer = parseInt(part.getAttribute('data-layer')) || 1;
+                const targetLayer = currentLayer - 1;
+                
+                if (targetLayer < 1) return;
+                
+                const allParts = document.querySelectorAll('.part');
+                let targetPart = null;
+                allParts.forEach(p => {
+                    if (parseInt(p.getAttribute('data-layer')) === targetLayer) {
+                        targetPart = p;
+                    }
+                });
+                
+                // If there is a gap or duplicate layers, normalize and retry
+                if (!targetPart) {
+                    normalizeLayers();
+                    const refreshedParts = document.querySelectorAll('.part');
+                    refreshedParts.forEach(p => {
+                        if (parseInt(p.getAttribute('data-layer')) === targetLayer) {
+                            targetPart = p;
+                        }
+                    });
+                }
+
+                if (targetPart) {
+                    part.setAttribute('data-layer', targetLayer.toString());
+                    part.style.zIndex = targetLayer + 10;
+                    targetPart.setAttribute('data-layer', currentLayer.toString());
+                    targetPart.style.zIndex = currentLayer + 10;
+                }
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+                    await saveOpstillingDataToLocalStorage();
+                })();
+            } catch (error) {
+                console.error('Fejl i moveToBack:', error);
+            }
+        }
+
+        // Ensure unique, compact layers (1..N) with matching z-index
+        function normalizeLayers() {
+            try {
+                const parts = Array.from(document.querySelectorAll('.part'));
+                // Sort by current data-layer asc; fall back to DOM order
+                parts.sort((a, b) => {
+                    const la = parseInt(a.getAttribute('data-layer')) || 0;
+                    const lb = parseInt(b.getAttribute('data-layer')) || 0;
+                    return la - lb;
+                });
+                parts.forEach((p, idx) => {
+                    const layer = idx + 1;
+                    p.setAttribute('data-layer', layer.toString());
+                    p.style.zIndex = layer + 10;
+                });
+            } catch (error) {
+                console.error('Fejl i normalizeLayers:', error);
+            }
+        }
+        
+		const SIZE_STEP = 0.05;
+		const MIN_PART_SCALE = 0.2;
+		const MAX_PART_SCALE = 3;
+
+		function increaseSize(btn) {
+			try {
+				const part = btn.closest('.part');
+				let currentScale = parseFloat(part.getAttribute('data-part-scale')) || 1;
+				
+				const newScale = Math.min(MAX_PART_SCALE, Math.round((currentScale + SIZE_STEP) * 100) / 100);
+				part.style.transform = `scale(${newScale})`;
+				part.setAttribute('data-part-scale', newScale.toString());
+				(async () => {
+					await syncCurrentWorkspaceToActiveSetup();
+					await saveOpstillingDataToLocalStorage();
+				})();
+			} catch (error) {
+				console.error('Fejl i increaseSize:', error);
+			}
+		}
+
+
+
+		function decreaseSize(btn) {
+			try {
+				const part = btn.closest('.part');
+				let currentScale = parseFloat(part.getAttribute('data-part-scale')) || 1;
+				
+				const newScale = Math.max(MIN_PART_SCALE, Math.round((currentScale - SIZE_STEP) * 100) / 100);
+				part.style.transform = `scale(${newScale})`;
+				part.setAttribute('data-part-scale', newScale.toString());
+				(async () => {
+					await syncCurrentWorkspaceToActiveSetup();
+					await saveOpstillingDataToLocalStorage();
+				})();
+			} catch (error) {
+				console.error('Fejl i decreaseSize:', error);
+			}
+		}
+				
+        
+        
+        function updatePartSize(part, sizeMultiplier) {
+		part.style.transform = `scale(${sizeMultiplier})`;
+		part.setAttribute('data-part-scale', sizeMultiplier.toString());
+		if (!isLoadingSetup) {
+			(async () => {
+				await syncCurrentWorkspaceToActiveSetup();
+				await saveOpstillingDataToLocalStorage();
+			})();
+		}
+		}
+        
+        function startDrag(e) {
+				try {
+					if (e.target.classList.contains('control-btn')) return;
+					
+					draggedElement = e.target.closest('.part');
+					if (!draggedElement) return;
+					
+					draggedElement.classList.add('dragging');
+					
+					const workspace = document.getElementById('workspace');
+					const workspaceRect = workspace.getBoundingClientRect();
+					
+					const elementLeft = parseFloat(draggedElement.style.left) || 0;
+					const elementTop = parseFloat(draggedElement.style.top) || 0;
+					
+					const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
+					const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
+					
+					offset.x = cursorX - elementLeft;
+					offset.y = cursorY - elementTop;
+					
+                document.addEventListener('pointermove', drag, { passive: false });
+                document.addEventListener('pointerup', stopDrag, { passive: false });
+				} catch (error) {
+					console.error('Fejl i startDrag:', error);
+				}
+			}
+        
+        function drag(e) {
+            try {
+                if (!draggedElement) return;
+                if (e && typeof e.preventDefault === 'function') e.preventDefault();
+                
+                const workspace = document.getElementById('workspace');
+                const workspaceRect = workspace.getBoundingClientRect();
+                
+                const cursorX = e.clientX - workspaceRect.left + workspace.scrollLeft;
+                const cursorY = e.clientY - workspaceRect.top + workspace.scrollTop;
+                
+                // Calculate new position in workspace coordinates
+                let newX = cursorX - offset.x;
+                let newY = cursorY - offset.y;
+
+                // Fixed-margin clamp based on part's top-left (independent of size)
+                // Use workspace-content for size calculations to prevent workspace growth
+                const workspaceContent = workspace.querySelector('.workspace-content');
+                const minLeft = 1;   // target approx left edge
+                const minTop  = 6;   // target approx top edge
+                const rightMargin = 86; // workspace-content.width - maxLeft (≈1600-1514)
+                const bottomMargin = 78; // workspace-content.height - maxTop (≈600-522)
+                const maxLeft = workspaceContent.offsetWidth - rightMargin;
+                const maxTop  = workspaceContent.offsetHeight - bottomMargin;
+
+                newX = Math.max(minLeft, Math.min(newX, maxLeft));
+                newY = Math.max(minTop,  Math.min(newY, maxTop));
+                
+                draggedElement.style.left = newX + 'px';
+                draggedElement.style.top = newY + 'px';
+            } catch (error) {
+                console.error('Fejl i drag:', error);
+            }
+        }
+        
+        function stopDrag() {
+			try {
+				const localDraggedElement = draggedElement;
+				draggedElement = null;
+				
+				if (localDraggedElement) {
+					localDraggedElement.classList.remove('dragging');
+					(async () => {
+						await syncCurrentWorkspaceToActiveSetup();
+						await saveOpstillingDataToLocalStorage();
+					})();
+				}
+                document.removeEventListener('pointermove', drag);
+                document.removeEventListener('pointerup', stopDrag);
+			} catch (error) {
+				console.error('Fejl i stopDrag:', error);
+			}
+		}
+
+        function loadPartFromData({
+            name = '',
+            x = 0,
+            y = 0,
+            size = 1,
+            color = '',
+            borderColor = '',
+            layer = 1,
+            notes = '',
+            keywords = [],
+            groupIndex = '',
+            group = '',
+            poseName = '',
+            mirror = false
+        }) {
+            try {
+                // Convert percentage to pixels based on current workspace size
+                const workspace = document.getElementById('workspace');
+                const workspaceContent = workspace.querySelector('.workspace-content');
+                const workspaceWidth = workspaceContent ? workspaceContent.offsetWidth : 1200;
+                const workspaceHeight = workspaceContent ? workspaceContent.offsetHeight : 960;
+                
+                // Check if x and y are already in pixels (legacy format) or percentage (new format)
+                // If x > 100 or y > 100, assume it's pixels (legacy), otherwise assume percentage
+                let xPixels, yPixels;
+                if (x > 100 || y > 100) {
+                    // Legacy format - already in pixels
+                    xPixels = x;
+                    yPixels = y;
+                } else {
+                    // New format - percentage, convert to pixels
+                    xPixels = (x / 100) * workspaceWidth;
+                    yPixels = (y / 100) * workspaceHeight;
+                }
+                
+                addPart(name, xPixels, yPixels, true, true);
+
+                const newPart = document.querySelector('.part:last-child');
+                if (!newPart) return;
+
+                newPart.classList.add('suppress-transitions');
+                newPart.classList.add('loaded-from-storage');
+                newPart.style.transition = 'none';
+
+                let colorIndex = partColors.findIndex(c => c && color && c.toLowerCase() === color.toLowerCase());
+                if (colorIndex === -1) colorIndex = 0;
+
+                const effectiveColor = color || partColors[colorIndex] || DEFAULT_PART_COLOR;
+
+                newPart.setAttribute('data-color-index', colorIndex.toString());
+                newPart.setAttribute('data-custom-color', effectiveColor);
+                if (borderColor) {
+                    newPart.setAttribute('data-custom-border', borderColor);
+                }
+                newPart.setAttribute('data-layer', layer.toString());
+                newPart.style.zIndex = layer + 10;
+                // per-part notes removed; ignore notes from imports
+                newPart.setAttribute('data-group', group);
+                newPart.setAttribute('data-part-scale', size.toString());
+                newPart.style.transform = `scale(${size})`;
+
+                // keywords removed
+
+                newPart.setAttribute('data-mirror', mirror ? 'true' : 'false');
+
+                const head = newPart.querySelector('.head');
+                const torso = newPart.querySelector('.torso');
+                const armParts = newPart.querySelectorAll('.arm_geo_left, .arm_geo_right, .albue_geo_left, .albue_geo_right');
+                const legParts = newPart.querySelectorAll('.laar_geo_left, .laar_geo_right, .skinneben_geo_left, .skinneben_geo_right');
+
+                const darkenColor = (hex, factor = 0.92) => {
+                    if (!hex || !hex.startsWith('#') || hex.length < 7) {
+                        return hex;
+                    }
+                    const r = parseInt(hex.slice(1, 3), 16);
+                    const g = parseInt(hex.slice(3, 5), 16);
+                    const b = parseInt(hex.slice(5, 7), 16);
+
+                    const newR = Math.round(r * factor);
+                    const newG = Math.round(g * factor);
+                    const newB = Math.round(b * factor);
+
+                    return `rgb(${newR}, ${newG}, ${newB})`;
+                };
+
+                const darkerColor = darkenColor(effectiveColor, 0.92);
+
+                if (head) head.style.background = effectiveColor;
+                if (torso) torso.style.background = effectiveColor;
+                armParts.forEach(arm => arm.style.background = darkerColor);
+                legParts.forEach(leg => leg.style.background = darkerColor);
+
+                // keywords and groups removed
+
+                // Restore pose + mirror (supports both index and name)
+                if (poseName) {
+                    const maybeIndex = Number(poseName);
+                    if (!Number.isNaN(maybeIndex)) {
+                        // Stored as numeric index
+                        const poseIndex = maybeIndex;
+                        newPart.setAttribute('data-pose', poseIndex.toString());
+                        applyPose(newPart, poseIndex, mirror);
+                    } else {
+                        // Stored as pose name
+                        const poseIndex = poseLibrary.findIndex(p => p && p.name === poseName);
+                        if (poseIndex !== -1) {
+                            newPart.setAttribute('data-pose', poseIndex.toString());
+                            applyPose(newPart, poseIndex, mirror);
+                        } else {
+                            // Unknown pose – keep attribute but reset visual pose
+                            newPart.setAttribute('data-pose', poseName);
+                            resetPose(newPart);
+                        }
+                    }
+                } else {
+                    newPart.setAttribute('data-pose', '');
+                    resetPose(newPart);
+                }
+
+                requestAnimationFrame(() => {
+                    newPart.style.opacity = '1';
+                    requestAnimationFrame(() => {
+                        newPart.classList.remove('suppress-transitions');
+                        newPart.style.transition = '';
+                        requestAnimationFrame(() => {
+                            newPart.style.opacity = '';
+                        });
+                    });
+                });
+
+            } catch (error) {
+                console.error('Fejl i loadPartFromData:', error);
+            }
+        }
+
+        function loadCurrentOpstillingFromStorage() {
+            const previousLoadingState = isLoadingSetup;
+            try {
+                const savedOpstilling = localStorage.getItem('current_opstilling');
+                if (!savedOpstilling) return false;
+
+                const lines = savedOpstilling.split('\n');
+                isLoadingSetup = true;
+                const success = importOpstillingFromLines(lines, 'none');
+                return success;
+            } catch (error) {
+                console.error('Fejl ved indlæsning fra localStorage:', error);
+                return false;
+            } finally {
+                isLoadingSetup = previousLoadingState;
+            }
+        }
+
+        function clearAll() {
+            try {
+                // Remove all parts from workspace
+                const parts = document.querySelectorAll('.part');
+                parts.forEach(part => part.remove());
+                
+                // Clean up drag state
+                selectedPart = null;
+                draggedElement = null;
+                
+                // Reset color index
+                colorIndex = 0;
+                
+                // Save after clearing all
+                (async () => {
+                    await syncCurrentWorkspaceToActiveSetup();
+                    await saveOpstillingDataToLocalStorage();
+                })();
+
+            } catch (error) {
+                console.error('Fejl i clearAll:', error);
+            }
+        }
+        
+        function editName(btn) {
+            try {
+                const part = btn.closest ? btn.closest('.part') : btn.parentElement.closest('.part');
+                const nameSpan = part.querySelector('.part-name');
+                const currentName = nameSpan.textContent;
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = currentName;
+                input.className = 'name-input';
+                input.maxLength = 30;
+                
+                nameSpan.style.display = 'none';
+                nameSpan.parentNode.insertBefore(input, nameSpan);
+                
+                input.focus();
+                input.select();
+                
+                let isFinishing = false;
+
+				function finishEdit() {
+					if (isFinishing) return;
+					isFinishing = true;
+					
+					// Allow empty names - use trimmed value or empty string
+					const newName = input.value.trim();
+					nameSpan.textContent = newName;
+					nameSpan.style.display = 'block';
+					
+					if (input.parentNode) {
+						input.remove();
+					}
+					
+					// Sync dataset and persist immediately
+					part.setAttribute('data-name', newName);
+					// Save will happen when note overlay closes
+				}
+                
+                input.addEventListener('blur', finishEdit);
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        finishEdit();
+                    }
+                    if (e.key === 'Escape') {
+                        nameSpan.style.display = 'block';
+                        input.remove();
+                    }
+                });
+            } catch (error) {
+                console.error('Fejl i editName:', error);
+            }
+        }
+        
+        function loadProject() {
+            try {
+                const fileInput = document.getElementById('fileInput');
+                if (!fileInput) {
+                    alert('Fejl: Kan ikke finde file input element');
+                    return;
+                }
+                if (window.__fileDialogOpen) return;
+                window.__fileDialogOpen = true;
+                fileInput.click();
+            } catch (error) {
+                console.error('Fejl i loadProject:', error);
+                alert('Der opstod en fejl ved indlæsning af projektet.');
+            }
+        }
+
+        async function importProjectFromJson(jsonText) {
+            const project = JSON.parse(jsonText);
+
+            if (project && Array.isArray(project.setups)) {
+                OpstillingData = project;
+                deduplicateOpstillingData();
+                if (!OpstillingData.activeSetupId && OpstillingData.setups.length > 0) {
+                    OpstillingData.activeSetupId = OpstillingData.setups[0].id;
+                }
+                const loaded = await loadActiveOpstilling();
+                if (!loaded) {
+                    throw new Error('Kunne ikke indlæse projektdata');
+                }
+                saveOpstillingDataToLocalStorage();
+                return true;
+            }
+
+            if (project && Array.isArray(project.parts)) {
+                if (!OpstillingData) {
+                    await ensureDefaultOpstillingData();
+                }
+                const setup = getActiveSetup();
+                if (!setup) {
+                    throw new Error('Kunne ikke finde aktiv opstilling');
+                }
+
+                setup.name = project.name || setup.name || 'Opstilling';
+                setup.parts = project.parts;
+                setup.updated = project.saved_at || new Date().toISOString();
+                if (!setup.timestamp) {
+                    setup.timestamp = setup.updated;
+                }
+
+                const loaded = await loadSetupFromOpstillingData(setup);
+                if (!loaded) {
+                    throw new Error('Kunne ikke indlæse projektets figurer');
+                }
+                await syncCurrentWorkspaceToActiveSetup();
+                saveOpstillingDataToLocalStorage();
+                return true;
+            }
+
+            throw new Error('Ugyldigt projektformat');
+        }
+
+        async function handleProjectFile(file) {
+            const text = await file.text();
+            const fileName = file.name || '';
+            const trimmed = text.trim();
+
+            if (trimmed.startsWith('{') || /\.json$/i.test(fileName)) {
+                return importProjectFromJson(trimmed);
+            }
+
+            isLoadingSetup = true;
+            try {
+                const lines = text.split('\n');
+                const loadSuccess = importOpstillingFromLines(lines);
+                if (!loadSuccess) {
+                    throw new Error('Ugyldig CSV-fil');
+                }
+                await syncCurrentWorkspaceToActiveSetup();
+                saveOpstillingDataToLocalStorage();
+                return true;
+            } finally {
+                isLoadingSetup = false;
+            }
+        }
+
+        function saveCurrentOpstillingToStorage() {
+            saveOpstillingDataToLocalStorage();
+        }
+
+        async function exportProject() {
+            try {
+                await syncCurrentWorkspaceToActiveSetup();
+                saveOpstillingDataToLocalStorage();
+
+                const activeSetup = getActiveSetup();
+                const parts = document.querySelectorAll('.part');
+                if (!activeSetup || parts.length === 0) {
+                    alert('Ingen dele at gemme! Tilføj først nogle dele til opstillingen.');
+                    return;
+                }
+
+                const dato = new Date().toISOString().slice(0, 10);
+                const suggestedName = (activeSetup.name || 'Opstilling').replace(/[<>:"/\\|?*]/g, '_');
+                const fileName = prompt('Navn på projekt:', `${suggestedName}_${dato}`);
+                if (fileName === null) return;
+
+                const project = {
+                    version: '2.0',
+                    saved_at: new Date().toISOString(),
+                    name: activeSetup.name || 'Opstilling',
+                    parts: activeSetup.parts
+                };
+
+                const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                const cleanName = (fileName.trim() || `${suggestedName}_${dato}`).replace(/[<>:"/\\|?*]/g, '_');
+                link.download = /\.json$/i.test(cleanName) ? cleanName : `${cleanName}.json`;
+                link.href = url;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Fejl i exportProject:', error);
+                alert('Der opstod en fejl ved eksport af projektet.');
+            }
+        }
+
+        function exportAsImage() {
+    try {
+        const workspace = document.getElementById('workspace');
+        const transparentBg = document.getElementById('transparentBackground').checked;
+        const workspaceContent = workspace.querySelector('.workspace-content');
+        
+        // Skjul control buttons
+        const controlBtns = workspace.querySelectorAll('.control-btn');
+        controlBtns.forEach(btn => btn.style.display = 'none');
+        
+        // Skjul selection
+        const wasSelected = selectedPart;
+        if (selectedPart) {
+            selectedPart.classList.remove('selected');
+        }
+        
+        // Håndter transparent baggrund
+        const originalBgColor = workspace.style.backgroundColor || '';
+        const originalContentBg = workspaceContent ? (workspaceContent.style.backgroundColor || '') : '';
+        
+        if (transparentBg) {
+            workspace.style.backgroundColor = 'transparent';
+            if (workspaceContent) workspaceContent.style.backgroundColor = 'transparent';
+        } else if (workspaceContent) {
+            const computedBg = window.getComputedStyle(workspace).backgroundColor;
+            if (computedBg && computedBg !== 'rgba(0, 0, 0, 0)') {
+                workspaceContent.style.backgroundColor = computedBg;
+            } else {
+                workspaceContent.style.backgroundColor = '#ffffff';
+            }
+        }
+        
+        // Modern-screenshot - use workspace-content for export
+        modernScreenshot.domToPng(workspaceContent, {
+            width: workspaceContent.offsetWidth,
+            height: workspaceContent.offsetHeight,
+            scale: 2,
+			quality: 1 
+			
+        }).then(dataUrl => {
+            // Gendan UI
+            controlBtns.forEach(btn => btn.style.display = '');
+            if (wasSelected) {
+                wasSelected.classList.add('selected');
+            }
+            
+            // Gendan baggrund hvis den blev ændret
+            if (workspaceContent) workspaceContent.style.backgroundColor = originalContentBg;
+            if (transparentBg) {
+                workspace.style.backgroundColor = originalBgColor || '';
+            }
+            
+            // Download
+            const link = document.createElement('a');
+            const dato = new Date().toISOString().slice(0, 10);
+            const bgText = transparentBg ? '_transparent' : '';
+            link.download = `Opstilling-${dato}${bgText}.png`;
+            link.href = dataUrl;
+            link.click();
+            
+        }).catch(error => {
+            console.error('Fejl:', error);
+            
+            // Gendan UI ved fejl
+            controlBtns.forEach(btn => btn.style.display = '');
+            if (wasSelected) {
+                wasSelected.classList.add('selected');
+            }
+            
+            if (workspaceContent) workspaceContent.style.backgroundColor = originalContentBg;
+            // Gendan baggrund ved fejl
+            if (transparentBg) {
+                workspace.style.backgroundColor = originalBgColor || '';
+            }
+            
+            alert('Eksport fejlede');
+        });
+        
+    } catch (error) {
+        console.error('Fejl:', error);
+        alert('Modern-Screenshot ikke tilgængelig');
+    }
+}
+        
+        function handleWorkspaceClick(e) {
+            try {
+                const workspaceEl = document.getElementById('workspace');
+                const clickedPart = e.target.closest('.part');
+
+                if (workspaceEl.contains(e.target) && !clickedPart) {
+					if (selectedPart) {
+						selectedPart.classList.remove('selected');
+						selectedPart = null;
+						updateGroupsDisplay();
+
+						const titleElement = document.getElementById('profileTitle');
+						if (titleElement) titleElement.textContent = '';
+
+                        for (let i = 1; i <= 6; i++) {
+                            document.getElementById(`keyword${i}`).value = '';
+                        }
+                    }
+
+                    const rect = workspaceEl.getBoundingClientRect();
+                    const x = e.clientX - rect.left - 60;
+                    const y = e.clientY - rect.top - 60;
+                    const partName = document.getElementById('partName').value.trim();
+                    if (partName) addPart(partName, x, y);
+                }
+            } catch (error) {
+                console.error('Fejl i handleWorkspaceClick:', error);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            const loadedData = loadOpstillingData();
+            await loadPoseLibrary();
+
+            if (loadedData) {
+                OpstillingData = loadedData;
+            } else {
+                OpstillingData = null;
+            }
+
+            if (OpstillingData === null) {
+                await ensureDefaultOpstillingData();
+            }
+            
+            // Load active opstilling
+            await loadActiveOpstilling();
+            
+            try {
+				
+				
+                renderColorGrid();
+                
+                // Color picker modal event listener - close when clicking on backdrop
+                const colorPickerModal = document.getElementById('colorPickerModal');
+                if (colorPickerModal) {
+                    colorPickerModal.addEventListener('click', function(e) {
+                        // Only close if clicking directly on the modal (backdrop), not on picker
+                        if (e.target === this) {
+                            closeColorPicker();
+                        }
+                    });
+                }
+                
+                // Initialize group colors (only if not already set)
+                for (let i = 1; i <= 6; i++) {
+                    const colorBtn = document.getElementById(`groupColor${i}`);
+                    if (colorBtn && !colorBtn.getAttribute('data-custom-color')) {
+                        const colorIndex = parseInt(colorBtn.getAttribute('data-color-index')) || 0;
+                        colorBtn.style.backgroundColor = groupColors[colorIndex];
+                    }
+                }
+				
+				
+				// Pose picker modal event listener
+				document.getElementById('posePickerModal').addEventListener('click', function(e) {
+					if (e.target === this) {
+						closePosePicker();
+					}
+				});
+				
+				// Note overlay - close when clicking outside
+				document.addEventListener('click', function(e) {
+					const noteOverlay = document.getElementById('noteOverlay');
+					if (noteOverlay && noteOverlay.classList.contains('show')) {
+						// Close if clicking outside the overlay
+						if (!noteOverlay.contains(e.target)) {
+							closeNoteOverlay();
+						}
+					}
+				});
+				
+				// Prevent clicks inside note overlay from closing it
+				const noteOverlay = document.getElementById('noteOverlay');
+				if (noteOverlay) {
+					noteOverlay.addEventListener('click', function(e) {
+						e.stopPropagation();
+					});
+				}
+				
+				// Keywords popup modal event listener
+				document.getElementById('keywordsPopupModal').addEventListener('click', function(e) {
+					if (e.target === this) {
+						closeKeywordsPopup();
+					}
+				});
+				
+                
+                // Add event listeners
+                const partNameInput = document.getElementById('partName');
+                partNameInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        addPart();
+                    }
+                });
+                
+                // Removed keyword inputs (#keyword1..#keyword6) – no listeners needed
+                
+                const workspace = document.getElementById('workspace');
+                workspace.addEventListener('click', handleWorkspaceClick);
+                
+                const fileInput = document.getElementById('fileInput');
+                if (fileInput) {
+                    fileInput.addEventListener('change', async function(event) {
+                        const file = event.target.files[0];
+                        window.__fileDialogOpen = false;
+                        if (!file) return;
+
+                        try {
+                            const loadSuccess = await handleProjectFile(file);
+                            if (!loadSuccess) {
+                                alert('Der opstod en fejl ved indlæsning af filen.');
+                            }
+                        } catch (error) {
+                            console.error('Fejl ved indlæsning af fil:', error);
+                            alert('Der opstod en fejl ved indlæsning af filen: ' + error.message);
+                        } finally {
+                            event.target.value = '';
+                        }
+                    });
+                }
+                
+                // removed: keywordsVisible and bodiesVisible checkboxes and listeners
+                
+                updateGroupsDisplay();
+                
+                // Removed group inputs (#group1..#group6) – no listeners needed
+                
+            } catch (error) {
+                console.error('Fejl ved initialisering:', error);
+            }
+            
+        });
+        
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => e.preventDefault());
+		
+		// toggleAllBodies removed; bodies are always visible
+		
+        function importOpstillingFromLines(lines) {
+            const body = document.body;
+            let addedLoadingClass = false;
+            if (body && !body.classList.contains('loading-opstilling')) {
+                body.classList.add('loading-opstilling');
+                addedLoadingClass = true;
+            }
+            try {
+                const workspace = document.getElementById('workspace');
+                const workspaceContent = workspace.querySelector('.workspace-content');
+                workspaceContent.innerHTML = '';
+
+                selectedPart = null;
+                draggedElement = null;
+
+                updateGroupsDisplay();
+                colorIndex = 0;
+
+                for (let line of lines) {
+                    if (line.trim() === '' || line.startsWith('#') || line.includes('Navn;PosX')) continue;
+
+                    const parts = line.split(';');
+
+                    const potentialIndex = (parts[13] || '').trim();
+                    const isNewFormat = parts.length >= 17 && /^[1-6]$/.test(potentialIndex);
+
+                    if (isNewFormat) {
+                        const keywords = [];
+                        for (let i = 0; i < 6; i++) {
+                            keywords.push(parts[8 + i] || '');
+                        }
+
+                        loadPartFromData({
+                            name: parts[0],
+                            x: parseInt(parts[1]) || 0,
+                            y: parseInt(parts[2]) || 0,
+                            size: parseFloat(parts[3]) || 1,
+                            color: parts[4] || '',
+                            borderColor: parts[5] || '',
+                            layer: parseInt(parts[6]) || 1,
+                            notes: (parts[7] || '').replace(/\n/g, '\n'),
+                            keywords,
+                            groupIndex: potentialIndex,
+                            group: parts[14] || '',
+                            poseName: parts[15] || '',
+                            mirror: (parts[16] || '').toLowerCase() === 'true'
+                        });
+                    } else if (parts.length >= 16) {
+                        const keywords = [];
+                        for (let i = 0; i < 6; i++) {
+                            keywords.push(parts[7 + i] || '');
+                        }
+
+                        loadPartFromData({
+                            name: parts[0],
+                            x: parseInt(parts[1]) || 0,
+                            y: parseInt(parts[2]) || 0,
+                            size: parseFloat(parts[3]) || 1,
+                            color: parts[4] || '',
+                            layer: parseInt(parts[5]) || 1,
+                            notes: (parts[6] || '').replace(/\n/g, '\n'),
+                            keywords,
+                            groupIndex: '',
+                            group: parts[13] || '',
+                            poseName: parts[14] || '',
+                            mirror: (parts[15] || '').toLowerCase() === 'true'
+                        });
+                    }
+                }
+
+                // Ignore any saved group names/colors in import
+
+                // Ignore applying any group-based borders
+
+                document.querySelectorAll('.part').forEach(part => {
+                    const partGroup = part.getAttribute('data-group');
+                    if (partGroup) {
+                        for (let i = 1; i <= 6; i++) {
+                            const groupInput = document.getElementById(`group${i}`);
+                            if (groupInput && groupInput.value.trim() === partGroup) {
+                                const colorBtn = document.getElementById(`groupColor${i}`);
+                                const groupColor = colorBtn.getAttribute('data-custom-color') || colorBtn.style.backgroundColor;
+                                if (groupColor) {
+                                    const head = part.querySelector('.head');
+                                    if (head) {
+                                        head.style.border = `4px solid ${groupColor}`;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                });
+
+                normalizeLayers();
+                return true;
+            } catch (error) {
+                console.error('Fejl i importOpstillingFromLines:', error);
+                return false;
+            } finally {
+                if (addedLoadingClass && body) {
+                    requestAnimationFrame(() => body.classList.remove('loading-opstilling'));
+                }
+            }
+        }
+
+        function findGroupIndexByName(name) {
+            if (!name) return '';
+            const target = name.trim().toLowerCase();
+            for (let i = 1; i <= 6; i++) {
+                const groupInput = document.getElementById(`group${i}`);
+                if (groupInput && groupInput.value.trim().toLowerCase() === target) {
+                    return String(i);
+                }
+            }
+            return '';
+        }
+        
+        function getGroupNameByIndex(index) {
+            if (!index) return '';
+            const groupInput = document.getElementById(`group${index}`);
+            return groupInput ? groupInput.value.trim() : '';
+        }
+        
+        function getGroupColorByIndex(index) {
+            if (!index) return '';
+            const colorBtn = document.getElementById(`groupColor${index}`);
+            if (colorBtn) {
+                return colorBtn.getAttribute('data-custom-color') || colorBtn.style.backgroundColor || groupColors[Number(index) - 1] || '';
+            }
+            return groupColors[Number(index) - 1] || '';
+        }
+        
+        function applyGroupStylingToPart(part, index) {
+            const head = part.querySelector('.head');
+            const color = getGroupColorByIndex(index);
+            if (head && color) {
+                head.style.border = `4px solid ${color}`;
+            } else if (head) {
+                head.style.border = '';
+            }
+        }
+        
+        function clearGroupStyling(part) {
+            const head = part.querySelector('.head');
+            if (head) {
+                head.style.border = '';
+            }
+        }
+        
+        function getPartGroupName(part) {
+            const index = part.getAttribute('data-group-index');
+            if (index) {
+                return getGroupNameByIndex(index) || part.getAttribute('data-group') || '';
+            }
+            return part.getAttribute('data-group') || '';
+        }
+
+        function refreshPartsForGroup(index) {
+            const parts = document.querySelectorAll(`.part[data-group-index="${index}"]`);
+            const groupName = getGroupNameByIndex(index);
+            parts.forEach(part => {
+                part.setAttribute('data-group-index', index);
+                part.setAttribute('data-group', groupName);
+                if (groupName) {
+                    applyGroupStylingToPart(part, index);
+                } else {
+                    clearGroupStyling(part);
+                }
+            });
+        }
+
+        function assignGroupIndicesByName() {
+            document.querySelectorAll('.part').forEach(part => {
+                if (!part.getAttribute('data-group-index')) {
+                    const name = (part.getAttribute('data-group') || '').trim();
+                    const index = findGroupIndexByName(name);
+                    if (index) {
+                        part.setAttribute('data-group-index', index);
+                        part.setAttribute('data-group', getGroupNameByIndex(index));
+                        applyGroupStylingToPart(part, index);
+                    } else {
+                        clearGroupStyling(part);
+                    }
+                }
+            });
+        }
+    </script>
+    <!-- Navigation overlay -->
+
+</body>
+</html>
+                
+                
