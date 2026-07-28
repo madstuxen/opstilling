@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="How to use the Me and Them app: logbook, dialogue, body scan, constellations, reflections, and more.">
+    <link rel="canonical" href="https://www.me-and-them.com/how-to.html">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <title>How to use the app - Me and Them</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #573920;
+            color: #f5efe7;
+            min-height: 100vh;
+        }
+
+        .container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            min-height: 64px;
+            padding: 0 22px;
+            background: rgba(47, 32, 20, 0.92);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .site-header-left {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+        }
+
+        .site-header-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .brand {
+            font-weight: 700;
+            color: #fff;
+            font-size: 1.1rem;
+        }
+
+        .header-divider {
+            width: 1px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .site-header-left a {
+            color: #e5e7eb;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .site-header-left a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .content-wrap {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        main {
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 40px 20px 48px;
+            line-height: 1.65;
+        }
+
+        h1 {
+            font-size: clamp(1.8rem, 2.4vw, 2.4rem);
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .blog-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .blog-sidebar {
+            position: sticky;
+            top: 92px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid #d97706;
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        .blog-sidebar-heading-wrap {
+            margin-bottom: 14px;
+        }
+
+        .blog-sidebar-heading {
+            width: 100%;
+            margin: 0;
+            border: 1px solid rgba(217, 119, 6, 0.55);
+            outline: 2px solid rgba(217, 119, 6, 0.35);
+            outline-offset: 2px;
+            background-color: #4a3220;
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: left;
+        }
+
+        .blog-toc-wrap {
+            position: relative;
+            min-height: 0;
+        }
+
+        .blog-toc {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .blog-toc a {
+            display: block;
+            color: #f9fafb;
+            text-decoration: none;
+            padding: 6px 8px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease;
+        }
+
+        .blog-toc a:hover {
+            background: rgba(255, 255, 255, 0.14);
+            text-decoration: underline;
+        }
+
+        .blog-toc-scroll-hint {
+            display: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 44px;
+            pointer-events: none;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 4px;
+            background: linear-gradient(
+                to top,
+                rgba(74, 50, 32, 0.98) 12%,
+                rgba(74, 50, 32, 0.55) 48%,
+                transparent
+            );
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 2;
+        }
+
+        .blog-toc-scroll-hint.is-visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .blog-toc-scroll-hint-arrow {
+            display: block;
+            width: 12px;
+            height: 12px;
+            border-right: 2px solid rgba(253, 230, 138, 0.95);
+            border-bottom: 2px solid rgba(253, 230, 138, 0.95);
+            transform: translateY(0) rotate(45deg);
+            margin-bottom: 6px;
+            animation: blog-toc-hint-bounce 1.4s ease-in-out infinite;
+        }
+
+        @keyframes blog-toc-hint-bounce {
+            0%,
+            100% {
+                transform: translateY(0) rotate(45deg);
+                opacity: 0.7;
+            }
+            50% {
+                transform: translateY(4px) rotate(45deg);
+                opacity: 1;
+            }
+        }
+
+        .blog-content {
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+        }
+
+        .blog-post {
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid #d97706;
+            border-radius: 14px;
+            padding: 18px 18px 16px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+            scroll-margin-top: 92px;
+        }
+
+        .blog-post h2 {
+            font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        .blog-post-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .blog-share-btn {
+            border: 1px solid rgba(255, 255, 255, 0.34);
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.84rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .blog-share-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        .blog-date {
+            display: inline-block;
+            font-size: 0.86rem;
+            color: rgba(255, 255, 255, 0.88);
+            background: rgba(0, 0, 0, 0.16);
+            border-radius: 999px;
+            padding: 3px 10px;
+        }
+
+        .blog-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .blog-post p {
+            margin-bottom: 12px;
+            white-space: break-spaces;
+        }
+
+        .blog-post-link {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .blog-post-link-line {
+            margin-bottom: 4px;
+            white-space: break-spaces;
+        }
+
+        .blog-post-link-line:last-child {
+            margin-bottom: 0;
+        }
+
+        .blog-post-link a {
+            color: #fde68a;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+
+        .blog-post-link a:hover {
+            color: #fff;
+        }
+
+        .blog-image {
+            display: block;
+            max-width: min(460px, 60%);
+            width: auto;
+            height: auto;
+            border-radius: 10px;
+            margin: 6px 0 14px;
+            border: 1px solid rgba(255, 255, 255, 0.26);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .blog-image-left {
+            margin-right: auto;
+            margin-left: 0;
+        }
+
+        .blog-image-right {
+            margin-left: auto;
+            margin-right: 0;
+        }
+
+        .status-msg {
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid #d97706;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .blog-post.is-unreleased {
+            display: none;
+        }
+
+        @media (min-width: 981px) {
+            .blog-sidebar {
+                max-height: calc(100vh - 92px - 24px);
+                max-height: calc(100dvh - 92px - 24px);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .blog-toc-wrap {
+                flex: 1 1 auto;
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+            }
+
+            .blog-toc {
+                overflow-y: auto;
+                flex: 1 1 auto;
+                min-height: 0;
+                overscroll-behavior: contain;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .blog-toc::-webkit-scrollbar {
+                display: none;
+            }
+
+            .blog-toc-scroll-hint {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 980px) {
+            .blog-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .blog-sidebar {
+                position: static;
+            }
+
+            .blog-image {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .site-header {
+                padding: 0 14px;
+            }
+
+            main {
+                padding: 24px 14px 32px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="assets/nav.css">
+    <link rel="stylesheet" href="assets/blog-tags.css">
+</head>
+<body>
+    <div class="container">
+        <header class="site-header" data-mobile-nav>
+            <div class="site-header-left">
+                <a class="site-header-logo-link" href="index.html" aria-label="Home">
+                    <img class="site-header-logo" src="imagefiles/ios-light.png" alt="" width="48" height="48" decoding="async">
+                </a>
+                <button
+                    type="button"
+                    class="site-nav-toggle"
+                    aria-label="Open menu"
+                    aria-controls="mobileLayerHowTo"
+                    aria-expanded="false">☰</button>
+                <span class="brand">Journal App</span>
+                <span class="header-divider" aria-hidden="true"></span>
+                <nav class="site-nav" aria-label="Primary">
+                    <a class="site-nav-link" href="index.html">Home</a>
+                    <a class="site-nav-link" href="feature-list.html">Feature list</a>
+                    <a class="site-nav-link" href="about.html">About</a>
+                    <a class="site-nav-link" href="blog.html">Blog</a>
+                    <a class="site-nav-link" href="how-to.html" aria-current="page">How-to</a>
+                    <a class="site-nav-link" href="data.html">Data</a>
+                </nav>
+            </div>
+        </header>
+        <div class="site-mobile-layer" id="mobileLayerHowTo" aria-hidden="true">
+            <div class="site-mobile-backdrop"></div>
+            <nav class="site-mobile-menu" aria-label="Mobile primary">
+                <div class="site-nav">
+                    <a class="site-nav-link" href="index.html">Home</a>
+                    <a class="site-nav-link" href="feature-list.html">Feature list</a>
+                    <a class="site-nav-link" href="about.html">About</a>
+                    <a class="site-nav-link" href="blog.html">Blog</a>
+                    <a class="site-nav-link" href="how-to.html" aria-current="page">How-to</a>
+                    <a class="site-nav-link" href="data.html">Data</a>
+                </div>
+            </nav>
+        </div>
+
+        <div class="content-wrap">
+            <main>
+                <h1>How-to</h1>
+                <div class="blog-layout">
+                    <aside class="blog-sidebar">
+                        <div class="blog-sidebar-heading-wrap">
+                            <p class="blog-sidebar-heading">Guides to the app</p>
+                        </div>
+                        <div class="blog-toc-wrap">
+                            <ul id="blogToc" class="blog-toc"></ul>
+                            <div id="blogTocScrollHint" class="blog-toc-scroll-hint" aria-hidden="true">
+                                <span class="blog-toc-scroll-hint-arrow"></span>
+                            </div>
+                        </div>
+                    </aside>
+                    <section id="blogContent" class="blog-content" aria-live="polite">
+                        <p class="status-msg">Loading guides…</p>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="assets/blog-tags.js"></script>
+    <script>
+        (function () {
+            const FIXED_TAG = "App";
+            const blogToc = document.getElementById("blogToc");
+            const blogTocScrollHint = document.getElementById("blogTocScrollHint");
+            const blogSidebar = document.querySelector(".blog-sidebar");
+            const blogContent = document.getElementById("blogContent");
+            let allPosts = [];
+
+            function updateSidebarHeight() {
+                if (!blogSidebar) return;
+                if (window.innerWidth <= 980) {
+                    blogSidebar.style.maxHeight = "";
+                    return;
+                }
+                const top = blogSidebar.getBoundingClientRect().top;
+                const available = Math.floor(window.innerHeight - top - 24);
+                blogSidebar.style.maxHeight = Math.max(180, available) + "px";
+            }
+
+            function updateTocScrollHint() {
+                if (!blogToc || !blogTocScrollHint) return;
+                const canScroll = blogToc.scrollHeight > blogToc.clientHeight + 1;
+                const atBottom = blogToc.scrollTop + blogToc.clientHeight >= blogToc.scrollHeight - 4;
+                const show = canScroll && !atBottom;
+                blogTocScrollHint.classList.toggle("is-visible", show);
+                blogTocScrollHint.setAttribute("aria-hidden", show ? "false" : "true");
+            }
+
+            function syncSidebarLayout() {
+                updateSidebarHeight();
+                updateTocScrollHint();
+            }
+
+            const monthLookup = {
+                january: 0,
+                february: 1,
+                march: 2,
+                april: 3,
+                may: 4,
+                june: 5,
+                july: 6,
+                august: 7,
+                september: 8,
+                october: 9,
+                november: 10,
+                december: 11,
+                januar: 0,
+                februar: 1,
+                marts: 2,
+                maj: 4,
+                juni: 5,
+                juli: 6,
+                oktober: 9
+            };
+
+            function parseBlogDate(raw) {
+                const value = String(raw || "").trim();
+                if (!value) return null;
+
+                const iso = /^(\d{4})-(\d{2})-(\d{2})$/;
+                const isoMatch = value.match(iso);
+                if (isoMatch) {
+                    return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+                }
+
+                const textFormat = /^(\d{4})\s+(\d{1,2})\s+([A-Za-z\u00c6\u00d8\u00c5\u00e6\u00f8\u00e5]+)$/;
+                const textMatch = value.match(textFormat);
+                if (!textMatch) return null;
+
+                const year = Number(textMatch[1]);
+                const day = Number(textMatch[2]);
+                const month = monthLookup[String(textMatch[3]).toLowerCase()];
+                if (!Number.isFinite(month)) return null;
+                return new Date(year, month, day);
+            }
+
+            function getPostDate(article) {
+                const attrDate = article.getAttribute("data-date");
+                if (attrDate) return parseBlogDate(attrDate);
+                const chip = article.querySelector(".blog-date");
+                return chip ? parseBlogDate(chip.textContent) : null;
+            }
+
+            function normalizeTags(raw) {
+                const input = Array.isArray(raw)
+                    ? raw
+                    : String(raw || "").split(",").map(function (entry) { return entry.trim(); }).filter(Boolean);
+                const seen = new Set();
+                const normalized = [];
+                (window.BLOG_TAGS || []).forEach(function (tag) {
+                    if (input.indexOf(tag) >= 0 && !seen.has(tag)) {
+                        seen.add(tag);
+                        normalized.push(tag);
+                    }
+                });
+                return normalized;
+            }
+
+            function getPostTags(article) {
+                const attrTags = article.getAttribute("data-tags");
+                if (attrTags) return normalizeTags(attrTags.split(","));
+                return normalizeTags(Array.from(article.querySelectorAll(".blog-tag[data-tag]")).map(function (el) {
+                    return el.getAttribute("data-tag");
+                }));
+            }
+
+            function ensureMetaLine(article) {
+                const tags = getPostTags(article);
+                let meta = article.querySelector(".blog-meta");
+                const dateChip = article.querySelector(".blog-date");
+                if (!dateChip) return;
+
+                if (!meta) {
+                    meta = document.createElement("div");
+                    meta.className = "blog-meta";
+                    dateChip.parentNode.insertBefore(meta, dateChip);
+                    meta.appendChild(dateChip);
+                } else if (dateChip.parentNode !== meta) {
+                    meta.appendChild(dateChip);
+                }
+
+                meta.querySelectorAll(".blog-tag").forEach(function (tagEl) {
+                    tagEl.remove();
+                });
+                meta.querySelectorAll(".blog-new-badge").forEach(function (badge) {
+                    badge.remove();
+                });
+
+                tags.forEach(function (tag) {
+                    const tagEl = document.createElement("span");
+                    tagEl.className = "blog-tag";
+                    tagEl.setAttribute("data-tag", tag);
+                    tagEl.textContent = tag;
+                    meta.appendChild(tagEl);
+                });
+
+                article.setAttribute("data-tags", tags.join(","));
+            }
+
+            function sortPostsByDate(posts) {
+                return posts.slice().sort(function (a, b) {
+                    const aDate = getPostDate(a);
+                    const bDate = getPostDate(b);
+                    const aTime = aDate ? aDate.getTime() : Number.POSITIVE_INFINITY;
+                    const bTime = bDate ? bDate.getTime() : Number.POSITIVE_INFINITY;
+                    return aTime - bTime;
+                });
+            }
+
+            function buildToc(visiblePosts) {
+                blogToc.innerHTML = "";
+                visiblePosts.forEach(function (article, index) {
+                    const titleEl = article.querySelector("h2");
+                    const title = titleEl ? titleEl.textContent.trim() : ("Guide " + (index + 1));
+                    if (!article.id) return;
+                    const li = document.createElement("li");
+                    const link = document.createElement("a");
+                    link.href = "#" + article.id;
+                    link.textContent = title || ("Guide " + (index + 1));
+                    li.appendChild(link);
+                    blogToc.appendChild(li);
+                });
+                requestAnimationFrame(syncSidebarLayout);
+            }
+
+            async function copyLinkForPost(article, button) {
+                const shareUrl = new URL("#" + article.id, window.location.href).href;
+                try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    const old = button.textContent;
+                    button.textContent = "Copied!";
+                    setTimeout(function () {
+                        button.textContent = old;
+                    }, 1500);
+                } catch (err) {
+                    window.prompt("Copy this link:", shareUrl);
+                }
+            }
+
+            function attachShareButtons(posts) {
+                posts.forEach(function (article) {
+                    if (!article.id) return;
+                    const title = article.querySelector("h2");
+                    if (!title) return;
+                    const existingHead = article.querySelector(".blog-post-head");
+                    if (existingHead) return;
+
+                    const head = document.createElement("div");
+                    head.className = "blog-post-head";
+                    article.insertBefore(head, title);
+                    head.appendChild(title);
+
+                    const shareBtn = document.createElement("button");
+                    shareBtn.type = "button";
+                    shareBtn.className = "blog-share-btn";
+                    shareBtn.textContent = "Share link";
+                    shareBtn.addEventListener("click", function () {
+                        copyLinkForPost(article, shareBtn);
+                    });
+                    head.appendChild(shareBtn);
+                });
+            }
+
+            function applyReleaseFilter(posts) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const visiblePosts = [];
+                posts.forEach(function (article) {
+                    const date = getPostDate(article);
+                    const isReleased = !!date && date <= today;
+                    article.classList.toggle("is-unreleased", !isReleased);
+                    if (isReleased) visiblePosts.push(article);
+                });
+                return visiblePosts;
+            }
+
+            function rewriteInternalLinks(posts) {
+                const localIds = new Set(posts.map(function (article) { return article.id; }));
+                posts.forEach(function (article) {
+                    article.querySelectorAll('a[href^="#post-"]').forEach(function (anchor) {
+                        const href = anchor.getAttribute("href") || "";
+                        const match = href.match(/^#(post-[a-z0-9-]+)$/i);
+                        if (!match) return;
+                        const postId = match[1];
+                        if (!localIds.has(postId)) {
+                            anchor.setAttribute("href", "blog.html#" + postId);
+                            anchor.classList.remove("blog-post-link-internal");
+                        }
+                    });
+                });
+            }
+
+            function renderView() {
+                allPosts.forEach(ensureMetaLine);
+                attachShareButtons(allPosts);
+                rewriteInternalLinks(allPosts);
+
+                const visiblePosts = sortPostsByDate(applyReleaseFilter(allPosts));
+
+                if (!visiblePosts.length) {
+                    blogContent.innerHTML = '<p class="status-msg">No app guides found.</p>';
+                    blogToc.innerHTML = "";
+                    syncSidebarLayout();
+                    return;
+                }
+
+                blogContent.innerHTML = "";
+                visiblePosts.forEach(function (article) {
+                    blogContent.appendChild(article);
+                });
+
+                buildToc(visiblePosts);
+            }
+
+            function getPostIdFromHash() {
+                const match = String(location.hash || "").match(/^#(post-[a-z0-9-]+)$/i);
+                return match ? match[1] : null;
+            }
+
+            function isVisiblePost(postId) {
+                return sortPostsByDate(applyReleaseFilter(allPosts)).some(function (article) {
+                    return article.id === postId;
+                });
+            }
+
+            function scrollToPost(postId) {
+                const target = document.getElementById(postId);
+                if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+
+            function navigateToPost(postId, updateHash) {
+                if (!postId || !isVisiblePost(postId)) return;
+
+                if (updateHash && location.hash !== "#" + postId) {
+                    history.pushState(null, "", "#" + postId);
+                }
+
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        scrollToPost(postId);
+                    });
+                });
+            }
+
+            blogContent.addEventListener("click", function (event) {
+                const anchor = event.target.closest(".blog-post-link a[href^='#post-'], a.blog-post-link-internal");
+                if (!anchor) return;
+                const href = anchor.getAttribute("href") || "";
+                const match = href.match(/^#(post-[a-z0-9-]+)$/i);
+                if (!match) return;
+                event.preventDefault();
+                navigateToPost(match[1], true);
+            });
+
+            window.addEventListener("hashchange", function () {
+                const postId = getPostIdFromHash();
+                if (postId) navigateToPost(postId, false);
+            });
+
+            blogToc.addEventListener("scroll", updateTocScrollHint, { passive: true });
+            window.addEventListener("resize", syncSidebarLayout);
+            window.addEventListener("scroll", syncSidebarLayout, { passive: true });
+
+            async function loadPostsFromBlog() {
+                const response = await fetch("blog.html", { cache: "no-cache" });
+                if (!response.ok) {
+                    throw new Error("Could not load blog.html (" + response.status + ")");
+                }
+                const html = await response.text();
+                const doc = new DOMParser().parseFromString(html, "text/html");
+                const sourcePosts = Array.from(doc.querySelectorAll("#blogContent .blog-post, .blog-content .blog-post"));
+                return sourcePosts
+                    .filter(function (article) {
+                        return getPostTags(article).indexOf(FIXED_TAG) >= 0;
+                    })
+                    .map(function (article) {
+                        return document.importNode(article, true);
+                    });
+            }
+
+            async function init() {
+                try {
+                    allPosts = await loadPostsFromBlog();
+                    renderView();
+                    const postId = getPostIdFromHash();
+                    if (postId) navigateToPost(postId, false);
+                    syncSidebarLayout();
+                } catch (err) {
+                    console.error(err);
+                    blogContent.innerHTML = '<p class="status-msg">Could not load guides from the blog.</p>';
+                    blogToc.innerHTML = "";
+                }
+            }
+
+            init();
+        })();
+    </script>
+    <script src="assets/nav.js"></script>
+</body>
+</html>

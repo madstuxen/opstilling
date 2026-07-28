@@ -428,11 +428,13 @@
 
         @media (min-width: 981px) {
             .blog-sidebar {
+                /* Room for tag trigger + full dropdown (All blogs + 6 tags) */
+                min-height: 420px;
                 max-height: calc(100vh - 92px - 24px);
                 max-height: calc(100dvh - 92px - 24px);
                 display: flex;
                 flex-direction: column;
-                overflow: hidden;
+                overflow: visible;
             }
 
             .blog-toc-wrap {
@@ -440,6 +442,7 @@
                 display: flex;
                 flex-direction: column;
                 min-height: 0;
+                overflow: hidden;
             }
 
             .blog-toc {
@@ -507,6 +510,7 @@
                     <a class="site-nav-link" href="feature-list.html">Feature list</a>
                     <a class="site-nav-link" href="about.html">About</a>
                     <a class="site-nav-link" href="blog.html" aria-current="page">Blog</a>
+                    <a class="site-nav-link" href="how-to.html">How-to</a>
                     <a class="site-nav-link" href="data.html">Data</a>
                 </nav>
             </div>
@@ -519,6 +523,7 @@
                     <a class="site-nav-link" href="feature-list.html">Feature list</a>
                     <a class="site-nav-link" href="about.html">About</a>
                     <a class="site-nav-link" href="blog.html" aria-current="page">Blog</a>
+                    <a class="site-nav-link" href="how-to.html">How-to</a>
                     <a class="site-nav-link" href="data.html">Data</a>
                 </div>
             </nav>
@@ -1092,6 +1097,7 @@ It might also hurt. Not because the pain is new but because you again allow it t
     <script src="assets/blog-tags.js"></script>
     <script>
         (function () {
+            const BLOG_EXCLUDED_TAG = "App";
             const blogToc = document.getElementById("blogToc");
             const blogTocScrollHint = document.getElementById("blogTocScrollHint");
             const blogSidebar = document.querySelector(".blog-sidebar");
@@ -1102,6 +1108,22 @@ It might also hurt. Not because the pain is new but because you again allow it t
             const allPosts = Array.from(blogContent.querySelectorAll(".blog-post"));
             let activeTagFilter = "";
             let latestTagCounts = {};
+
+            function hasExcludedTag(article) {
+                return getPostTags(article).indexOf(BLOG_EXCLUDED_TAG) >= 0;
+            }
+
+            function getBlogPosts(posts) {
+                return posts.filter(function (article) {
+                    return !hasExcludedTag(article);
+                });
+            }
+
+            function getBlogFilterTags() {
+                return (window.BLOG_TAGS || []).filter(function (tag) {
+                    return tag !== BLOG_EXCLUDED_TAG;
+                });
+            }
 
             function updateSidebarHeight() {
                 if (!blogSidebar) return;
@@ -1234,7 +1256,7 @@ It might also hurt. Not because the pain is new but because you again allow it t
 
             function countTagsByUsage(posts) {
                 const counts = {};
-                (window.BLOG_TAGS || []).forEach(function (tag) {
+                getBlogFilterTags().forEach(function (tag) {
                     counts[tag] = 0;
                 });
                 posts.forEach(function (article) {
@@ -1310,7 +1332,7 @@ It might also hurt. Not because the pain is new but because you again allow it t
                 }
 
                 appendItem("", "All blogs", false);
-                (window.BLOG_TAGS || []).forEach(function (tag) {
+                getBlogFilterTags().forEach(function (tag) {
                     appendItem(tag, tag, !tagCounts[tag]);
                 });
 
@@ -1466,10 +1488,11 @@ It might also hurt. Not because the pain is new but because you again allow it t
             }
 
             function renderView() {
-                allPosts.forEach(ensureMetaLine);
-                attachShareButtons(allPosts);
+                const blogPosts = getBlogPosts(allPosts);
+                blogPosts.forEach(ensureMetaLine);
+                attachShareButtons(blogPosts);
 
-                const releasedPosts = sortPostsByDate(applyReleaseFilter(allPosts));
+                const releasedPosts = sortPostsByDate(applyReleaseFilter(blogPosts));
                 const tagCounts = countTagsByUsage(releasedPosts);
                 buildTagFilterMenu(tagCounts);
 
@@ -1512,14 +1535,14 @@ It might also hurt. Not because the pain is new but because you again allow it t
             }
 
             function isReleasedPost(postId) {
-                return sortPostsByDate(applyReleaseFilter(allPosts)).some(function (article) {
+                return sortPostsByDate(applyReleaseFilter(getBlogPosts(allPosts))).some(function (article) {
                     return article.id === postId;
                 });
             }
 
             function postVisibleUnderFilter(postId) {
                 if (!activeTagFilter) return true;
-                const article = allPosts.find(function (entry) { return entry.id === postId; });
+                const article = getBlogPosts(allPosts).find(function (entry) { return entry.id === postId; });
                 if (!article) return false;
                 return getPostTags(article).indexOf(activeTagFilter) >= 0;
             }
@@ -1530,7 +1553,15 @@ It might also hurt. Not because the pain is new but because you again allow it t
             }
 
             function navigateToPost(postId, updateHash) {
-                if (!postId || !isReleasedPost(postId)) return;
+                if (!postId) return;
+
+                const article = allPosts.find(function (entry) { return entry.id === postId; });
+                if (article && hasExcludedTag(article)) {
+                    window.location.href = "how-to.html#" + postId;
+                    return;
+                }
+
+                if (!isReleasedPost(postId)) return;
 
                 const needsReset = activeTagFilter && !postVisibleUnderFilter(postId);
                 if (needsReset) {
@@ -1588,7 +1619,14 @@ It might also hurt. Not because the pain is new but because you again allow it t
             function init() {
                 renderView();
                 const postId = getPostIdFromHash();
-                if (postId) navigateToPost(postId, false);
+                if (postId) {
+                    const article = allPosts.find(function (entry) { return entry.id === postId; });
+                    if (article && hasExcludedTag(article)) {
+                        window.location.replace("how-to.html#" + postId);
+                        return;
+                    }
+                    navigateToPost(postId, false);
+                }
                 syncSidebarLayout();
             }
 
