@@ -203,6 +203,11 @@
             color: #fff;
         }
 
+        .blog-toc-wrap {
+            position: relative;
+            min-height: 0;
+        }
+
         .blog-toc {
             list-style: none;
             display: flex;
@@ -222,6 +227,57 @@
         .blog-toc a:hover {
             background: rgba(255, 255, 255, 0.14);
             text-decoration: underline;
+        }
+
+        .blog-toc-scroll-hint {
+            display: none;
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 44px;
+            pointer-events: none;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 4px;
+            background: linear-gradient(
+                to top,
+                rgba(74, 50, 32, 0.98) 12%,
+                rgba(74, 50, 32, 0.55) 48%,
+                transparent
+            );
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            z-index: 2;
+        }
+
+        .blog-toc-scroll-hint.is-visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .blog-toc-scroll-hint-arrow {
+            display: block;
+            width: 12px;
+            height: 12px;
+            border-right: 2px solid rgba(253, 230, 138, 0.95);
+            border-bottom: 2px solid rgba(253, 230, 138, 0.95);
+            transform: translateY(0) rotate(45deg);
+            margin-bottom: 6px;
+            animation: blog-toc-hint-bounce 1.4s ease-in-out infinite;
+        }
+
+        @keyframes blog-toc-hint-bounce {
+            0%,
+            100% {
+                transform: translateY(0) rotate(45deg);
+                opacity: 0.7;
+            }
+            50% {
+                transform: translateY(4px) rotate(45deg);
+                opacity: 1;
+            }
         }
 
         .blog-content {
@@ -373,9 +429,17 @@
         @media (min-width: 981px) {
             .blog-sidebar {
                 max-height: calc(100vh - 92px - 24px);
+                max-height: calc(100dvh - 92px - 24px);
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
+            }
+
+            .blog-toc-wrap {
+                flex: 1 1 auto;
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
             }
 
             .blog-toc {
@@ -389,6 +453,10 @@
 
             .blog-toc::-webkit-scrollbar {
                 display: none;
+            }
+
+            .blog-toc-scroll-hint {
+                display: flex;
             }
         }
 
@@ -467,7 +535,12 @@
                             </button>
                             <ul id="blogTagFilterMenu" class="blog-tag-filter-menu hidden" role="listbox" aria-label="Filter blogs by tag"></ul>
                         </div>
-                        <ul id="blogToc" class="blog-toc"></ul>
+                        <div class="blog-toc-wrap">
+                            <ul id="blogToc" class="blog-toc"></ul>
+                            <div id="blogTocScrollHint" class="blog-toc-scroll-hint" aria-hidden="true">
+                                <span class="blog-toc-scroll-hint-arrow"></span>
+                            </div>
+                        </div>
                     </aside>
                     <section id="blogContent" class="blog-content" aria-live="polite">
                         <!-- BLOG_POSTS_START -->
@@ -873,22 +946,25 @@ Enjoy!</p>
                                 <span class="blog-tag" data-tag="App">App</span>
                                 <span class="blog-tag" data-tag="BodyScan">BodyScan</span>
                             </div>
-                            <p>The body scan is a tool for tracking what's going on in your body — and following it over time.
+                            <p>The body scan is a tool for tracking what's going on in your body — and following it over time. 
 Just paying more attention to your body is valuable in itself. The emotions we feel are all grounded in the body, and one of the first ways we learn to manage feelings is by tensing muscles to hold back their expression. So noticing is already doing something and making a small change.
 Take a note whenever you get an impulse or sensation. Some of the other exercises will probably stir something physical. That's a good moment to open the body scan.
 
 Getting started:
 Press Show Guide to follow a simple body scan guide, or use your own meditation if you have one.
 Each time you notice a sensation you want to register, create a "New Scan" using the button. Every scan is a snapshot in time and gets its own entry in the history drawer.
-Within a scan, you add labels - one scan can have several. Every sensation can have its own label. Like "strain in the back" or "insecure in my neck". Give each label a colour, a short text, and place it where it belongs on the body. Each label has a slider, so you can track how a sensation changes over time. What the slider value means is up to you.</p>
-                            <img class="blog-image blog-image-left" src="blog/images_blog/IMG_1758.PNG.png" alt="Using Body Scan in the app billede 1" loading="lazy" decoding="async" style="max-width:min(304px, 40%);">
+Within a scan, you add labels - one scan can have several. Every sensation can have its own label. Like "strain in the back" or "insecure in my neck". Give each label a colour, a short text, and place it where it belongs on the body. Each label has a slider, so you can track how a sensation changes over time. What the slider value means is up to you.
+
+The warm hand allows you to place a gentle hand on the body for support. Find out if there's a place in your body that could do with support. Place your hand on your own body first if it's possible. Then use the warm hand to place a hand in the app. That will help you anchor the experience in your mind.</p>
+                            <img class="blog-image blog-image-left" src="blog/images_blog/IMG_1814.PNG.png" alt="Using Body Scan in the app billede 1" loading="lazy" decoding="async" style="max-width:min(304px, 40%);">
                             <p>Adding a new scan
-When you create a new scan - same day or later - you're first asked which labels you want to carry over, and what their value should be now. Press "+" to keep a label, or leave it if you're done tracking that sensation. If something is still there but not urgent, keep it and turn the slider down. After that, you can add any new labels that you want to track.</p>
-                            <img class="blog-image blog-image-right" src="blog/images_blog/IMG_1759.PNG.png" alt="Using Body Scan in the app billede 2" loading="lazy" decoding="async" style="max-width:min(271px, 35%);">
+When you create a new scan - same day or later - you're first asked which labels you want to carry over, and what their value should be now. Press "+" to keep a label, or leave it if you're done tracking that sensation. If something is still there but not urgent, keep it and turn the slider down. After that, you can add any new labels that you want to track.
+The warm hand will not be copied. This is not something you track but something you do to yourself.</p>
+                            <img class="blog-image blog-image-right" src="blog/images_blog/IMG_1815.PNG.png" alt="Using Body Scan in the app billede 2" loading="lazy" decoding="async" style="max-width:min(271px, 35%);">
                             <p>Over time
 As your scans accumulate, you can see how sensations evolve in the graph — either all at once, or one at a time. Each label also shows a number indicating how many scans in a row you've been tracking it. If you need to, you can take a snapshot of a specific body scan and save it to your phone's image folder. 
 
-If something needs extra attention, add a note. If a particular scan feels significant, tag it with a colour in the note editor — that makes it easy to find again in the history drawer.</p>
+If something needs extra attention, add a note. If a particular scan feels significant, tag it with a color in the note editor — that makes it easy to find again in the history drawer.</p>
                         </article>
 
                         <article class="blog-post" id="post-constellations-using-the-app" data-post-id="post-constellations-using-the-app" data-date="2026 08 july" data-tags="App,Constellation">
@@ -958,15 +1034,53 @@ It's a fun and sometimes surprising way to learn more about yourself - your hidd
                             <p>Tagging and editing entries:
 You can tag any entry in the Logbook by giving it a colour, that makes it easy to find again in the history drawer. The colour also shows up in the Check-In graph.
 To set a colour on a Logbook entry, use the C button in the top left corner.
-You can't delete a Logbook entry, but you can always go in and clear the text if you want.
-
-</p>
+You can't delete a Logbook entry, but you can always go in and clear the text if you want.</p>
                             <img class="blog-image blog-image-left" src="blog/images_blog/Skrmbillede_2026-07-09_kl._13.15.18.png" alt="Delete an entry or tag an entry with a color billede 1" loading="lazy" decoding="async" style="max-width:min(391px, 51%);">
                             <p>For exercises - Dialogue, Body Scan, Constellations, and Reflections - you can both delete entries and tag them with a colour, the same way as in the Logbook.
 To edit or delete an exercise, press the note field. From there you can update the note, rename the entry, change the colour, or delete it entirely.</p>
                             <img class="blog-image blog-image-right" src="blog/images_blog/Skrmbillede_2026-07-09_kl._13.30.24.png" alt="Delete an entry or tag an entry with a color billede 2" loading="lazy" decoding="async" style="max-width:min(391px, 51%);">
                             <p>Don't delete too much. 
 It's not about perfect but about practice :)</p>
+                        </article>
+
+                        <article class="blog-post" id="post-becoming-friends-with-your-body-again" data-post-id="post-becoming-friends-with-your-body-again" data-date="2026 28 july" data-tags="Journaling,BodyScan">
+                            <h2>Becoming friends with your body again</h2>
+                            <div class="blog-meta">
+                                <span class="blog-date">2026 28 july</span>
+                                <span class="blog-tag" data-tag="Journaling">Journaling</span>
+                                <span class="blog-tag" data-tag="BodyScan">BodyScan</span>
+                            </div>
+                            <p>The body holds all our feelings and emotions. 
+Feelings are not thoughts. 
+They are based in the body in the muscles in the organs and the tune the whole organism to a certain way to adapt to the world.
+Anger prepares the body to reject push away defend and take damage. Crying is the body's way of getting rid of the anxiety that builds up in the body.
+As children we learn to suppress feelings that are not welcome in our surroundings. This is a way to adapt so we fit in and can be accepted and feel safe.
+The body is built to have the emotions go through our body. To let them be expressed so others can see what we feel and then afterwards dissipate so we feel good again afterwards.
+
+Like if you cry and then feel really good afterwards. It's an old mechanism that you can observe in all animals, but most clearly in mammals.
+We learn to control this. A lot of the way we learn to control our feelings is through tensing the muscles. That way we hold back the emotion and the actions that the feelings encourage.
+
+
+You don't really need to do anything. Don't try to change it or make it go away. Just register that things are happening in your body. That it's alive and that it produces sensations. Slowly as you build trust you will find that it says a lot, and you can start asking it questions. You will start to see connections between how you feel and where in your body you can feel it.
+You will regain one of the most powerful skills the body has. Gut feeling. Just knowing without the need to explain. Just by registering your body you know what's the right thing to do for you. It will take time, but every step of that development will be an improvement.
+It might also hurt. Not because the pain is new but because you again allow it to be felt in your body.</p>
+                            <img class="blog-image blog-image-left" src="blog/images_blog/IMG_1816.PNG.png" alt="Becoming friends with your body again billede 1" loading="lazy" decoding="async" style="max-width:min(460px, 60%);">
+                            <p>When we become really good at this we lose our ability to feel what we feel, and also we lose our body's built-in mechanism for releasing stress.
+We train ourselves to tense to control, and we train ourselves to not feel the sensations that are moving through our bodies.
+This might be good for cocktail parties. But when we want to know what's going on in our bodies and what we feel we lose all the information that our bodies give us as to how we feel and we simply don't know.
+If something is good or bad is less a thought than a feeling in the body. We press our self beyond our natural borders, we don't register that we need to stop. We don't register when other people hurt us, we don't register that we hurt other people.
+There are lots of ways to start to reconnect with your body.
+A very simple one is to just sit down and close your eyes and start to register what is going on in your body and take a note of it.
+Make it a habit to take some breaks and check in with your body.
+As you do this slowly your body will know that you are listening again, and you will start to feel again. This might be very unpleasant if you have ignored it for a long time.</p>
+                            <img class="blog-image blog-image-right" src="blog/images_blog/kram.png" alt="Becoming friends with your body again billede 2" loading="lazy" decoding="async" style="max-width:min(460px, 60%);">
+                            <p>You don't really need to do anything. Don't try to change it or make it go away. Just register that things are happening in your body. That it's alive and that it produces sensations. Slowly as you build trust you will find that it says a lot, and you can start asking it questions. You will start to see connections between how you feel and where in your body you can feel it.
+You will regain one of the most powerful skills the body has. Gut feeling. Just knowing without the need to explain. Just by registering your body you know what's the right thing to do for you. It will take time, but every step of that development will be an improvement.
+It might also hurt. Not because the pain is new but because you again allow it to be felt in your body.</p>
+                            <div class="blog-post-link">
+                                <p class="blog-post-link-line">Link:</p>
+                                <p class="blog-post-link-line"><a href="#post-what-should-i-write-in-my-journal-your-journal-is-your-new-best-friend" class="blog-post-link-internal">Start Journaling. Your journal is your new best friend!</a></p>
+                            </div>
                         </article>
                         <!-- BLOG_POSTS_END -->
                     </section>
@@ -979,6 +1093,8 @@ It's not about perfect but about practice :)</p>
     <script>
         (function () {
             const blogToc = document.getElementById("blogToc");
+            const blogTocScrollHint = document.getElementById("blogTocScrollHint");
+            const blogSidebar = document.querySelector(".blog-sidebar");
             const blogContent = document.getElementById("blogContent");
             const blogTagFilterTrigger = document.getElementById("blogTagFilterTrigger");
             const blogTagFilterLabel = document.getElementById("blogTagFilterLabel");
@@ -986,6 +1102,31 @@ It's not about perfect but about practice :)</p>
             const allPosts = Array.from(blogContent.querySelectorAll(".blog-post"));
             let activeTagFilter = "";
             let latestTagCounts = {};
+
+            function updateSidebarHeight() {
+                if (!blogSidebar) return;
+                if (window.innerWidth <= 980) {
+                    blogSidebar.style.maxHeight = "";
+                    return;
+                }
+                const top = blogSidebar.getBoundingClientRect().top;
+                const available = Math.floor(window.innerHeight - top - 24);
+                blogSidebar.style.maxHeight = Math.max(180, available) + "px";
+            }
+
+            function updateTocScrollHint() {
+                if (!blogToc || !blogTocScrollHint) return;
+                const canScroll = blogToc.scrollHeight > blogToc.clientHeight + 1;
+                const atBottom = blogToc.scrollTop + blogToc.clientHeight >= blogToc.scrollHeight - 4;
+                const show = canScroll && !atBottom;
+                blogTocScrollHint.classList.toggle("is-visible", show);
+                blogTocScrollHint.setAttribute("aria-hidden", show ? "false" : "true");
+            }
+
+            function syncSidebarLayout() {
+                updateSidebarHeight();
+                updateTocScrollHint();
+            }
 
             const monthLookup = {
                 january: 0,
@@ -1237,6 +1378,7 @@ It's not about perfect but about practice :)</p>
                     li.appendChild(link);
                     blogToc.appendChild(li);
                 });
+                requestAnimationFrame(syncSidebarLayout);
             }
 
             async function copyLinkForPost(article, button) {
@@ -1344,12 +1486,14 @@ It's not about perfect but about practice :)</p>
                 if (!releasedPosts.length) {
                     blogContent.innerHTML = '<p class="status-msg">Ingen blogs fundet.</p>';
                     blogToc.innerHTML = "";
+                    syncSidebarLayout();
                     return;
                 }
 
                 if (!visiblePosts.length) {
                     blogContent.innerHTML = '<p class="status-msg">Ingen blogs med dette tag.</p>';
                     blogToc.innerHTML = "";
+                    syncSidebarLayout();
                     return;
                 }
 
@@ -1437,10 +1581,15 @@ It's not about perfect but about practice :)</p>
                 if (event.key === "Escape") closeTagFilterMenu();
             });
 
+            blogToc.addEventListener("scroll", updateTocScrollHint, { passive: true });
+            window.addEventListener("resize", syncSidebarLayout);
+            window.addEventListener("scroll", syncSidebarLayout, { passive: true });
+
             function init() {
                 renderView();
                 const postId = getPostIdFromHash();
                 if (postId) navigateToPost(postId, false);
+                syncSidebarLayout();
             }
 
             init();
