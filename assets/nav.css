@@ -18,7 +18,7 @@
 .site-nav {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 28px;
 }
 
 .site-nav-link {
@@ -74,7 +74,7 @@
 .site-mobile-menu .site-nav {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 14px;
 }
 
 .site-mobile-backdrop {

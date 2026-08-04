@@ -112,6 +112,12 @@
             text-decoration: underline;
         }
 
+        .site-nav {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
         .site-header-actions {
             display: flex;
             flex-wrap: wrap;
@@ -1736,7 +1742,6 @@
             </div>
             <div class="site-header-actions">
                 <button type="button" class="logbog-nav-logout" id="logbogLogoutBtn" data-i18n="logOut">Log out</button>
-                <button type="button" class="logbog-nav-logout" id="logbogFeedbackBtn">Send feedback</button>
             </div>
         </header>
         <div class="header" id="pageHeader">
@@ -6088,13 +6093,6 @@
             await updateHeaderActiveLogDisplay();
 
             initIdleLogout();
-
-            const logbogFeedbackBtn = document.getElementById('logbogFeedbackBtn');
-            if (logbogFeedbackBtn) {
-                logbogFeedbackBtn.addEventListener('click', function() {
-                    window.open('https://forms.gle/P5kaLHHiDCkCvLyd9', '_blank', 'noopener,noreferrer');
-                });
-            }
 
             const logbogLogoutBtn = document.getElementById('logbogLogoutBtn');
             if (logbogLogoutBtn && auth) {
