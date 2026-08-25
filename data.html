@@ -729,6 +729,7 @@
         let db = null;
         let fns = null;
         let exportJournalCallable = null;
+        let confirmJournalExportCallable = null;
         let importJournalCallable = null;
         let currentUser = null;
         let encryptionUnlockContext = null;
@@ -754,6 +755,7 @@
             db = firebase.firestore();
             fns = firebase.app().functions('europe-west4');
             exportJournalCallable = fns.httpsCallable('exportJournalData');
+            confirmJournalExportCallable = fns.httpsCallable('confirmJournalExport');
             importJournalCallable = fns.httpsCallable('importJournalData');
         } catch (error) {
             console.error('Firebase initialization error:', error);
@@ -1498,15 +1500,24 @@
                 if (!currentUser) { setRecoverStatus('You must be signed in.'); return; }
                 if (!exportJournalCallable) { setRecoverStatus('Export function is not initialized.'); return; }
                 recoverDownloadBtn.disabled = true;
-                setRecoverStatus('Requesting backup payload from server...');
                 try {
-                    const res = await exportJournalCallable();
-                    const payload = res && res.data ? res.data : {};
                     const accountEncrypted = await isAccountEncryptedInFirestore();
+                    let cryptoKey = null;
                     if (accountEncrypted) {
                         const encKey = requireEncKeyWhenAccountEncrypted(accountEncrypted);
-                        if (!encKey) return;
-                        const cryptoKey = await deriveKeyFromSession(encKey);
+                        if (!encKey) {
+                            setRecoverStatus('Enter your encryption key to download.');
+                            return;
+                        }
+                        cryptoKey = await deriveKeyFromSession(encKey);
+                    }
+
+                    setRecoverStatus('Requesting backup payload from server...');
+                    const res = await exportJournalCallable();
+                    const payload = res && res.data ? res.data : {};
+
+                    if (accountEncrypted && cryptoKey) {
+                        setRecoverStatus('Decrypting your journal...');
                         for (const monthKey of Object.keys(payload.months || {})) {
                             const month = payload.months[monthKey];
                             if (month && month.encrypted && typeof month.encrypted === 'string') {
@@ -1514,8 +1525,20 @@
                             }
                         }
                     }
+
                     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
                     triggerRecoverDownload(`journal-export-${stamp}.json`, payload);
+
+                    if (confirmJournalExportCallable) {
+                        try {
+                            await confirmJournalExportCallable();
+                        } catch (confirmErr) {
+                            console.warn('[RECOVER] Export confirm failed after download:', confirmErr);
+                            setRecoverStatus('Download started, but cooldown could not be recorded. You may export again soon.');
+                            return;
+                        }
+                    }
+
                     setRecoverStatus('Export complete. JSON download started.');
                 } catch (err) {
                     console.error('[RECOVER] Export failed:', err);
