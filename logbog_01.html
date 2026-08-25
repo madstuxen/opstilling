@@ -185,27 +185,6 @@
             max-width: 100%;
         }
 
-        .header-log-color-btn {
-            flex-shrink: 0;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: none;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            color: #ffffff;
-        }
-
-        .header-log-color-btn:hover {
-            transform: scale(1.08);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
         .header-active-log-date {
             font-size: 0.95rem;
             font-weight: 500;
@@ -417,6 +396,7 @@
         }
 
         .log-history-item {
+            position: relative;
             margin-bottom: 8px;
             border-radius: 8px;
             cursor: pointer;
@@ -437,9 +417,45 @@
         }
 
         .log-history-item.active {
-            border: 2px solid #3b82f6;
-            background: #eff6ff;
+            border: 2px solid #573920;
+            background: #f9f9f9;
             padding: 7px;
+        }
+
+        .log-history-item-color-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            z-index: 2;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            font-weight: 600;
+            font-size: 11px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.15s ease;
+        }
+
+        .log-history-item.active .log-history-item-color-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .log-history-item.active .log-history-item-body {
+            padding-right: 22px;
+        }
+
+        .log-history-item-color-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         }
 
         .log-history-item-color-bar {
@@ -1752,7 +1768,6 @@
                         <h1 id="logbogPageTitle" data-i18n="logTitle">Journal</h1>
                     </div>
                     <div class="header-book-meta-row">
-                        <button type="button" class="header-log-color-btn" id="headerLogHistoryColorBtn" data-i18n-attr-title="pickColor" title="Pick color for selected day">C</button>
                         <span class="header-active-log-date" id="headerActiveLogDate" aria-live="polite"></span>
                     </div>
                 </div>
@@ -3539,24 +3554,20 @@
 
         async function updateHeaderActiveLogDisplay() {
             const dateEl = document.getElementById('headerActiveLogDate');
-            const colorBtn = document.getElementById('headerLogHistoryColorBtn');
             const dateKey = activeLogDate;
             if (dateEl) {
                 dateEl.textContent = formatHeaderActiveDate(dateKey);
             }
-            if (!colorBtn) return;
-            colorBtn.dataset.date = dateKey || '';
-            const entries = await getLogbookData();
-            const entry = entries.find(e => e.date === dateKey);
+        }
+
+        function getLogHistoryEntryColor(entry, dateKey) {
             let entryColor = (entry && entry.color) || DEFAULT_HISTORY_COLOR;
-            // Uafgjorte farver i modal: header matcher stadig valgt dag
             const pending = window._pendingLogHistoryColorChanges;
             if (pending && pending.has(dateKey)) {
                 const p = pending.get(dateKey);
                 entryColor = p === null ? DEFAULT_HISTORY_COLOR : p;
             }
-            colorBtn.style.background = entryColor;
-            colorBtn.style.color = '#ffffff';
+            return entryColor;
         }
 
         // Track which months are expanded (by month key like "2024-11")
@@ -3814,7 +3825,7 @@
                     activeItemEl = item;
                 }
 
-                const entryColor = entry.color || DEFAULT_HISTORY_COLOR;
+                const entryColor = getLogHistoryEntryColor(entry, entry.date);
 
                 const colorBar = document.createElement('div');
                 colorBar.className = 'log-history-item-color-bar';
@@ -3858,7 +3869,23 @@
                 }
 
                 bodyEl.append(titleEl, subEl, snippetEl);
-                item.append(colorBar, bodyEl);
+
+                const colorBtn = document.createElement('button');
+                colorBtn.type = 'button';
+                colorBtn.className = 'log-history-item-color-btn';
+                colorBtn.textContent = 'C';
+                colorBtn.title = getLogbogStrings().pickColor;
+                colorBtn.style.background = entryColor;
+                colorBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    openLogHistoryColorPicker(entry.date);
+                });
+                colorBtn.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                });
+
+                item.append(colorBar, bodyEl, colorBtn);
 
                 // Shared handler function for both touch and click
                 const handleItemActivation = async (e) => {
@@ -4211,11 +4238,10 @@
                 if (bar) {
                     bar.style.backgroundColor = color;
                 }
-            }
-            const headerColorBtn = document.getElementById('headerLogHistoryColorBtn');
-            if (headerColorBtn && logHistoryColorPickerTarget === activeLogDate) {
-                headerColorBtn.style.background = color;
-                headerColorBtn.style.color = '#ffffff';
+                const colorBtn = item.querySelector('.log-history-item-color-btn');
+                if (colorBtn) {
+                    colorBtn.style.background = color;
+                }
             }
             if (typeof renderCheckinChart === 'function') {
                 renderCheckinChart();
@@ -6196,15 +6222,6 @@
                     lastCheckedDateKey = currentTodayKey;
                 }
             });
-
-            const headerLogColorBtn = document.getElementById('headerLogHistoryColorBtn');
-            if (headerLogColorBtn) {
-                headerLogColorBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    openLogHistoryColorPicker(activeLogDate);
-                });
-            }
 
             // Add copy button functionality
             const journalSaveBtn = document.getElementById('journalSaveBtn');
