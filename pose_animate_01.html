@@ -405,7 +405,8 @@
         #shoulder_handle_right,
         #shoulder_handle_left,
         #hip_handle_left,
-        #hip_handle_right {
+        #hip_handle_right,
+        #objekt_handle {
             position: fixed;
             width: 10px;
             height: 10px;
@@ -421,7 +422,8 @@
         #shoulder_handle_right.dragging,
         #shoulder_handle_left.dragging,
         #hip_handle_left.dragging,
-        #hip_handle_right.dragging {
+        #hip_handle_right.dragging,
+        #objekt_handle.dragging {
             cursor: grabbing;
         }
 
@@ -448,6 +450,58 @@
             bottom: -30px;
             right: 10px;
             width: 150px;
+        }
+
+        .objekt-controls {
+            top: 50%;
+            left: -165px;
+            transform: translateY(-50%);
+            width: 155px;
+        }
+
+        #objekt_controls_inner.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .mini-slider select {
+            width: 120px;
+            font-size: 9px;
+            padding: 2px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+
+        .objekt_container {
+            position: absolute;
+            z-index: 4;
+            pointer-events: none;
+            transform-origin: center center;
+        }
+
+        .objekt_container.front-objekt {
+            z-index: 20;
+        }
+
+        .objekt_container.root {
+            top: 144px;
+            left: 150px;
+        }
+
+        .objekt_container.attached {
+            top: -8px;
+            left: -8px;
+        }
+
+        .objekt_scale_wrapper {
+            transform-origin: center center;
+        }
+
+        .objekt_svg {
+            width: 60px;
+            height: auto;
+            display: block;
+            pointer-events: none;
         }
 
         .timeline-panel {
@@ -1286,11 +1340,73 @@
                     </div>
                 </div>
 
+                <!-- Objekt Controls -->
+                <div class="mini-controls objekt-controls">
+                    <h4>Objekt</h4>
+                    <div class="mini-checkbox">
+                        <input type="checkbox" id="objekt_enabled" onchange="onObjektEnabledChange()">
+                        <label for="objekt_enabled">Objekt</label>
+                    </div>
+                    <div id="objekt_controls_inner" class="disabled">
+                        <div class="mini-slider">
+                            <label>Fil:</label>
+                            <select id="objekt_select"></select>
+                        </div>
+                        <div class="mini-checkbox">
+                            <input type="checkbox" id="objekt_visible" checked>
+                            <label for="objekt_visible">Vis</label>
+                        </div>
+                        <div class="mini-checkbox">
+                            <input type="checkbox" id="objekt_front" checked onchange="toggleObjektLayer()">
+                            <label for="objekt_front">Foran torso</label>
+                        </div>
+                        <div class="mini-checkbox">
+                            <input type="checkbox" id="objekt_flip">
+                            <label for="objekt_flip">Flip</label>
+                        </div>
+                        <div class="mini-slider">
+                            <label>X:</label>
+                            <input type="range" id="objekt_x" min="-100" max="100" value="0">
+                            <div class="mini-value" id="objekt_x_val">0</div>
+                        </div>
+                        <div class="mini-slider">
+                            <label>Y:</label>
+                            <input type="range" id="objekt_y" min="-100" max="100" value="0">
+                            <div class="mini-value" id="objekt_y_val">0</div>
+                        </div>
+                        <div class="mini-slider">
+                            <label>Rotation:</label>
+                            <input type="range" id="objekt_rotate" min="-180" max="180" value="0">
+                            <div class="mini-value" id="objekt_rotate_val">0°</div>
+                        </div>
+                        <div class="mini-slider">
+                            <label>Skala:</label>
+                            <input type="range" id="objekt_scale" min="0" max="2" step="0.1" value="1">
+                            <div class="mini-value" id="objekt_scale_val">1</div>
+                        </div>
+                        <div class="mini-slider">
+                            <label>Parent:</label>
+                            <select id="objekt_parent">
+                                <option value="">Ingen</option>
+                                <option value="skulder_left">Venstre skulder</option>
+                                <option value="skulder_right">Højre skulder</option>
+                                <option value="albue_left">Venstre albue</option>
+                                <option value="albue_right">Højre albue</option>
+                                <option value="hofte_left">Venstre hofte</option>
+                                <option value="hofte_right">Højre hofte</option>
+                                <option value="knae_left">Venstre knæ</option>
+                                <option value="knae_right">Højre knæ</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Figure -->
                 <div id="shoulder_handle_left"></div>
                 <div id="shoulder_handle_right"></div>
                 <div id="hip_handle_left"></div>
                 <div id="hip_handle_right"></div>
+                <div id="objekt_handle"></div>
                 <div class="figure-container">
                     <div id="ik_end_effector_left" class="ik-end-effector-left"></div>
                     <div id="ik_end_effector_right" class="ik-end-effector-right"></div>
@@ -1343,6 +1459,12 @@
                                     <div class="skinneben_geo_right"></div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="objekt_container root">
+                        <div class="objekt_scale_wrapper">
+                            <img class="objekt_svg" alt="">
                         </div>
                     </div>
                 </div>
@@ -1570,6 +1692,21 @@
         let timelineSlides = [getDefaultPose()];
         let currentSlideIndex = 0;
         let isPlaying = false;
+        let objektEnabled = false;
+
+        function getDefaultObjektFields() {
+            return {
+                objekt_name: '',
+                objekt_visible: true,
+                objekt_front: true,
+                objekt_flip: false,
+                objekt_x: 0,
+                objekt_y: 0,
+                objekt_rotate: 0,
+                objekt_scale: 1,
+                objekt_parent: '',
+            };
+        }
 
         function getDefaultPose() {
             return {
@@ -1582,6 +1719,310 @@
                 head_text: 'Hoved',
                 duration: 0.1
             };
+        }
+
+        function getPoseWithObjektDefaults(pose) {
+            return { ...getDefaultObjektFields(), ...pose };
+        }
+
+        function slideHasObjektData(slide) {
+            return slide.objekt_enabled ||
+                slide.objekt_name ||
+                slide.objekt_visible === false ||
+                slide.objekt_front === false ||
+                slide.objekt_flip ||
+                slide.objekt_x ||
+                slide.objekt_y ||
+                slide.objekt_rotate ||
+                (slide.objekt_scale !== undefined && slide.objekt_scale !== 1) ||
+                slide.objekt_parent;
+        }
+
+        function stripObjektFields(pose) {
+            const stripped = { ...pose };
+            Object.keys(getDefaultObjektFields()).forEach(key => delete stripped[key]);
+            delete stripped.objekt_enabled;
+            return stripped;
+        }
+
+        function buildCurrentPoseFromNormalized(normalized) {
+            if (!slideHasObjektData(normalized)) {
+                return stripObjektFields(normalized);
+            }
+            return { ...normalized };
+        }
+
+        function normalizePoseData(pose) {
+            return normalizeImportedSlide({ ...pose, duration: pose.duration ?? 0.1 });
+        }
+
+        const OBJEKT_BASE = 'animations/objekt';
+        const OBJEKT_FALLBACK_FILES = ['heart.svg'];
+        const TORSO_CENTER_X = 150;
+        const TORSO_CENTER_Y = 144;
+
+        const OBJEKT_PARENT_SELECTORS = {
+            skulder_right: '.skulder_rotate_right',
+            skulder_left: '.skulder_rotate_left',
+            albue_right: '.albue_rotate_right',
+            albue_left: '.albue_rotate_left',
+            hofte_right: '.hofte_rotate_right',
+            hofte_left: '.hofte_rotate_left',
+            knae_right: '.knae_rotate_right',
+            knae_left: '.knae_rotate_left',
+        };
+
+        function syncObjektControlsFromPose(pose) {
+            const hasObjekt = slideHasObjektData(pose);
+            const objektPose = hasObjekt ? getPoseWithObjektDefaults(pose) : getDefaultObjektFields();
+            document.getElementById('objekt_visible').checked = objektPose.objekt_visible !== false;
+            document.getElementById('objekt_front').checked = objektPose.objekt_front !== false;
+            document.getElementById('objekt_flip').checked = objektPose.objekt_flip || false;
+            document.getElementById('objekt_x').value = objektPose.objekt_x || 0;
+            document.getElementById('objekt_y').value = objektPose.objekt_y || 0;
+            document.getElementById('objekt_rotate').value = objektPose.objekt_rotate || 0;
+            document.getElementById('objekt_scale').value = objektPose.objekt_scale ?? 1;
+            document.getElementById('objekt_parent').value = objektPose.objekt_parent || '';
+            const select = document.getElementById('objekt_select');
+            if (objektPose.objekt_name && select.querySelector(`option[value="${objektPose.objekt_name}"]`)) {
+                select.value = objektPose.objekt_name;
+            } else if (!hasObjekt && select.options.length > 0) {
+                select.value = select.options[0].value;
+            }
+            toggleObjektLayer();
+        }
+
+        function onObjektEnabledChange() {
+            objektEnabled = document.getElementById('objekt_enabled').checked;
+            toggleObjektControlsEnabled(objektEnabled);
+            if (objektEnabled) {
+                const poseWithObjekt = getPoseWithObjektDefaults({
+                    ...currentPose,
+                    objekt_name: document.getElementById('objekt_select').value || ''
+                });
+                syncObjektControlsFromPose(poseWithObjekt);
+                updateObjektFromPose(poseWithObjekt);
+                updateTransforms();
+            } else {
+                updateObjektFromPose(currentPose);
+            }
+            syncObjektHandle();
+        }
+
+        function toggleObjektLayer() {
+            const checkbox = document.getElementById('objekt_front');
+            const container = document.querySelector('.objekt_container');
+
+            if (checkbox && checkbox.checked) {
+                container.classList.add('front-objekt');
+            } else {
+                container.classList.remove('front-objekt');
+            }
+        }
+
+        function toggleObjektControlsEnabled(enabled) {
+            const inner = document.getElementById('objekt_controls_inner');
+            if (enabled) {
+                inner.classList.remove('disabled');
+            } else {
+                inner.classList.add('disabled');
+            }
+        }
+
+        function reparentObjektContainer(parentKey) {
+            const container = document.querySelector('.objekt_container');
+            const figureContainer = document.querySelector('.figure-container');
+            const selector = OBJEKT_PARENT_SELECTORS[parentKey];
+            const parentEl = selector ? figureContainer.querySelector(selector) : figureContainer;
+            if (!parentEl) return;
+
+            container.classList.toggle('attached', !!parentKey);
+            container.classList.toggle('root', !parentKey);
+
+            if (container.parentElement !== parentEl) {
+                parentEl.appendChild(container);
+            }
+        }
+
+        function updateObjektFromPose(pose) {
+            const container = document.querySelector('.objekt_container');
+            const scaleWrapper = container.querySelector('.objekt_scale_wrapper');
+            const img = container.querySelector('.objekt_svg');
+
+            const parentKey = pose.objekt_parent || '';
+            reparentObjektContainer(parentKey);
+
+            if (!objektEnabled || !slideHasObjektData(pose)) {
+                container.style.display = 'none';
+                syncObjektHandle();
+                return;
+            }
+
+            container.style.display = pose.objekt_visible !== false ? '' : 'none';
+
+            if (pose.objekt_name) {
+                img.src = `${OBJEKT_BASE}/${pose.objekt_name}`;
+                img.alt = pose.objekt_name.replace('.svg', '');
+                img.onload = () => syncObjektHandle();
+            }
+
+            const x = pose.objekt_x || 0;
+            const y = pose.objekt_y || 0;
+            const rot = pose.objekt_rotate || 0;
+            const scale = pose.objekt_scale ?? 1;
+            const flipX = pose.objekt_flip ? -1 : 1;
+
+            scaleWrapper.style.transform = `scale(${scale}) scaleX(${flipX})`;
+
+            if (parentKey) {
+                container.style.left = '';
+                container.style.top = '';
+                container.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
+            } else {
+                container.style.left = `${TORSO_CENTER_X}px`;
+                container.style.top = `${TORSO_CENTER_Y}px`;
+                container.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rot}deg)`;
+            }
+
+            if (pose.objekt_front !== false) {
+                container.classList.add('front-objekt');
+            } else {
+                container.classList.remove('front-objekt');
+            }
+
+            syncObjektHandle();
+        }
+
+        function syncObjektHandle() {
+            const handle = document.getElementById('objekt_handle');
+            if (!handle) return;
+
+            if (!objektEnabled || !slideHasObjektData(currentPose) || currentPose.objekt_visible === false) {
+                handle.style.display = 'none';
+                return;
+            }
+
+            const container = document.querySelector('.objekt_container');
+            if (!container || container.style.display === 'none') {
+                handle.style.display = 'none';
+                return;
+            }
+
+            const rect = container.getBoundingClientRect();
+            handle.style.display = '';
+            handle.style.left = `${rect.left + rect.width / 2}px`;
+            handle.style.top = `${rect.top + rect.height / 2}px`;
+        }
+
+        function updateObjektValueDisplays() {
+            document.getElementById('objekt_x_val').textContent = currentPose.objekt_x || 0;
+            document.getElementById('objekt_y_val').textContent = currentPose.objekt_y || 0;
+            document.getElementById('objekt_rotate_val').textContent = (currentPose.objekt_rotate || 0) + '°';
+            document.getElementById('objekt_scale_val').textContent = currentPose.objekt_scale ?? 1;
+        }
+
+        async function loadObjektManifest() {
+            const select = document.getElementById('objekt_select');
+            let files = [];
+
+            try {
+                const manifestResponse = await fetch(OBJEKT_BASE + '/manifest.json');
+                if (manifestResponse.ok) {
+                    const manifest = await manifestResponse.json();
+                    if (manifest.files && Array.isArray(manifest.files)) {
+                        files = manifest.files;
+                    }
+                }
+            } catch (e) {
+                /* no manifest */
+            }
+
+            if (files.length === 0) {
+                files = OBJEKT_FALLBACK_FILES.slice();
+            }
+
+            select.innerHTML = '';
+            files.forEach(fileName => {
+                const option = document.createElement('option');
+                option.value = fileName;
+                option.textContent = fileName.replace('.svg', '');
+                select.appendChild(option);
+            });
+
+            if (files.length > 0 && !currentPose.objekt_name) {
+                currentPose.objekt_name = files[0];
+                select.value = files[0];
+            } else if (currentPose.objekt_name && files.includes(currentPose.objekt_name)) {
+                select.value = currentPose.objekt_name;
+            }
+        }
+
+        function buildBodySlideFields(slide) {
+            return {
+                translate_x_left: slide.translate_x_left || 0,
+                translate_y_left: slide.translate_y_left || 0,
+                skulder_rot_left: slide.skulder_rot_left || 0,
+                albue_rot_left: slide.albue_rot_left || 0,
+                translate_x: slide.translate_x || 0,
+                translate_y: slide.translate_y || 0,
+                skulder_rot: slide.skulder_rot || 0,
+                albue_rot: slide.albue_rot || 0,
+                translate_x_left_leg: slide.translate_x_left_leg || 0,
+                translate_y_left_leg: slide.translate_y_left_leg || 0,
+                hofte_rot_left: slide.hofte_rot_left || 0,
+                knae_rot_left: slide.knae_rot_left || 0,
+                translate_x_right_leg: slide.translate_x_right_leg || 0,
+                translate_y_right_leg: slide.translate_y_right_leg || 0,
+                hofte_rot_right: slide.hofte_rot_right || 0,
+                knae_rot_right: slide.knae_rot_right || 0,
+                left_arm_front: slide.left_arm_front || false,
+                right_arm_front: slide.right_arm_front || false,
+                head_text: slide.head_text ?? 'Hoved',
+                duration: slide.duration || 0.1
+            };
+        }
+
+        function buildExportPoseData(pose, includeObjekt) {
+            const exported = buildBodySlideFields(pose);
+            if (includeObjekt && slideHasObjektData(pose)) {
+                exported.objekt_name = pose.objekt_name || '';
+                exported.objekt_visible = pose.objekt_visible !== false;
+                exported.objekt_front = pose.objekt_front !== false;
+                exported.objekt_flip = pose.objekt_flip || false;
+                exported.objekt_x = pose.objekt_x || 0;
+                exported.objekt_y = pose.objekt_y || 0;
+                exported.objekt_rotate = pose.objekt_rotate || 0;
+                exported.objekt_scale = pose.objekt_scale ?? 1;
+                exported.objekt_parent = pose.objekt_parent || '';
+            }
+            return exported;
+        }
+
+        function buildStoredPoseData(pose) {
+            const exported = buildExportPoseData(pose, objektEnabled);
+            delete exported.duration;
+            return exported;
+        }
+
+        function buildExportSlide(slide) {
+            return buildExportPoseData(slide, objektEnabled);
+        }
+
+        function normalizeImportedSlide(slide) {
+            const normalized = buildBodySlideFields(slide);
+            if (slideHasObjektData(slide)) {
+                const defaults = getDefaultObjektFields();
+                normalized.objekt_name = slide.objekt_name || defaults.objekt_name;
+                normalized.objekt_visible = slide.objekt_visible !== false;
+                normalized.objekt_front = slide.objekt_front !== false;
+                normalized.objekt_flip = slide.objekt_flip || false;
+                normalized.objekt_x = slide.objekt_x || 0;
+                normalized.objekt_y = slide.objekt_y || 0;
+                normalized.objekt_rotate = slide.objekt_rotate || 0;
+                normalized.objekt_scale = slide.objekt_scale ?? 1;
+                normalized.objekt_parent = slide.objekt_parent || '';
+            }
+            return normalized;
         }
 
         function setHeadTextDisplay(text) {
@@ -1599,7 +2040,8 @@
 		
 		
 		
-		function applyPoseSilently(pose) {
+		function applyPoseSilently(rawPose) {
+			const pose = normalizePoseData(rawPose);
 			// Temporarily remove event listeners to avoid triggering updateTransforms
 			const sliders = document.querySelectorAll('input[type="range"]');
 			sliders.forEach(slider => {
@@ -1609,22 +2051,36 @@
 			const leftCheck = document.getElementById('left_arm_front');
 			const rightCheck = document.getElementById('right_arm_front');
 			const headTextInput = document.getElementById('head_text');
+			const objektVisibleCheck = document.getElementById('objekt_visible');
+			const objektFrontCheck = document.getElementById('objekt_front');
+			const objektFlipCheck = document.getElementById('objekt_flip');
+			const objektSelect = document.getElementById('objekt_select');
+			const objektParentSelect = document.getElementById('objekt_parent');
 			leftCheck.removeEventListener('change', updateTransforms);
 			rightCheck.removeEventListener('change', updateTransforms);
 			headTextInput.removeEventListener('input', updateTransforms);
+			objektVisibleCheck.removeEventListener('change', updateTransforms);
+			objektFrontCheck.removeEventListener('change', updateTransforms);
+			objektFlipCheck.removeEventListener('change', updateTransforms);
+			objektSelect.removeEventListener('change', updateTransforms);
+			objektParentSelect.removeEventListener('change', updateTransforms);
 			
 			// Update slider values
 			sliders.forEach(slider => {
-				slider.value = pose[slider.id] || 0;
+				if (slider.id === 'objekt_scale') {
+					slider.value = pose.objekt_scale ?? 1;
+				} else {
+					slider.value = pose[slider.id] || 0;
+				}
 			});
 			
 			// Update checkboxes
 			leftCheck.checked = pose.left_arm_front || false;
 			rightCheck.checked = pose.right_arm_front || false;
 			syncHeadTextInput(pose);
-			
-			// Update currentPose
-			currentPose = {...pose};
+			syncObjektControlsFromPose(pose);
+
+			currentPose = buildCurrentPoseFromNormalized(pose);
 			
 			// Apply transforms directly to the big figure
 			document.querySelector('.skulder_translate_left').style.transform = 
@@ -1681,6 +2137,14 @@
 			leftCheck.addEventListener('change', updateTransforms);
 			rightCheck.addEventListener('change', updateTransforms);
 			headTextInput.addEventListener('input', updateTransforms);
+			objektVisibleCheck.addEventListener('change', updateTransforms);
+			objektFrontCheck.addEventListener('change', updateTransforms);
+			objektFlipCheck.addEventListener('change', updateTransforms);
+			objektSelect.addEventListener('change', updateTransforms);
+			objektParentSelect.addEventListener('change', updateTransforms);
+
+			updateObjektFromPose(pose);
+			updateObjektValueDisplays();
 
 			syncRightArmIKEndEffector();
 			syncLeftArmIKEndEffector();
@@ -1690,6 +2154,7 @@
 			syncRightLegIKEndEffector();
 			syncHipHandleLeft();
 			syncHipHandleRight();
+			syncObjektHandle();
 		}
 		
 		function updateSingleSlideDisplay(index) {
@@ -1721,19 +2186,37 @@ function testSlideData() {
 			const sliders = document.querySelectorAll('input[type="range"]');
 			
 			sliders.forEach(slider => {
-				currentPose[slider.id] = parseInt(slider.value);
+				// objekt_scale uses parseFloat (not parseInt) because step="0.1" allows decimals
+				if (slider.id === 'objekt_scale') {
+					currentPose[slider.id] = parseFloat(slider.value);
+				} else {
+					currentPose[slider.id] = parseInt(slider.value, 10);
+				}
 			});
 
 			// Get checkbox states
 			currentPose.left_arm_front = document.getElementById('left_arm_front').checked;
 			currentPose.right_arm_front = document.getElementById('right_arm_front').checked;
 			currentPose.head_text = document.getElementById('head_text').value;
+			currentPose.objekt_visible = document.getElementById('objekt_visible').checked;
+			currentPose.objekt_front = document.getElementById('objekt_front').checked;
+			currentPose.objekt_flip = document.getElementById('objekt_flip').checked;
+			currentPose.objekt_name = document.getElementById('objekt_select').value;
+			currentPose.objekt_parent = document.getElementById('objekt_parent').value;
 			setHeadTextDisplay(currentPose.head_text);
 
 			// Update timeline slide with current pose
 		if (currentSlideIndex >= 0 && currentSlideIndex < timelineSlides.length) {
     console.log("updateTransforms updating slide:", currentSlideIndex, "with pose data");
-    timelineSlides[currentSlideIndex] = {...currentPose, duration: timelineSlides[currentSlideIndex].duration || 1.0};
+    let slideData = {
+        ...currentPose,
+        duration: timelineSlides[currentSlideIndex].duration || 1.0
+    };
+    if (!objektEnabled || !slideHasObjektData(slideData)) {
+        slideData = stripObjektFields(slideData);
+    }
+    delete slideData.objekt_enabled;
+    timelineSlides[currentSlideIndex] = slideData;
 			
 			updateSingleSlideDisplay(currentSlideIndex);
 		}
@@ -1769,6 +2252,7 @@ function testSlideData() {
 			
 			// Update value displays
 			updateValueDisplays();
+			updateObjektFromPose(getPoseWithObjektDefaults(currentPose));
 			
 			// Update only the current slide's mini figure
 			const slides = document.querySelectorAll('.timeline-slide');
@@ -1814,6 +2298,7 @@ function testSlideData() {
             document.getElementById('translate_y_right_leg_val').textContent = currentPose.translate_y_right_leg || 0;
             document.getElementById('hofte_rot_right_val').textContent = (currentPose.hofte_rot_right || 0) + '°';
             document.getElementById('knae_rot_right_val').textContent = (currentPose.knae_rot_right || 0) + '°';
+            updateObjektValueDisplays();
         }
 
         function resetSliders() {
@@ -1821,7 +2306,9 @@ function testSlideData() {
             applyPose(defaultPose);
         }
 
-        function applyPose(pose) {
+        function applyPose(rawPose) {
+            const pose = normalizePoseData(rawPose);
+
             // Apply pose values to sliders
             Object.keys(pose).forEach(key => {
                 const slider = document.getElementById(key);
@@ -1840,9 +2327,11 @@ function testSlideData() {
                 toggleArmLayer('right');
             }
 
+            syncObjektControlsFromPose(pose);
+
             syncHeadTextInput(pose);
             
-            currentPose = {...pose};
+            currentPose = buildCurrentPoseFromNormalized(pose);
             updateTransforms();
             syncRightArmIKEndEffector();
             syncLeftArmIKEndEffector();
@@ -1921,7 +2410,7 @@ function testSlideData() {
                 return;
             }
             
-            const poseData = {...currentPose};
+            const poseData = buildStoredPoseData(currentPose);
             
             if (currentPoseId !== null) {
                 // Update existing pose
@@ -1959,7 +2448,7 @@ function testSlideData() {
                 }
             }
         
-            const poseData = {...currentPose};
+            const poseData = buildStoredPoseData(currentPose);
             
             // Always add as new pose (don't update existing)
             poseLibrary.push({
@@ -1976,10 +2465,16 @@ function testSlideData() {
 
         function loadPoseFromLibrary(index) {
             if (index >= 0 && index < poseLibrary.length) {
-                const pose = poseLibrary[index];
+                const entry = poseLibrary[index];
+                const normalized = normalizePoseData(entry.pose);
                 currentPoseId = index;
-                document.getElementById('poseName').value = pose.name;
-                applyPose(pose.pose);
+                document.getElementById('poseName').value = entry.name;
+
+                objektEnabled = slideHasObjektData(normalized);
+                document.getElementById('objekt_enabled').checked = objektEnabled;
+                toggleObjektControlsEnabled(objektEnabled);
+
+                applyPose(normalized);
                 updatePoseLibraryDisplay();
             }
         }
@@ -2038,7 +2533,10 @@ function testSlideData() {
             const exportData = {
                 version: "1.0",
                 created: new Date().toISOString(),
-                poses: poseLibrary
+                poses: poseLibrary.map(entry => ({
+                    name: entry.name,
+                    pose: buildExportPoseData(entry.pose, slideHasObjektData(entry.pose))
+                }))
             };
             
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -2077,12 +2575,20 @@ function testSlideData() {
                     
                     // Validate and import
                     let validPoses = 0;
-                    importedPoses.forEach(pose => {
-                        if (pose.name && pose.pose) {
-                            poseLibrary.push(pose);
+                    importedPoses.forEach(entry => {
+                        const poseEntry = entry.pose ? entry : { name: entry.name, pose: entry };
+                        if (poseEntry.name && poseEntry.pose) {
+                            poseLibrary.push({
+                                name: poseEntry.name,
+                                pose: normalizePoseData(poseEntry.pose)
+                            });
                             validPoses++;
                         }
                     });
+
+                    objektEnabled = poseLibrary.some(entry => slideHasObjektData(entry.pose));
+                    document.getElementById('objekt_enabled').checked = objektEnabled;
+                    toggleObjektControlsEnabled(objektEnabled);
                     
                     updatePoseLibraryDisplay();
                     alert(`${validPoses} poses indlæst succesfuldt!`);
@@ -2334,7 +2840,8 @@ function moveTimelineSlide(fromIndex, direction) {
 					'.skulder_translate_left', '.skulder_rotate_left', '.albue_rotate_left',
 					'.skulder_translate_right', '.skulder_rotate_right', '.albue_rotate_right',
 					'.hofte_translate_left', '.hofte_rotate_left', '.knae_rotate_left',
-					'.hofte_translate_right', '.hofte_rotate_right', '.knae_rotate_right'
+					'.hofte_translate_right', '.hofte_rotate_right', '.knae_rotate_right',
+					'.objekt_container', '.objekt_scale_wrapper'
 				];
 
 				animatedElements.forEach(selector => {
@@ -2358,7 +2865,8 @@ function moveTimelineSlide(fromIndex, direction) {
 				'.skulder_translate_left', '.skulder_rotate_left', '.albue_rotate_left',
 				'.skulder_translate_right', '.skulder_rotate_right', '.albue_rotate_right',
 				'.hofte_translate_left', '.hofte_rotate_left', '.knae_rotate_left',
-				'.hofte_translate_right', '.hofte_rotate_right', '.knae_rotate_right'
+				'.hofte_translate_right', '.hofte_rotate_right', '.knae_rotate_right',
+				'.objekt_container', '.objekt_scale_wrapper'
 			];
 
 animatedElements.forEach(selector => {
@@ -2391,28 +2899,7 @@ animatedElements.forEach(selector => {
         version: "1.0",
         type: "timeline",
         created: new Date().toISOString(),
-        slides: timelineSlides.map(slide => ({
-            translate_x_left: slide.translate_x_left || 0,
-            translate_y_left: slide.translate_y_left || 0,
-            skulder_rot_left: slide.skulder_rot_left || 0,
-            albue_rot_left: slide.albue_rot_left || 0,
-            translate_x: slide.translate_x || 0,
-            translate_y: slide.translate_y || 0,
-            skulder_rot: slide.skulder_rot || 0,
-            albue_rot: slide.albue_rot || 0,
-            translate_x_left_leg: slide.translate_x_left_leg || 0,
-            translate_y_left_leg: slide.translate_y_left_leg || 0,
-            hofte_rot_left: slide.hofte_rot_left || 0,
-            knae_rot_left: slide.knae_rot_left || 0,
-            translate_x_right_leg: slide.translate_x_right_leg || 0,
-            translate_y_right_leg: slide.translate_y_right_leg || 0,
-            hofte_rot_right: slide.hofte_rot_right || 0,
-            knae_rot_right: slide.knae_rot_right || 0,
-            left_arm_front: slide.left_arm_front || false,
-            right_arm_front: slide.right_arm_front || false,
-            head_text: slide.head_text ?? 'Hoved',
-            duration: slide.duration || 0.1
-        }))
+        slides: timelineSlides.map(slide => buildExportSlide(slide))
     };
     
     // Format JSON to match Animations folder style
@@ -2455,35 +2942,16 @@ function importTimelineSlides(event) {
             let validSlides = [];
             importedSlides.forEach(slide => {
                 if (slide.duration !== undefined) {
-                    // Normalize slide data to match expected format
-                    validSlides.push({
-                        translate_x_left: slide.translate_x_left || 0,
-                        translate_y_left: slide.translate_y_left || 0,
-                        skulder_rot_left: slide.skulder_rot_left || 0,
-                        albue_rot_left: slide.albue_rot_left || 0,
-                        translate_x: slide.translate_x || 0,
-                        translate_y: slide.translate_y || 0,
-                        skulder_rot: slide.skulder_rot || 0,
-                        albue_rot: slide.albue_rot || 0,
-                        translate_x_left_leg: slide.translate_x_left_leg || 0,
-                        translate_y_left_leg: slide.translate_y_left_leg || 0,
-                        hofte_rot_left: slide.hofte_rot_left || 0,
-                        knae_rot_left: slide.knae_rot_left || 0,
-                        translate_x_right_leg: slide.translate_x_right_leg || 0,
-                        translate_y_right_leg: slide.translate_y_right_leg || 0,
-                        hofte_rot_right: slide.hofte_rot_right || 0,
-                        knae_rot_right: slide.knae_rot_right || 0,
-                        left_arm_front: slide.left_arm_front || false,
-                        right_arm_front: slide.right_arm_front || false,
-                        head_text: slide.head_text ?? 'Hoved',
-                        duration: slide.duration || 0.1
-                    });
+                    validSlides.push(normalizeImportedSlide(slide));
                 }
             });
             
             if (validSlides.length > 0) {
                 timelineSlides = validSlides;
                 currentSlideIndex = 0;
+                objektEnabled = validSlides.some(slideHasObjektData);
+                document.getElementById('objekt_enabled').checked = objektEnabled;
+                toggleObjektControlsEnabled(objektEnabled);
                 updateTimelineDisplay();
                 if (timelineSlides.length > 0) {
                     selectTimelineSlide(0);
@@ -2516,28 +2984,7 @@ function exportForJavaScript() {
     const cleanName = animationName.replace(/[^a-zA-Z0-9æøåÆØÅ]/g, '_').toLowerCase();
     
     // Normalize slides to match format
-    const normalizedSlides = timelineSlides.map(slide => ({
-        translate_x_left: slide.translate_x_left || 0,
-        translate_y_left: slide.translate_y_left || 0,
-        skulder_rot_left: slide.skulder_rot_left || 0,
-        albue_rot_left: slide.albue_rot_left || 0,
-        translate_x: slide.translate_x || 0,
-        translate_y: slide.translate_y || 0,
-        skulder_rot: slide.skulder_rot || 0,
-        albue_rot: slide.albue_rot || 0,
-        translate_x_left_leg: slide.translate_x_left_leg || 0,
-        translate_y_left_leg: slide.translate_y_left_leg || 0,
-        hofte_rot_left: slide.hofte_rot_left || 0,
-        knae_rot_left: slide.knae_rot_left || 0,
-        translate_x_right_leg: slide.translate_x_right_leg || 0,
-        translate_y_right_leg: slide.translate_y_right_leg || 0,
-        hofte_rot_right: slide.hofte_rot_right || 0,
-        knae_rot_right: slide.knae_rot_right || 0,
-        left_arm_front: slide.left_arm_front || false,
-        right_arm_front: slide.right_arm_front || false,
-        head_text: slide.head_text ?? 'Hoved',
-        duration: slide.duration || 0.1
-    }));
+    const normalizedSlides = timelineSlides.map(slide => buildExportSlide(slide));
     
     const jsCode = `    ${cleanName}: {
         slides: ${JSON.stringify(normalizedSlides, null, 12)}
@@ -2572,6 +3019,10 @@ function exportForJavaScript() {
         let shoulderHandlePrevY = 0;
         let shoulderHandleLeftPrevX = 0;
         let shoulderHandleLeftPrevY = 0;
+
+        let objektHandleDragging = false;
+        let objektHandlePrevX = 0;
+        let objektHandlePrevY = 0;
 
         function getRightShoulderPos() {
             return {
@@ -2877,6 +3328,36 @@ function exportForJavaScript() {
                 applyRightArmIK(ikRightTargetX, ikRightTargetY);
             }
             syncShoulderHandleRight();
+        }
+
+        function onObjektHandleDrag(event) {
+            const dx = event.clientX - objektHandlePrevX;
+            const dy = event.clientY - objektHandlePrevY;
+            objektHandlePrevX = event.clientX;
+            objektHandlePrevY = event.clientY;
+
+            const txSlider = document.getElementById('objekt_x');
+            const tySlider = document.getElementById('objekt_y');
+            let newX = (parseInt(txSlider.value, 10) || 0) + dx;
+            let newY = (parseInt(tySlider.value, 10) || 0) + dy;
+            txSlider.value = Math.max(-100, Math.min(100, Math.round(newX)));
+            tySlider.value = Math.max(-100, Math.min(100, Math.round(newY)));
+
+            updateTransforms();
+        }
+
+        function initObjektHandle() {
+            const handle = document.getElementById('objekt_handle');
+            handle.style.display = 'none';
+
+            handle.addEventListener('mousedown', (event) => {
+                if (!objektEnabled) return;
+                event.preventDefault();
+                objektHandleDragging = true;
+                objektHandlePrevX = event.clientX;
+                objektHandlePrevY = event.clientY;
+                handle.classList.add('dragging');
+            });
         }
 
         function getFigureContainerCoords(clientX, clientY) {
@@ -3336,6 +3817,10 @@ function exportForJavaScript() {
             });
 
             document.addEventListener('mousemove', (event) => {
+                if (objektHandleDragging) {
+                    onObjektHandleDrag(event);
+                    return;
+                }
                 if (hipHandleLeftDragging) {
                     onHipHandleDragLeft(event);
                     return;
@@ -3373,6 +3858,10 @@ function exportForJavaScript() {
             });
 
             document.addEventListener('mouseup', () => {
+                if (objektHandleDragging) {
+                    objektHandleDragging = false;
+                    document.getElementById('objekt_handle').classList.remove('dragging');
+                }
                 if (hipHandleLeftDragging) {
                     hipHandleLeftDragging = false;
                     document.getElementById('hip_handle_left').classList.remove('dragging');
@@ -3420,11 +3909,17 @@ function exportForJavaScript() {
         document.getElementById('left_arm_front').addEventListener('change', updateTransforms);
         document.getElementById('right_arm_front').addEventListener('change', updateTransforms);
         document.getElementById('head_text').addEventListener('input', updateTransforms);
+        document.getElementById('objekt_visible').addEventListener('change', updateTransforms);
+        document.getElementById('objekt_front').addEventListener('change', updateTransforms);
+        document.getElementById('objekt_flip').addEventListener('change', updateTransforms);
+        document.getElementById('objekt_select').addEventListener('change', updateTransforms);
+        document.getElementById('objekt_parent').addEventListener('change', updateTransforms);
 
         initLeftArmIK();
         initRightArmIK();
         initLeftLegIK();
         initRightLegIK();
+        initObjektHandle();
 
         async function exportFigurePNG() {
             if (typeof html2canvas === 'undefined') {
@@ -3612,8 +4107,10 @@ function exportForJavaScript() {
             onColorSelect: applyFigureColor,
         });
         applyFigureColor(FIGURE_COLOR_DEFAULT);
-        newPose();
-        updateTimelineDisplay();
+        loadObjektManifest().then(() => {
+            newPose();
+            updateTimelineDisplay();
+        });
     </script>
 </body>
 </html>
