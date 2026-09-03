@@ -436,7 +436,7 @@
 
         .right-arm-controls {
             top: 20px;
-            right: 10px;
+            right: -70px;
             width: 150px;
         }
 
@@ -448,7 +448,7 @@
 
         .right-leg-controls {
             bottom: -30px;
-            right: 10px;
+            right: -70px;
             width: 150px;
         }
 
@@ -1381,7 +1381,7 @@
                         </div>
                         <div class="mini-slider">
                             <label>Skala:</label>
-                            <input type="range" id="objekt_scale" min="0" max="2" step="0.1" value="1">
+                            <input type="range" id="objekt_scale" min="0" max="3" step="0.1" value="1">
                             <div class="mini-value" id="objekt_scale_val">1</div>
                         </div>
                         <div class="mini-slider">
@@ -1807,6 +1807,7 @@
         }
 
         function readObjektFieldsFromUI() {
+            const scaleRaw = parseFloat(document.getElementById('objekt_scale').value);
             return {
                 objekt_name: document.getElementById('objekt_select').value || '',
                 objekt_visible: document.getElementById('objekt_visible').checked,
@@ -1815,7 +1816,7 @@
                 objekt_x: parseInt(document.getElementById('objekt_x').value, 10) || 0,
                 objekt_y: parseInt(document.getElementById('objekt_y').value, 10) || 0,
                 objekt_rotate: parseInt(document.getElementById('objekt_rotate').value, 10) || 0,
-                objekt_scale: parseFloat(document.getElementById('objekt_scale').value) || 1,
+                objekt_scale: Number.isFinite(scaleRaw) ? scaleRaw : 1,
                 objekt_parent: document.getElementById('objekt_parent').value || '',
             };
         }
@@ -1830,6 +1831,17 @@
             knae_right: '.knae_rotate_right',
             knae_left: '.knae_rotate_left',
         };
+
+        function flipObjektParentKey(parentKey) {
+            if (!parentKey) return '';
+            if (parentKey.endsWith('_left')) {
+                return parentKey.replace(/_left$/, '_right');
+            }
+            if (parentKey.endsWith('_right')) {
+                return parentKey.replace(/_right$/, '_left');
+            }
+            return parentKey;
+        }
 
         function syncObjektControlsFromPose(pose) {
             const hasObjekt = slideHasObjektData(pose);
@@ -2100,6 +2112,9 @@
 		
 		
 		function applyPoseSilently(rawPose) {
+			if (!isPlaying) {
+				clearFigureTransitions();
+			}
 			const pose = normalizePoseData(rawPose);
 			// Temporarily remove event listeners to avoid triggering updateTransforms
 			const sliders = document.querySelectorAll('input[type="range"]');
@@ -2238,6 +2253,9 @@ function testSlideData() {
 
 		
 		function updateTransforms() {
+    if (!isPlaying) {
+        clearFigureTransitions();
+    }
     console.log("updateTransforms called, currentSlideIndex:", currentSlideIndex);
     
     // resten af funktionen...
@@ -2449,6 +2467,14 @@ function testSlideData() {
             // Swap toggle states
             currentPose.left_arm_front = rightArmFront;
             currentPose.right_arm_front = leftArmFront;
+
+            if (objektEnabled && slideHasObjektData(currentPose)) {
+                currentPose.objekt_x = -(currentPose.objekt_x || 0);
+                currentPose.objekt_rotate = -(currentPose.objekt_rotate || 0);
+                if (currentPose.objekt_parent) {
+                    currentPose.objekt_parent = flipObjektParentKey(currentPose.objekt_parent);
+                }
+            }
             
             // Apply the flipped pose
             applyPose(currentPose);
@@ -2874,6 +2900,31 @@ function moveTimelineSlide(fromIndex, direction) {
 			}
 
 
+        const FIGURE_ANIMATED_SELECTORS = [
+            '.skulder_translate_left', '.skulder_rotate_left', '.albue_rotate_left',
+            '.skulder_translate_right', '.skulder_rotate_right', '.albue_rotate_right',
+            '.hofte_translate_left', '.hofte_rotate_left', '.knae_rotate_left',
+            '.hofte_translate_right', '.hofte_rotate_right', '.knae_rotate_right',
+            '.objekt_container', '.objekt_scale_wrapper'
+        ];
+
+        function clearFigureTransitions() {
+            document.querySelector('.figure-container').style.transition = '';
+            FIGURE_ANIMATED_SELECTORS.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el) el.style.transition = '';
+            });
+        }
+
+        function setFigureTransitions(duration) {
+            FIGURE_ANIMATED_SELECTORS.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    el.style.transition = `transform ${duration}s cubic-bezier(0.25, 0.1, 0.25, 1)`;
+                }
+            });
+        }
+
         async function playAnimation() {
             if (timelineSlides.length < 2) {
                 alert('Tilføj mindst 2 slides for at afspille animation!');
@@ -2893,19 +2944,8 @@ function moveTimelineSlide(fromIndex, direction) {
                 // Apply pose with transition
                 const pose = timelineSlides[i];
                 const duration = pose.duration || 1.0;
-                
-               // Sæt transition på alle de elementer der faktisk animeres
-				const animatedElements = [
-					'.skulder_translate_left', '.skulder_rotate_left', '.albue_rotate_left',
-					'.skulder_translate_right', '.skulder_rotate_right', '.albue_rotate_right',
-					'.hofte_translate_left', '.hofte_rotate_left', '.knae_rotate_left',
-					'.hofte_translate_right', '.hofte_rotate_right', '.knae_rotate_right',
-					'.objekt_container', '.objekt_scale_wrapper'
-				];
 
-				animatedElements.forEach(selector => {
-					document.querySelector(selector).style.transition = `transform ${duration}s cubic-bezier(0.25, 0.1, 0.25, 1)`;
-				});
+                setFigureTransitions(duration);
                 
                 applyPose(pose);
                 
@@ -2914,23 +2954,12 @@ function moveTimelineSlide(fromIndex, direction) {
             }
             
             isPlaying = false;
-            // Reset transition
-            document.querySelector('.figure-container').style.transition = '';
+            clearFigureTransitions();
         }
 
         function stopAnimation() {
             isPlaying = false;
-           const animatedElements = [
-				'.skulder_translate_left', '.skulder_rotate_left', '.albue_rotate_left',
-				'.skulder_translate_right', '.skulder_rotate_right', '.albue_rotate_right',
-				'.hofte_translate_left', '.hofte_rotate_left', '.knae_rotate_left',
-				'.hofte_translate_right', '.hofte_rotate_right', '.knae_rotate_right',
-				'.objekt_container', '.objekt_scale_wrapper'
-			];
-
-animatedElements.forEach(selector => {
-    document.querySelector(selector).style.transition = '';
-});
+            clearFigureTransitions();
         }
 
         function clearTimeline() {
