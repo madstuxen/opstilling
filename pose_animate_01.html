@@ -1760,6 +1760,65 @@
         const OBJEKT_FALLBACK_FILES = ['heart.svg'];
         const TORSO_CENTER_X = 150;
         const TORSO_CENTER_Y = 144;
+        const objektSvgCache = new Map();
+        let objektImageBlobUrl = null;
+
+        function revokeObjektImageBlobUrl() {
+            if (objektImageBlobUrl) {
+                URL.revokeObjectURL(objektImageBlobUrl);
+                objektImageBlobUrl = null;
+            }
+        }
+
+        function getObjektSvgText(fileName) {
+            return objektSvgCache.get(fileName) || null;
+        }
+
+        function setObjektImageSrc(img, fileName) {
+            if (!img || !fileName) return;
+
+            revokeObjektImageBlobUrl();
+            img.dataset.objektFile = fileName;
+            img.alt = fileName.replace('.svg', '');
+
+            const svgText = getObjektSvgText(fileName);
+            if (svgText) {
+                const blob = new Blob([svgText], { type: 'image/svg+xml' });
+                objektImageBlobUrl = URL.createObjectURL(blob);
+                img.src = objektImageBlobUrl;
+            } else {
+                img.crossOrigin = 'anonymous';
+                img.src = `${OBJEKT_BASE}/${fileName}`;
+            }
+        }
+
+        async function preloadObjektSvgs(files) {
+            await Promise.all(files.map(async (fileName) => {
+                if (objektSvgCache.has(fileName)) return;
+                try {
+                    const response = await fetch(`${OBJEKT_BASE}/${fileName}`);
+                    if (response.ok) {
+                        objektSvgCache.set(fileName, await response.text());
+                    }
+                } catch (e) {
+                    /* file:// or network error */
+                }
+            }));
+        }
+
+        function readObjektFieldsFromUI() {
+            return {
+                objekt_name: document.getElementById('objekt_select').value || '',
+                objekt_visible: document.getElementById('objekt_visible').checked,
+                objekt_front: document.getElementById('objekt_front').checked,
+                objekt_flip: document.getElementById('objekt_flip').checked,
+                objekt_x: parseInt(document.getElementById('objekt_x').value, 10) || 0,
+                objekt_y: parseInt(document.getElementById('objekt_y').value, 10) || 0,
+                objekt_rotate: parseInt(document.getElementById('objekt_rotate').value, 10) || 0,
+                objekt_scale: parseFloat(document.getElementById('objekt_scale').value) || 1,
+                objekt_parent: document.getElementById('objekt_parent').value || '',
+            };
+        }
 
         const OBJEKT_PARENT_SELECTORS = {
             skulder_right: '.skulder_rotate_right',
@@ -1861,8 +1920,7 @@
             container.style.display = pose.objekt_visible !== false ? '' : 'none';
 
             if (pose.objekt_name) {
-                img.src = `${OBJEKT_BASE}/${pose.objekt_name}`;
-                img.alt = pose.objekt_name.replace('.svg', '');
+                setObjektImageSrc(img, pose.objekt_name);
                 img.onload = () => syncObjektHandle();
             }
 
@@ -1941,6 +1999,8 @@
                 files = OBJEKT_FALLBACK_FILES.slice();
             }
 
+            await preloadObjektSvgs(files);
+
             select.innerHTML = '';
             files.forEach(fileName => {
                 const option = document.createElement('option');
@@ -1950,7 +2010,6 @@
             });
 
             if (files.length > 0 && !currentPose.objekt_name) {
-                currentPose.objekt_name = files[0];
                 select.value = files[0];
             } else if (currentPose.objekt_name && files.includes(currentPose.objekt_name)) {
                 select.value = currentPose.objekt_name;
@@ -2198,11 +2257,11 @@ function testSlideData() {
 			currentPose.left_arm_front = document.getElementById('left_arm_front').checked;
 			currentPose.right_arm_front = document.getElementById('right_arm_front').checked;
 			currentPose.head_text = document.getElementById('head_text').value;
-			currentPose.objekt_visible = document.getElementById('objekt_visible').checked;
-			currentPose.objekt_front = document.getElementById('objekt_front').checked;
-			currentPose.objekt_flip = document.getElementById('objekt_flip').checked;
-			currentPose.objekt_name = document.getElementById('objekt_select').value;
-			currentPose.objekt_parent = document.getElementById('objekt_parent').value;
+			if (objektEnabled) {
+				Object.assign(currentPose, readObjektFieldsFromUI());
+			} else {
+				Object.keys(getDefaultObjektFields()).forEach(key => delete currentPose[key]);
+			}
 			setHeadTextDisplay(currentPose.head_text);
 
 			// Update timeline slide with current pose
@@ -3921,6 +3980,171 @@ function exportForJavaScript() {
         initRightLegIK();
         initObjektHandle();
 
+        function extractObjektFields(pose) {
+            const defaults = getDefaultObjektFields();
+            const fields = {};
+            Object.keys(defaults).forEach(key => {
+                fields[key] = pose[key] !== undefined ? pose[key] : defaults[key];
+            });
+            return fields;
+        }
+
+        function mergeObjektIntoPose(result, poseA, poseB, t) {
+            Object.keys(getDefaultObjektFields()).forEach(key => delete result[key]);
+
+            const hasA = slideHasObjektData(poseA);
+            const hasB = slideHasObjektData(poseB);
+            if (!hasA && !hasB) return;
+
+            if (hasA && hasB) {
+                const snapped = extractObjektFields(t < 0.5 ? poseA : poseB);
+                snapped.objekt_x = Math.round((poseA.objekt_x || 0) + ((poseB.objekt_x || 0) - (poseA.objekt_x || 0)) * t);
+                snapped.objekt_y = Math.round((poseA.objekt_y || 0) + ((poseB.objekt_y || 0) - (poseA.objekt_y || 0)) * t);
+                snapped.objekt_rotate = Math.round((poseA.objekt_rotate || 0) + ((poseB.objekt_rotate || 0) - (poseA.objekt_rotate || 0)) * t);
+                snapped.objekt_scale = (poseA.objekt_scale ?? 1) + ((poseB.objekt_scale ?? 1) - (poseA.objekt_scale ?? 1)) * t;
+                Object.assign(result, snapped);
+            } else if (hasA && t < 0.5) {
+                Object.assign(result, extractObjektFields(poseA));
+            } else if (hasB && t >= 0.5) {
+                Object.assign(result, extractObjektFields(poseB));
+            }
+        }
+
+        function buildObjektPoseFromUI(basePose = currentPose) {
+            if (!document.getElementById('objekt_enabled').checked) {
+                return { ...basePose };
+            }
+
+            return getPoseWithObjektDefaults({
+                ...basePose,
+                ...readObjektFieldsFromUI(),
+            });
+        }
+
+        async function waitForObjektImageReady(root) {
+            const container = root.querySelector('.objekt_container');
+            if (!container || container.style.display === 'none') return;
+            if (getComputedStyle(container).display === 'none') return;
+
+            const img = root.querySelector('img.objekt_svg');
+            if (!img) return;
+
+            const fileName = img.dataset.objektFile;
+            if (!img.src && fileName) {
+                setObjektImageSrc(img, fileName);
+            }
+            if (!img.src) return;
+
+            if (!img.complete) {
+                await new Promise((resolve, reject) => {
+                    img.onload = () => resolve();
+                    img.onerror = () => reject(new Error('Objekt-billede kunne ikke indlæses'));
+                });
+            }
+
+            if (img.decode) {
+                await img.decode().catch(() => {});
+            }
+        }
+
+        async function prepareObjektForExport(figureContainer) {
+            const savedObjektEnabled = objektEnabled;
+            objektEnabled = document.getElementById('objekt_enabled').checked;
+            const exportPose = buildObjektPoseFromUI(currentPose);
+
+            if (objektEnabled && slideHasObjektData(exportPose)) {
+                updateObjektFromPose(exportPose);
+                const container = figureContainer.querySelector('.objekt_container');
+                if (container && exportPose.objekt_visible !== false) {
+                    container.style.display = '';
+                }
+                await waitForObjektImageReady(figureContainer);
+            } else {
+                updateObjektFromPose(exportPose);
+            }
+
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            return savedObjektEnabled;
+        }
+
+        function restoreObjektAfterExport(savedObjektEnabled) {
+            objektEnabled = savedObjektEnabled;
+            document.getElementById('objekt_enabled').checked = savedObjektEnabled;
+            toggleObjektControlsEnabled(savedObjektEnabled);
+            updateObjektFromPose(getPoseWithObjektDefaults(currentPose));
+            syncObjektHandle();
+        }
+
+        async function inlineObjektSvgForCapture(root) {
+            const restores = [];
+
+            for (const img of [...root.querySelectorAll('img.objekt_svg')]) {
+                const container = img.closest('.objekt_container');
+                if (!container || container.style.display === 'none') continue;
+                if (getComputedStyle(container).display === 'none') continue;
+
+                const src = img.currentSrc || img.src;
+                const fileName = img.dataset.objektFile;
+
+                try {
+                    let svgText = fileName ? getObjektSvgText(fileName) : null;
+                    if (!svgText && src) {
+                        if (src.startsWith('data:image/svg+xml')) {
+                            const payload = src.slice(src.indexOf(',') + 1);
+                            svgText = src.includes(';base64,')
+                                ? atob(payload)
+                                : decodeURIComponent(payload);
+                        } else if (src.startsWith('blob:')) {
+                            svgText = await (await fetch(src)).text();
+                        } else {
+                            svgText = await (await fetch(src)).text();
+                        }
+                    }
+                    if (!svgText) continue;
+
+                    const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+                    const svgEl = doc.documentElement;
+                    if (svgEl.querySelector('parsererror')) {
+                        throw new Error('SVG parse error');
+                    }
+
+                    svgEl.classList.add('objekt_svg');
+                    svgEl.style.width = '60px';
+                    svgEl.style.height = 'auto';
+                    svgEl.style.display = 'block';
+                    svgEl.style.pointerEvents = 'none';
+
+                    const parent = img.parentElement;
+                    parent.replaceChild(svgEl, img);
+                    restores.push({ parent, img, svgEl });
+                } catch (error) {
+                    console.warn('Kunne ikke inline objekt SVG til export:', error);
+                }
+            }
+
+            return () => {
+                restores.forEach(({ parent, img, svgEl }) => {
+                    if (svgEl.parentElement === parent) {
+                        parent.replaceChild(img, svgEl);
+                    }
+                });
+            };
+        }
+
+        async function captureFigureToCanvas(figureContainer, options = {}) {
+            const restoreSvg = await inlineObjektSvgForCapture(figureContainer);
+            try {
+                return await html2canvas(figureContainer, {
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    ...options
+                });
+            } finally {
+                restoreSvg();
+            }
+        }
+
         async function exportFigurePNG() {
             if (typeof html2canvas === 'undefined') {
                 alert('Eksport-biblioteket html2canvas er ikke indlæst.');
@@ -3932,7 +4156,8 @@ function exportForJavaScript() {
                 'shoulder_handle_left', 'shoulder_handle_right',
                 'ik_end_effector_left', 'ik_end_effector_right',
                 'ik_end_effector_left_leg', 'ik_end_effector_right_leg',
-                'hip_handle_left', 'hip_handle_right'
+                'hip_handle_left', 'hip_handle_right',
+                'objekt_handle'
             ];
             const restored = [];
 
@@ -3945,14 +4170,18 @@ function exportForJavaScript() {
             });
 
             const transparentBg = document.getElementById('transparent_bg').checked;
+            let savedObjektEnabled = objektEnabled;
 
             try {
                 const scale = 3;
-                const canvas = await html2canvas(figureContainer, {
+                savedObjektEnabled = await prepareObjektForExport(figureContainer);
+                if (objektEnabled && !document.querySelector('.objekt_container img.objekt_svg')?.src) {
+                    alert('Objekt-SVG kunne ikke indlæses. Kør siden via en lokal webserver (ikke file://).');
+                }
+
+                const canvas = await captureFigureToCanvas(figureContainer, {
                     backgroundColor: transparentBg ? null : '#ffffff',
-                    scale: scale,
-                    useCORS: true,
-                    logging: false
+                    scale: scale
                 });
 
                 const link = document.createElement('a');
@@ -3963,6 +4192,7 @@ function exportForJavaScript() {
                 restored.forEach(({ el, display }) => {
                     el.style.display = display;
                 });
+                restoreObjektAfterExport(savedObjektEnabled);
             }
         }
 
@@ -3985,12 +4215,14 @@ function exportForJavaScript() {
             exportBtn.disabled = true;
 
             const savedPose = {...currentPose};
+            const savedObjektEnabled = objektEnabled;
             const figureContainer = document.querySelector('.figure-container');
             const hideIds = [
                 'shoulder_handle_left', 'shoulder_handle_right',
                 'ik_end_effector_left', 'ik_end_effector_right',
                 'ik_end_effector_left_leg', 'ik_end_effector_right_leg',
-                'hip_handle_left', 'hip_handle_right'
+                'hip_handle_left', 'hip_handle_right',
+                'objekt_handle'
             ];
             const hiddenElements = [];
 
@@ -4020,6 +4252,7 @@ function exportForJavaScript() {
                 booleanKeys.forEach(key => {
                     result[key] = t < 0.5 ? !!poseA[key] : !!poseB[key];
                 });
+                mergeObjektIntoPose(result, poseA, poseB, t);
                 return result;
             }
 
@@ -4069,14 +4302,16 @@ function exportForJavaScript() {
 
                     const time = frame / fps;
                     const pose = getPoseAtTime(time);
+                    objektEnabled = slideHasObjektData(pose);
                     applyPoseSilently(pose);
+                    if (objektEnabled) {
+                        await waitForObjektImageReady(figureContainer);
+                    }
                     await waitForPaint();
 
-                    const canvas = await html2canvas(figureContainer, {
+                    const canvas = await captureFigureToCanvas(figureContainer, {
                         backgroundColor: null,
-                        scale: 3,
-                        useCORS: true,
-                        logging: false
+                        scale: 3
                     });
 
                     const dataUrl = canvas.toDataURL('image/png');
@@ -4095,6 +4330,7 @@ function exportForJavaScript() {
                 hiddenElements.forEach(({ el, display }) => {
                     el.style.display = display;
                 });
+                restoreObjektAfterExport(savedObjektEnabled);
                 applyPoseSilently(savedPose);
                 exportBtn.textContent = originalBtnText;
                 exportBtn.disabled = false;
