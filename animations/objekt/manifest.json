@@ -1,6 +1,13 @@
 {
   "files": [
+    "app_logo.svg",
+    "book.svg",
+    "cloud.svg",
+    "Hammer.svg",
     "heart.svg",
-    "Tree.svg"
+    "pen.svg",
+    "sun.svg",
+    "Tree.svg",
+    "weight.svg"
   ]
 }
