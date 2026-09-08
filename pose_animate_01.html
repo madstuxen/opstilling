@@ -264,17 +264,83 @@
         /* Figure and Control Layout */
         .figure-workspace {
             position: relative;
-            width: 600px;
-            height: 500px;
+            width: 760px;
+            height: 540px;
         }
-        
-        .figure-container {
+
+        .figure-export-frame {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 300px;
+        }
+
+        .figure-export-outline {
+            position: absolute;
+            inset: 0;
+            border: 2px dashed #10b981;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 18;
+            box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
+        }
+
+        .figure-export-outline.hidden {
+            display: none;
+        }
+
+        .figure-export-outline::before {
+            content: attr(data-label);
+            position: absolute;
+            top: -18px;
+            left: 0;
+            font-size: 10px;
+            font-weight: 700;
+            color: #059669;
+            white-space: nowrap;
+        }
+
+        .figure-viewbox-guide {
+            position: absolute;
+            width: 200px;
             height: 300px;
+            border: 1px dotted #6366f1;
+            pointer-events: none;
+            z-index: 17;
+            opacity: 0.85;
+        }
+
+        .figure-viewbox-guide.hidden {
+            display: none;
+        }
+
+        .figure-viewbox-guide::after {
+            content: 'viewBox 200×300';
+            position: absolute;
+            bottom: -14px;
+            right: 0;
+            font-size: 8px;
+            font-weight: 600;
+            color: #6366f1;
+            white-space: nowrap;
+        }
+        
+        .figure-container {
+            position: absolute;
+            width: 200px;
+            height: 300px;
+        }
+
+        .figure-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            display: block;
+        }
+
+        .mini-figure .figure-svg {
+            width: 100%;
+            height: 100%;
         }
 
         /* Mini Control Panels */
@@ -407,9 +473,9 @@
         #hip_handle_left,
         #hip_handle_right,
         #objekt_handle {
-            position: fixed;
-            width: 10px;
-            height: 10px;
+            position: absolute;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             background: #8b5cf6;
             border: 2px solid #7c3aed;
@@ -417,6 +483,7 @@
             z-index: 26;
             transform: translate(-50%, -50%);
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+            pointer-events: auto;
         }
 
         #shoulder_handle_right.dragging,
@@ -427,10 +494,16 @@
             cursor: grabbing;
         }
 
+        .figure-ui-hidden-for-export {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+
         /* Control positions around figure */
         .left-arm-controls {
             top: 20px;
-            left: 10px;
+            left: -145px;
             width: 150px;
         }
 
@@ -442,7 +515,7 @@
 
         .left-leg-controls {
             bottom: -30px;
-            left: 10px;
+            left: -145px;
             width: 150px;
         }
 
@@ -454,7 +527,7 @@
 
         .objekt-controls {
             top: 50%;
-            left: -165px;
+            left: -300px;
             transform: translateY(-50%);
             width: 155px;
         }
@@ -489,17 +562,19 @@
         }
 
         .objekt_container.attached {
-            top: -8px;
-            left: -8px;
+            top: 0;
+            left: 0;
         }
 
         .objekt_scale_wrapper {
+            position: relative;
+            width: 60px;
+            height: 60px;
             transform-origin: center center;
         }
 
         .objekt_svg {
-            width: 60px;
-            height: auto;
+            position: absolute;
             display: block;
             pointer-events: none;
         }
@@ -578,13 +653,17 @@
         }
 
         .mini-figure {
-    width: 60px;
-    height: 60px;
-    position: relative;
-    margin-bottom: 5px;
-    transform: scale(0.2);
-    transform-origin: center center;
-}
+            width: 40px;
+            height: 60px;
+            position: relative;
+            margin-bottom: 5px;
+        }
+
+        .figure-head-text {
+            font-size: 11px;
+            font-weight: bold;
+            pointer-events: none;
+        }
 
 .mini-figure .head {
     position: absolute;
@@ -592,7 +671,7 @@
     height: 72px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--figure-color-light) 0%, var(--figure-color) 100%);
-    top: 30px;
+    top: 26px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
@@ -678,8 +757,8 @@
     transform-origin: center center;
 }
 
-.mini-figure .albue_rotate_left { top: 1px; left: 0px; }
-.mini-figure .albue_rotate_right { top: 1px; left: 34px; }
+.mini-figure .albue_rotate_left { top: 0; left: 0px; }
+.mini-figure .albue_rotate_right { top: 0; left: 34px; }
 .mini-figure .knae_rotate_left,
 .mini-figure .knae_rotate_right { top: 38px; left: 1px; }
 
@@ -766,7 +845,7 @@
             font-size: 11px;
             text-align: center;
             box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-            top: 30px;
+            top: 26px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
@@ -819,7 +898,7 @@
         
         .albue_rotate_right  {
             position: relative;
-            top: 1px;
+            top: 0;
             left: 34px;
             width: 15px;
             height: 15px;
@@ -876,7 +955,7 @@
         
         .albue_rotate_left {
             position: relative;
-            top: 1px;
+            top: 0;
             left: 0px; 
             width: 15px;
             height: 15px;
@@ -1160,6 +1239,10 @@
                     <input type="checkbox" id="transparent_bg" checked>
                     <label for="transparent_bg" style="font-size:12px;">Transparent baggrund</label>
                 </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                    <input type="checkbox" id="show_export_frame" checked>
+                    <label for="show_export_frame" style="font-size:12px;">Vis eksport-ramme</label>
+                </div>
                 <button class="btn btn-primary" onclick="exportFigurePNG()">Gem PNG</button>
                 <div style="display:flex; align-items:center; gap:8px; margin-top:10px; margin-bottom:10px;">
                     <label for="export_fps" style="font-size:12px;">FPS:</label>
@@ -1365,12 +1448,12 @@
                             <label for="objekt_flip">Flip</label>
                         </div>
                         <div class="mini-slider">
-                            <label>X:</label>
+                            <label for="objekt_x">X (mave):</label>
                             <input type="range" id="objekt_x" min="-100" max="100" value="0">
                             <div class="mini-value" id="objekt_x_val">0</div>
                         </div>
                         <div class="mini-slider">
-                            <label>Y:</label>
+                            <label for="objekt_y">Y (mave):</label>
                             <input type="range" id="objekt_y" min="-100" max="100" value="0">
                             <div class="mini-value" id="objekt_y_val">0</div>
                         </div>
@@ -1402,70 +1485,17 @@
                 </div>
 
                 <!-- Figure -->
-                <div id="shoulder_handle_left"></div>
-                <div id="shoulder_handle_right"></div>
-                <div id="hip_handle_left"></div>
-                <div id="hip_handle_right"></div>
-                <div id="objekt_handle"></div>
-                <div class="figure-container">
-                    <div id="ik_end_effector_left" class="ik-end-effector-left"></div>
-                    <div id="ik_end_effector_right" class="ik-end-effector-right"></div>
-                    <!-- Hoved -->
-                    <div class="head">
-                        <span id="figure_head_text">Hoved</span>
-                    </div>
-                    
-                    <!-- Torso -->
-                    <div class="torso"></div>
-                    
-                    <!-- Venstre arm hierarki -->
-                    <div class="skulder_translate_left">
-                        <div class="skulder_rotate_left">
-                            <div class="arm_geo_left">
-                                <div class="albue_rotate_left">
-                                    <div class="albue_geo_left"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Højre arm hierarki -->
-                    <div class="skulder_translate_right">
-                        <div class="skulder_rotate_right">
-                            <div class="arm_geo_right">
-                                <div class="albue_rotate_right">
-                                    <div class="albue_geo_right"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Venstre ben hierarki -->
-                    <div class="hofte_translate_left">
-                        <div class="hofte_rotate_left">
-                            <div class="laar_geo_left">
-                                <div class="knae_rotate_left">
-                                    <div class="skinneben_geo_left"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Højre ben hierarki -->
-                    <div class="hofte_translate_right">
-                        <div class="hofte_rotate_right">
-                            <div class="laar_geo_right">
-                                <div class="knae_rotate_right">
-                                    <div class="skinneben_geo_right"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="objekt_container root">
-                        <div class="objekt_scale_wrapper">
-                            <img class="objekt_svg" alt="">
-                        </div>
+                <div class="figure-export-frame" id="figure_export_frame">
+                    <div id="figure_export_outline" class="figure-export-outline"></div>
+                    <div id="figure_viewbox_guide" class="figure-viewbox-guide"></div>
+                    <div class="figure-container">
+                        <div id="shoulder_handle_left"></div>
+                        <div id="shoulder_handle_right"></div>
+                        <div id="hip_handle_left"></div>
+                        <div id="hip_handle_right"></div>
+                        <div id="objekt_handle"></div>
+                        <div id="ik_end_effector_left" class="ik-end-effector-left"></div>
+                        <div id="ik_end_effector_right" class="ik-end-effector-right"></div>
                     </div>
                 </div>
             </div>
@@ -1495,10 +1525,86 @@
         </div>
     </div>
 
+    <script src="guideFigureRenderer.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
         const FIGURE_COLOR_DEFAULT = '#f59e0b';
+        let mainFigure = null;
+        let mainFigureRefs = null;
+        let objektSvgGroup = null;
+        let objektRotateGroup = null;
+        let objektScaleGroup = null;
+        let objektFlipGroup = null;
+        let objektDrawGroup = null;
+        let objektSvgImage = null;
+        let currentFigureColor = FIGURE_COLOR_DEFAULT;
+
+        function initMainFigure() {
+            const container = document.querySelector('.figure-container');
+            mainFigure = GuideFigureRenderer.createFigureSvg();
+            mainFigureRefs = mainFigure.refs;
+            container.prepend(mainFigure.svg);
+
+            const svgNS = 'http://www.w3.org/2000/svg';
+            objektSvgGroup = document.createElementNS(svgNS, 'g');
+            objektSvgGroup.setAttribute('class', 'objekt_container');
+            objektSvgGroup.setAttribute('id', 'main_objekt_container');
+
+            objektRotateGroup = document.createElementNS(svgNS, 'g');
+            objektRotateGroup.setAttribute('class', 'objekt_rotate');
+
+            objektScaleGroup = document.createElementNS(svgNS, 'g');
+            objektScaleGroup.setAttribute('class', 'objekt_scale');
+
+            objektFlipGroup = document.createElementNS(svgNS, 'g');
+            objektFlipGroup.setAttribute('class', 'objekt_flip');
+
+            objektDrawGroup = document.createElementNS(svgNS, 'g');
+            objektDrawGroup.setAttribute('class', 'objekt_draw');
+
+            objektSvgImage = document.createElementNS(svgNS, 'image');
+            objektSvgImage.setAttribute('class', 'objekt_svg');
+
+            objektDrawGroup.appendChild(objektSvgImage);
+            objektFlipGroup.appendChild(objektDrawGroup);
+            objektScaleGroup.appendChild(objektFlipGroup);
+            objektRotateGroup.appendChild(objektScaleGroup);
+            objektSvgGroup.appendChild(objektRotateGroup);
+            mainFigureRefs.objektRoot.appendChild(objektSvgGroup);
+
+            GuideFigureRenderer.setPoseReader(() => currentPose);
+            applyFigureColor(currentFigureColor);
+            GuideFigureRenderer.applyPoseToFigure(mainFigureRefs, getDefaultPose());
+            initExportFrame();
+        }
+
+        function initExportFrame() {
+            const bounds = GuideFigureRenderer.getDefaultExportBoundary();
+            const frame = document.getElementById('figure_export_frame');
+            const container = frame?.querySelector('.figure-container');
+            const outline = document.getElementById('figure_export_outline');
+            const guide = document.getElementById('figure_viewbox_guide');
+            if (!frame || !container) return;
+            frame.style.width = `${bounds.width}px`;
+            frame.style.height = `${bounds.height}px`;
+            container.style.left = `${bounds.offsetX}px`;
+            container.style.top = `${bounds.offsetY}px`;
+            if (outline) {
+                outline.setAttribute('data-label', `Eksport ${bounds.width}×${bounds.height} px`);
+            }
+            if (guide) {
+                guide.style.left = `${bounds.offsetX}px`;
+                guide.style.top = `${bounds.offsetY}px`;
+            }
+            syncExportFrameVisibility();
+        }
+
+        function syncExportFrameVisibility() {
+            const visible = document.getElementById('show_export_frame')?.checked ?? true;
+            document.getElementById('figure_export_outline')?.classList.toggle('hidden', !visible);
+            document.getElementById('figure_viewbox_guide')?.classList.toggle('hidden', !visible);
+        }
         const COLOR_PRESETS = [
             '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
             '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f472b6', '#94a3b8',
@@ -1577,12 +1683,19 @@
             return getRelativeLuminance(bodyLight) > 0.55 ? '#1f2937' : '#ffffff';
         }
         function applyFigureColor(color) {
+            currentFigureColor = color;
             const bodyLight = adjustColorLightness(color, 6);
             const limbColor = darkenColor(color, 0.15);
             document.documentElement.style.setProperty('--figure-color-light', bodyLight);
             document.documentElement.style.setProperty('--figure-color', color);
             document.documentElement.style.setProperty('--figure-color-limb', limbColor);
             document.documentElement.style.setProperty('--figure-head-text-color', getHeadTextColor(color));
+            if (mainFigureRefs?.svg) {
+                GuideFigureRenderer.applyFigureColors(mainFigureRefs.svg, color, getHeadTextColor(color));
+            }
+            document.querySelectorAll('.mini-figure .figure-svg').forEach((svg) => {
+                GuideFigureRenderer.applyFigureColors(svg, color, getHeadTextColor(color));
+            });
         }
         function generateColorVariation(baseColor, rowIndex) {
             const rgb = hexToRgb(baseColor);
@@ -1757,9 +1870,33 @@
         }
 
         const OBJEKT_BASE = 'animations/objekt';
-        const OBJEKT_FALLBACK_FILES = ['heart.svg'];
-        const TORSO_CENTER_X = 150;
-        const TORSO_CENTER_Y = 144;
+        /** Embedded list — bruges med det samme (file:// kan ikke fetche manifest). */
+        const OBJEKT_KNOWN_FILES = [
+            'app_logo.svg',
+            'book.svg',
+            'cloud.svg',
+            'Hammer.svg',
+            'heart.svg',
+            'pen.svg',
+            'sun.svg',
+            'Tree.svg',
+            'weight.svg',
+        ];
+        const TORSO_CENTER_X = GuideFigureRenderer.GEO.torsoCenterX;
+        const TORSO_CENTER_Y = GuideFigureRenderer.GEO.torsoCenterY;
+        /** Matches GuideFigure OBJEKT_CONTAINER_BASE — 60×60 contain box, pivot at objekt_x/y. */
+        const OBJEKT_CONTAINER_BASE = 60;
+        const OBJEKT_VIEWBOXES = {
+            'app_logo.svg': [173, 173],
+            'book.svg': [335, 319],
+            'cloud.svg': [225, 202],
+            'Hammer.svg': [444, 411],
+            'heart.svg': [4142, 3684],
+            'pen.svg': [198, 248],
+            'sun.svg': [200, 200],
+            'Tree.svg': [324, 402],
+            'weight.svg': [1300, 1055],
+        };
         const objektSvgCache = new Map();
         let objektImageBlobUrl = null;
 
@@ -1774,22 +1911,76 @@
             return objektSvgCache.get(fileName) || null;
         }
 
+        function getObjektContainLayout(fileName) {
+            const viewBox = OBJEKT_VIEWBOXES[fileName];
+            if (!viewBox) return null;
+
+            const [viewBoxWidth, viewBoxHeight] = viewBox;
+            const containerBase = OBJEKT_CONTAINER_BASE;
+            const fitScale = containerBase / Math.max(viewBoxWidth, viewBoxHeight);
+            const renderWidth = viewBoxWidth * fitScale;
+            const renderHeight = viewBoxHeight * fitScale;
+
+            return {
+                containerBase,
+                renderWidth,
+                renderHeight,
+                offsetX: (containerBase - renderWidth) / 2,
+                offsetY: (containerBase - renderHeight) / 2,
+            };
+        }
+
+        function applyObjektSvgLayout(img, fileName) {
+            const layout = getObjektContainLayout(fileName);
+            if (!layout || !img) return layout;
+            img.setAttribute('x', '0');
+            img.setAttribute('y', '0');
+            img.setAttribute('width', layout.renderWidth);
+            img.setAttribute('height', layout.renderHeight);
+            return layout;
+        }
+
+        function getObjektFileFromImage(img) {
+            return img?.getAttribute('data-objekt-file') || img?.dataset?.objektFile || '';
+        }
+
+        function populateObjektSelect(files) {
+            const select = document.getElementById('objekt_select');
+            if (!select || !files?.length) return;
+
+            const previous = select.value;
+            select.innerHTML = '';
+            files.forEach((fileName) => {
+                const option = document.createElement('option');
+                option.value = fileName;
+                option.textContent = fileName.replace('.svg', '');
+                select.appendChild(option);
+            });
+
+            if (previous && files.includes(previous)) {
+                select.value = previous;
+            } else if (files.length > 0) {
+                select.value = files[0];
+            }
+        }
+
         function setObjektImageSrc(img, fileName) {
             if (!img || !fileName) return;
 
             revokeObjektImageBlobUrl();
-            img.dataset.objektFile = fileName;
-            img.alt = fileName.replace('.svg', '');
+            img.setAttribute('data-objekt-file', fileName);
 
             const svgText = getObjektSvgText(fileName);
+            let url;
             if (svgText) {
                 const blob = new Blob([svgText], { type: 'image/svg+xml' });
                 objektImageBlobUrl = URL.createObjectURL(blob);
-                img.src = objektImageBlobUrl;
+                url = objektImageBlobUrl;
             } else {
-                img.crossOrigin = 'anonymous';
-                img.src = `${OBJEKT_BASE}/${fileName}`;
+                url = `${OBJEKT_BASE}/${fileName}`;
             }
+            img.setAttribute('href', url);
+            img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', url);
         }
 
         async function preloadObjektSvgs(files) {
@@ -1861,15 +2052,25 @@
                 select.value = select.options[0].value;
             }
             toggleObjektLayer();
+            updateObjektAxisLabels();
         }
 
         function onObjektEnabledChange() {
             objektEnabled = document.getElementById('objekt_enabled').checked;
             toggleObjektControlsEnabled(objektEnabled);
             if (objektEnabled) {
+                const select = document.getElementById('objekt_select');
+                if (select.options.length === 0) {
+                    populateObjektSelect(OBJEKT_KNOWN_FILES);
+                }
+                let objektName = select.value || '';
+                if (!objektName && select.options.length > 0) {
+                    objektName = select.options[0].value;
+                    select.value = objektName;
+                }
                 const poseWithObjekt = getPoseWithObjektDefaults({
                     ...currentPose,
-                    objekt_name: document.getElementById('objekt_select').value || ''
+                    objekt_name: objektName,
                 });
                 syncObjektControlsFromPose(poseWithObjekt);
                 updateObjektFromPose(poseWithObjekt);
@@ -1881,13 +2082,8 @@
         }
 
         function toggleObjektLayer() {
-            const checkbox = document.getElementById('objekt_front');
-            const container = document.querySelector('.objekt_container');
-
-            if (checkbox && checkbox.checked) {
-                container.classList.add('front-objekt');
-            } else {
-                container.classList.remove('front-objekt');
+            if (objektEnabled) {
+                updateObjektFromPose(getPoseWithObjektDefaults(currentPose));
             }
         }
 
@@ -1900,40 +2096,40 @@
             }
         }
 
-        function reparentObjektContainer(parentKey) {
-            const container = document.querySelector('.objekt_container');
-            const figureContainer = document.querySelector('.figure-container');
-            const selector = OBJEKT_PARENT_SELECTORS[parentKey];
-            const parentEl = selector ? figureContainer.querySelector(selector) : figureContainer;
-            if (!parentEl) return;
-
-            container.classList.toggle('attached', !!parentKey);
-            container.classList.toggle('root', !parentKey);
-
-            if (container.parentElement !== parentEl) {
-                parentEl.appendChild(container);
+        function reparentObjektContainer(parentKey, objektFront) {
+            if (!objektSvgGroup || !mainFigureRefs) return;
+            const slots = GuideFigureRenderer.OBJEKT_PARENT_SLOTS;
+            let parentEl;
+            if (parentKey && slots[parentKey]) {
+                parentEl = mainFigureRefs.svg.querySelector(`#${slots[parentKey]}`);
+            } else if (objektFront !== false) {
+                parentEl = mainFigureRefs.objektFront;
+            } else {
+                parentEl = mainFigureRefs.objektBack;
+            }
+            if (parentEl && objektSvgGroup.parentElement !== parentEl) {
+                parentEl.appendChild(objektSvgGroup);
             }
         }
 
         function updateObjektFromPose(pose) {
-            const container = document.querySelector('.objekt_container');
-            const scaleWrapper = container.querySelector('.objekt_scale_wrapper');
-            const img = container.querySelector('.objekt_svg');
+            if (!objektSvgGroup) return;
 
             const parentKey = pose.objekt_parent || '';
-            reparentObjektContainer(parentKey);
+            reparentObjektContainer(parentKey, pose.objekt_front);
 
             if (!objektEnabled || !slideHasObjektData(pose)) {
-                container.style.display = 'none';
+                objektSvgGroup.style.display = 'none';
                 syncObjektHandle();
                 return;
             }
 
-            container.style.display = pose.objekt_visible !== false ? '' : 'none';
+            objektSvgGroup.style.display = pose.objekt_visible !== false ? '' : 'none';
 
+            let layout = null;
             if (pose.objekt_name) {
-                setObjektImageSrc(img, pose.objekt_name);
-                img.onload = () => syncObjektHandle();
+                setObjektImageSrc(objektSvgImage, pose.objekt_name);
+                layout = applyObjektSvgLayout(objektSvgImage, pose.objekt_name);
             }
 
             const x = pose.objekt_x || 0;
@@ -1941,26 +2137,37 @@
             const rot = pose.objekt_rotate || 0;
             const scale = pose.objekt_scale ?? 1;
             const flipX = pose.objekt_flip ? -1 : 1;
+            const half = OBJEKT_CONTAINER_BASE / 2;
+            const anchorX = parentKey ? x : TORSO_CENTER_X + x;
+            const anchorY = parentKey ? y : TORSO_CENTER_Y + y;
+            const drawX = layout ? -half + layout.offsetX : -half;
+            const drawY = layout ? -half + layout.offsetY : -half;
 
-            scaleWrapper.style.transform = `scale(${scale}) scaleX(${flipX})`;
+            // Matches app PoseObjectAttachment: position → rotate around object center → scale → flip → draw
+            objektSvgGroup.setAttribute('transform', `translate(${anchorX} ${anchorY})`);
+            objektRotateGroup.setAttribute('transform', rot ? `rotate(${rot})` : '');
+            objektScaleGroup.setAttribute('transform', `scale(${scale})`);
+            objektFlipGroup.setAttribute('transform', flipX === -1 ? 'scale(-1, 1)' : '');
+            objektDrawGroup.setAttribute('transform', `translate(${drawX} ${drawY})`);
 
-            if (parentKey) {
-                container.style.left = '';
-                container.style.top = '';
-                container.style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg)`;
-            } else {
-                container.style.left = `${TORSO_CENTER_X}px`;
-                container.style.top = `${TORSO_CENTER_Y}px`;
-                container.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rot}deg)`;
-            }
-
-            if (pose.objekt_front !== false) {
-                container.classList.add('front-objekt');
-            } else {
-                container.classList.remove('front-objekt');
-            }
-
+            syncObjektOriginMarker(pose);
             syncObjektHandle();
+        }
+
+        function syncObjektOriginMarker(pose) {
+            const marker = mainFigureRefs?.objektOrigin;
+            if (!marker) return;
+            const show = objektEnabled && slideHasObjektData(pose) && !(pose.objekt_parent || '');
+            marker.style.display = show ? '' : 'none';
+        }
+
+        function getObjektPivotScreenPoint(pose) {
+            const pivot = GuideFigureRenderer.getObjektPivotFigureCoords(
+                mainFigureRefs.svg,
+                mainFigureRefs,
+                getPoseWithObjektDefaults(pose)
+            );
+            return GuideFigureRenderer.svgPointToScreen(mainFigureRefs.svg, pivot.x, pivot.y);
         }
 
         function syncObjektHandle() {
@@ -1972,16 +2179,25 @@
                 return;
             }
 
-            const container = document.querySelector('.objekt_container');
-            if (!container || container.style.display === 'none') {
+            if (!objektSvgGroup || objektSvgGroup.style.display === 'none') {
                 handle.style.display = 'none';
                 return;
             }
 
-            const rect = container.getBoundingClientRect();
+            const pivot = GuideFigureRenderer.getObjektPivotFigureCoords(
+                mainFigureRefs.svg,
+                mainFigureRefs,
+                getPoseWithObjektDefaults(currentPose)
+            );
             handle.style.display = '';
-            handle.style.left = `${rect.left + rect.width / 2}px`;
-            handle.style.top = `${rect.top + rect.height / 2}px`;
+            positionDragHandle('objekt_handle', pivot.x, pivot.y);
+        }
+
+        function updateObjektAxisLabels() {
+            const parentKey = document.getElementById('objekt_parent').value || '';
+            const relativeToTorso = !parentKey;
+            document.querySelector('label[for="objekt_x"]').textContent = relativeToTorso ? 'X (mave):' : 'X:';
+            document.querySelector('label[for="objekt_y"]').textContent = relativeToTorso ? 'Y (mave):' : 'Y:';
         }
 
         function updateObjektValueDisplays() {
@@ -1992,39 +2208,30 @@
         }
 
         async function loadObjektManifest() {
-            const select = document.getElementById('objekt_select');
-            let files = [];
+            let files = OBJEKT_KNOWN_FILES.slice();
 
             try {
-                const manifestResponse = await fetch(OBJEKT_BASE + '/manifest.json');
+                const manifestResponse = await fetch(`${OBJEKT_BASE}/manifest.json`);
                 if (manifestResponse.ok) {
                     const manifest = await manifestResponse.json();
-                    if (manifest.files && Array.isArray(manifest.files)) {
+                    if (manifest.files && Array.isArray(manifest.files) && manifest.files.length > 0) {
                         files = manifest.files;
                     }
                 }
             } catch (e) {
-                /* no manifest */
+                /* file:// or offline — keep embedded list */
             }
 
-            if (files.length === 0) {
-                files = OBJEKT_FALLBACK_FILES.slice();
+            populateObjektSelect(files);
+
+            try {
+                await preloadObjektSvgs(files);
+            } catch (e) {
+                console.warn('Objekt SVG preload fejlede:', e);
             }
 
-            await preloadObjektSvgs(files);
-
-            select.innerHTML = '';
-            files.forEach(fileName => {
-                const option = document.createElement('option');
-                option.value = fileName;
-                option.textContent = fileName.replace('.svg', '');
-                select.appendChild(option);
-            });
-
-            if (files.length > 0 && !currentPose.objekt_name) {
-                select.value = files[0];
-            } else if (currentPose.objekt_name && files.includes(currentPose.objekt_name)) {
-                select.value = currentPose.objekt_name;
+            if (currentPose.objekt_name && files.includes(currentPose.objekt_name)) {
+                document.getElementById('objekt_select').value = currentPose.objekt_name;
             }
         }
 
@@ -2097,8 +2304,9 @@
         }
 
         function setHeadTextDisplay(text) {
-            const headSpan = document.getElementById('figure_head_text');
-            if (headSpan) headSpan.textContent = text || '';
+            if (mainFigureRefs?.headText) {
+                mainFigureRefs.headText.textContent = text || '';
+            }
         }
 
         function syncHeadTextInput(pose) {
@@ -2155,51 +2363,7 @@
 			syncObjektControlsFromPose(pose);
 
 			currentPose = buildCurrentPoseFromNormalized(pose);
-			
-			// Apply transforms directly to the big figure
-			document.querySelector('.skulder_translate_left').style.transform = 
-				`translate(${pose.translate_x_left || 0}px, ${pose.translate_y_left || 0}px)`;
-			document.querySelector('.skulder_rotate_left').style.transform = 
-				`rotate(${pose.skulder_rot_left || 0}deg)`;
-			document.querySelector('.albue_rotate_left').style.transform = 
-				`rotate(${pose.albue_rot_left || 0}deg)`;
-			
-			document.querySelector('.skulder_translate_right').style.transform = 
-				`translate(${pose.translate_x || 0}px, ${pose.translate_y || 0}px)`;
-			document.querySelector('.skulder_rotate_right').style.transform = 
-				`rotate(${pose.skulder_rot || 0}deg)`;
-			document.querySelector('.albue_rotate_right').style.transform = 
-				`rotate(${pose.albue_rot || 0}deg)`;
-			
-			document.querySelector('.hofte_translate_left').style.transform = 
-				`translate(${pose.translate_x_left_leg || 0}px, ${pose.translate_y_left_leg || 0}px)`;
-			document.querySelector('.hofte_rotate_left').style.transform = 
-				`rotate(${pose.hofte_rot_left || 0}deg)`;
-			document.querySelector('.knae_rotate_left').style.transform = 
-				`rotate(${pose.knae_rot_left || 0}deg)`;
-
-			document.querySelector('.hofte_translate_right').style.transform = 
-				`translate(${pose.translate_x_right_leg || 0}px, ${pose.translate_y_right_leg || 0}px)`;
-			document.querySelector('.hofte_rotate_right').style.transform = 
-				`rotate(${pose.hofte_rot_right || 0}deg)`;
-			document.querySelector('.knae_rotate_right').style.transform = 
-				`rotate(${pose.knae_rot_right || 0}deg)`;
-			
-			// Handle arm layering
-			const leftSkulder = document.querySelector('.skulder_translate_left');
-			const rightSkulder = document.querySelector('.skulder_translate_right');
-			
-			if (pose.left_arm_front) {
-				leftSkulder.classList.add('front-arm');
-			} else {
-				leftSkulder.classList.remove('front-arm');
-			}
-			
-			if (pose.right_arm_front) {
-				rightSkulder.classList.add('front-arm');
-			} else {
-				rightSkulder.classList.remove('front-arm');
-			}
+			GuideFigureRenderer.applyPoseToFigure(mainFigureRefs, pose);
 			
 			// Update value displays
 			updateValueDisplays();
@@ -2299,33 +2463,7 @@ function testSlideData() {
 		}
 
 			// Update main figure transforms
-			document.querySelector('.skulder_translate_left').style.transform = 
-				`translate(${currentPose.translate_x_left}px, ${currentPose.translate_y_left}px)`;
-			document.querySelector('.skulder_rotate_left').style.transform = 
-				`rotate(${currentPose.skulder_rot_left}deg)`;
-			document.querySelector('.albue_rotate_left').style.transform = 
-				`rotate(${currentPose.albue_rot_left}deg)`;
-			
-			document.querySelector('.skulder_translate_right').style.transform = 
-				`translate(${currentPose.translate_x}px, ${currentPose.translate_y}px)`;
-			document.querySelector('.skulder_rotate_right').style.transform = 
-				`rotate(${currentPose.skulder_rot}deg)`;
-			document.querySelector('.albue_rotate_right').style.transform = 
-				`rotate(${currentPose.albue_rot}deg)`;
-			
-			document.querySelector('.hofte_translate_left').style.transform = 
-				`translate(${currentPose.translate_x_left_leg}px, ${currentPose.translate_y_left_leg}px)`;
-			document.querySelector('.hofte_rotate_left').style.transform = 
-				`rotate(${currentPose.hofte_rot_left}deg)`;
-			document.querySelector('.knae_rotate_left').style.transform = 
-				`rotate(${currentPose.knae_rot_left}deg)`;
-
-			document.querySelector('.hofte_translate_right').style.transform = 
-				`translate(${currentPose.translate_x_right_leg}px, ${currentPose.translate_y_right_leg}px)`;
-			document.querySelector('.hofte_rotate_right').style.transform = 
-				`rotate(${currentPose.hofte_rot_right}deg)`;
-			document.querySelector('.knae_rotate_right').style.transform = 
-				`rotate(${currentPose.knae_rot_right}deg)`;
+			GuideFigureRenderer.applyPoseToFigure(mainFigureRefs, currentPose);
 			
 			// Update value displays
 			updateValueDisplays();
@@ -2340,18 +2478,20 @@ function testSlideData() {
 				}
 			}
 
+			syncShoulderHandleRight();
+			syncShoulderHandleLeft();
 			syncHipHandleLeft();
 			syncHipHandleRight();
+			syncObjektHandle();
 		}
         
         function toggleArmLayer(side) {
-            const checkbox = document.getElementById(`${side}_arm_front`);
-            const skulderTranslate = document.querySelector(`.skulder_translate_${side}`);
-            
-            if (checkbox && checkbox.checked) {
-                skulderTranslate.classList.add('front-arm');
-            } else {
-                skulderTranslate.classList.remove('front-arm');
+            if (mainFigureRefs) {
+                GuideFigureRenderer.applyArmFrontOrder(
+                    mainFigureRefs,
+                    document.getElementById('left_arm_front').checked,
+                    document.getElementById('right_arm_front').checked
+                );
             }
         }
 
@@ -2713,10 +2853,10 @@ function selectTimelineSlide(index) {
 
 
 		function addTimelineSlide() {
-			// Add current pose as new timeline slide
 			timelineSlides.push({...currentPose, duration: 0.1});
 			currentSlideIndex = timelineSlides.length - 1;
 			updateTimelineDisplay();
+			selectTimelineSlide(currentSlideIndex);
 		}
 		
 		function updateTimelineHighlight() {
@@ -2773,50 +2913,7 @@ function moveTimelineSlide(fromIndex, direction) {
 					${index > 0 ? `<button class="move-slide-btn move-slide-left" onclick="moveTimelineSlide(${index}, -1); event.stopPropagation();">‹</button>` : ''}
 					${index < timelineSlides.length - 1 ? `<button class="move-slide-btn move-slide-right" onclick="moveTimelineSlide(${index}, 1); event.stopPropagation();">›</button>` : ''}
 					<!-- resten af din HTML -->
-					<div class="mini-figure">
-						<div class="head"><span>Hoved</span></div>
-						<div class="torso"></div>
-						
-						<div class="skulder_translate_left">
-							<div class="skulder_rotate_left">
-								<div class="arm_geo_left">
-									<div class="albue_rotate_left">
-										<div class="albue_geo_left"></div>
-									</div>
-								</div>
-							</div>
-						</div>
-						
-						<div class="skulder_translate_right">
-							<div class="skulder_rotate_right">
-								<div class="arm_geo_right">
-									<div class="albue_rotate_right">
-										<div class="albue_geo_right"></div>
-									</div>
-								</div>
-							</div>
-						</div>
-						
-						<div class="hofte_translate_left">
-							<div class="hofte_rotate_left">
-								<div class="laar_geo_left">
-									<div class="knae_rotate_left">
-										<div class="skinneben_geo_left"></div>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<div class="hofte_translate_right">
-							<div class="hofte_rotate_right">
-								<div class="laar_geo_right">
-									<div class="knae_rotate_right">
-										<div class="skinneben_geo_right"></div>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
+					<div class="mini-figure"></div>
 					<div class="slide-info">
 						<label>Varighed (s):</label>
 						<input type="number" class="duration-input" value="${slide.duration || 0.1}" min="0.05" max="10" step="0.05" 
@@ -2831,6 +2928,17 @@ function moveTimelineSlide(fromIndex, direction) {
 				slideElement.addEventListener('click', () => selectTimelineSlide(index));
 
 				track.insertBefore(slideElement, addBtn);
+			});
+
+			requestAnimationFrame(() => {
+				const slides = track.querySelectorAll('.timeline-slide');
+				timelineSlides.forEach((slide, index) => {
+					const miniFigure = slides[index]?.querySelector('.mini-figure');
+					if (miniFigure) {
+						updateMiniPoseTransforms(miniFigure, slide);
+					}
+				});
+				updateTimelineHighlight();
 			});
 		}
 		
@@ -2863,66 +2971,126 @@ function moveTimelineSlide(fromIndex, direction) {
         }
 
 			function updateMiniPoseTransforms(miniElement, poseData) {
-			console.log("updateMiniPoseTransforms called for slide");
-			
-				miniElement.querySelector('.skulder_translate_left').style.transform = 
-					`translate(${poseData.translate_x_left || 0}px, ${poseData.translate_y_left || 0}px)`;
-				miniElement.querySelector('.skulder_rotate_left').style.transform = 
-					`rotate(${poseData.skulder_rot_left || 0}deg)`;
-				miniElement.querySelector('.albue_rotate_left').style.transform = 
-					`rotate(${poseData.albue_rot_left || 0}deg)`;
-				
-				miniElement.querySelector('.skulder_translate_right').style.transform = 
-					`translate(${poseData.translate_x || 0}px, ${poseData.translate_y || 0}px)`;
-				miniElement.querySelector('.skulder_rotate_right').style.transform = 
-					`rotate(${poseData.skulder_rot || 0}deg)`;
-				miniElement.querySelector('.albue_rotate_right').style.transform = 
-					`rotate(${poseData.albue_rot || 0}deg)`;
-				
-				miniElement.querySelector('.hofte_translate_left').style.transform = 
-					`translate(${poseData.translate_x_left_leg || 0}px, ${poseData.translate_y_left_leg || 0}px)`;
-				miniElement.querySelector('.hofte_rotate_left').style.transform = 
-					`rotate(${poseData.hofte_rot_left || 0}deg)`;
-				miniElement.querySelector('.knae_rotate_left').style.transform = 
-					`rotate(${poseData.knae_rot_left || 0}deg)`;
-
-				miniElement.querySelector('.hofte_translate_right').style.transform = 
-					`translate(${poseData.translate_x_right_leg || 0}px, ${poseData.translate_y_right_leg || 0}px)`;
-				miniElement.querySelector('.hofte_rotate_right').style.transform = 
-					`rotate(${poseData.hofte_rot_right || 0}deg)`;
-				miniElement.querySelector('.knae_rotate_right').style.transform = 
-					`rotate(${poseData.knae_rot_right || 0}deg)`;
-
-				const miniHead = miniElement.querySelector('.head span');
-				if (miniHead) {
-					miniHead.textContent = poseData.head_text !== undefined && poseData.head_text !== null ? poseData.head_text : 'Hoved';
-				}
+			let svg = miniElement.querySelector('.figure-svg');
+			if (!svg) {
+				miniElement.innerHTML = '';
+				const mini = GuideFigureRenderer.createFigureSvg({ className: 'figure-svg' });
+				miniElement.appendChild(mini.svg);
+				miniElement._figureRefs = mini.refs;
+				svg = mini.svg;
+			}
+			GuideFigureRenderer.applyPoseToFigure(miniElement._figureRefs, poseData);
+			GuideFigureRenderer.applyFigureColors(svg, currentFigureColor, getHeadTextColor(currentFigureColor));
 			}
 
 
         const FIGURE_ANIMATED_SELECTORS = [
-            '.skulder_translate_left', '.skulder_rotate_left', '.albue_rotate_left',
-            '.skulder_translate_right', '.skulder_rotate_right', '.albue_rotate_right',
-            '.hofte_translate_left', '.hofte_rotate_left', '.knae_rotate_left',
-            '.hofte_translate_right', '.hofte_rotate_right', '.knae_rotate_right',
-            '.objekt_container', '.objekt_scale_wrapper'
+            '#skulder_translate_left', '#skulder_rotate_left', '#albue_rotate_left',
+            '#skulder_translate_right', '#skulder_rotate_right', '#albue_rotate_right',
+            '#hofte_translate_left', '#hofte_rotate_left', '#knae_rotate_left',
+            '#hofte_translate_right', '#hofte_rotate_right', '#knae_rotate_right',
+            '#main_objekt_container', '.objekt_rotate', '.objekt_scale', '.objekt_flip', '.objekt_draw'
         ];
 
         function clearFigureTransitions() {
             document.querySelector('.figure-container').style.transition = '';
+            if (!mainFigureRefs?.svg) return;
             FIGURE_ANIMATED_SELECTORS.forEach(selector => {
-                const el = document.querySelector(selector);
+                const el = mainFigureRefs.svg.querySelector(selector);
                 if (el) el.style.transition = '';
             });
         }
 
         function setFigureTransitions(duration) {
+            if (!mainFigureRefs?.svg) return;
             FIGURE_ANIMATED_SELECTORS.forEach(selector => {
-                const el = document.querySelector(selector);
+                const el = mainFigureRefs.svg.querySelector(selector);
                 if (el) {
                     el.style.transition = `transform ${duration}s cubic-bezier(0.25, 0.1, 0.25, 1)`;
                 }
             });
+        }
+
+        const POSE_INTERPOLATION_NUMERIC_KEYS = [
+            'translate_x_left', 'translate_y_left', 'skulder_rot_left', 'albue_rot_left',
+            'translate_x', 'translate_y', 'skulder_rot', 'albue_rot',
+            'translate_x_left_leg', 'translate_y_left_leg', 'hofte_rot_left', 'knae_rot_left',
+            'translate_x_right_leg', 'translate_y_right_leg', 'hofte_rot_right', 'knae_rot_right',
+        ];
+        const POSE_INTERPOLATION_BOOLEAN_KEYS = ['left_arm_front', 'right_arm_front'];
+
+        function interpolatePose(poseA, poseB, t) {
+            const result = {};
+            POSE_INTERPOLATION_NUMERIC_KEYS.forEach(key => {
+                const a = poseA[key] || 0;
+                const b = poseB[key] || 0;
+                result[key] = a + (b - a) * t;
+            });
+            POSE_INTERPOLATION_BOOLEAN_KEYS.forEach(key => {
+                result[key] = t < 0.5 ? !!poseA[key] : !!poseB[key];
+            });
+            mergeObjektIntoPose(result, poseA, poseB, t);
+            if (poseA.head_text !== undefined || poseB.head_text !== undefined) {
+                result.head_text = t < 0.5 ? (poseA.head_text ?? 'Hoved') : (poseB.head_text ?? 'Hoved');
+            }
+            return result;
+        }
+
+        function getTimelineTotalDuration() {
+            return timelineSlides.reduce((sum, s) => sum + (s.duration || 0.1), 0);
+        }
+
+        function getPoseAtTimelineTime(time) {
+            const slides = timelineSlides;
+            if (slides.length === 1) {
+                const single = { ...slides[0] };
+                delete single.duration;
+                return single;
+            }
+
+            let acc = 0;
+            for (let seg = 0; seg < slides.length; seg++) {
+                const dur = slides[seg].duration || 0.1;
+                if (time < acc + dur || seg === slides.length - 1) {
+                    if (seg === slides.length - 1) {
+                        const last = { ...slides[seg] };
+                        delete last.duration;
+                        return last;
+                    }
+                    const localT = Math.max(0, Math.min(1, (time - acc) / dur));
+                    return interpolatePose(slides[seg], slides[seg + 1], localT);
+                }
+                acc += dur;
+            }
+
+            const fallback = { ...slides[slides.length - 1] };
+            delete fallback.duration;
+            return fallback;
+        }
+
+        function getSlideIndexAtTimelineTime(time) {
+            let acc = 0;
+            for (let seg = 0; seg < timelineSlides.length; seg++) {
+                const dur = timelineSlides[seg].duration || 0.1;
+                if (time < acc + dur || seg === timelineSlides.length - 1) {
+                    return seg;
+                }
+                acc += dur;
+            }
+            return timelineSlides.length - 1;
+        }
+
+        function applyInterpolatedPose(rawPose) {
+            const pose = normalizePoseData(rawPose);
+            const hasObjekt = slideHasObjektData(pose);
+            if (hasObjekt !== objektEnabled) {
+                objektEnabled = hasObjekt;
+                document.getElementById('objekt_enabled').checked = hasObjekt;
+            }
+            currentPose = buildCurrentPoseFromNormalized(pose);
+            GuideFigureRenderer.applyPoseToFigure(mainFigureRefs, pose);
+            setHeadTextDisplay(pose.head_text !== undefined && pose.head_text !== null ? pose.head_text : 'Hoved');
+            updateObjektFromPose(getPoseWithObjektDefaults(pose));
         }
 
         async function playAnimation() {
@@ -2930,31 +3098,38 @@ function moveTimelineSlide(fromIndex, direction) {
                 alert('Tilføj mindst 2 slides for at afspille animation!');
                 return;
             }
-			
 
             isPlaying = true;
-            
-            for (let i = 0; i < timelineSlides.length; i++) {
-                if (!isPlaying) break;
-                
-                // Highlight current slide
-                currentSlideIndex = i;
-                updateTimelineDisplay();
-                
-                // Apply pose with transition
-                const pose = timelineSlides[i];
-                const duration = pose.duration || 1.0;
+            clearFigureTransitions();
 
-                setFigureTransitions(duration);
-                
-                applyPose(pose);
-                
-                // Wait for transition to complete
-                await new Promise(resolve => setTimeout(resolve, duration * 1000));
+            const fps = parseInt(document.getElementById('export_fps').value, 10) || 24;
+            const frameDuration = 1000 / fps;
+            const totalDuration = getTimelineTotalDuration();
+            const totalFrames = Math.max(1, Math.round(totalDuration * fps));
+            let lastSlideIndex = -1;
+
+            for (let frame = 0; frame <= totalFrames; frame++) {
+                if (!isPlaying) break;
+
+                const time = Math.min(frame / fps, totalDuration);
+                const pose = getPoseAtTimelineTime(time);
+                applyInterpolatedPose(pose);
+
+                const slideIndex = getSlideIndexAtTimelineTime(time);
+                if (slideIndex !== lastSlideIndex) {
+                    currentSlideIndex = slideIndex;
+                    lastSlideIndex = slideIndex;
+                    updateTimelineHighlight();
+                }
+
+                if (frame < totalFrames) {
+                    await new Promise(resolve => setTimeout(resolve, frameDuration));
+                }
             }
-            
+
             isPlaying = false;
             clearFigureTransitions();
+            applyPoseSilently(getPoseAtTimelineTime(Math.min(totalDuration, getTimelineTotalDuration())));
         }
 
         function stopAnimation() {
@@ -3087,14 +3262,6 @@ function exportForJavaScript() {
     alert(`Animation "${animationName}" eksporteret!\n\nCopy-paste indholdet fra filen ind i dit animations objekt.`);
 }		
 
-        // Right arm IK (2-bone, law of cosines / isosceles triangle)
-        const ARM_LENGTH = 50;
-        const RIGHT_SHOULDER_BASE_X = 162;
-        const RIGHT_SHOULDER_BASE_Y = 105;
-        const LEFT_SHOULDER_BASE_X = 139;
-        const LEFT_SHOULDER_BASE_Y = 105;
-        const LEFT_ARM_ANGLE_OFFSET = 180;
-
         let ikRightTargetX = 0;
         let ikRightTargetY = 0;
         let ikRightDragging = false;
@@ -3113,171 +3280,76 @@ function exportForJavaScript() {
         let objektHandlePrevY = 0;
 
         function getRightShoulderPos() {
-            return {
-                x: RIGHT_SHOULDER_BASE_X + (parseInt(document.getElementById('translate_x').value, 10) || 0),
-                y: RIGHT_SHOULDER_BASE_Y + (parseInt(document.getElementById('translate_y').value, 10) || 0) + 9
-            };
+            return GuideFigureRenderer.getShoulderPos('right', currentPose);
         }
 
         function getLeftShoulderPos() {
-            return {
-                x: LEFT_SHOULDER_BASE_X + (parseInt(document.getElementById('translate_x_left').value, 10) || 0),
-                y: LEFT_SHOULDER_BASE_Y + (parseInt(document.getElementById('translate_y_left').value, 10) || 0) + 9
-            };
-        }
-
-        function cssAngleToVector(deg) {
-            const rad = deg * Math.PI / 180;
-            return { x: Math.cos(rad), y: Math.sin(rad) };
+            return GuideFigureRenderer.getShoulderPos('left', currentPose);
         }
 
         function getRightHandPos() {
-            const shoulder = getRightShoulderPos();
-            const skulderRot = parseInt(document.getElementById('skulder_rot').value, 10) || 0;
-            const albueRot = parseInt(document.getElementById('albue_rot').value, 10) || 0;
-
-            const upperDir = cssAngleToVector(skulderRot);
-            const elbowX = shoulder.x + ARM_LENGTH * upperDir.x;
-            const elbowY = shoulder.y + ARM_LENGTH * upperDir.y;
-
-            const forearmDir = cssAngleToVector(skulderRot + albueRot);
-            return {
-                x: elbowX + ARM_LENGTH * forearmDir.x,
-                y: elbowY + ARM_LENGTH * forearmDir.y
-            };
+            return GuideFigureRenderer.getHandPos('right', currentPose);
         }
 
         function getLeftHandPos() {
-            const shoulder = getLeftShoulderPos();
-            const skulderRot = parseInt(document.getElementById('skulder_rot_left').value, 10) || 0;
-            const albueRot = parseInt(document.getElementById('albue_rot_left').value, 10) || 0;
-
-            const upperDir = cssAngleToVector(skulderRot + LEFT_ARM_ANGLE_OFFSET);
-            const elbowX = shoulder.x + ARM_LENGTH * upperDir.x;
-            const elbowY = shoulder.y + ARM_LENGTH * upperDir.y;
-
-            const forearmDir = cssAngleToVector(skulderRot + LEFT_ARM_ANGLE_OFFSET + albueRot);
-            return {
-                x: elbowX + ARM_LENGTH * forearmDir.x,
-                y: elbowY + ARM_LENGTH * forearmDir.y
-            };
+            return GuideFigureRenderer.getHandPos('left', currentPose);
         }
 
         function solveLeftArmIK(targetX, targetY) {
-            const shoulder = getLeftShoulderPos();
-            const target = { x: targetX, y: targetY };
-            const dx = target.x - shoulder.x;
-            const dy = target.y - shoulder.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const clampedDist = Math.max(1, Math.min(dist, ARM_LENGTH * 2));
-
-            if (dist > ARM_LENGTH * 2) {
-                const scale = (ARM_LENGTH * 2 - 0.001) / dist;
-                target.x = shoulder.x + dx * scale;
-                target.y = shoulder.y + dy * scale;
-            }
-
-            const baseAngle = Math.atan2(target.y - shoulder.y, target.x - shoulder.x);
-            const halfAngle = Math.acos(Math.max(-1, Math.min(1, clampedDist / (2 * ARM_LENGTH))));
-            const sign = document.getElementById('flip_left').checked ? 1 : -1;
-
-            const a1 = baseAngle + Math.PI + sign * halfAngle;
-            const a1World = a1 - Math.PI;
-
-            const elbowX = shoulder.x + Math.cos(a1World) * ARM_LENGTH;
-            const elbowY = shoulder.y + Math.sin(a1World) * ARM_LENGTH;
-
-            const a2world = Math.atan2(target.y - elbowY, target.x - elbowX);
-            let a2rel = a2world - a1World;
-            while (a2rel > Math.PI) a2rel -= 2 * Math.PI;
-            while (a2rel < -Math.PI) a2rel += 2 * Math.PI;
-
-            const skulderDeg = a1World * 180 / Math.PI - LEFT_ARM_ANGLE_OFFSET;
-            const albueDeg = a2rel * 180 / Math.PI;
-
-            let skulder_rot_left = skulderDeg;
-            while (skulder_rot_left > 180) skulder_rot_left -= 360;
-            while (skulder_rot_left < -180) skulder_rot_left += 360;
-
-            let albue_rot_left = albueDeg;
-            while (albue_rot_left > 180) albue_rot_left -= 360;
-            while (albue_rot_left < -180) albue_rot_left += 360;
-            albue_rot_left = Math.max(-175, Math.min(175, albue_rot_left));
-
-            return { skulder_rot_left, albue_rot_left, targetX: target.x, targetY: target.y };
+            return GuideFigureRenderer.solveArmIK(
+                'left',
+                targetX,
+                targetY,
+                !document.getElementById('flip_left').checked,
+                currentPose
+            );
         }
 
         function solveRightArmIK(targetX, targetY) {
-            const shoulder = getRightShoulderPos();
-            let dx = targetX - shoulder.x;
-            let dy = targetY - shoulder.y;
-            let dist = Math.hypot(dx, dy);
-            const maxReach = ARM_LENGTH * 2;
-
-            if (dist > maxReach) {
-                dist = maxReach - 0.001;
-                const scale = dist / Math.hypot(dx, dy);
-                dx *= scale;
-                dy *= scale;
-                targetX = shoulder.x + dx;
-                targetY = shoulder.y + dy;
-            }
-            if (dist < 0.001) {
-                dist = 0.001;
-                dx = dist;
-                dy = 0;
-            }
-
-            const baseAngle = Math.atan2(dy, dx);
-            const halfAngle = Math.acos(Math.min(1, Math.max(-1, dist / (2 * ARM_LENGTH))));
-            const sign = document.getElementById('flip_right').checked ? -1 : 1;
-
-            const a1 = baseAngle + sign * halfAngle;
-            const a2 = -2 * sign * halfAngle;
-
-            let skulder_rot = Math.round(a1 * 180 / Math.PI);
-            let albue_rot = Math.round(a2 * 180 / Math.PI);
-
-            skulder_rot = Math.max(-180, Math.min(180, skulder_rot));
-            albue_rot = Math.max(-175, Math.min(175, albue_rot));
-
-            return { skulder_rot, albue_rot, targetX, targetY };
+            return GuideFigureRenderer.solveArmIK(
+                'right',
+                targetX,
+                targetY,
+                document.getElementById('flip_right').checked,
+                currentPose
+            );
         }
 
         function positionLeftArmEndEffector(x, y) {
             const dot = document.getElementById('ik_end_effector_left');
-            dot.style.left = `${x}px`;
-            dot.style.top = `${y}px`;
+            const local = GuideFigureRenderer.svgToContainerLocal(mainFigureRefs.svg, x, y);
+            dot.style.left = `${local.x}px`;
+            dot.style.top = `${local.y}px`;
         }
 
         function positionRightArmEndEffector(x, y) {
             const dot = document.getElementById('ik_end_effector_right');
-            dot.style.left = `${x}px`;
-            dot.style.top = `${y}px`;
+            const local = GuideFigureRenderer.svgToContainerLocal(mainFigureRefs.svg, x, y);
+            dot.style.left = `${local.x}px`;
+            dot.style.top = `${local.y}px`;
         }
 
-        function figureLocalToFixed(localX, localY) {
-            const rect = document.querySelector('.figure-container').getBoundingClientRect();
-            return {
-                x: rect.left + localX,
-                y: rect.top + localY
-            };
+        function figureLocalToContainer(localX, localY) {
+            const local = GuideFigureRenderer.svgToContainerLocal(mainFigureRefs.svg, localX, localY);
+            return { x: local.x, y: local.y };
+        }
+
+        function positionDragHandle(handleId, svgX, svgY) {
+            const handle = document.getElementById(handleId);
+            if (!handle) return;
+            const local = figureLocalToContainer(svgX, svgY);
+            handle.style.left = `${local.x}px`;
+            handle.style.top = `${local.y}px`;
         }
 
         function syncShoulderHandleLeft() {
             const pos = getLeftShoulderPos();
-            const screen = figureLocalToFixed(pos.x, pos.y);
-            const handle = document.getElementById('shoulder_handle_left');
-            handle.style.left = `${screen.x}px`;
-            handle.style.top = `${screen.y}px`;
+            positionDragHandle('shoulder_handle_left', pos.x, pos.y);
         }
 
         function syncShoulderHandleRight() {
             const pos = getRightShoulderPos();
-            const screen = figureLocalToFixed(pos.x, pos.y);
-            const handle = document.getElementById('shoulder_handle_right');
-            handle.style.left = `${screen.x}px`;
-            handle.style.top = `${screen.y}px`;
+            positionDragHandle('shoulder_handle_right', pos.x, pos.y);
         }
 
         function setLeftArmRotationSlidersEnabled(enabled) {
@@ -3379,8 +3451,11 @@ function exportForJavaScript() {
         }
 
         function onShoulderHandleDragLeft(event) {
-            const dx = event.clientX - shoulderHandleLeftPrevX;
-            const dy = event.clientY - shoulderHandleLeftPrevY;
+            const svg = mainFigureRefs.svg;
+            const prev = GuideFigureRenderer.screenToSvgPoint(svg, shoulderHandleLeftPrevX, shoulderHandleLeftPrevY);
+            const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
+            const dx = curr.x - prev.x;
+            const dy = curr.y - prev.y;
             shoulderHandleLeftPrevX = event.clientX;
             shoulderHandleLeftPrevY = event.clientY;
 
@@ -3399,8 +3474,11 @@ function exportForJavaScript() {
         }
 
         function onShoulderHandleDrag(event) {
-            const dx = event.clientX - shoulderHandlePrevX;
-            const dy = event.clientY - shoulderHandlePrevY;
+            const svg = mainFigureRefs.svg;
+            const prev = GuideFigureRenderer.screenToSvgPoint(svg, shoulderHandlePrevX, shoulderHandlePrevY);
+            const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
+            const dx = curr.x - prev.x;
+            const dy = curr.y - prev.y;
             shoulderHandlePrevX = event.clientX;
             shoulderHandlePrevY = event.clientY;
 
@@ -3419,8 +3497,11 @@ function exportForJavaScript() {
         }
 
         function onObjektHandleDrag(event) {
-            const dx = event.clientX - objektHandlePrevX;
-            const dy = event.clientY - objektHandlePrevY;
+            const svg = mainFigureRefs.svg;
+            const prev = GuideFigureRenderer.screenToSvgPoint(svg, objektHandlePrevX, objektHandlePrevY);
+            const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
+            const dx = curr.x - prev.x;
+            const dy = curr.y - prev.y;
             objektHandlePrevX = event.clientX;
             objektHandlePrevY = event.clientY;
 
@@ -3449,20 +3530,8 @@ function exportForJavaScript() {
         }
 
         function getFigureContainerCoords(clientX, clientY) {
-            const rect = document.querySelector('.figure-container').getBoundingClientRect();
-            return {
-                x: clientX - rect.left,
-                y: clientY - rect.top
-            };
+            return GuideFigureRenderer.screenToSvgPoint(mainFigureRefs.svg, clientX, clientY);
         }
-
-        // Leg IK (2-bone, law of cosines)
-        const LEG_LENGTH = 52;
-        const LEFT_HIP_BASE_X = 133;
-        const LEFT_HIP_BASE_Y = 168;
-        const RIGHT_HIP_BASE_X = 165;
-        const RIGHT_HIP_BASE_Y = 168;
-        const LEG_ANGLE_OFFSET = 90;
 
         let ikLeftLegTargetX = 0;
         let ikLeftLegTargetY = 0;
@@ -3478,95 +3547,30 @@ function exportForJavaScript() {
         let hipHandleRightPrevY = 0;
 
         function getLeftHipPos() {
-            return {
-                x: LEFT_HIP_BASE_X + (parseInt(document.getElementById('translate_x_left_leg').value, 10) || 0),
-                y: LEFT_HIP_BASE_Y + (parseInt(document.getElementById('translate_y_left_leg').value, 10) || 0) + 9
-            };
+            return GuideFigureRenderer.getHipPos('left', currentPose);
         }
 
         function getRightHipPos() {
-            return {
-                x: RIGHT_HIP_BASE_X + (parseInt(document.getElementById('translate_x_right_leg').value, 10) || 0),
-                y: RIGHT_HIP_BASE_Y + (parseInt(document.getElementById('translate_y_right_leg').value, 10) || 0) + 9
-            };
+            return GuideFigureRenderer.getHipPos('right', currentPose);
         }
 
         function getLeftFootPos() {
-            const hip = getLeftHipPos();
-            const hofteRot = parseInt(document.getElementById('hofte_rot_left').value, 10) || 0;
-            const knaeRot = parseInt(document.getElementById('knae_rot_left').value, 10) || 0;
-
-            const upperDir = cssAngleToVector(hofteRot + LEG_ANGLE_OFFSET);
-            const kneeX = hip.x + LEG_LENGTH * upperDir.x;
-            const kneeY = hip.y + LEG_LENGTH * upperDir.y;
-
-            const lowerDir = cssAngleToVector(hofteRot + LEG_ANGLE_OFFSET + knaeRot);
-            return {
-                x: kneeX + LEG_LENGTH * lowerDir.x,
-                y: kneeY + LEG_LENGTH * lowerDir.y - 18
-            };
+            return GuideFigureRenderer.getFootPos('left', currentPose);
         }
 
         function getRightFootPos() {
-            const hip = getRightHipPos();
-            const hofteRot = parseInt(document.getElementById('hofte_rot_right').value, 10) || 0;
-            const knaeRot = parseInt(document.getElementById('knae_rot_right').value, 10) || 0;
-
-            const upperDir = cssAngleToVector(hofteRot + LEG_ANGLE_OFFSET);
-            const kneeX = hip.x + LEG_LENGTH * upperDir.x;
-            const kneeY = hip.y + LEG_LENGTH * upperDir.y;
-
-            const lowerDir = cssAngleToVector(hofteRot + LEG_ANGLE_OFFSET + knaeRot);
-            return {
-                x: kneeX + LEG_LENGTH * lowerDir.x,
-                y: kneeY + LEG_LENGTH * lowerDir.y - 18
-            };
+            return GuideFigureRenderer.getFootPos('right', currentPose);
         }
 
-        function solveLegIK(hip, targetX, targetY, flipCheckboxId, kneeMin, kneeMax) {
-            const target = { x: targetX, y: targetY };
-            const dx = target.x - hip.x;
-            const dy = target.y - hip.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const clampedDist = Math.max(1, Math.min(dist, LEG_LENGTH * 2));
-
-            if (dist > LEG_LENGTH * 2) {
-                const scale = (LEG_LENGTH * 2 - 0.001) / dist;
-                target.x = hip.x + dx * scale;
-                target.y = hip.y + dy * scale;
-            }
-
-            const baseAngle = Math.atan2(target.y - hip.y, target.x - hip.x);
-            const halfAngle = Math.acos(Math.max(-1, Math.min(1, clampedDist / (2 * LEG_LENGTH))));
+        function solveLegIKForSide(side, targetX, targetY, flipCheckboxId) {
+            const hip = side === 'left' ? getLeftHipPos() : getRightHipPos();
             const flipChecked = document.getElementById(flipCheckboxId).checked;
-            const sign = flipCheckboxId === 'flip_right_leg'
-                ? (flipChecked ? 1 : -1)
-                : (flipChecked ? -1 : 1);
-
-            const a1 = baseAngle + sign * halfAngle;
-
-            const kneeX = hip.x + Math.cos(a1) * LEG_LENGTH;
-            const kneeY = hip.y + Math.sin(a1) * LEG_LENGTH;
-
-            const a2world = Math.atan2(target.y - kneeY, target.x - kneeX);
-            let a2rel = a2world - a1;
-            while (a2rel > Math.PI) a2rel -= 2 * Math.PI;
-            while (a2rel < -Math.PI) a2rel += 2 * Math.PI;
-
-            let hofte_rot = a1 * 180 / Math.PI - LEG_ANGLE_OFFSET;
-            while (hofte_rot > 180) hofte_rot -= 360;
-            while (hofte_rot < -180) hofte_rot += 360;
-
-            let knae_rot = a2rel * 180 / Math.PI;
-            while (knae_rot > 180) knae_rot -= 360;
-            while (knae_rot < -180) knae_rot += 360;
-            knae_rot = Math.max(kneeMin, Math.min(kneeMax, knae_rot));
-
-            return { hofte_rot, knae_rot, targetX: target.x, targetY: target.y };
+            const flipSign = flipCheckboxId === 'flip_right_leg' ? flipChecked : !flipChecked;
+            return GuideFigureRenderer.solveLegIK(hip, targetX, targetY, flipSign);
         }
 
         function solveLeftLegIK(targetX, targetY) {
-            const result = solveLegIK(getLeftHipPos(), targetX, targetY, 'flip_left_leg', -180, 180);
+            const result = solveLegIKForSide('left', targetX, targetY, 'flip_left_leg');
             return {
                 hofte_rot_left: result.hofte_rot,
                 knae_rot_left: result.knae_rot,
@@ -3576,7 +3580,7 @@ function exportForJavaScript() {
         }
 
         function solveRightLegIK(targetX, targetY) {
-            const result = solveLegIK(getRightHipPos(), targetX, targetY, 'flip_right_leg', -180, 180);
+            const result = solveLegIKForSide('right', targetX, targetY, 'flip_right_leg');
             return {
                 hofte_rot_right: result.hofte_rot,
                 knae_rot_right: result.knae_rot,
@@ -3587,30 +3591,26 @@ function exportForJavaScript() {
 
         function positionLeftLegEndEffector(x, y) {
             const dot = document.getElementById('ik_end_effector_left_leg');
-            dot.style.left = `${x}px`;
-            dot.style.top = `${y}px`;
+            const local = GuideFigureRenderer.svgToContainerLocal(mainFigureRefs.svg, x, y);
+            dot.style.left = `${local.x}px`;
+            dot.style.top = `${local.y}px`;
         }
 
         function positionRightLegEndEffector(x, y) {
             const dot = document.getElementById('ik_end_effector_right_leg');
-            dot.style.left = `${x}px`;
-            dot.style.top = `${y}px`;
+            const local = GuideFigureRenderer.svgToContainerLocal(mainFigureRefs.svg, x, y);
+            dot.style.left = `${local.x}px`;
+            dot.style.top = `${local.y}px`;
         }
 
         function syncHipHandleLeft() {
             const pos = getLeftHipPos();
-            const screen = figureLocalToFixed(pos.x, pos.y);
-            const handle = document.getElementById('hip_handle_left');
-            handle.style.left = `${screen.x}px`;
-            handle.style.top = `${screen.y}px`;
+            positionDragHandle('hip_handle_left', pos.x, pos.y);
         }
 
         function syncHipHandleRight() {
             const pos = getRightHipPos();
-            const screen = figureLocalToFixed(pos.x, pos.y);
-            const handle = document.getElementById('hip_handle_right');
-            handle.style.left = `${screen.x}px`;
-            handle.style.top = `${screen.y}px`;
+            positionDragHandle('hip_handle_right', pos.x, pos.y);
         }
 
         function setLeftLegRotationSlidersEnabled(enabled) {
@@ -3712,8 +3712,11 @@ function exportForJavaScript() {
         }
 
         function onHipHandleDragLeft(event) {
-            const dx = event.clientX - hipHandleLeftPrevX;
-            const dy = event.clientY - hipHandleLeftPrevY;
+            const svg = mainFigureRefs.svg;
+            const prev = GuideFigureRenderer.screenToSvgPoint(svg, hipHandleLeftPrevX, hipHandleLeftPrevY);
+            const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
+            const dx = curr.x - prev.x;
+            const dy = curr.y - prev.y;
             hipHandleLeftPrevX = event.clientX;
             hipHandleLeftPrevY = event.clientY;
 
@@ -3732,8 +3735,11 @@ function exportForJavaScript() {
         }
 
         function onHipHandleDragRight(event) {
-            const dx = event.clientX - hipHandleRightPrevX;
-            const dy = event.clientY - hipHandleRightPrevY;
+            const svg = mainFigureRefs.svg;
+            const prev = GuideFigureRenderer.screenToSvgPoint(svg, hipHandleRightPrevX, hipHandleRightPrevY);
+            const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
+            const dx = curr.x - prev.x;
+            const dy = curr.y - prev.y;
             hipHandleRightPrevX = event.clientX;
             hipHandleRightPrevY = event.clientY;
 
@@ -3904,6 +3910,12 @@ function exportForJavaScript() {
                 endEffector.classList.add('dragging');
             });
 
+            syncShoulderHandleRight();
+        }
+
+        function initFigureDragHandlers() {
+            const endEffectorRight = document.getElementById('ik_end_effector_right');
+
             document.addEventListener('mousemove', (event) => {
                 if (objektHandleDragging) {
                     onObjektHandleDrag(event);
@@ -3940,9 +3952,10 @@ function exportForJavaScript() {
                     applyLeftArmIK(coords.x, coords.y);
                     return;
                 }
-                if (!ikRightDragging || !ikCheckbox.checked) return;
-                const coords = getFigureContainerCoords(event.clientX, event.clientY);
-                applyRightArmIK(coords.x, coords.y);
+                if (ikRightDragging && document.getElementById('ik_right').checked) {
+                    const coords = getFigureContainerCoords(event.clientX, event.clientY);
+                    applyRightArmIK(coords.x, coords.y);
+                }
             });
 
             document.addEventListener('mouseup', () => {
@@ -3964,7 +3977,7 @@ function exportForJavaScript() {
                 }
                 if (shoulderHandleDragging) {
                     shoulderHandleDragging = false;
-                    shoulderHandle.classList.remove('dragging');
+                    document.getElementById('shoulder_handle_right').classList.remove('dragging');
                 }
                 if (ikLeftLegDragging) {
                     ikLeftLegDragging = false;
@@ -3978,17 +3991,32 @@ function exportForJavaScript() {
                     ikLeftDragging = false;
                     document.getElementById('ik_end_effector_left').classList.remove('dragging');
                 }
-                if (!ikRightDragging) return;
-                ikRightDragging = false;
-                endEffector.classList.remove('dragging');
+                if (ikRightDragging) {
+                    ikRightDragging = false;
+                    endEffectorRight.classList.remove('dragging');
+                }
             });
+        }
 
+        function syncAllDragHandles() {
+            syncShoulderHandleLeft();
             syncShoulderHandleRight();
+            syncHipHandleLeft();
+            syncHipHandleRight();
+            syncObjektHandle();
+            syncLeftArmIKEndEffector();
+            syncRightArmIKEndEffector();
+            syncLeftLegIKEndEffector();
+            syncRightLegIKEndEffector();
         }
 		
 		
 
         // Initialize
+        initMainFigure();
+        currentPose = buildCurrentPoseFromNormalized(getDefaultPose());
+        populateObjektSelect(OBJEKT_KNOWN_FILES);
+
         document.querySelectorAll('input[type="range"]').forEach(slider => {
             slider.addEventListener('input', updateTransforms);
         });
@@ -4001,13 +4029,19 @@ function exportForJavaScript() {
         document.getElementById('objekt_front').addEventListener('change', updateTransforms);
         document.getElementById('objekt_flip').addEventListener('change', updateTransforms);
         document.getElementById('objekt_select').addEventListener('change', updateTransforms);
-        document.getElementById('objekt_parent').addEventListener('change', updateTransforms);
+        document.getElementById('objekt_parent').addEventListener('change', () => {
+            updateObjektAxisLabels();
+            updateTransforms();
+        });
+        document.getElementById('show_export_frame').addEventListener('change', syncExportFrameVisibility);
 
         initLeftArmIK();
         initRightArmIK();
         initLeftLegIK();
         initRightLegIK();
         initObjektHandle();
+        initFigureDragHandlers();
+        requestAnimationFrame(() => syncAllDragHandles());
 
         function extractObjektFields(pose) {
             const defaults = getDefaultObjektFields();
@@ -4051,29 +4085,22 @@ function exportForJavaScript() {
         }
 
         async function waitForObjektImageReady(root) {
-            const container = root.querySelector('.objekt_container');
+            const container = root.querySelector('#main_objekt_container');
             if (!container || container.style.display === 'none') return;
             if (getComputedStyle(container).display === 'none') return;
 
-            const img = root.querySelector('img.objekt_svg');
+            const img = root.querySelector('image.objekt_svg');
             if (!img) return;
 
-            const fileName = img.dataset.objektFile;
-            if (!img.src && fileName) {
-                setObjektImageSrc(img, fileName);
-            }
-            if (!img.src) return;
+            const href = img.getAttribute('href') || img.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+            if (!href) return;
 
-            if (!img.complete) {
-                await new Promise((resolve, reject) => {
-                    img.onload = () => resolve();
-                    img.onerror = () => reject(new Error('Objekt-billede kunne ikke indlæses'));
-                });
-            }
-
-            if (img.decode) {
-                await img.decode().catch(() => {});
-            }
+            await new Promise((resolve, reject) => {
+                const probe = new Image();
+                probe.onload = () => resolve();
+                probe.onerror = () => reject(new Error('Objekt-billede kunne ikke indlæses'));
+                probe.src = href;
+            }).catch(() => {});
         }
 
         async function prepareObjektForExport(figureContainer) {
@@ -4107,26 +4134,26 @@ function exportForJavaScript() {
         async function inlineObjektSvgForCapture(root) {
             const restores = [];
 
-            for (const img of [...root.querySelectorAll('img.objekt_svg')]) {
+            for (const img of [...root.querySelectorAll('image.objekt_svg')]) {
                 const container = img.closest('.objekt_container');
                 if (!container || container.style.display === 'none') continue;
                 if (getComputedStyle(container).display === 'none') continue;
 
-                const src = img.currentSrc || img.src;
-                const fileName = img.dataset.objektFile;
+                const href = img.getAttribute('href') || img.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+                const fileName = getObjektFileFromImage(img);
 
                 try {
                     let svgText = fileName ? getObjektSvgText(fileName) : null;
-                    if (!svgText && src) {
-                        if (src.startsWith('data:image/svg+xml')) {
-                            const payload = src.slice(src.indexOf(',') + 1);
-                            svgText = src.includes(';base64,')
+                    if (!svgText && href) {
+                        if (href.startsWith('data:image/svg+xml')) {
+                            const payload = href.slice(href.indexOf(',') + 1);
+                            svgText = href.includes(';base64,')
                                 ? atob(payload)
                                 : decodeURIComponent(payload);
-                        } else if (src.startsWith('blob:')) {
-                            svgText = await (await fetch(src)).text();
+                        } else if (href.startsWith('blob:')) {
+                            svgText = await (await fetch(href)).text();
                         } else {
-                            svgText = await (await fetch(src)).text();
+                            svgText = await (await fetch(href)).text();
                         }
                     }
                     if (!svgText) continue;
@@ -4137,11 +4164,10 @@ function exportForJavaScript() {
                         throw new Error('SVG parse error');
                     }
 
-                    svgEl.classList.add('objekt_svg');
-                    svgEl.style.width = '60px';
-                    svgEl.style.height = 'auto';
-                    svgEl.style.display = 'block';
-                    svgEl.style.pointerEvents = 'none';
+                    svgEl.setAttribute('x', img.getAttribute('x') || '0');
+                    svgEl.setAttribute('y', img.getAttribute('y') || '0');
+                    svgEl.setAttribute('width', img.getAttribute('width') || '60');
+                    svgEl.setAttribute('height', img.getAttribute('height') || '60');
 
                     const parent = img.parentElement;
                     parent.replaceChild(svgEl, img);
@@ -4174,41 +4200,80 @@ function exportForJavaScript() {
             }
         }
 
+        const FIGURE_UI_ELEMENT_IDS = [
+            'shoulder_handle_left',
+            'shoulder_handle_right',
+            'hip_handle_left',
+            'hip_handle_right',
+            'objekt_handle',
+            'ik_end_effector_left',
+            'ik_end_effector_right',
+            'ik_end_effector_left_leg',
+            'ik_end_effector_right_leg',
+            'objekt_origin_marker',
+            'figure_export_outline',
+            'figure_viewbox_guide',
+        ];
+
+        function hideFigureUiForExport() {
+            const restored = [];
+            FIGURE_UI_ELEMENT_IDS.forEach((id) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                restored.push({
+                    el,
+                    display: el.style.display,
+                    visibility: el.style.visibility,
+                    opacity: el.style.opacity,
+                });
+                el.classList.add('figure-ui-hidden-for-export');
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+            });
+            return restored;
+        }
+
+        function restoreFigureUiAfterExport(restored) {
+            restored.forEach(({ el, display, visibility, opacity }) => {
+                el.classList.remove('figure-ui-hidden-for-export');
+                el.style.display = display;
+                el.style.visibility = visibility;
+                el.style.opacity = opacity;
+            });
+        }
+
+        async function waitForExportPaint() {
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        }
+
+        function getExportFigureContainer() {
+            return document.getElementById('figure_export_frame');
+        }
+
         async function exportFigurePNG() {
             if (typeof html2canvas === 'undefined') {
                 alert('Eksport-biblioteket html2canvas er ikke indlæst.');
                 return;
             }
 
-            const figureContainer = document.querySelector('.figure-container');
-            const hideIds = [
-                'shoulder_handle_left', 'shoulder_handle_right',
-                'ik_end_effector_left', 'ik_end_effector_right',
-                'ik_end_effector_left_leg', 'ik_end_effector_right_leg',
-                'hip_handle_left', 'hip_handle_right',
-                'objekt_handle'
-            ];
-            const restored = [];
-
-            hideIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el && figureContainer.contains(el)) {
-                    restored.push({ el, display: el.style.display });
-                    el.style.display = 'none';
-                }
-            });
+            const exportFrame = getExportFigureContainer();
+            const hiddenUi = hideFigureUiForExport();
 
             const transparentBg = document.getElementById('transparent_bg').checked;
             let savedObjektEnabled = objektEnabled;
 
             try {
                 const scale = 3;
-                savedObjektEnabled = await prepareObjektForExport(figureContainer);
-                if (objektEnabled && !document.querySelector('.objekt_container img.objekt_svg')?.src) {
+                savedObjektEnabled = await prepareObjektForExport(exportFrame);
+                await waitForExportPaint();
+                const objImg = document.querySelector('#main_objekt_container image.objekt_svg');
+                const objHref = objImg?.getAttribute('href') || objImg?.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+                if (objektEnabled && !objHref) {
                     alert('Objekt-SVG kunne ikke indlæses. Kør siden via en lokal webserver (ikke file://).');
                 }
 
-                const canvas = await captureFigureToCanvas(figureContainer, {
+                const canvas = await captureFigureToCanvas(exportFrame, {
                     backgroundColor: transparentBg ? null : '#ffffff',
                     scale: scale
                 });
@@ -4218,9 +4283,7 @@ function exportForJavaScript() {
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             } finally {
-                restored.forEach(({ el, display }) => {
-                    el.style.display = display;
-                });
+                restoreFigureUiAfterExport(hiddenUi);
                 restoreObjektAfterExport(savedObjektEnabled);
             }
         }
@@ -4245,73 +4308,8 @@ function exportForJavaScript() {
 
             const savedPose = {...currentPose};
             const savedObjektEnabled = objektEnabled;
-            const figureContainer = document.querySelector('.figure-container');
-            const hideIds = [
-                'shoulder_handle_left', 'shoulder_handle_right',
-                'ik_end_effector_left', 'ik_end_effector_right',
-                'ik_end_effector_left_leg', 'ik_end_effector_right_leg',
-                'hip_handle_left', 'hip_handle_right',
-                'objekt_handle'
-            ];
-            const hiddenElements = [];
-
-            hideIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el && figureContainer.contains(el)) {
-                    hiddenElements.push({ el, display: el.style.display });
-                    el.style.display = 'none';
-                }
-            });
-
-            const numericKeys = [
-                'translate_x_left', 'translate_y_left', 'skulder_rot_left', 'albue_rot_left',
-                'translate_x', 'translate_y', 'skulder_rot', 'albue_rot',
-                'translate_x_left_leg', 'translate_y_left_leg', 'hofte_rot_left', 'knae_rot_left',
-                'translate_x_right_leg', 'translate_y_right_leg', 'hofte_rot_right', 'knae_rot_right'
-            ];
-            const booleanKeys = ['left_arm_front', 'right_arm_front'];
-
-            function interpolatePose(poseA, poseB, t) {
-                const result = {};
-                numericKeys.forEach(key => {
-                    const a = poseA[key] || 0;
-                    const b = poseB[key] || 0;
-                    result[key] = a + (b - a) * t;
-                });
-                booleanKeys.forEach(key => {
-                    result[key] = t < 0.5 ? !!poseA[key] : !!poseB[key];
-                });
-                mergeObjektIntoPose(result, poseA, poseB, t);
-                return result;
-            }
-
-            function getPoseAtTime(time) {
-                const slides = timelineSlides;
-                if (slides.length === 1) {
-                    const single = {...slides[0]};
-                    delete single.duration;
-                    return single;
-                }
-
-                let acc = 0;
-                for (let seg = 0; seg < slides.length; seg++) {
-                    const dur = slides[seg].duration || 0.1;
-                    if (time < acc + dur || seg === slides.length - 1) {
-                        if (seg === slides.length - 1) {
-                            const last = {...slides[seg]};
-                            delete last.duration;
-                            return last;
-                        }
-                        const localT = Math.max(0, Math.min(1, (time - acc) / dur));
-                        return interpolatePose(slides[seg], slides[seg + 1], localT);
-                    }
-                    acc += dur;
-                }
-
-                const fallback = {...slides[slides.length - 1]};
-                delete fallback.duration;
-                return fallback;
-            }
+            const exportFrame = getExportFigureContainer();
+            const hiddenUi = hideFigureUiForExport();
 
             function waitForPaint() {
                 return new Promise(resolve => {
@@ -4321,24 +4319,22 @@ function exportForJavaScript() {
 
             try {
                 const fps = parseInt(document.getElementById('export_fps').value, 10) || 24;
-                const totalFrames = Math.max(1, Math.round(
-                    timelineSlides.reduce((sum, s) => sum + (s.duration || 0.1), 0) * fps
-                ));
+                const totalFrames = Math.max(1, Math.round(getTimelineTotalDuration() * fps));
                 const zip = new JSZip();
 
                 for (let frame = 0; frame < totalFrames; frame++) {
                     exportBtn.textContent = `Renderer frame ${frame + 1} af ${totalFrames}...`;
 
                     const time = frame / fps;
-                    const pose = getPoseAtTime(time);
+                    const pose = getPoseAtTimelineTime(time);
                     objektEnabled = slideHasObjektData(pose);
                     applyPoseSilently(pose);
                     if (objektEnabled) {
-                        await waitForObjektImageReady(figureContainer);
+                        await waitForObjektImageReady(exportFrame);
                     }
                     await waitForPaint();
 
-                    const canvas = await captureFigureToCanvas(figureContainer, {
+                    const canvas = await captureFigureToCanvas(exportFrame, {
                         backgroundColor: null,
                         scale: 3
                     });
@@ -4372,10 +4368,21 @@ function exportForJavaScript() {
             onColorSelect: applyFigureColor,
         });
         applyFigureColor(FIGURE_COLOR_DEFAULT);
-        loadObjektManifest().then(() => {
-            newPose();
-            updateTimelineDisplay();
-        });
+        updateObjektAxisLabels();
+
+        loadObjektManifest()
+            .then(() => {
+                newPose();
+                updateTimelineDisplay();
+                selectTimelineSlide(0);
+            })
+            .catch((err) => {
+                console.warn('loadObjektManifest fejlede:', err);
+                populateObjektSelect(OBJEKT_KNOWN_FILES);
+                newPose();
+                updateTimelineDisplay();
+                selectTimelineSlide(0);
+            });
     </script>
 </body>
 </html>
