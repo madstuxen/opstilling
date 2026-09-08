@@ -165,15 +165,6 @@
       class: 'figure-body',
     }, root);
 
-    refs.headText = el('text', {
-      id: 'figure_head_text',
-      x: GEO.headCenterX,
-      y: GEO.headCenterY,
-      'text-anchor': 'middle',
-      'dominant-baseline': 'central',
-      class: 'figure-head-text',
-    }, root);
-
     refs.objektFront = g('objekt_front', root);
     refs.armsFront = g('arms_front', root);
 
@@ -193,9 +184,85 @@
     buildLeg('left', refs.legs, refs);
     buildLeg('right', refs.legs, refs);
 
+    refs.headLabelLayer = g('head_label_layer', root);
+    refs.headText = el('text', {
+      id: 'figure_head_text',
+      class: 'figure-head-text',
+    }, refs.headLabelLayer);
+
     refs.objektRoot = g('objekt_root', refs.objektFront);
     refs.svg = svg;
+    svg._guideFigureRefs = refs;
     return { svg, refs, geo: GEO };
+  }
+
+  function splitHeadLabel(text, maxCharsPerLine = 8, maxLines = 3) {
+    if (text == null || String(text).trim() === '') return [];
+    const value = String(text);
+    if (value.length <= maxCharsPerLine) return [value];
+
+    const words = value.split(' ');
+    const lines = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      if (lines.length >= maxLines) break;
+      if (currentLine.length === 0) {
+        currentLine = word;
+      } else if (`${currentLine} ${word}`.length <= maxCharsPerLine) {
+        currentLine += ` ${word}`;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine.length > 0 && lines.length < maxLines) {
+      lines.push(currentLine);
+    }
+    return lines.length > 0 ? lines : [value.slice(0, maxCharsPerLine)];
+  }
+
+  function ensureHeadTextOnTop(refs) {
+    if (refs.headLabelLayer?.parentNode) {
+      refs.headLabelLayer.parentNode.appendChild(refs.headLabelLayer);
+    }
+  }
+
+  function applyHeadText(refs, text, headTextColor) {
+    if (!refs?.headText) return;
+    const color = headTextColor || refs._headTextColor || '#ffffff';
+    refs._headTextColor = color;
+    refs._headTextValue = text;
+
+    const lines = splitHeadLabel(text);
+    const fontSize = 11;
+    const lineHeight = fontSize * 1.1;
+    const totalHeight = (lines.length - 1) * lineHeight;
+    const startY = GEO.headCenterY - totalHeight / 2;
+
+    refs.headText.setAttribute('fill', color);
+    refs.headText.setAttribute('font-size', String(fontSize));
+    refs.headText.setAttribute('font-weight', 'bold');
+    refs.headText.textContent = '';
+
+    if (lines.length === 0) {
+      ensureHeadTextOnTop(refs);
+      return;
+    }
+
+    lines.forEach((line, index) => {
+      const tspan = el('tspan', {
+        x: GEO.headCenterX,
+        y: index === 0 ? startY : undefined,
+        dy: index === 0 ? 0 : lineHeight,
+        'text-anchor': 'middle',
+        'dominant-baseline': 'central',
+      });
+      tspan.textContent = line;
+      refs.headText.appendChild(tspan);
+    });
+
+    ensureHeadTextOnTop(refs);
   }
 
   function setTransform(node, tx, ty, rot) {
@@ -216,6 +283,7 @@
     };
     moveArm('left', leftFront);
     moveArm('right', rightFront);
+    ensureHeadTextOnTop(refs);
   }
 
   function applyPoseToFigure(refs, pose) {
@@ -259,15 +327,18 @@
 
     applyArmFrontOrder(refs, !!p.left_arm_front, !!p.right_arm_front);
 
-    if (refs.headText) {
-      refs.headText.textContent = p.head_text != null && p.head_text !== '' ? p.head_text : 'Hoved';
-    }
+    applyHeadText(refs, p.head_text, refs._headTextColor);
   }
 
   function applyFigureColors(svg, bodyColor, headTextColor) {
     const limbColor = darkenColor(bodyColor, 0.15);
     svg.querySelectorAll('.figure-body').forEach((node) => node.setAttribute('fill', bodyColor));
     svg.querySelectorAll('.figure-limb').forEach((node) => node.setAttribute('fill', limbColor));
+    const refs = svg._guideFigureRefs;
+    if (refs) {
+      applyHeadText(refs, refs._headTextValue, headTextColor);
+      return;
+    }
     const headText = svg.querySelector('.figure-head-text');
     if (headText && headTextColor) headText.setAttribute('fill', headTextColor);
   }
@@ -563,6 +634,7 @@
     createFigureSvg,
     applyPoseToFigure,
     applyFigureColors,
+    applyHeadText,
     applyArmFrontOrder,
     svgPointToScreen,
     screenToSvgPoint,

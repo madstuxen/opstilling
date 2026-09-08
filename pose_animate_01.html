@@ -1258,7 +1258,7 @@
                 <input type="text" class="pose-input" id="poseName" placeholder="Pose navn...">
 
                 <label for="head_text" style="display:block; font-size:12px; color:#0284c7; margin-bottom:4px;">Hoved tekst:</label>
-                <input type="text" class="pose-input" id="head_text" value="Hoved" maxlength="24">
+                <input type="text" class="pose-input" id="head_text" value="" maxlength="24" placeholder="Hoved">
                 
                 <div class="button-group">
     			<button class="btn btn-success" onclick="savePoseToLibrary()">Gem Pose</button>
@@ -1829,7 +1829,7 @@
                 translate_x_right_leg: 0, translate_y_right_leg: 0, hofte_rot_right: 0, knae_rot_right: 0,
                 left_arm_front: false,
                 right_arm_front: false,
-                head_text: 'Hoved',
+                head_text: '',
                 duration: 0.1
             };
         }
@@ -2255,7 +2255,7 @@
                 knae_rot_right: slide.knae_rot_right || 0,
                 left_arm_front: slide.left_arm_front || false,
                 right_arm_front: slide.right_arm_front || false,
-                head_text: slide.head_text ?? 'Hoved',
+                head_text: slide.head_text ?? '',
                 duration: slide.duration || 0.1
             };
         }
@@ -2304,13 +2304,16 @@
         }
 
         function setHeadTextDisplay(text) {
-            if (mainFigureRefs?.headText) {
-                mainFigureRefs.headText.textContent = text || '';
-            }
+            if (!mainFigureRefs) return;
+            GuideFigureRenderer.applyHeadText(
+                mainFigureRefs,
+                text,
+                getHeadTextColor(currentFigureColor),
+            );
         }
 
         function syncHeadTextInput(pose) {
-            const value = pose.head_text !== undefined && pose.head_text !== null ? pose.head_text : 'Hoved';
+            const value = pose.head_text != null ? pose.head_text : '';
             document.getElementById('head_text').value = value;
             setHeadTextDisplay(value);
         }
@@ -3031,7 +3034,7 @@ function moveTimelineSlide(fromIndex, direction) {
             });
             mergeObjektIntoPose(result, poseA, poseB, t);
             if (poseA.head_text !== undefined || poseB.head_text !== undefined) {
-                result.head_text = t < 0.5 ? (poseA.head_text ?? 'Hoved') : (poseB.head_text ?? 'Hoved');
+                result.head_text = t < 0.5 ? (poseA.head_text ?? '') : (poseB.head_text ?? '');
             }
             return result;
         }
@@ -3089,7 +3092,7 @@ function moveTimelineSlide(fromIndex, direction) {
             }
             currentPose = buildCurrentPoseFromNormalized(pose);
             GuideFigureRenderer.applyPoseToFigure(mainFigureRefs, pose);
-            setHeadTextDisplay(pose.head_text !== undefined && pose.head_text !== null ? pose.head_text : 'Hoved');
+            setHeadTextDisplay(pose.head_text != null ? pose.head_text : '');
             updateObjektFromPose(getPoseWithObjektDefaults(pose));
         }
 
