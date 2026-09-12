@@ -36,6 +36,10 @@
     kneeOffset: 42,
   };
 
+  /** Dingle pivot — tuned above geometric head center (Y grows downward). */
+  const DINGLE_PIVOT_X = GEO.headCenterX;
+  const DINGLE_PIVOT_Y = 20;
+
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   function el(tag, attrs, parent) {
@@ -142,9 +146,15 @@
     });
 
     const root = g('figure_root', svg);
-    refs.armsBack = g('arms_back', root);
-    refs.legs = g('legs', root);
-    refs.objektBack = g('objekt_back', root);
+    refs.figureRoot = root;
+    refs.objektFreeBack = g('objekt_free_back', root);
+    refs.maveLayer = g('mave_layer', root);
+
+    const torsoContent = g('torso_content', refs.maveLayer);
+    refs.torsoContent = torsoContent;
+    refs.armsBack = g('arms_back', torsoContent);
+    refs.legs = g('legs', torsoContent);
+    refs.objektBack = g('objekt_back', torsoContent);
 
     refs.torso = el('rect', {
       id: 'figure_torso',
@@ -155,19 +165,36 @@
       rx: GEO.torsoRxTop,
       ry: GEO.torsoRyBottom,
       class: 'figure-body',
-    }, root);
+    }, torsoContent);
 
+    refs.objektFront = g('objekt_front', torsoContent);
+    refs.armsFront = g('arms_front', torsoContent);
+
+    buildArm('left', refs.armsBack, refs);
+    buildArm('right', refs.armsBack, refs);
+    buildLeg('left', refs.legs, refs);
+    buildLeg('right', refs.legs, refs);
+
+    refs.headGroup = g('head_group', refs.maveLayer);
     refs.head = el('circle', {
       id: 'figure_head',
       cx: GEO.headCenterX,
       cy: GEO.headCenterY,
       r: GEO.headRadius,
       class: 'figure-body',
-    }, root);
+    }, refs.headGroup);
 
-    refs.objektFront = g('objekt_front', root);
-    refs.armsFront = g('arms_front', root);
+    refs.headLabelLayer = g('head_label_layer', refs.headGroup);
+    refs.headText = el('text', {
+      id: 'figure_head_text',
+      class: 'figure-head-text',
+    }, refs.headLabelLayer);
 
+    refs.objektMaveFront = g('objekt_mave_front', refs.maveLayer);
+
+    refs.objektRoot = g('objekt_root', refs.objektFront);
+
+    refs.objektFreeFront = g('objekt_free_front', root);
     refs.objektOrigin = el('circle', {
       id: 'objekt_origin_marker',
       cx: GEO.torsoCenterX,
@@ -177,20 +204,44 @@
       opacity: 0.75,
       class: 'objekt-origin-marker',
       style: 'display: none',
+      'pointer-events': 'none',
     }, root);
 
-    buildArm('left', refs.armsBack, refs);
-    buildArm('right', refs.armsBack, refs);
-    buildLeg('left', refs.legs, refs);
-    buildLeg('right', refs.legs, refs);
+    /** Dingle / bodyRotation pivot — see DINGLE_PIVOT_X/Y (above head center by headRadius/4). */
+    refs.dinglePivotMarker = el('g', {
+      id: 'dingle_pivot_marker',
+      class: 'dingle-pivot-marker',
+      'pointer-events': 'none',
+      style: 'display: none',
+    }, root);
+    el('circle', {
+      cx: DINGLE_PIVOT_X,
+      cy: DINGLE_PIVOT_Y,
+      r: 4,
+      fill: '#ef4444',
+      opacity: 0.45,
+    }, refs.dinglePivotMarker);
+    el('line', {
+      x1: DINGLE_PIVOT_X - 6,
+      y1: DINGLE_PIVOT_Y,
+      x2: DINGLE_PIVOT_X + 6,
+      y2: DINGLE_PIVOT_Y,
+      stroke: '#ef4444',
+      'stroke-width': 1.5,
+      opacity: 0.65,
+      'stroke-linecap': 'round',
+    }, refs.dinglePivotMarker);
+    el('line', {
+      x1: DINGLE_PIVOT_X,
+      y1: DINGLE_PIVOT_Y - 6,
+      x2: DINGLE_PIVOT_X,
+      y2: DINGLE_PIVOT_Y + 6,
+      stroke: '#ef4444',
+      'stroke-width': 1.5,
+      opacity: 0.65,
+      'stroke-linecap': 'round',
+    }, refs.dinglePivotMarker);
 
-    refs.headLabelLayer = g('head_label_layer', root);
-    refs.headText = el('text', {
-      id: 'figure_head_text',
-      class: 'figure-head-text',
-    }, refs.headLabelLayer);
-
-    refs.objektRoot = g('objekt_root', refs.objektFront);
     refs.svg = svg;
     svg._guideFigureRefs = refs;
     return { svg, refs, geo: GEO };
@@ -274,6 +325,38 @@
     node.style.transform = '';
   }
 
+  /** Shortest arc for degrees — matches ithem poseUtils.lerpRotation. */
+  function lerpRotation(from, to, t) {
+    let delta = to - from;
+    while (delta > 180) delta -= 360;
+    while (delta < -180) delta += 360;
+    return from + delta * t;
+  }
+
+  /** Navle / mave pivot — torsoCenter; origin for objekt_parent === "mave". */
+  const NAVLE_PIVOT_X = GEO.torsoCenterX;
+  const NAVLE_PIVOT_Y = GEO.torsoCenterY;
+
+  function applyMaveTransform(refs, pose) {
+    if (!refs?.maveLayer) return;
+    const px = NAVLE_PIVOT_X;
+    const py = NAVLE_PIVOT_Y;
+    const tx = pose.mave_translate_x || 0;
+    const ty = pose.mave_translate_y || 0;
+    const rot = pose.mave_rotate || 0;
+    refs.maveLayer.setAttribute(
+      'transform',
+      `translate(${px + tx} ${py + ty}) rotate(${rot}) translate(${-px} ${-py})`,
+    );
+  }
+
+  function applyHeadTransform(refs, pose) {
+    if (!refs?.headGroup) return;
+    const tx = pose.hoved_translate_x || 0;
+    const ty = pose.hoved_translate_y || 0;
+    refs.headGroup.setAttribute('transform', tx || ty ? `translate(${tx} ${ty})` : '');
+  }
+
   function applyArmFrontOrder(refs, leftFront, rightFront) {
     const moveArm = (side, toFront) => {
       const key = `arm_${side}`;
@@ -327,6 +410,8 @@
 
     applyArmFrontOrder(refs, !!p.left_arm_front, !!p.right_arm_front);
 
+    applyMaveTransform(refs, p);
+    applyHeadTransform(refs, p);
     applyHeadText(refs, p.head_text, refs._headTextColor);
   }
 
@@ -369,6 +454,77 @@
     pt.x = clientX;
     pt.y = clientY;
     const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const local = pt.matrixTransform(ctm.inverse());
+    return { x: local.x, y: local.y };
+  }
+
+  /**
+   * Map a point in torso_content / figure-content space through #mave_layer
+   * (same math as applyMaveTransform) into SVG user coordinates.
+   */
+  function contentPointToSvgUser(pose, x, y) {
+    const px = NAVLE_PIVOT_X;
+    const py = NAVLE_PIVOT_Y;
+    const tx = pose?.mave_translate_x || 0;
+    const ty = pose?.mave_translate_y || 0;
+    const rot = ((pose?.mave_rotate || 0) * Math.PI) / 180;
+    const dx = x - px;
+    const dy = y - py;
+    const cos = Math.cos(rot);
+    const sin = Math.sin(rot);
+    return {
+      x: px + tx + dx * cos - dy * sin,
+      y: py + ty + dx * sin + dy * cos,
+    };
+  }
+
+  /** Inverse of contentPointToSvgUser — SVG user coords → figure-content coords. */
+  function svgUserToContentPoint(pose, svgX, svgY) {
+    const px = NAVLE_PIVOT_X;
+    const py = NAVLE_PIVOT_Y;
+    const tx = pose?.mave_translate_x || 0;
+    const ty = pose?.mave_translate_y || 0;
+    const rot = (-(pose?.mave_rotate || 0) * Math.PI) / 180;
+    const cx = px + tx;
+    const cy = py + ty;
+    const dx = svgX - cx;
+    const dy = svgY - cy;
+    const cos = Math.cos(rot);
+    const sin = Math.sin(rot);
+    return {
+      x: px + dx * cos - dy * sin,
+      y: py + dx * sin + dy * cos,
+    };
+  }
+
+  function screenToContentPoint(svg, pose, clientX, clientY) {
+    const svgPt = screenToSvgPoint(svg, clientX, clientY);
+    return svgUserToContentPoint(pose, svgPt.x, svgPt.y);
+  }
+
+  function contentPointToContainerLocal(svg, pose, contentX, contentY) {
+    const svgPt = contentPointToSvgUser(pose, contentX, contentY);
+    return svgToContainerLocal(svg, svgPt.x, svgPt.y);
+  }
+
+  function svgUserPointToContainerLocal(svg, svgX, svgY) {
+    return svgToContainerLocal(svg, svgX, svgY);
+  }
+
+  /** Origin of an SVG element (local 0,0) in .figure-container pixel coords. */
+  function elementOriginToContainerLocal(svg, element) {
+    if (!element) return null;
+    const figurePt = elementLocalToFigure(svg, element, 0, 0);
+    return svgToContainerLocal(svg, figurePt.x, figurePt.y);
+  }
+
+  function screenToElementLocal(element, clientX, clientY) {
+    if (!element) return { x: 0, y: 0 };
+    const pt = element.ownerSVGElement?.createSVGPoint?.() || { x: clientX, y: clientY };
+    pt.x = clientX;
+    pt.y = clientY;
+    const ctm = element.getScreenCTM();
     if (!ctm) return { x: 0, y: 0 };
     const local = pt.matrixTransform(ctm.inverse());
     return { x: local.x, y: local.y };
@@ -584,6 +740,10 @@
     const x = pose.objekt_x || 0;
     const y = pose.objekt_y || 0;
 
+    if (parentKey === OBJEKT_PARENT_MAVE) {
+      return contentPointToSvgUser(pose, GEO.torsoCenterX + x, GEO.torsoCenterY + y);
+    }
+
     if (!parentKey) {
       return { x: GEO.torsoCenterX + x, y: GEO.torsoCenterY + y };
     }
@@ -597,6 +757,8 @@
   function setPoseReader(fn) {
     readPoseFromSliders = fn;
   }
+
+  const OBJEKT_PARENT_MAVE = 'mave';
 
   const OBJEKT_PARENT_SLOTS = {
     skulder_right: 'objekt_slot_skulder_right',
@@ -631,8 +793,22 @@
 
   global.GuideFigureRenderer = {
     GEO,
+    DINGLE_PIVOT_X,
+    DINGLE_PIVOT_Y,
+    NAVLE_PIVOT_X,
+    NAVLE_PIVOT_Y,
+    lerpRotation,
+    contentPointToSvgUser,
+    svgUserToContentPoint,
+    screenToContentPoint,
+    contentPointToContainerLocal,
+    svgUserPointToContainerLocal,
+    elementOriginToContainerLocal,
+    screenToElementLocal,
     createFigureSvg,
     applyPoseToFigure,
+    applyMaveTransform,
+    applyHeadTransform,
     applyFigureColors,
     applyHeadText,
     applyArmFrontOrder,
@@ -650,6 +826,7 @@
     elementLocalToFigure,
     getObjektPivotFigureCoords,
     getDefaultExportBoundary,
+    OBJEKT_PARENT_MAVE,
     OBJEKT_PARENT_SLOTS,
     darkenColor,
   };

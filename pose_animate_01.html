@@ -490,8 +490,25 @@
         #shoulder_handle_left.dragging,
         #hip_handle_left.dragging,
         #hip_handle_right.dragging,
-        #objekt_handle.dragging {
+        #objekt_handle.dragging,
+        #mave_handle.dragging,
+        #hoved_handle.dragging {
             cursor: grabbing;
+        }
+
+        #mave_handle,
+        #hoved_handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #22c55e;
+            border: 2px solid #16a34a;
+            cursor: grab;
+            z-index: 26;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+            pointer-events: auto;
         }
 
         .figure-ui-hidden-for-export {
@@ -500,10 +517,14 @@
             opacity: 0 !important;
         }
 
+        .mini-figure .dingle-pivot-marker {
+            display: none !important;
+        }
+
         /* Control positions around figure */
         .left-arm-controls {
             top: 20px;
-            left: -145px;
+            left: 50px;
             width: 150px;
         }
 
@@ -515,7 +536,7 @@
 
         .left-leg-controls {
             bottom: -30px;
-            left: -145px;
+            left: 50px;
             width: 150px;
         }
 
@@ -530,6 +551,26 @@
             left: -300px;
             transform: translateY(-50%);
             width: 155px;
+        }
+
+        /* 20px gap after Objekt (same as gap before Venstre arm) */
+        .mave-head-controls {
+            top: 50%;
+            left: -125px;
+            transform: translateY(-50%);
+            width: 155px;
+        }
+
+        .mave-head-controls h5 {
+            font-size: 11px;
+            color: #6366f1;
+            margin: 8px 0 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .mave-head-controls h5:first-child {
+            margin-top: 0;
         }
 
         #objekt_controls_inner.disabled {
@@ -1243,6 +1284,10 @@
                     <input type="checkbox" id="show_export_frame" checked>
                     <label for="show_export_frame" style="font-size:12px;">Vis eksport-ramme</label>
                 </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                    <input type="checkbox" id="show_dingle_pivot">
+                    <label for="show_dingle_pivot" style="font-size:12px;">Vis dingle-pivot</label>
+                </div>
                 <button class="btn btn-primary" onclick="exportFigurePNG()">Gem PNG</button>
                 <div style="display:flex; align-items:center; gap:8px; margin-top:10px; margin-bottom:10px;">
                     <label for="export_fps" style="font-size:12px;">FPS:</label>
@@ -1470,7 +1515,8 @@
                         <div class="mini-slider">
                             <label>Parent:</label>
                             <select id="objekt_parent">
-                                <option value="">Ingen</option>
+                                <option value="">Ingen (fri)</option>
+                                <option value="mave">Mave</option>
                                 <option value="skulder_left">Venstre skulder</option>
                                 <option value="skulder_right">Højre skulder</option>
                                 <option value="albue_left">Venstre albue</option>
@@ -1484,6 +1530,38 @@
                     </div>
                 </div>
 
+                <!-- Mave & Hoved Controls (right of Objekt panel) -->
+                <div class="mini-controls mave-head-controls">
+                    <h4>Mave &amp; Hoved</h4>
+                    <h5>Mave</h5>
+                    <div class="mini-slider">
+                        <label for="mave_rotate">Rotation:</label>
+                        <input type="range" id="mave_rotate" min="-90" max="90" value="0">
+                        <div class="mini-value" id="mave_rotate_val">0°</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label for="mave_translate_x">X:</label>
+                        <input type="range" id="mave_translate_x" min="-30" max="30" value="0">
+                        <div class="mini-value" id="mave_translate_x_val">0</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label for="mave_translate_y">Y:</label>
+                        <input type="range" id="mave_translate_y" min="-30" max="30" value="0">
+                        <div class="mini-value" id="mave_translate_y_val">0</div>
+                    </div>
+                    <h5>Hoved</h5>
+                    <div class="mini-slider">
+                        <label for="hoved_translate_x">X:</label>
+                        <input type="range" id="hoved_translate_x" min="-30" max="30" value="0">
+                        <div class="mini-value" id="hoved_translate_x_val">0</div>
+                    </div>
+                    <div class="mini-slider">
+                        <label for="hoved_translate_y">Y:</label>
+                        <input type="range" id="hoved_translate_y" min="-30" max="30" value="0">
+                        <div class="mini-value" id="hoved_translate_y_val">0</div>
+                    </div>
+                </div>
+
                 <!-- Figure -->
                 <div class="figure-export-frame" id="figure_export_frame">
                     <div id="figure_export_outline" class="figure-export-outline"></div>
@@ -1494,6 +1572,8 @@
                         <div id="hip_handle_left"></div>
                         <div id="hip_handle_right"></div>
                         <div id="objekt_handle"></div>
+                        <div id="mave_handle"></div>
+                        <div id="hoved_handle"></div>
                         <div id="ik_end_effector_left" class="ik-end-effector-left"></div>
                         <div id="ik_end_effector_right" class="ik-end-effector-right"></div>
                     </div>
@@ -1571,7 +1651,7 @@
             objektScaleGroup.appendChild(objektFlipGroup);
             objektRotateGroup.appendChild(objektScaleGroup);
             objektSvgGroup.appendChild(objektRotateGroup);
-            mainFigureRefs.objektRoot.appendChild(objektSvgGroup);
+            mainFigureRefs.objektFreeFront.appendChild(objektSvgGroup);
 
             GuideFigureRenderer.setPoseReader(() => currentPose);
             applyFigureColor(currentFigureColor);
@@ -1829,6 +1909,11 @@
                 translate_x_right_leg: 0, translate_y_right_leg: 0, hofte_rot_right: 0, knae_rot_right: 0,
                 left_arm_front: false,
                 right_arm_front: false,
+                mave_rotate: 0,
+                mave_translate_x: 0,
+                mave_translate_y: 0,
+                hoved_translate_x: 0,
+                hoved_translate_y: 0,
                 head_text: '',
                 duration: 0.1
             };
@@ -2024,7 +2109,9 @@
         };
 
         function flipObjektParentKey(parentKey) {
-            if (!parentKey) return '';
+            if (!parentKey || parentKey === GuideFigureRenderer.OBJEKT_PARENT_MAVE) {
+                return parentKey || '';
+            }
             if (parentKey.endsWith('_left')) {
                 return parentKey.replace(/_left$/, '_right');
             }
@@ -2099,13 +2186,18 @@
         function reparentObjektContainer(parentKey, objektFront) {
             if (!objektSvgGroup || !mainFigureRefs) return;
             const slots = GuideFigureRenderer.OBJEKT_PARENT_SLOTS;
+            const maveParent = GuideFigureRenderer.OBJEKT_PARENT_MAVE;
             let parentEl;
-            if (parentKey && slots[parentKey]) {
+            if (parentKey === maveParent) {
+                parentEl = objektFront !== false
+                    ? mainFigureRefs.objektMaveFront
+                    : mainFigureRefs.objektBack;
+            } else if (parentKey && slots[parentKey]) {
                 parentEl = mainFigureRefs.svg.querySelector(`#${slots[parentKey]}`);
-            } else if (objektFront !== false) {
-                parentEl = mainFigureRefs.objektFront;
             } else {
-                parentEl = mainFigureRefs.objektBack;
+                parentEl = objektFront !== false
+                    ? mainFigureRefs.objektFreeFront
+                    : mainFigureRefs.objektFreeBack;
             }
             if (parentEl && objektSvgGroup.parentElement !== parentEl) {
                 parentEl.appendChild(objektSvgGroup);
@@ -2138,8 +2230,9 @@
             const scale = pose.objekt_scale ?? 1;
             const flipX = pose.objekt_flip ? -1 : 1;
             const half = OBJEKT_CONTAINER_BASE / 2;
-            const anchorX = parentKey ? x : TORSO_CENTER_X + x;
-            const anchorY = parentKey ? y : TORSO_CENTER_Y + y;
+            const isLimbParent = parentKey && parentKey !== GuideFigureRenderer.OBJEKT_PARENT_MAVE;
+            const anchorX = isLimbParent ? x : TORSO_CENTER_X + x;
+            const anchorY = isLimbParent ? y : TORSO_CENTER_Y + y;
             const drawX = layout ? -half + layout.offsetX : -half;
             const drawY = layout ? -half + layout.offsetY : -half;
 
@@ -2158,6 +2251,13 @@
             const marker = mainFigureRefs?.objektOrigin;
             if (!marker) return;
             const show = objektEnabled && slideHasObjektData(pose) && !(pose.objekt_parent || '');
+            marker.style.display = show ? '' : 'none';
+        }
+
+        function syncDinglePivotMarker() {
+            const marker = mainFigureRefs?.dinglePivotMarker;
+            if (!marker) return;
+            const show = document.getElementById('show_dingle_pivot')?.checked ?? false;
             marker.style.display = show ? '' : 'none';
         }
 
@@ -2190,14 +2290,23 @@
                 getPoseWithObjektDefaults(currentPose)
             );
             handle.style.display = '';
-            positionDragHandle('objekt_handle', pivot.x, pivot.y);
+            positionDragHandle('objekt_handle', pivot.x, pivot.y, 'svg');
         }
 
         function updateObjektAxisLabels() {
             const parentKey = document.getElementById('objekt_parent').value || '';
-            const relativeToTorso = !parentKey;
-            document.querySelector('label[for="objekt_x"]').textContent = relativeToTorso ? 'X (mave):' : 'X:';
-            document.querySelector('label[for="objekt_y"]').textContent = relativeToTorso ? 'Y (mave):' : 'Y:';
+            const maveParent = GuideFigureRenderer.OBJEKT_PARENT_MAVE;
+            let xLabel = 'X:';
+            let yLabel = 'Y:';
+            if (parentKey === maveParent) {
+                xLabel = 'X (mave):';
+                yLabel = 'Y (mave):';
+            } else if (!parentKey) {
+                xLabel = 'X (figur):';
+                yLabel = 'Y (figur):';
+            }
+            document.querySelector('label[for="objekt_x"]').textContent = xLabel;
+            document.querySelector('label[for="objekt_y"]').textContent = yLabel;
         }
 
         function updateObjektValueDisplays() {
@@ -2255,6 +2364,11 @@
                 knae_rot_right: slide.knae_rot_right || 0,
                 left_arm_front: slide.left_arm_front || false,
                 right_arm_front: slide.right_arm_front || false,
+                mave_rotate: slide.mave_rotate || 0,
+                mave_translate_x: slide.mave_translate_x || 0,
+                mave_translate_y: slide.mave_translate_y || 0,
+                hoved_translate_x: slide.hoved_translate_x || 0,
+                hoved_translate_y: slide.hoved_translate_y || 0,
                 head_text: slide.head_text ?? '',
                 duration: slide.duration || 0.1
             };
@@ -2395,6 +2509,8 @@
 			syncRightLegIKEndEffector();
 			syncHipHandleLeft();
 			syncHipHandleRight();
+			syncMaveHandle();
+			syncHovedHandle();
 			syncObjektHandle();
 		}
 		
@@ -2485,6 +2601,8 @@ function testSlideData() {
 			syncShoulderHandleLeft();
 			syncHipHandleLeft();
 			syncHipHandleRight();
+			syncMaveHandle();
+			syncHovedHandle();
 			syncObjektHandle();
 		}
         
@@ -2518,6 +2636,11 @@ function testSlideData() {
             document.getElementById('translate_y_right_leg_val').textContent = currentPose.translate_y_right_leg || 0;
             document.getElementById('hofte_rot_right_val').textContent = (currentPose.hofte_rot_right || 0) + '°';
             document.getElementById('knae_rot_right_val').textContent = (currentPose.knae_rot_right || 0) + '°';
+            document.getElementById('mave_rotate_val').textContent = (currentPose.mave_rotate || 0) + '°';
+            document.getElementById('mave_translate_x_val').textContent = currentPose.mave_translate_x || 0;
+            document.getElementById('mave_translate_y_val').textContent = currentPose.mave_translate_y || 0;
+            document.getElementById('hoved_translate_x_val').textContent = currentPose.hoved_translate_x || 0;
+            document.getElementById('hoved_translate_y_val').textContent = currentPose.hoved_translate_y || 0;
             updateObjektValueDisplays();
         }
 
@@ -2561,6 +2684,8 @@ function testSlideData() {
             syncRightLegIKEndEffector();
             syncHipHandleLeft();
             syncHipHandleRight();
+            syncMaveHandle();
+            syncHovedHandle();
         }
         
         function flipPose() {
@@ -2610,6 +2735,10 @@ function testSlideData() {
             // Swap toggle states
             currentPose.left_arm_front = rightArmFront;
             currentPose.right_arm_front = leftArmFront;
+
+            currentPose.mave_rotate = -(currentPose.mave_rotate || 0);
+            currentPose.mave_translate_x = -(currentPose.mave_translate_x || 0);
+            currentPose.hoved_translate_x = -(currentPose.hoved_translate_x || 0);
 
             if (objektEnabled && slideHasObjektData(currentPose)) {
                 currentPose.objekt_x = -(currentPose.objekt_x || 0);
@@ -2988,6 +3117,7 @@ function moveTimelineSlide(fromIndex, direction) {
 
 
         const FIGURE_ANIMATED_SELECTORS = [
+            '#mave_layer', '#head_group',
             '#skulder_translate_left', '#skulder_rotate_left', '#albue_rotate_left',
             '#skulder_translate_right', '#skulder_rotate_right', '#albue_rotate_right',
             '#hofte_translate_left', '#hofte_rotate_left', '#knae_rotate_left',
@@ -3014,20 +3144,34 @@ function moveTimelineSlide(fromIndex, direction) {
             });
         }
 
-        const POSE_INTERPOLATION_NUMERIC_KEYS = [
-            'translate_x_left', 'translate_y_left', 'skulder_rot_left', 'albue_rot_left',
-            'translate_x', 'translate_y', 'skulder_rot', 'albue_rot',
-            'translate_x_left_leg', 'translate_y_left_leg', 'hofte_rot_left', 'knae_rot_left',
-            'translate_x_right_leg', 'translate_y_right_leg', 'hofte_rot_right', 'knae_rot_right',
+        const POSE_INTERPOLATION_LINEAR_KEYS = [
+            'translate_x_left', 'translate_y_left',
+            'translate_x', 'translate_y',
+            'translate_x_left_leg', 'translate_y_left_leg',
+            'translate_x_right_leg', 'translate_y_right_leg',
+            'mave_translate_x', 'mave_translate_y',
+            'hoved_translate_x', 'hoved_translate_y',
+        ];
+        const POSE_INTERPOLATION_ROTATION_KEYS = [
+            'skulder_rot_left', 'albue_rot_left',
+            'skulder_rot', 'albue_rot',
+            'hofte_rot_left', 'knae_rot_left',
+            'hofte_rot_right', 'knae_rot_right',
+            'mave_rotate',
         ];
         const POSE_INTERPOLATION_BOOLEAN_KEYS = ['left_arm_front', 'right_arm_front'];
 
         function interpolatePose(poseA, poseB, t) {
             const result = {};
-            POSE_INTERPOLATION_NUMERIC_KEYS.forEach(key => {
+            POSE_INTERPOLATION_LINEAR_KEYS.forEach(key => {
                 const a = poseA[key] || 0;
                 const b = poseB[key] || 0;
                 result[key] = a + (b - a) * t;
+            });
+            POSE_INTERPOLATION_ROTATION_KEYS.forEach(key => {
+                const a = poseA[key] || 0;
+                const b = poseB[key] || 0;
+                result[key] = GuideFigureRenderer.lerpRotation(a, b, t);
             });
             POSE_INTERPOLATION_BOOLEAN_KEYS.forEach(key => {
                 result[key] = t < 0.5 ? !!poseA[key] : !!poseB[key];
@@ -3279,6 +3423,12 @@ function exportForJavaScript() {
         let shoulderHandleLeftPrevY = 0;
 
         let objektHandleDragging = false;
+        let maveHandleDragging = false;
+        let hovedHandleDragging = false;
+        let maveHandlePrevX = 0;
+        let maveHandlePrevY = 0;
+        let hovedHandlePrevX = 0;
+        let hovedHandlePrevY = 0;
         let objektHandlePrevX = 0;
         let objektHandlePrevY = 0;
 
@@ -3320,37 +3470,71 @@ function exportForJavaScript() {
 
         function positionLeftArmEndEffector(x, y) {
             const dot = document.getElementById('ik_end_effector_left');
-            const local = GuideFigureRenderer.svgToContainerLocal(mainFigureRefs.svg, x, y);
+            const local = GuideFigureRenderer.contentPointToContainerLocal(mainFigureRefs.svg, currentPose, x, y);
             dot.style.left = `${local.x}px`;
             dot.style.top = `${local.y}px`;
         }
 
         function positionRightArmEndEffector(x, y) {
             const dot = document.getElementById('ik_end_effector_right');
-            const local = GuideFigureRenderer.svgToContainerLocal(mainFigureRefs.svg, x, y);
+            const local = GuideFigureRenderer.contentPointToContainerLocal(mainFigureRefs.svg, currentPose, x, y);
             dot.style.left = `${local.x}px`;
             dot.style.top = `${local.y}px`;
         }
 
-        function figureLocalToContainer(localX, localY) {
-            const local = GuideFigureRenderer.svgToContainerLocal(mainFigureRefs.svg, localX, localY);
-            return { x: local.x, y: local.y };
-        }
-
-        function positionDragHandle(handleId, svgX, svgY) {
+        function positionHandleFromElement(handleId, element) {
             const handle = document.getElementById(handleId);
-            if (!handle) return;
-            const local = figureLocalToContainer(svgX, svgY);
+            if (!handle || !element) return;
+            const local = GuideFigureRenderer.elementOriginToContainerLocal(mainFigureRefs.svg, element);
+            if (!local) return;
             handle.style.left = `${local.x}px`;
             handle.style.top = `${local.y}px`;
         }
 
+        function positionDragHandle(handleId, x, y, coordSpace = 'content') {
+            const handle = document.getElementById(handleId);
+            if (!handle) return;
+            const svg = mainFigureRefs.svg;
+            const local = coordSpace === 'svg'
+                ? GuideFigureRenderer.svgUserPointToContainerLocal(svg, x, y)
+                : GuideFigureRenderer.contentPointToContainerLocal(svg, currentPose, x, y);
+            handle.style.left = `${local.x}px`;
+            handle.style.top = `${local.y}px`;
+        }
+
+        function syncMaveHandle() {
+            positionDragHandle(
+                'mave_handle',
+                GuideFigureRenderer.NAVLE_PIVOT_X,
+                GuideFigureRenderer.NAVLE_PIVOT_Y,
+            );
+        }
+
+        function syncHovedHandle() {
+            const pose = currentPose || {};
+            positionDragHandle(
+                'hoved_handle',
+                GuideFigureRenderer.GEO.headCenterX + (pose.hoved_translate_x || 0),
+                GuideFigureRenderer.GEO.headCenterY + (pose.hoved_translate_y || 0),
+            );
+        }
+
         function syncShoulderHandleLeft() {
+            const el = mainFigureRefs?.skulder_translate_left;
+            if (el) {
+                positionHandleFromElement('shoulder_handle_left', el);
+                return;
+            }
             const pos = getLeftShoulderPos();
             positionDragHandle('shoulder_handle_left', pos.x, pos.y);
         }
 
         function syncShoulderHandleRight() {
+            const el = mainFigureRefs?.skulder_translate_right;
+            if (el) {
+                positionHandleFromElement('shoulder_handle_right', el);
+                return;
+            }
             const pos = getRightShoulderPos();
             positionDragHandle('shoulder_handle_right', pos.x, pos.y);
         }
@@ -3455,8 +3639,8 @@ function exportForJavaScript() {
 
         function onShoulderHandleDragLeft(event) {
             const svg = mainFigureRefs.svg;
-            const prev = GuideFigureRenderer.screenToSvgPoint(svg, shoulderHandleLeftPrevX, shoulderHandleLeftPrevY);
-            const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
+            const prev = GuideFigureRenderer.screenToContentPoint(svg, currentPose, shoulderHandleLeftPrevX, shoulderHandleLeftPrevY);
+            const curr = GuideFigureRenderer.screenToContentPoint(svg, currentPose, event.clientX, event.clientY);
             const dx = curr.x - prev.x;
             const dy = curr.y - prev.y;
             shoulderHandleLeftPrevX = event.clientX;
@@ -3478,8 +3662,8 @@ function exportForJavaScript() {
 
         function onShoulderHandleDrag(event) {
             const svg = mainFigureRefs.svg;
-            const prev = GuideFigureRenderer.screenToSvgPoint(svg, shoulderHandlePrevX, shoulderHandlePrevY);
-            const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
+            const prev = GuideFigureRenderer.screenToContentPoint(svg, currentPose, shoulderHandlePrevX, shoulderHandlePrevY);
+            const curr = GuideFigureRenderer.screenToContentPoint(svg, currentPose, event.clientX, event.clientY);
             const dx = curr.x - prev.x;
             const dy = curr.y - prev.y;
             shoulderHandlePrevX = event.clientX;
@@ -3501,10 +3685,32 @@ function exportForJavaScript() {
 
         function onObjektHandleDrag(event) {
             const svg = mainFigureRefs.svg;
-            const prev = GuideFigureRenderer.screenToSvgPoint(svg, objektHandlePrevX, objektHandlePrevY);
-            const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
-            const dx = curr.x - prev.x;
-            const dy = curr.y - prev.y;
+            const parentKey = currentPose.objekt_parent || '';
+            const maveParent = GuideFigureRenderer.OBJEKT_PARENT_MAVE;
+            const slotId = parentKey && parentKey !== maveParent
+                ? GuideFigureRenderer.OBJEKT_PARENT_SLOTS[parentKey]
+                : null;
+            const slot = slotId ? svg.querySelector(`#${slotId}`) : null;
+            let dx;
+            let dy;
+
+            if (slot) {
+                const prev = GuideFigureRenderer.screenToElementLocal(slot, objektHandlePrevX, objektHandlePrevY);
+                const curr = GuideFigureRenderer.screenToElementLocal(slot, event.clientX, event.clientY);
+                dx = curr.x - prev.x;
+                dy = curr.y - prev.y;
+            } else if (parentKey === maveParent) {
+                const prev = GuideFigureRenderer.screenToContentPoint(svg, currentPose, objektHandlePrevX, objektHandlePrevY);
+                const curr = GuideFigureRenderer.screenToContentPoint(svg, currentPose, event.clientX, event.clientY);
+                dx = curr.x - prev.x;
+                dy = curr.y - prev.y;
+            } else {
+                const prev = GuideFigureRenderer.screenToSvgPoint(svg, objektHandlePrevX, objektHandlePrevY);
+                const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
+                dx = curr.x - prev.x;
+                dy = curr.y - prev.y;
+            }
+
             objektHandlePrevX = event.clientX;
             objektHandlePrevY = event.clientY;
 
@@ -3516,6 +3722,46 @@ function exportForJavaScript() {
             tySlider.value = Math.max(-100, Math.min(100, Math.round(newY)));
 
             updateTransforms();
+        }
+
+        function onMaveHandleDrag(event) {
+            const svg = mainFigureRefs.svg;
+            const prev = GuideFigureRenderer.screenToContentPoint(svg, currentPose, maveHandlePrevX, maveHandlePrevY);
+            const curr = GuideFigureRenderer.screenToContentPoint(svg, currentPose, event.clientX, event.clientY);
+            const dx = curr.x - prev.x;
+            const dy = curr.y - prev.y;
+            maveHandlePrevX = event.clientX;
+            maveHandlePrevY = event.clientY;
+
+            const txSlider = document.getElementById('mave_translate_x');
+            const tySlider = document.getElementById('mave_translate_y');
+            let newX = (parseInt(txSlider.value, 10) || 0) + dx;
+            let newY = (parseInt(tySlider.value, 10) || 0) + dy;
+            txSlider.value = Math.max(-30, Math.min(30, Math.round(newX)));
+            tySlider.value = Math.max(-30, Math.min(30, Math.round(newY)));
+
+            updateTransforms();
+            syncMaveHandle();
+        }
+
+        function onHovedHandleDrag(event) {
+            const svg = mainFigureRefs.svg;
+            const prev = GuideFigureRenderer.screenToContentPoint(svg, currentPose, hovedHandlePrevX, hovedHandlePrevY);
+            const curr = GuideFigureRenderer.screenToContentPoint(svg, currentPose, event.clientX, event.clientY);
+            const dx = curr.x - prev.x;
+            const dy = curr.y - prev.y;
+            hovedHandlePrevX = event.clientX;
+            hovedHandlePrevY = event.clientY;
+
+            const txSlider = document.getElementById('hoved_translate_x');
+            const tySlider = document.getElementById('hoved_translate_y');
+            let newX = (parseInt(txSlider.value, 10) || 0) + dx;
+            let newY = (parseInt(tySlider.value, 10) || 0) + dy;
+            txSlider.value = Math.max(-30, Math.min(30, Math.round(newX)));
+            tySlider.value = Math.max(-30, Math.min(30, Math.round(newY)));
+
+            updateTransforms();
+            syncHovedHandle();
         }
 
         function initObjektHandle() {
@@ -3532,8 +3778,34 @@ function exportForJavaScript() {
             });
         }
 
+        function initMaveHovedHandles() {
+            const maveHandle = document.getElementById('mave_handle');
+            const hovedHandle = document.getElementById('hoved_handle');
+
+            maveHandle.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                maveHandleDragging = true;
+                maveHandlePrevX = event.clientX;
+                maveHandlePrevY = event.clientY;
+                maveHandle.classList.add('dragging');
+            });
+
+            hovedHandle.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                hovedHandleDragging = true;
+                hovedHandlePrevX = event.clientX;
+                hovedHandlePrevY = event.clientY;
+                hovedHandle.classList.add('dragging');
+            });
+        }
+
         function getFigureContainerCoords(clientX, clientY) {
-            return GuideFigureRenderer.screenToSvgPoint(mainFigureRefs.svg, clientX, clientY);
+            return GuideFigureRenderer.screenToContentPoint(
+                mainFigureRefs.svg,
+                currentPose,
+                clientX,
+                clientY
+            );
         }
 
         let ikLeftLegTargetX = 0;
@@ -3594,24 +3866,34 @@ function exportForJavaScript() {
 
         function positionLeftLegEndEffector(x, y) {
             const dot = document.getElementById('ik_end_effector_left_leg');
-            const local = GuideFigureRenderer.svgToContainerLocal(mainFigureRefs.svg, x, y);
+            const local = GuideFigureRenderer.contentPointToContainerLocal(mainFigureRefs.svg, currentPose, x, y);
             dot.style.left = `${local.x}px`;
             dot.style.top = `${local.y}px`;
         }
 
         function positionRightLegEndEffector(x, y) {
             const dot = document.getElementById('ik_end_effector_right_leg');
-            const local = GuideFigureRenderer.svgToContainerLocal(mainFigureRefs.svg, x, y);
+            const local = GuideFigureRenderer.contentPointToContainerLocal(mainFigureRefs.svg, currentPose, x, y);
             dot.style.left = `${local.x}px`;
             dot.style.top = `${local.y}px`;
         }
 
         function syncHipHandleLeft() {
+            const el = mainFigureRefs?.hofte_translate_left;
+            if (el) {
+                positionHandleFromElement('hip_handle_left', el);
+                return;
+            }
             const pos = getLeftHipPos();
             positionDragHandle('hip_handle_left', pos.x, pos.y);
         }
 
         function syncHipHandleRight() {
+            const el = mainFigureRefs?.hofte_translate_right;
+            if (el) {
+                positionHandleFromElement('hip_handle_right', el);
+                return;
+            }
             const pos = getRightHipPos();
             positionDragHandle('hip_handle_right', pos.x, pos.y);
         }
@@ -3716,8 +3998,8 @@ function exportForJavaScript() {
 
         function onHipHandleDragLeft(event) {
             const svg = mainFigureRefs.svg;
-            const prev = GuideFigureRenderer.screenToSvgPoint(svg, hipHandleLeftPrevX, hipHandleLeftPrevY);
-            const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
+            const prev = GuideFigureRenderer.screenToContentPoint(svg, currentPose, hipHandleLeftPrevX, hipHandleLeftPrevY);
+            const curr = GuideFigureRenderer.screenToContentPoint(svg, currentPose, event.clientX, event.clientY);
             const dx = curr.x - prev.x;
             const dy = curr.y - prev.y;
             hipHandleLeftPrevX = event.clientX;
@@ -3739,8 +4021,8 @@ function exportForJavaScript() {
 
         function onHipHandleDragRight(event) {
             const svg = mainFigureRefs.svg;
-            const prev = GuideFigureRenderer.screenToSvgPoint(svg, hipHandleRightPrevX, hipHandleRightPrevY);
-            const curr = GuideFigureRenderer.screenToSvgPoint(svg, event.clientX, event.clientY);
+            const prev = GuideFigureRenderer.screenToContentPoint(svg, currentPose, hipHandleRightPrevX, hipHandleRightPrevY);
+            const curr = GuideFigureRenderer.screenToContentPoint(svg, currentPose, event.clientX, event.clientY);
             const dx = curr.x - prev.x;
             const dy = curr.y - prev.y;
             hipHandleRightPrevX = event.clientX;
@@ -3924,6 +4206,14 @@ function exportForJavaScript() {
                     onObjektHandleDrag(event);
                     return;
                 }
+                if (maveHandleDragging) {
+                    onMaveHandleDrag(event);
+                    return;
+                }
+                if (hovedHandleDragging) {
+                    onHovedHandleDrag(event);
+                    return;
+                }
                 if (hipHandleLeftDragging) {
                     onHipHandleDragLeft(event);
                     return;
@@ -3966,6 +4256,14 @@ function exportForJavaScript() {
                     objektHandleDragging = false;
                     document.getElementById('objekt_handle').classList.remove('dragging');
                 }
+                if (maveHandleDragging) {
+                    maveHandleDragging = false;
+                    document.getElementById('mave_handle').classList.remove('dragging');
+                }
+                if (hovedHandleDragging) {
+                    hovedHandleDragging = false;
+                    document.getElementById('hoved_handle').classList.remove('dragging');
+                }
                 if (hipHandleLeftDragging) {
                     hipHandleLeftDragging = false;
                     document.getElementById('hip_handle_left').classList.remove('dragging');
@@ -4006,6 +4304,8 @@ function exportForJavaScript() {
             syncShoulderHandleRight();
             syncHipHandleLeft();
             syncHipHandleRight();
+            syncMaveHandle();
+            syncHovedHandle();
             syncObjektHandle();
             syncLeftArmIKEndEffector();
             syncRightArmIKEndEffector();
@@ -4017,6 +4317,7 @@ function exportForJavaScript() {
 
         // Initialize
         initMainFigure();
+        syncDinglePivotMarker();
         currentPose = buildCurrentPoseFromNormalized(getDefaultPose());
         populateObjektSelect(OBJEKT_KNOWN_FILES);
 
@@ -4037,12 +4338,14 @@ function exportForJavaScript() {
             updateTransforms();
         });
         document.getElementById('show_export_frame').addEventListener('change', syncExportFrameVisibility);
+        document.getElementById('show_dingle_pivot').addEventListener('change', syncDinglePivotMarker);
 
         initLeftArmIK();
         initRightArmIK();
         initLeftLegIK();
         initRightLegIK();
         initObjektHandle();
+        initMaveHovedHandles();
         initFigureDragHandlers();
         requestAnimationFrame(() => syncAllDragHandles());
 
@@ -4209,11 +4512,14 @@ function exportForJavaScript() {
             'hip_handle_left',
             'hip_handle_right',
             'objekt_handle',
+            'mave_handle',
+            'hoved_handle',
             'ik_end_effector_left',
             'ik_end_effector_right',
             'ik_end_effector_left_leg',
             'ik_end_effector_right_leg',
             'objekt_origin_marker',
+            'dingle_pivot_marker',
             'figure_export_outline',
             'figure_viewbox_guide',
         ];
