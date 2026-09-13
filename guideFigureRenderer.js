@@ -168,7 +168,6 @@
     }, torsoContent);
 
     refs.objektFront = g('objekt_front', torsoContent);
-    refs.armsFront = g('arms_front', torsoContent);
 
     buildArm('left', refs.armsBack, refs);
     buildArm('right', refs.armsBack, refs);
@@ -189,6 +188,9 @@
       id: 'figure_head_text',
       class: 'figure-head-text',
     }, refs.headLabelLayer);
+
+    /** Front arms after torso + head (matches ithem GuideFigure paint order). */
+    refs.armsFront = g('arms_front', refs.maveLayer);
 
     refs.objektMaveFront = g('objekt_mave_front', refs.maveLayer);
 
