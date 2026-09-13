@@ -626,7 +626,7 @@
 			padding: 20px;
 			padding-top: 10px;
 			box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-			height: 180px;
+			height: 200px;
 			position: relative;
 		}
 
@@ -1229,6 +1229,198 @@
     background: #059669;
     transform: translateY(-50%) scale(1.1);
 }
+
+        .timeline-pose-card .slide-info label {
+            font-size: 10px;
+            color: #0284c7;
+        }
+
+        .timeline-tween-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            background: #fefce8;
+            border: 1px dashed #d4d4d8;
+            border-radius: 8px;
+            padding: 5px 4px;
+            min-width: 46px;
+            max-width: 52px;
+            flex-shrink: 0;
+        }
+
+        .tween-duration-input {
+            width: 44px;
+            padding: 1px 2px;
+            font-size: 9px;
+        }
+
+        .bezier-thumb-btn {
+            padding: 0;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+            line-height: 0;
+        }
+
+        .bezier-thumb-btn:hover {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.25);
+        }
+
+        .bezier-thumb {
+            width: 44px;
+            height: 28px;
+            display: block;
+        }
+
+        .bezier-thumb-grid {
+            stroke: #e5e7eb;
+            stroke-width: 1;
+            fill: none;
+        }
+
+        .bezier-thumb-curve {
+            fill: none;
+            stroke: #0284c7;
+            stroke-width: 2;
+        }
+
+        .bezier-editor-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .bezier-editor-backdrop.is-open {
+            display: flex;
+        }
+
+        .bezier-editor-modal {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px 24px;
+            width: min(520px, 94vw);
+            max-height: 92vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+        }
+
+        .bezier-editor-modal h3 {
+            color: #4f46e5;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        .bezier-editor-main {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .bezier-editor-canvas-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .bezier-editor-svg {
+            width: 100%;
+            height: auto;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .bezier-editor-side {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .bezier-num-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .bezier-num-grid label {
+            font-size: 11px;
+            color: #64748b;
+            display: block;
+        }
+
+        .bezier-num-grid input {
+            width: 100%;
+            padding: 4px 6px;
+            font-size: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .bezier-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .bezier-presets button {
+            font-size: 10px;
+            padding: 4px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: #f1f5f9;
+            cursor: pointer;
+        }
+
+        .bezier-presets button:hover {
+            background: #e0f2fe;
+            border-color: #0284c7;
+        }
+
+        .bezier-editor-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .bezier-preview-dot {
+            fill: #ef4444;
+        }
+
+        .bezier-handle {
+            fill: #0284c7;
+            stroke: #fff;
+            stroke-width: 2;
+            cursor: grab;
+        }
+
+        .bezier-handle:active {
+            cursor: grabbing;
+        }
+
+        .bezier-diagonal {
+            stroke: #cbd5e1;
+            stroke-width: 1;
+            stroke-dasharray: 4 3;
+        }
+
+        .bezier-curve-line {
+            fill: none;
+            stroke: #0284c7;
+            stroke-width: 3;
+        }
 		
 		
 		
@@ -1598,6 +1790,39 @@
         </div>
     </div>
 
+    <div class="bezier-editor-backdrop" id="bezierEditorBackdrop" aria-hidden="true">
+        <div class="bezier-editor-modal" role="dialog" aria-modal="true" aria-labelledby="bezierEditorTitle">
+            <h3 id="bezierEditorTitle">Tween easing (cubic-bezier)</h3>
+            <div class="bezier-editor-main">
+                <div class="bezier-editor-canvas-wrap">
+                    <svg id="bezierEditorSvg" class="bezier-editor-svg" viewBox="0 0 280 280">
+                        <rect x="40" y="40" width="200" height="200" fill="#fff" stroke="#e2e8f0"/>
+                        <line class="bezier-diagonal" x1="40" y1="240" x2="240" y2="40"/>
+                        <path id="bezierEditorCurve" class="bezier-curve-line" d=""/>
+                        <line id="bezierHandleLine1" stroke="#94a3b8" stroke-width="1"/>
+                        <line id="bezierHandleLine2" stroke="#94a3b8" stroke-width="1"/>
+                        <circle id="bezierHandle1" class="bezier-handle" r="8" cx="40" cy="240"/>
+                        <circle id="bezierHandle2" class="bezier-handle" r="8" cx="240" cy="40"/>
+                        <circle id="bezierPreviewDot" class="bezier-preview-dot" r="6" cx="40" cy="240" style="visibility:hidden"/>
+                    </svg>
+                </div>
+                <div class="bezier-editor-side">
+                    <div class="bezier-presets" id="bezierPresetButtons"></div>
+                    <div class="bezier-num-grid">
+                        <div><label>x1</label><input type="number" id="bezierX1" step="0.01" min="0" max="1"></div>
+                        <div><label>y1</label><input type="number" id="bezierY1" step="0.01"></div>
+                        <div><label>x2</label><input type="number" id="bezierX2" step="0.01" min="0" max="1"></div>
+                        <div><label>y2</label><input type="number" id="bezierY2" step="0.01"></div>
+                    </div>
+                    <div class="bezier-editor-actions">
+                        <button type="button" class="btn btn-success" id="bezierPreviewPlayBtn">▶ Afspil preview</button>
+                        <button type="button" class="btn btn-primary" id="bezierEditorCloseBtn">Gem &amp; luk</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="color-picker-full__backdrop" id="figureColorModal" aria-hidden="true">
         <div class="color-picker-full__modal" role="dialog" aria-modal="true" aria-labelledby="figureColorModalTitle">
             <h4 class="color-picker-full__title" id="figureColorModalTitle">Vælg figur farve</h4>
@@ -1882,10 +2107,13 @@
         let currentPose = {};
 
         // Animation timeline
-        let timelineSlides = [getDefaultPose()];
+        let timelineSlides = [ensureSlideTweenMeta(getDefaultPose())];
         let currentSlideIndex = 0;
         let isPlaying = false;
+        let playbackAnimationRaf = null;
         let objektEnabled = false;
+        let bezierEditorSlideIndex = -1;
+        let bezierEditorPreviewRaf = null;
 
         function getDefaultObjektFields() {
             return {
@@ -1915,8 +2143,120 @@
                 hoved_translate_x: 0,
                 hoved_translate_y: 0,
                 head_text: '',
-                duration: 0.1
+                duration: 0.1,
+                easing: getDefaultEasing(),
             };
+        }
+
+        const DEFAULT_TWEEN_DURATION = 0.1;
+
+        /** Nye tweens i editoren (eksplicit på slide). */
+        function getDefaultEasing() {
+            return { type: 'bezier', x1: 0, y1: 0, x2: 1, y2: 1 };
+        }
+
+        /** Gamle filer uden easing-felt — CSS ease-in-out tilnærmelse. */
+        function getLegacyImportedEasing() {
+            return { type: 'bezier', x1: 0.42, y1: 0, x2: 0.58, y2: 1 };
+        }
+
+        function slideHasExplicitEasing(slide) {
+            return slide != null && slide.easing != null && slide.easing.type === 'bezier';
+        }
+
+        /** Hver pose skal altid have duration; easing kun ved eksplicit nyt tween. */
+        function ensureSlideTweenMeta(slide, { assignLinearEasing = false } = {}) {
+            const next = { ...slide };
+            if (next.duration === undefined || next.duration === null || Number.isNaN(Number(next.duration))) {
+                next.duration = DEFAULT_TWEEN_DURATION;
+            }
+            if (assignLinearEasing && !slideHasExplicitEasing(next)) {
+                next.easing = getDefaultEasing();
+            }
+            return next;
+        }
+
+        function ensureAllTimelineSlidesHaveTweenMeta() {
+            timelineSlides = timelineSlides.map(ensureSlideTweenMeta);
+        }
+
+        function resolveSlideEasing(slide) {
+            if (slideHasExplicitEasing(slide)) {
+                const e = slide.easing;
+                return {
+                    type: 'bezier',
+                    x1: e.x1 ?? 0,
+                    y1: e.y1 ?? 0,
+                    x2: e.x2 ?? 1,
+                    y2: e.y2 ?? 1,
+                };
+            }
+            return getLegacyImportedEasing();
+        }
+
+        function bezierComponent(t, p1, p2) {
+            const mt = 1 - t;
+            return 3 * mt * mt * t * p1 + 3 * mt * t * t * p2 + t * t * t;
+        }
+
+        /** Map linear time t∈[0,1] through CSS cubic-bezier(x1,y1,x2,y2) → eased progress. */
+        function cubicBezierEase(t, x1, y1, x2, y2) {
+            if (t <= 0) return 0;
+            if (t >= 1) return 1;
+            let lo = 0;
+            let hi = 1;
+            for (let i = 0; i < 24; i++) {
+                const mid = (lo + hi) / 2;
+                if (bezierComponent(mid, x1, x2) < t) lo = mid;
+                else hi = mid;
+            }
+            const param = (lo + hi) / 2;
+            return bezierComponent(param, y1, y2);
+        }
+
+        function applySlideEasing(t, slide) {
+            const e = resolveSlideEasing(slide);
+            return cubicBezierEase(t, e.x1, e.y1, e.x2, e.y2);
+        }
+
+        function bezierThumbnailPath(easing, width = 44, height = 28, pad = 4) {
+            const { x1, y1, x2, y2 } = easing;
+            const innerW = width - pad * 2;
+            const innerH = height - pad * 2;
+            const mapX = (x) => pad + x * innerW;
+            const mapY = (y) => pad + (1 - y) * innerH;
+            let d = `M ${mapX(0)} ${mapY(0)}`;
+            const steps = 24;
+            for (let i = 1; i <= steps; i++) {
+                const t = i / steps;
+                const y = cubicBezierEase(t, x1, y1, x2, y2);
+                d += ` L ${mapX(t).toFixed(1)} ${mapY(y).toFixed(1)}`;
+            }
+            return d;
+        }
+
+        function bezierThumbSvgMarkup(easing) {
+            const path = bezierThumbnailPath(easing);
+            return `<svg class="bezier-thumb" viewBox="0 0 44 28" xmlns="http://www.w3.org/2000/svg">
+                <line class="bezier-thumb-grid" x1="4" y1="24" x2="40" y2="4"/>
+                <path class="bezier-thumb-curve" d="${path}"/>
+            </svg>`;
+        }
+
+        function stripTimelineMeta(pose) {
+            const p = { ...pose };
+            delete p.duration;
+            delete p.easing;
+            return p;
+        }
+
+        function preserveTimelineMetaFromSlide(slide) {
+            const ensured = ensureSlideTweenMeta(slide || {});
+            const meta = { duration: ensured.duration };
+            if (slideHasExplicitEasing(slide)) {
+                meta.easing = { ...resolveSlideEasing(slide) };
+            }
+            return meta;
         }
 
         function getPoseWithObjektDefaults(pose) {
@@ -2309,11 +2649,19 @@
             document.querySelector('label[for="objekt_y"]').textContent = yLabel;
         }
 
+        function formatDisplayInteger(value) {
+            return Math.round(Number(value) || 0);
+        }
+
+        function formatDisplayScale(value) {
+            return Math.round((Number(value ?? 1)) * 10) / 10;
+        }
+
         function updateObjektValueDisplays() {
-            document.getElementById('objekt_x_val').textContent = currentPose.objekt_x || 0;
-            document.getElementById('objekt_y_val').textContent = currentPose.objekt_y || 0;
-            document.getElementById('objekt_rotate_val').textContent = (currentPose.objekt_rotate || 0) + '°';
-            document.getElementById('objekt_scale_val').textContent = currentPose.objekt_scale ?? 1;
+            document.getElementById('objekt_x_val').textContent = formatDisplayInteger(currentPose.objekt_x);
+            document.getElementById('objekt_y_val').textContent = formatDisplayInteger(currentPose.objekt_y);
+            document.getElementById('objekt_rotate_val').textContent = formatDisplayInteger(currentPose.objekt_rotate) + '°';
+            document.getElementById('objekt_scale_val').textContent = formatDisplayScale(currentPose.objekt_scale);
         }
 
         async function loadObjektManifest() {
@@ -2370,7 +2718,6 @@
                 hoved_translate_x: slide.hoved_translate_x || 0,
                 hoved_translate_y: slide.hoved_translate_y || 0,
                 head_text: slide.head_text ?? '',
-                duration: slide.duration || 0.1
             };
         }
 
@@ -2393,15 +2740,24 @@
         function buildStoredPoseData(pose) {
             const exported = buildExportPoseData(pose, objektEnabled);
             delete exported.duration;
+            delete exported.easing;
             return exported;
         }
 
         function buildExportSlide(slide) {
-            return buildExportPoseData(slide, objektEnabled);
+            return {
+                ...buildExportPoseData(slide, objektEnabled),
+                duration: slide.duration ?? 0.1,
+                easing: resolveSlideEasing(slide),
+            };
         }
 
         function normalizeImportedSlide(slide) {
-            const normalized = buildBodySlideFields(slide);
+            const normalized = ensureSlideTweenMeta({
+                ...buildBodySlideFields(slide),
+                duration: slide.duration,
+                ...(slide.easing != null ? { easing: slide.easing } : {}),
+            });
             if (slideHasObjektData(slide)) {
                 const defaults = getDefaultObjektFields();
                 normalized.objekt_name = slide.objekt_name || defaults.objekt_name;
@@ -2515,9 +2871,9 @@
 		}
 		
 		function updateSingleSlideDisplay(index) {
-    const slides = document.querySelectorAll('.timeline-slide');
-    if (slides[index]) {
-        const miniFigure = slides[index].querySelector('.mini-figure');
+    const slideEl = document.querySelector(`.timeline-pose-card[data-pose-index="${index}"]`);
+    if (slideEl) {
+        const miniFigure = slideEl.querySelector('.mini-figure');
         if (miniFigure) {
             updateMiniPoseTransforms(miniFigure, currentPose);
         }
@@ -2568,10 +2924,15 @@ function testSlideData() {
 			// Update timeline slide with current pose
 		if (currentSlideIndex >= 0 && currentSlideIndex < timelineSlides.length) {
     console.log("updateTransforms updating slide:", currentSlideIndex, "with pose data");
-    let slideData = {
+    const meta = preserveTimelineMetaFromSlide(timelineSlides[currentSlideIndex]);
+    let slideData = ensureSlideTweenMeta({
         ...currentPose,
-        duration: timelineSlides[currentSlideIndex].duration || 1.0
-    };
+        duration: meta.duration,
+        ...(meta.easing ? { easing: meta.easing } : {}),
+    });
+    if (!meta.easing) {
+        delete slideData.easing;
+    }
     if (!objektEnabled || !slideHasObjektData(slideData)) {
         slideData = stripObjektFields(slideData);
     }
@@ -2587,15 +2948,6 @@ function testSlideData() {
 			// Update value displays
 			updateValueDisplays();
 			updateObjektFromPose(getPoseWithObjektDefaults(currentPose));
-			
-			// Update only the current slide's mini figure
-			const slides = document.querySelectorAll('.timeline-slide');
-			if (slides[currentSlideIndex]) {
-				const miniFigure = slides[currentSlideIndex].querySelector('.mini-figure');
-				if (miniFigure) {
-					updateMiniPoseTransforms(miniFigure, currentPose);
-				}
-			}
 
 			syncShoulderHandleRight();
 			syncShoulderHandleLeft();
@@ -2617,30 +2969,30 @@ function testSlideData() {
         }
 
         function updateValueDisplays() {
-            document.getElementById('translate_x_left_val').textContent = currentPose.translate_x_left || 0;
-            document.getElementById('translate_y_left_val').textContent = currentPose.translate_y_left || 0;
-            document.getElementById('skulder_rot_left_val').textContent = (currentPose.skulder_rot_left || 0) + '°';
-            document.getElementById('albue_rot_left_val').textContent = (currentPose.albue_rot_left || 0) + '°';
+            document.getElementById('translate_x_left_val').textContent = formatDisplayInteger(currentPose.translate_x_left);
+            document.getElementById('translate_y_left_val').textContent = formatDisplayInteger(currentPose.translate_y_left);
+            document.getElementById('skulder_rot_left_val').textContent = formatDisplayInteger(currentPose.skulder_rot_left) + '°';
+            document.getElementById('albue_rot_left_val').textContent = formatDisplayInteger(currentPose.albue_rot_left) + '°';
             
-            document.getElementById('translate_x_val').textContent = currentPose.translate_x || 0;
-            document.getElementById('translate_y_val').textContent = currentPose.translate_y || 0;
-            document.getElementById('skulder_rot_val').textContent = (currentPose.skulder_rot || 0) + '°';
-            document.getElementById('albue_rot_val').textContent = (currentPose.albue_rot || 0) + '°';
+            document.getElementById('translate_x_val').textContent = formatDisplayInteger(currentPose.translate_x);
+            document.getElementById('translate_y_val').textContent = formatDisplayInteger(currentPose.translate_y);
+            document.getElementById('skulder_rot_val').textContent = formatDisplayInteger(currentPose.skulder_rot) + '°';
+            document.getElementById('albue_rot_val').textContent = formatDisplayInteger(currentPose.albue_rot) + '°';
             
-            document.getElementById('translate_x_left_leg_val').textContent = currentPose.translate_x_left_leg || 0;
-            document.getElementById('translate_y_left_leg_val').textContent = currentPose.translate_y_left_leg || 0;
-            document.getElementById('hofte_rot_left_val').textContent = (currentPose.hofte_rot_left || 0) + '°';
-            document.getElementById('knae_rot_left_val').textContent = (currentPose.knae_rot_left || 0) + '°';
+            document.getElementById('translate_x_left_leg_val').textContent = formatDisplayInteger(currentPose.translate_x_left_leg);
+            document.getElementById('translate_y_left_leg_val').textContent = formatDisplayInteger(currentPose.translate_y_left_leg);
+            document.getElementById('hofte_rot_left_val').textContent = formatDisplayInteger(currentPose.hofte_rot_left) + '°';
+            document.getElementById('knae_rot_left_val').textContent = formatDisplayInteger(currentPose.knae_rot_left) + '°';
 
-            document.getElementById('translate_x_right_leg_val').textContent = currentPose.translate_x_right_leg || 0;
-            document.getElementById('translate_y_right_leg_val').textContent = currentPose.translate_y_right_leg || 0;
-            document.getElementById('hofte_rot_right_val').textContent = (currentPose.hofte_rot_right || 0) + '°';
-            document.getElementById('knae_rot_right_val').textContent = (currentPose.knae_rot_right || 0) + '°';
-            document.getElementById('mave_rotate_val').textContent = (currentPose.mave_rotate || 0) + '°';
-            document.getElementById('mave_translate_x_val').textContent = currentPose.mave_translate_x || 0;
-            document.getElementById('mave_translate_y_val').textContent = currentPose.mave_translate_y || 0;
-            document.getElementById('hoved_translate_x_val').textContent = currentPose.hoved_translate_x || 0;
-            document.getElementById('hoved_translate_y_val').textContent = currentPose.hoved_translate_y || 0;
+            document.getElementById('translate_x_right_leg_val').textContent = formatDisplayInteger(currentPose.translate_x_right_leg);
+            document.getElementById('translate_y_right_leg_val').textContent = formatDisplayInteger(currentPose.translate_y_right_leg);
+            document.getElementById('hofte_rot_right_val').textContent = formatDisplayInteger(currentPose.hofte_rot_right) + '°';
+            document.getElementById('knae_rot_right_val').textContent = formatDisplayInteger(currentPose.knae_rot_right) + '°';
+            document.getElementById('mave_rotate_val').textContent = formatDisplayInteger(currentPose.mave_rotate) + '°';
+            document.getElementById('mave_translate_x_val').textContent = formatDisplayInteger(currentPose.mave_translate_x);
+            document.getElementById('mave_translate_y_val').textContent = formatDisplayInteger(currentPose.mave_translate_y);
+            document.getElementById('hoved_translate_x_val').textContent = formatDisplayInteger(currentPose.hoved_translate_x);
+            document.getElementById('hoved_translate_y_val').textContent = formatDisplayInteger(currentPose.hoved_translate_y);
             updateObjektValueDisplays();
         }
 
@@ -2985,23 +3337,19 @@ function selectTimelineSlide(index) {
 
 
 		function addTimelineSlide() {
-			timelineSlides.push({...currentPose, duration: 0.1});
+			timelineSlides.push(ensureSlideTweenMeta(
+				{ ...currentPose, duration: DEFAULT_TWEEN_DURATION, easing: getDefaultEasing() },
+				{ assignLinearEasing: true }
+			));
 			currentSlideIndex = timelineSlides.length - 1;
 			updateTimelineDisplay();
 			selectTimelineSlide(currentSlideIndex);
 		}
 		
 		function updateTimelineHighlight() {
-    console.log("updateTimelineHighlight called, currentSlideIndex:", currentSlideIndex);
-    
-    const slides = document.querySelectorAll('.timeline-slide');
-    slides.forEach((slide, index) => {
-        if (index === currentSlideIndex) {
-            slide.classList.add('active');
-            console.log("Added active to slide", index);
-        } else {
-            slide.classList.remove('active');
-        }
+    document.querySelectorAll('.timeline-pose-card').forEach((slide) => {
+        const poseIndex = parseInt(slide.dataset.poseIndex, 10);
+        slide.classList.toggle('active', poseIndex === currentSlideIndex);
     });
 }
 
@@ -3027,47 +3375,56 @@ function moveTimelineSlide(fromIndex, direction) {
 
 
 
+        function createTimelineTweenElement(fromIndex) {
+            const slide = timelineSlides[fromIndex];
+            const easing = resolveSlideEasing(slide);
+            const tweenEl = document.createElement('div');
+            tweenEl.className = 'timeline-tween-card';
+            tweenEl.dataset.tweenFrom = String(fromIndex);
+            tweenEl.innerHTML = `
+                <input type="number" class="duration-input tween-duration-input" value="${slide.duration ?? DEFAULT_TWEEN_DURATION}" min="0.05" max="10" step="0.05"
+                    onchange="updateSlideDuration(${fromIndex}, this.value)" onclick="event.stopPropagation()" title="Varighed (s)" aria-label="Varighed sekunder">
+                <button type="button" class="bezier-thumb-btn" title="Rediger easing" onclick="openBezierEditor(${fromIndex}); event.stopPropagation();">
+                    ${bezierThumbSvgMarkup(easing)}
+                </button>
+            `;
+            return tweenEl;
+        }
+
        function updateTimelineDisplay() {
-			console.log("updateTimelineDisplay called");
+			ensureAllTimelineSlidesHaveTweenMeta();
 			const track = document.getElementById('timelineTrack');
 			const addBtn = track.querySelector('.add-slide-btn');
 			
-			// Remove all slides except add button
-			track.querySelectorAll('.timeline-slide').forEach(slide => slide.remove());
+			track.querySelectorAll('.timeline-slide, .timeline-tween-card').forEach(el => el.remove());
 			
-			// Add all timeline slides
 			timelineSlides.forEach((slide, index) => {
 				const slideElement = document.createElement('div');
-				slideElement.className = 'timeline-slide' + (index === currentSlideIndex ? ' active' : '');
+				slideElement.className = 'timeline-slide timeline-pose-card' + (index === currentSlideIndex ? ' active' : '');
+                slideElement.dataset.poseIndex = String(index);
 				
 				slideElement.innerHTML = `
 					 <button class="delete-slide-btn" onclick="deleteTimelineSlide(${index}); event.stopPropagation();">×</button>
 					${index > 0 ? `<button class="move-slide-btn move-slide-left" onclick="moveTimelineSlide(${index}, -1); event.stopPropagation();">‹</button>` : ''}
 					${index < timelineSlides.length - 1 ? `<button class="move-slide-btn move-slide-right" onclick="moveTimelineSlide(${index}, 1); event.stopPropagation();">›</button>` : ''}
-					<!-- resten af din HTML -->
 					<div class="mini-figure"></div>
 					<div class="slide-info">
-						<label>Varighed (s):</label>
-						<input type="number" class="duration-input" value="${slide.duration || 0.1}" min="0.05" max="10" step="0.05" 
-							   onchange="updateSlideDuration(${index}, this.value)">
+						<label>Pose ${index + 1}</label>
 					</div>
 				`;
 
-				// Apply the pose transforms to mini figure
 				updateMiniPoseTransforms(slideElement.querySelector('.mini-figure'), slide);
-
-				// Add event listener for clicking on entire slide
 				slideElement.addEventListener('click', () => selectTimelineSlide(index));
-
 				track.insertBefore(slideElement, addBtn);
+                track.insertBefore(createTimelineTweenElement(index), addBtn);
 			});
 
 			requestAnimationFrame(() => {
-				const slides = track.querySelectorAll('.timeline-slide');
-				timelineSlides.forEach((slide, index) => {
-					const miniFigure = slides[index]?.querySelector('.mini-figure');
-					if (miniFigure) {
-						updateMiniPoseTransforms(miniFigure, slide);
+				document.querySelectorAll('.timeline-pose-card').forEach((el) => {
+                    const idx = parseInt(el.dataset.poseIndex, 10);
+                    const miniFigure = el.querySelector('.mini-figure');
+					if (miniFigure && timelineSlides[idx]) {
+						updateMiniPoseTransforms(miniFigure, timelineSlides[idx]);
 					}
 				});
 				updateTimelineHighlight();
@@ -3100,6 +3457,217 @@ function moveTimelineSlide(fromIndex, direction) {
             if (timelineSlides[index]) {
                 timelineSlides[index].duration = parseFloat(duration);
             }
+        }
+
+        function updateSlideEasing(index, easing) {
+            if (timelineSlides[index]) {
+                timelineSlides[index].easing = { type: 'bezier', ...easing };
+                refreshTweenCardThumbnail(index);
+            }
+        }
+
+        function refreshTweenCardThumbnail(fromIndex, easingOverride) {
+            const easing = easingOverride || resolveSlideEasing(timelineSlides[fromIndex]);
+            const cards = document.querySelectorAll(`.timeline-tween-card[data-tween-from="${fromIndex}"]`);
+            cards.forEach((card) => {
+                const btn = card.querySelector('.bezier-thumb-btn');
+                if (btn) {
+                    btn.innerHTML = bezierThumbSvgMarkup(easing);
+                }
+            });
+        }
+
+        function refreshBezierEditorLiveThumbnail(v) {
+            if (bezierEditorSlideIndex < 0) return;
+            refreshTweenCardThumbnail(bezierEditorSlideIndex, {
+                type: 'bezier',
+                x1: v.x1,
+                y1: v.y1,
+                x2: v.x2,
+                y2: v.y2,
+            });
+        }
+
+        const BEZIER_EDITOR = {
+            pad: 40,
+            size: 200,
+            dragging: null,
+        };
+
+        const BEZIER_PRESETS = [
+            { label: 'Lineær', x1: 0, y1: 0, x2: 1, y2: 1 },
+            { label: 'Ease in-out', x1: 0.42, y1: 0, x2: 0.58, y2: 1 },
+            { label: 'Bouncy out', x1: 0.18, y1: 0.89, x2: 0.32, y2: 1.28 },
+            { label: 'Anticipate', x1: 0.68, y1: -0.55, x2: 0.27, y2: 1.55 },
+        ];
+
+        function bezierEditorNormToSvg(nx, ny) {
+            const { pad, size } = BEZIER_EDITOR;
+            return { x: pad + nx * size, y: pad + (1 - ny) * size };
+        }
+
+        function bezierEditorSvgToNorm(sx, sy) {
+            const { pad, size } = BEZIER_EDITOR;
+            return {
+                x: Math.max(0, Math.min(1, (sx - pad) / size)),
+                y: (pad + size - sy) / size,
+            };
+        }
+
+        function readBezierEditorValues() {
+            return {
+                x1: parseFloat(document.getElementById('bezierX1').value) || 0,
+                y1: parseFloat(document.getElementById('bezierY1').value) || 0,
+                x2: parseFloat(document.getElementById('bezierX2').value) || 1,
+                y2: parseFloat(document.getElementById('bezierY2').value) || 1,
+            };
+        }
+
+        function writeBezierEditorValues(v) {
+            document.getElementById('bezierX1').value = v.x1.toFixed(2);
+            document.getElementById('bezierY1').value = v.y1.toFixed(2);
+            document.getElementById('bezierX2').value = v.x2.toFixed(2);
+            document.getElementById('bezierY2').value = v.y2.toFixed(2);
+            renderBezierEditorCanvas(v);
+        }
+
+        function renderBezierEditorCanvas(v) {
+            const p0 = bezierEditorNormToSvg(0, 0);
+            const p3 = bezierEditorNormToSvg(1, 1);
+            const c1 = bezierEditorNormToSvg(v.x1, v.y1);
+            const c2 = bezierEditorNormToSvg(v.x2, v.y2);
+            const curve = document.getElementById('bezierEditorCurve');
+            curve.setAttribute('d', `M ${p0.x} ${p0.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${p3.x} ${p3.y}`);
+            const h1 = document.getElementById('bezierHandle1');
+            const h2 = document.getElementById('bezierHandle2');
+            h1.setAttribute('cx', c1.x);
+            h1.setAttribute('cy', c1.y);
+            h2.setAttribute('cx', c2.x);
+            h2.setAttribute('cy', c2.y);
+            document.getElementById('bezierHandleLine1').setAttribute('x1', p0.x);
+            document.getElementById('bezierHandleLine1').setAttribute('y1', p0.y);
+            document.getElementById('bezierHandleLine1').setAttribute('x2', c1.x);
+            document.getElementById('bezierHandleLine1').setAttribute('y2', c1.y);
+            document.getElementById('bezierHandleLine2').setAttribute('x1', p3.x);
+            document.getElementById('bezierHandleLine2').setAttribute('y1', p3.y);
+            document.getElementById('bezierHandleLine2').setAttribute('x2', c2.x);
+            document.getElementById('bezierHandleLine2').setAttribute('y2', c2.y);
+            refreshBezierEditorLiveThumbnail(v);
+        }
+
+        function stopBezierPreview() {
+            if (bezierEditorPreviewRaf) {
+                cancelAnimationFrame(bezierEditorPreviewRaf);
+                bezierEditorPreviewRaf = null;
+            }
+            document.getElementById('bezierPreviewDot').style.visibility = 'hidden';
+        }
+
+        function playBezierPreview() {
+            stopBezierPreview();
+            const dot = document.getElementById('bezierPreviewDot');
+            dot.style.visibility = 'visible';
+            const start = performance.now();
+            const durationMs = 1200;
+            const tick = (now) => {
+                const t = Math.min(1, (now - start) / durationMs);
+                const v = readBezierEditorValues();
+                const eased = cubicBezierEase(t, v.x1, v.y1, v.x2, v.y2);
+                const pt = bezierEditorNormToSvg(t, eased);
+                dot.setAttribute('cx', pt.x);
+                dot.setAttribute('cy', pt.y);
+                if (t < 1) {
+                    bezierEditorPreviewRaf = requestAnimationFrame(tick);
+                } else {
+                    bezierEditorPreviewRaf = null;
+                }
+            };
+            bezierEditorPreviewRaf = requestAnimationFrame(tick);
+        }
+
+        function closeBezierEditor(save) {
+            stopBezierPreview();
+            if (save && bezierEditorSlideIndex >= 0) {
+                const v = readBezierEditorValues();
+                updateSlideEasing(bezierEditorSlideIndex, {
+                    x1: Math.max(0, Math.min(1, v.x1)),
+                    y1: v.y1,
+                    x2: Math.max(0, Math.min(1, v.x2)),
+                    y2: v.y2,
+                });
+            }
+            bezierEditorSlideIndex = -1;
+            document.getElementById('bezierEditorBackdrop').classList.remove('is-open');
+        }
+
+        function openBezierEditor(slideIndex) {
+            if (!timelineSlides[slideIndex]) return;
+            bezierEditorSlideIndex = slideIndex;
+            const e = resolveSlideEasing(timelineSlides[slideIndex]);
+            writeBezierEditorValues(e);
+            document.getElementById('bezierEditorBackdrop').classList.add('is-open');
+        }
+
+        function initBezierEditor() {
+            const backdrop = document.getElementById('bezierEditorBackdrop');
+            const svg = document.getElementById('bezierEditorSvg');
+            const presetWrap = document.getElementById('bezierPresetButtons');
+            BEZIER_PRESETS.forEach((p) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = p.label;
+                btn.addEventListener('click', () => writeBezierEditorValues(p));
+                presetWrap.appendChild(btn);
+            });
+
+            ['bezierX1', 'bezierY1', 'bezierX2', 'bezierY2'].forEach((id) => {
+                document.getElementById(id).addEventListener('input', () => {
+                    const v = readBezierEditorValues();
+                    if (id === 'bezierX1' || id === 'bezierX2') {
+                        v[id === 'bezierX1' ? 'x1' : 'x2'] = Math.max(0, Math.min(1, v[id === 'bezierX1' ? 'x1' : 'x2']));
+                    }
+                    writeBezierEditorValues(v);
+                });
+            });
+
+            document.getElementById('bezierPreviewPlayBtn').addEventListener('click', playBezierPreview);
+            document.getElementById('bezierEditorCloseBtn').addEventListener('click', () => closeBezierEditor(true));
+            backdrop.addEventListener('click', (e) => {
+                if (e.target === backdrop) closeBezierEditor(true);
+            });
+
+            function onPointerDown(handleId) {
+                return (e) => {
+                    e.preventDefault();
+                    BEZIER_EDITOR.dragging = handleId;
+                };
+            }
+            document.getElementById('bezierHandle1').addEventListener('pointerdown', onPointerDown(1));
+            document.getElementById('bezierHandle2').addEventListener('pointerdown', onPointerDown(2));
+
+            svg.addEventListener('pointermove', (e) => {
+                if (!BEZIER_EDITOR.dragging) return;
+                const pt = svg.createSVGPoint();
+                pt.x = e.clientX;
+                pt.y = e.clientY;
+                const ctm = svg.getScreenCTM();
+                if (!ctm) return;
+                const loc = pt.matrixTransform(ctm.inverse());
+                const norm = bezierEditorSvgToNorm(loc.x, loc.y);
+                const v = readBezierEditorValues();
+                if (BEZIER_EDITOR.dragging === 1) {
+                    v.x1 = norm.x;
+                    v.y1 = norm.y;
+                } else {
+                    v.x2 = norm.x;
+                    v.y2 = norm.y;
+                }
+                writeBezierEditorValues(v);
+            });
+
+            const endDrag = () => { BEZIER_EDITOR.dragging = null; };
+            svg.addEventListener('pointerup', endDrag);
+            svg.addEventListener('pointerleave', endDrag);
         }
 
 			function updateMiniPoseTransforms(miniElement, poseData) {
@@ -3184,41 +3752,43 @@ function moveTimelineSlide(fromIndex, direction) {
         }
 
         function getTimelineTotalDuration() {
-            return timelineSlides.reduce((sum, s) => sum + (s.duration || 0.1), 0);
+            if (timelineSlides.length === 0) return 0;
+            return timelineSlides.reduce((sum, s) => sum + (s.duration ?? DEFAULT_TWEEN_DURATION), 0);
+        }
+
+        function getTimelineSegmentTargetIndex(fromIndex) {
+            const n = timelineSlides.length;
+            if (fromIndex < n - 1) return fromIndex + 1;
+            return 0;
         }
 
         function getPoseAtTimelineTime(time) {
             const slides = timelineSlides;
-            if (slides.length === 1) {
-                const single = { ...slides[0] };
-                delete single.duration;
-                return single;
+            if (slides.length === 0) {
+                return stripTimelineMeta(getDefaultPose());
             }
 
             let acc = 0;
             for (let seg = 0; seg < slides.length; seg++) {
-                const dur = slides[seg].duration || 0.1;
-                if (time < acc + dur || seg === slides.length - 1) {
-                    if (seg === slides.length - 1) {
-                        const last = { ...slides[seg] };
-                        delete last.duration;
-                        return last;
-                    }
-                    const localT = Math.max(0, Math.min(1, (time - acc) / dur));
-                    return interpolatePose(slides[seg], slides[seg + 1], localT);
+                const dur = slides[seg].duration ?? 0.1;
+                const isLastSeg = seg === slides.length - 1;
+                const targetIndex = getTimelineSegmentTargetIndex(seg);
+
+                if (time < acc + dur || isLastSeg) {
+                    const localT = dur > 0 ? Math.max(0, Math.min(1, (time - acc) / dur)) : 1;
+                    const easedT = applySlideEasing(localT, slides[seg]);
+                    return interpolatePose(slides[seg], slides[targetIndex], easedT);
                 }
                 acc += dur;
             }
 
-            const fallback = { ...slides[slides.length - 1] };
-            delete fallback.duration;
-            return fallback;
+            return stripTimelineMeta(slides[slides.length - 1]);
         }
 
         function getSlideIndexAtTimelineTime(time) {
             let acc = 0;
             for (let seg = 0; seg < timelineSlides.length; seg++) {
-                const dur = timelineSlides[seg].duration || 0.1;
+                const dur = timelineSlides[seg].duration ?? 0.1;
                 if (time < acc + dur || seg === timelineSlides.length - 1) {
                     return seg;
                 }
@@ -3240,25 +3810,35 @@ function moveTimelineSlide(fromIndex, direction) {
             updateObjektFromPose(getPoseWithObjektDefaults(pose));
         }
 
-        async function playAnimation() {
+        function cancelPlaybackAnimationLoop() {
+            if (playbackAnimationRaf !== null) {
+                cancelAnimationFrame(playbackAnimationRaf);
+                playbackAnimationRaf = null;
+            }
+        }
+
+        function playAnimation() {
             if (timelineSlides.length < 2) {
                 alert('Tilføj mindst 2 slides for at afspille animation!');
                 return;
             }
 
+            cancelPlaybackAnimationLoop();
             isPlaying = true;
             clearFigureTransitions();
 
-            const fps = parseInt(document.getElementById('export_fps').value, 10) || 24;
-            const frameDuration = 1000 / fps;
             const totalDuration = getTimelineTotalDuration();
-            const totalFrames = Math.max(1, Math.round(totalDuration * fps));
+            const playbackStartedAt = performance.now();
             let lastSlideIndex = -1;
 
-            for (let frame = 0; frame <= totalFrames; frame++) {
-                if (!isPlaying) break;
+            const tick = (now) => {
+                if (!isPlaying) {
+                    cancelPlaybackAnimationLoop();
+                    return;
+                }
 
-                const time = Math.min(frame / fps, totalDuration);
+                const elapsedSec = (now - playbackStartedAt) / 1000;
+                const time = Math.min(elapsedSec, totalDuration);
                 const pose = getPoseAtTimelineTime(time);
                 applyInterpolatedPose(pose);
 
@@ -3269,24 +3849,29 @@ function moveTimelineSlide(fromIndex, direction) {
                     updateTimelineHighlight();
                 }
 
-                if (frame < totalFrames) {
-                    await new Promise(resolve => setTimeout(resolve, frameDuration));
+                if (elapsedSec >= totalDuration) {
+                    isPlaying = false;
+                    cancelPlaybackAnimationLoop();
+                    clearFigureTransitions();
+                    applyPoseSilently(getPoseAtTimelineTime(totalDuration));
+                    return;
                 }
-            }
 
-            isPlaying = false;
-            clearFigureTransitions();
-            applyPoseSilently(getPoseAtTimelineTime(Math.min(totalDuration, getTimelineTotalDuration())));
+                playbackAnimationRaf = requestAnimationFrame(tick);
+            };
+
+            playbackAnimationRaf = requestAnimationFrame(tick);
         }
 
         function stopAnimation() {
             isPlaying = false;
+            cancelPlaybackAnimationLoop();
             clearFigureTransitions();
         }
 
         function clearTimeline() {
             if (confirm('Er du sikker på du vil ryde hele timeline?')) {
-                timelineSlides = [getDefaultPose()];
+                timelineSlides = [ensureSlideTweenMeta(getDefaultPose())];
                 currentSlideIndex = 0;
                 updateTimelineDisplay();
                 applyPose(timelineSlides[0]);
@@ -3357,7 +3942,7 @@ function importTimelineSlides(event) {
             });
             
             if (validSlides.length > 0) {
-                timelineSlides = validSlides;
+                timelineSlides = validSlides.map(ensureSlideTweenMeta);
                 currentSlideIndex = 0;
                 objektEnabled = validSlides.some(slideHasObjektData);
                 document.getElementById('objekt_enabled').checked = objektEnabled;
@@ -4367,9 +4952,9 @@ function exportForJavaScript() {
 
             if (hasA && hasB) {
                 const snapped = extractObjektFields(t < 0.5 ? poseA : poseB);
-                snapped.objekt_x = Math.round((poseA.objekt_x || 0) + ((poseB.objekt_x || 0) - (poseA.objekt_x || 0)) * t);
-                snapped.objekt_y = Math.round((poseA.objekt_y || 0) + ((poseB.objekt_y || 0) - (poseA.objekt_y || 0)) * t);
-                snapped.objekt_rotate = Math.round((poseA.objekt_rotate || 0) + ((poseB.objekt_rotate || 0) - (poseA.objekt_rotate || 0)) * t);
+                snapped.objekt_x = (poseA.objekt_x || 0) + ((poseB.objekt_x || 0) - (poseA.objekt_x || 0)) * t;
+                snapped.objekt_y = (poseA.objekt_y || 0) + ((poseB.objekt_y || 0) - (poseA.objekt_y || 0)) * t;
+                snapped.objekt_rotate = (poseA.objekt_rotate || 0) + ((poseB.objekt_rotate || 0) - (poseA.objekt_rotate || 0)) * t;
                 snapped.objekt_scale = (poseA.objekt_scale ?? 1) + ((poseB.objekt_scale ?? 1) - (poseA.objekt_scale ?? 1)) * t;
                 Object.assign(result, snapped);
             } else if (hasA && t < 0.5) {
@@ -4671,6 +5256,41 @@ function exportForJavaScript() {
             }
         }
                 
+        function swapTimelineSlides(fromIndex, toIndex) {
+            const temp = timelineSlides[fromIndex];
+            timelineSlides[fromIndex] = timelineSlides[toIndex];
+            timelineSlides[toIndex] = temp;
+        }
+
+        /** Dev self-test: duration/easing følger posen ved reorder (kræver ?timelineTest=1). */
+        function runTimelineReorderSelfTest() {
+            const savedSlides = timelineSlides;
+            const savedIndex = currentSlideIndex;
+            try {
+                timelineSlides = [
+                    { name: 'A', duration: 0.1, easing: { type: 'bezier', x1: 0.1, y1: 0, x2: 0.9, y2: 1 } },
+                    { name: 'B', duration: 0.3, easing: getDefaultEasing() },
+                    { name: 'C', duration: 0.5, easing: getDefaultEasing() },
+                    { name: 'D', duration: 0.7, easing: getDefaultEasing() },
+                ];
+                swapTimelineSlides(1, 2);
+                swapTimelineSlides(2, 3);
+                const byName = Object.fromEntries(timelineSlides.map(s => [s.name, s.duration]));
+                const ok = byName.A === 0.1 && byName.B === 0.3 && byName.C === 0.5 && byName.D === 0.7
+                    && timelineSlides.find(s => s.name === 'A').easing.x1 === 0.1;
+                console.log(ok ? '✅ Timeline reorder self-test passed' : '❌ Timeline reorder self-test FAILED', byName);
+                return ok;
+            } finally {
+                timelineSlides = savedSlides;
+                currentSlideIndex = savedIndex;
+            }
+        }
+
+        initBezierEditor();
+        if (new URLSearchParams(window.location.search).get('timelineTest') === '1') {
+            runTimelineReorderSelfTest();
+        }
+
         // Initialize with default state
         createColorPickerFull(document.getElementById('guideFigureColorPicker'), {
             selectedColor: FIGURE_COLOR_DEFAULT,
