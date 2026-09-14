@@ -732,7 +732,35 @@
             transform-origin: center;
             border-radius: 4px;
         }
-
+        .play-review {
+            flex: 1 1 144px;
+            max-width: 220px;
+            min-width: 0;
+            padding: 10px 12px;
+            border: 2px solid rgba(0, 0, 0, 0.45);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            line-height: 1.4;
+        }
+        .play-review-stars {
+            font-size: 0.95rem;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+        }
+        .play-review-quote {
+            margin: 0;
+            font-size: 0.92rem;
+            font-style: italic;
+            opacity: 0.98;
+        }
+        .play-review-quote p {
+            margin: 0;
+        }
+        .play-review-cite {
+            margin: 8px 0 0;
+            font-size: 0.82rem;
+            opacity: 0.88;
+        }
         .site-footer {
             padding: 18px 22px 22px;
             font-size: 0.85rem;
@@ -975,13 +1003,20 @@
                         <img class="store-badge-img" src="imagefiles/googlePlayblack.svg" alt="" width="144" height="48" decoding="async">
                     </a>
                 </div>
-                <div class="qr-row" aria-label="QR codes for app stores">
+                <div class="qr-row" aria-label="App store QR codes and Google Play review">
                     <span class="qr-wrap" aria-label="App Store QR code">
                         <img src="imagefiles/qr-code_appstore.jpg" alt="QR code to Me & Them on App Store" decoding="async">
                     </span>
                     <span class="qr-wrap" aria-label="Google Play QR code">
                         <img src="imagefiles/qr-code_google_play.jpg" alt="QR code to Me & Them on Google Play" decoding="async">
                     </span>
+                    <aside class="play-review" aria-label="5-star Google Play review">
+                        <p class="play-review-stars" aria-label="5 out of 5 stars">⭐⭐⭐⭐⭐</p>
+                        <blockquote class="play-review-quote">
+                            <p>“This app is gonna go far”</p>
+                        </blockquote>
+                        <p class="play-review-cite">Morgan Mackay<br>Google Play</p>
+                    </aside>
                 </div>
             </div>
             <a class="card-hand" href="feature-list.html" aria-label="Feature list">
