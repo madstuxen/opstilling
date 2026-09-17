@@ -785,12 +785,33 @@
     const padY = Math.max(padTop, padBottom);
     // Figure sits left of viewBox center (torso/head at x≈70); shift content left so figure centers in export.
     const figureViewBoxOffsetX = GEO.viewBoxWidth / 2 - GEO.torsoCenterX;
+    const width = GEO.viewBoxWidth + padX * 2;
+    const height = GEO.viewBoxHeight + padY * 2;
+    const offsetX = padX + figureViewBoxOffsetX;
+    const offsetY = padY;
     return {
-      width: GEO.viewBoxWidth + padX * 2,
-      height: GEO.viewBoxHeight + padY * 2,
-      offsetX: padX + figureViewBoxOffsetX,
-      offsetY: padY,
+      width,
+      height,
+      offsetX,
+      offsetY,
+      /** Expanded SVG viewBox so limbs outside 200×300 are not clipped on export. */
+      viewBoxMinX: -offsetX,
+      viewBoxMinY: -offsetY,
+      viewBoxWidth: width,
+      viewBoxHeight: height,
+      /** Original 200×300 viewBox region (for on-screen guide). */
+      legacyViewBoxWidth: GEO.viewBoxWidth,
+      legacyViewBoxHeight: GEO.viewBoxHeight,
     };
+  }
+
+  function applyExportViewBox(svg) {
+    if (!svg) return;
+    const b = getDefaultExportBoundary();
+    svg.setAttribute(
+      'viewBox',
+      `${b.viewBoxMinX} ${b.viewBoxMinY} ${b.viewBoxWidth} ${b.viewBoxHeight}`,
+    );
   }
 
   global.GuideFigureRenderer = {
@@ -828,6 +849,7 @@
     elementLocalToFigure,
     getObjektPivotFigureCoords,
     getDefaultExportBoundary,
+    applyExportViewBox,
     OBJEKT_PARENT_MAVE,
     OBJEKT_PARENT_SLOTS,
     darkenColor,

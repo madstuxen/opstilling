@@ -268,11 +268,74 @@
             height: 540px;
         }
 
+        .figure-export-grid {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 8;
+            background-image:
+                linear-gradient(to right, rgba(100, 116, 139, 0.22) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(100, 116, 139, 0.22) 1px, transparent 1px);
+            background-size: 100px 100px;
+            background-position: 0 0;
+        }
+
+        .figure-export-grid.hidden {
+            display: none;
+        }
+
         .figure-export-frame {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            overflow: hidden;
+            z-index: 12;
+        }
+
+        .figure-export-edge {
+            position: absolute;
+            z-index: 19;
+            background: rgba(16, 185, 129, 0.45);
+            border: 1px solid #059669;
+            box-sizing: border-box;
+        }
+
+        .figure-export-edge.hidden {
+            display: none;
+        }
+
+        .figure-export-edge--left,
+        .figure-export-edge--right {
+            width: 10px;
+            top: 0;
+            bottom: 0;
+            cursor: ew-resize;
+        }
+
+        .figure-export-edge--left {
+            left: -5px;
+        }
+
+        .figure-export-edge--right {
+            right: -5px;
+        }
+
+        .figure-export-edge--top,
+        .figure-export-edge--bottom {
+            height: 10px;
+            left: 0;
+            right: 0;
+            cursor: ns-resize;
+        }
+
+        .figure-export-edge--top {
+            top: -5px;
+        }
+
+        .figure-export-edge--bottom {
+            bottom: -5px;
+        }
+
+        .figure-export-edge.dragging {
+            background: rgba(5, 150, 105, 0.65);
         }
 
         .figure-export-outline {
@@ -289,15 +352,57 @@
             display: none;
         }
 
-        .figure-export-outline::before {
-            content: attr(data-label);
+        .figure-export-dim-row {
             position: absolute;
-            top: -18px;
-            left: 0;
-            font-size: 10px;
+            z-index: 25;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transform: translate(-50%, -100%);
+            margin-top: -6px;
+            pointer-events: auto;
+        }
+
+        .figure-export-dim-row.hidden {
+            display: none;
+        }
+
+        .figure-export-dim-label {
+            font-size: 11px;
             font-weight: 700;
-            color: #059669;
+            color: #047857;
             white-space: nowrap;
+            line-height: 1.3;
+            text-align: center;
+            padding: 3px 10px;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid #10b981;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+            pointer-events: none;
+        }
+
+        .figure-export-nudge-btn {
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: 1px solid #10b981;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.96);
+            color: #047857;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        .figure-export-nudge-btn:hover {
+            background: #ecfdf5;
+        }
+
+        .figure-export-nudge-btn:active {
+            background: #d1fae5;
         }
 
         .figure-viewbox-guide {
@@ -329,6 +434,7 @@
             position: absolute;
             width: 200px;
             height: 300px;
+            overflow: visible;
         }
 
         .figure-svg {
@@ -1462,11 +1568,16 @@
 
             <div class="export-section" style="background:#fef3c7; border:2px solid #f59e0b; border-radius:10px; padding:15px; margin-bottom:20px;">
                 <h3 style="color:#b45309; margin-bottom:10px; font-size:16px;">Eksport</h3>
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
                     <label style="font-size:12px;">Figur farve:</label>
                     <div class="color-picker-full" id="guideFigureColorPicker">
                         <button type="button" class="color-picker-full__btn" aria-label="Vælg figur farve">C</button>
                     </div>
+                    <label for="export_bg" style="font-size:12px;">BG:</label>
+                    <select id="export_bg" style="font-size:12px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px;">
+                        <option value="#ffffff">White</option>
+                        <option value="#573920">Brown</option>
+                    </select>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                     <input type="checkbox" id="transparent_bg" checked>
@@ -1476,14 +1587,10 @@
                     <input type="checkbox" id="show_export_frame" checked>
                     <label for="show_export_frame" style="font-size:12px;">Vis eksport-ramme</label>
                 </div>
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                    <input type="checkbox" id="show_dingle_pivot">
-                    <label for="show_dingle_pivot" style="font-size:12px;">Vis dingle-pivot</label>
-                </div>
                 <button class="btn btn-primary" onclick="exportFigurePNG()">Gem PNG</button>
                 <div style="display:flex; align-items:center; gap:8px; margin-top:10px; margin-bottom:10px;">
                     <label for="export_fps" style="font-size:12px;">FPS:</label>
-                    <input type="number" id="export_fps" value="24" min="1" max="60" style="width:60px; padding:4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
+                    <input type="number" id="export_fps" value="30" min="1" max="60" style="width:60px; padding:4px; border:1px solid #d1d5db; border-radius:4px; font-size:12px;">
                 </div>
                 <button class="btn btn-primary" id="export_sequence_btn" onclick="exportPNGSequence()">Eksporter sekvens (ZIP)</button>
             </div>
@@ -1755,9 +1862,19 @@
                 </div>
 
                 <!-- Figure -->
+                <div id="figure_export_grid" class="figure-export-grid" aria-hidden="true"></div>
+                <div id="figure_export_dim_row" class="figure-export-dim-row" aria-hidden="true">
+                    <button type="button" class="figure-export-nudge-btn" id="figure_export_nudge_left" title="Flyt ramme 20 px venstre" aria-label="Flyt ramme 20 px venstre">‹</button>
+                    <div id="figure_export_dims" class="figure-export-dim-label"></div>
+                    <button type="button" class="figure-export-nudge-btn" id="figure_export_nudge_right" title="Flyt ramme 20 px højre" aria-label="Flyt ramme 20 px højre">›</button>
+                </div>
                 <div class="figure-export-frame" id="figure_export_frame">
                     <div id="figure_export_outline" class="figure-export-outline"></div>
                     <div id="figure_viewbox_guide" class="figure-viewbox-guide"></div>
+                    <div class="figure-export-edge figure-export-edge--left" data-export-edge="left" title="Træk venstre kant"></div>
+                    <div class="figure-export-edge figure-export-edge--right" data-export-edge="right" title="Træk højre kant"></div>
+                    <div class="figure-export-edge figure-export-edge--top" data-export-edge="top" title="Træk top"></div>
+                    <div class="figure-export-edge figure-export-edge--bottom" data-export-edge="bottom" title="Træk bund"></div>
                     <div class="figure-container">
                         <div id="shoulder_handle_left"></div>
                         <div id="shoulder_handle_right"></div>
@@ -1884,31 +2001,223 @@
             initExportFrame();
         }
 
-        function initExportFrame() {
-            const bounds = GuideFigureRenderer.getDefaultExportBoundary();
+        const EXPORT_CROP_MIN = 200;
+        const EXPORT_CROP_MAX = 1000;
+        const EXPORT_CROP_DEFAULT = 400;
+        const EXPORT_CAPTURE_SCALE = 3;
+        const EXPORT_CROP_NUDGE = 20;
+
+        /** Full SVG/content size — viewBox stays on this; independent of crop. */
+        let exportContentBounds = null;
+        /** Fixed top-left of content in .figure-workspace (figure stays put on screen). */
+        let exportContentAnchor = null;
+        /** User-adjustable export crop in workspace coordinates. */
+        let exportCropRect = null;
+
+        function getFigureWorkspaceCenter() {
+            const ws = document.querySelector('.figure-workspace');
+            if (!ws) return { x: 380, y: 270 };
+            return { x: ws.clientWidth / 2, y: ws.clientHeight / 2 };
+        }
+
+        /** Align 100px grid to default 400×400 export box (top-left of crop on grid lines). */
+        function syncExportGridAlignment() {
+            const grid = document.getElementById('figure_export_grid');
+            if (!grid) return;
+            const center = getFigureWorkspaceCenter();
+            const cropLeft = center.x - EXPORT_CROP_DEFAULT / 2;
+            const cropTop = center.y - EXPORT_CROP_DEFAULT / 2;
+            const mod100 = (v) => ((v % 100) + 100) % 100;
+            grid.style.backgroundPosition = `${mod100(cropLeft)}px ${mod100(cropTop)}px`;
+        }
+
+        function clampExportCropSize(width, height) {
+            return {
+                width: Math.max(EXPORT_CROP_MIN, Math.min(EXPORT_CROP_MAX, width)),
+                height: Math.max(EXPORT_CROP_MIN, Math.min(EXPORT_CROP_MAX, height)),
+            };
+        }
+
+        function layoutExportFrame() {
             const frame = document.getElementById('figure_export_frame');
             const container = frame?.querySelector('.figure-container');
             const outline = document.getElementById('figure_export_outline');
             const guide = document.getElementById('figure_viewbox_guide');
-            if (!frame || !container) return;
-            frame.style.width = `${bounds.width}px`;
-            frame.style.height = `${bounds.height}px`;
-            container.style.left = `${bounds.offsetX}px`;
-            container.style.top = `${bounds.offsetY}px`;
-            if (outline) {
-                outline.setAttribute('data-label', `Eksport ${bounds.width}×${bounds.height} px`);
+            if (!frame || !container || !exportContentBounds || !exportContentAnchor || !exportCropRect) return;
+
+            const { left, top, width, height } = exportCropRect;
+            frame.style.transform = 'none';
+            frame.style.left = `${left}px`;
+            frame.style.top = `${top}px`;
+            frame.style.width = `${width}px`;
+            frame.style.height = `${height}px`;
+
+            container.style.width = `${exportContentBounds.width}px`;
+            container.style.height = `${exportContentBounds.height}px`;
+            container.style.left = `${exportContentAnchor.left - left}px`;
+            container.style.top = `${exportContentAnchor.top - top}px`;
+
+            const wOut = Math.round(width) * EXPORT_CAPTURE_SCALE;
+            const hOut = Math.round(height) * EXPORT_CAPTURE_SCALE;
+            const dimRow = document.getElementById('figure_export_dim_row');
+            const dimLabel = document.getElementById('figure_export_dims');
+            if (dimRow) {
+                dimRow.style.left = `${left + width / 2}px`;
+                dimRow.style.top = `${top}px`;
+            }
+            if (dimLabel) {
+                dimLabel.textContent = `B: ${wOut}px   H: ${hOut}px`;
             }
             if (guide) {
-                guide.style.left = `${bounds.offsetX}px`;
-                guide.style.top = `${bounds.offsetY}px`;
+                const contentOffsetX = exportContentAnchor.left - left;
+                const contentOffsetY = exportContentAnchor.top - top;
+                guide.style.width = `${exportContentBounds.legacyViewBoxWidth}px`;
+                guide.style.height = `${exportContentBounds.legacyViewBoxHeight}px`;
+                guide.style.left = `${contentOffsetX + exportContentBounds.offsetX}px`;
+                guide.style.top = `${contentOffsetY + exportContentBounds.offsetY}px`;
             }
+        }
+
+        function initExportFrame() {
+            const frame = document.getElementById('figure_export_frame');
+            const container = frame?.querySelector('.figure-container');
+            if (!frame || !container) return;
+
+            exportContentBounds = GuideFigureRenderer.getDefaultExportBoundary();
+            const center = getFigureWorkspaceCenter();
+            exportContentAnchor = {
+                left: center.x - exportContentBounds.width / 2,
+                top: center.y - exportContentBounds.height / 2,
+            };
+            exportCropRect = {
+                left: center.x - EXPORT_CROP_DEFAULT / 2,
+                top: center.y - EXPORT_CROP_DEFAULT / 2,
+                width: EXPORT_CROP_DEFAULT,
+                height: EXPORT_CROP_DEFAULT,
+            };
+
+            const mainSvg = container.querySelector('.figure-svg');
+            if (mainSvg) {
+                GuideFigureRenderer.applyExportViewBox(mainSvg);
+            }
+            layoutExportFrame();
+            syncExportGridAlignment();
             syncExportFrameVisibility();
+        }
+
+        function resizeExportCropEdge(edge, deltaX, deltaY, startRect) {
+            let { left, top, width, height } = startRect;
+
+            if (edge === 'left') {
+                const right = startRect.left + startRect.width;
+                left = startRect.left + deltaX;
+                width = right - left;
+                ({ width } = clampExportCropSize(width, height));
+                left = right - width;
+            } else if (edge === 'right') {
+                width = startRect.width + deltaX;
+                ({ width } = clampExportCropSize(width, height));
+            } else if (edge === 'top') {
+                const bottom = startRect.top + startRect.height;
+                top = startRect.top + deltaY;
+                height = bottom - top;
+                ({ height } = clampExportCropSize(width, height));
+                top = bottom - height;
+            } else if (edge === 'bottom') {
+                height = startRect.height + deltaY;
+                ({ height } = clampExportCropSize(width, height));
+            }
+
+            exportCropRect = { left, top, width, height };
+            layoutExportFrame();
+        }
+
+        function nudgeExportCropHorizontal(deltaX) {
+            if (!exportCropRect) return;
+            const ws = document.querySelector('.figure-workspace');
+            let left = exportCropRect.left + deltaX;
+            if (ws) {
+                const maxLeft = ws.clientWidth - exportCropRect.width;
+                left = Math.max(0, Math.min(maxLeft, left));
+            }
+            exportCropRect = { ...exportCropRect, left };
+            layoutExportFrame();
+            if (typeof syncAllDragHandles === 'function') {
+                syncAllDragHandles();
+            }
+        }
+
+        function initExportFrameNudgeButtons() {
+            const leftBtn = document.getElementById('figure_export_nudge_left');
+            const rightBtn = document.getElementById('figure_export_nudge_right');
+            if (!leftBtn || !rightBtn || leftBtn.dataset.nudgeInit === '1') return;
+            leftBtn.dataset.nudgeInit = '1';
+            rightBtn.dataset.nudgeInit = '1';
+            leftBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                nudgeExportCropHorizontal(-EXPORT_CROP_NUDGE);
+            });
+            rightBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                nudgeExportCropHorizontal(EXPORT_CROP_NUDGE);
+            });
+        }
+
+        function initExportFrameEdgeDrag() {
+            const frame = document.getElementById('figure_export_frame');
+            if (!frame || frame.dataset.exportEdgesInit === '1') return;
+            frame.dataset.exportEdgesInit = '1';
+
+            let activeEdge = null;
+            let startRect = null;
+            let startX = 0;
+            let startY = 0;
+
+            frame.querySelectorAll('[data-export-edge]').forEach((handle) => {
+                handle.addEventListener('mousedown', (event) => {
+                    if (!exportCropRect) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    activeEdge = handle.getAttribute('data-export-edge');
+                    startRect = { ...exportCropRect };
+                    startX = event.clientX;
+                    startY = event.clientY;
+                    handle.classList.add('dragging');
+                });
+            });
+
+            document.addEventListener('mousemove', (event) => {
+                if (!activeEdge || !startRect) return;
+                resizeExportCropEdge(
+                    activeEdge,
+                    event.clientX - startX,
+                    event.clientY - startY,
+                    startRect,
+                );
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (!activeEdge) return;
+                frame.querySelectorAll('.figure-export-edge.dragging').forEach((el) => {
+                    el.classList.remove('dragging');
+                });
+                activeEdge = null;
+                startRect = null;
+                if (typeof syncAllDragHandles === 'function') {
+                    syncAllDragHandles();
+                }
+            });
         }
 
         function syncExportFrameVisibility() {
             const visible = document.getElementById('show_export_frame')?.checked ?? true;
+            document.getElementById('figure_export_grid')?.classList.toggle('hidden', !visible);
             document.getElementById('figure_export_outline')?.classList.toggle('hidden', !visible);
+            document.getElementById('figure_export_dim_row')?.classList.toggle('hidden', !visible);
             document.getElementById('figure_viewbox_guide')?.classList.toggle('hidden', !visible);
+            document.querySelectorAll('.figure-export-edge').forEach((el) => {
+                el.classList.toggle('hidden', !visible);
+            });
         }
         const COLOR_PRESETS = [
             '#ef4444', '#f97316', '#fbbf24', '#10b981', '#14b8a6', '#0ea5e9',
@@ -2591,13 +2900,6 @@
             const marker = mainFigureRefs?.objektOrigin;
             if (!marker) return;
             const show = objektEnabled && slideHasObjektData(pose) && !(pose.objekt_parent || '');
-            marker.style.display = show ? '' : 'none';
-        }
-
-        function syncDinglePivotMarker() {
-            const marker = mainFigureRefs?.dinglePivotMarker;
-            if (!marker) return;
-            const show = document.getElementById('show_dingle_pivot')?.checked ?? false;
             marker.style.display = show ? '' : 'none';
         }
 
@@ -3759,7 +4061,8 @@ function moveTimelineSlide(fromIndex, direction) {
         function getTimelineSegmentTargetIndex(fromIndex) {
             const n = timelineSlides.length;
             if (fromIndex < n - 1) return fromIndex + 1;
-            return 0;
+            // Last slide: hold its pose for its duration (no wrap to first slide).
+            return fromIndex;
         }
 
         function getPoseAtTimelineTime(time) {
@@ -3775,6 +4078,9 @@ function moveTimelineSlide(fromIndex, direction) {
                 const targetIndex = getTimelineSegmentTargetIndex(seg);
 
                 if (time < acc + dur || isLastSeg) {
+                    if (isLastSeg) {
+                        return stripTimelineMeta(slides[seg]);
+                    }
                     const localT = dur > 0 ? Math.max(0, Math.min(1, (time - acc) / dur)) : 1;
                     const easedT = applySlideEasing(localT, slides[seg]);
                     return interpolatePose(slides[seg], slides[targetIndex], easedT);
@@ -3824,12 +4130,16 @@ function moveTimelineSlide(fromIndex, direction) {
             }
 
             cancelPlaybackAnimationLoop();
-            isPlaying = true;
             clearFigureTransitions();
 
+            currentSlideIndex = 0;
+            updateTimelineHighlight();
+            applyInterpolatedPose(stripTimelineMeta(timelineSlides[0]));
+
+            isPlaying = true;
             const totalDuration = getTimelineTotalDuration();
             const playbackStartedAt = performance.now();
-            let lastSlideIndex = -1;
+            let lastSlideIndex = 0;
 
             const tick = (now) => {
                 if (!isPlaying) {
@@ -4902,7 +5212,8 @@ function exportForJavaScript() {
 
         // Initialize
         initMainFigure();
-        syncDinglePivotMarker();
+        initExportFrameEdgeDrag();
+        initExportFrameNudgeButtons();
         currentPose = buildCurrentPoseFromNormalized(getDefaultPose());
         populateObjektSelect(OBJEKT_KNOWN_FILES);
 
@@ -4923,8 +5234,8 @@ function exportForJavaScript() {
             updateTransforms();
         });
         document.getElementById('show_export_frame').addEventListener('change', syncExportFrameVisibility);
-        document.getElementById('show_dingle_pivot').addEventListener('change', syncDinglePivotMarker);
-
+        document.getElementById('transparent_bg').addEventListener('change', syncExportBgControl);
+        syncExportBgControl();
         initLeftArmIK();
         initRightArmIK();
         initLeftLegIK();
@@ -5106,11 +5417,37 @@ function exportForJavaScript() {
             'objekt_origin_marker',
             'dingle_pivot_marker',
             'figure_export_outline',
+            'figure_export_dim_row',
             'figure_viewbox_guide',
         ];
 
         function hideFigureUiForExport() {
             const restored = [];
+            const exportGrid = document.getElementById('figure_export_grid');
+            if (exportGrid) {
+                restored.push({
+                    el: exportGrid,
+                    display: exportGrid.style.display,
+                    visibility: exportGrid.style.visibility,
+                    opacity: exportGrid.style.opacity,
+                });
+                exportGrid.classList.add('figure-ui-hidden-for-export');
+                exportGrid.style.display = 'none';
+                exportGrid.style.visibility = 'hidden';
+                exportGrid.style.opacity = '0';
+            }
+            document.querySelectorAll('.figure-export-edge').forEach((el) => {
+                restored.push({
+                    el,
+                    display: el.style.display,
+                    visibility: el.style.visibility,
+                    opacity: el.style.opacity,
+                });
+                el.classList.add('figure-ui-hidden-for-export');
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+            });
             FIGURE_UI_ELEMENT_IDS.forEach((id) => {
                 const el = document.getElementById(id);
                 if (!el) return;
@@ -5145,6 +5482,21 @@ function exportForJavaScript() {
             return document.getElementById('figure_export_frame');
         }
 
+        function getExportBackgroundColor() {
+            if (document.getElementById('transparent_bg')?.checked) {
+                return null;
+            }
+            return document.getElementById('export_bg')?.value || '#ffffff';
+        }
+
+        function syncExportBgControl() {
+            const transparent = document.getElementById('transparent_bg')?.checked ?? true;
+            const bgSelect = document.getElementById('export_bg');
+            if (bgSelect) {
+                bgSelect.disabled = transparent;
+            }
+        }
+
         async function exportFigurePNG() {
             if (typeof html2canvas === 'undefined') {
                 alert('Eksport-biblioteket html2canvas er ikke indlæst.');
@@ -5154,11 +5506,9 @@ function exportForJavaScript() {
             const exportFrame = getExportFigureContainer();
             const hiddenUi = hideFigureUiForExport();
 
-            const transparentBg = document.getElementById('transparent_bg').checked;
             let savedObjektEnabled = objektEnabled;
 
             try {
-                const scale = 3;
                 savedObjektEnabled = await prepareObjektForExport(exportFrame);
                 await waitForExportPaint();
                 const objImg = document.querySelector('#main_objekt_container image.objekt_svg');
@@ -5168,8 +5518,8 @@ function exportForJavaScript() {
                 }
 
                 const canvas = await captureFigureToCanvas(exportFrame, {
-                    backgroundColor: transparentBg ? null : '#ffffff',
-                    scale: scale
+                    backgroundColor: getExportBackgroundColor(),
+                    scale: EXPORT_CAPTURE_SCALE,
                 });
 
                 const link = document.createElement('a');
@@ -5212,7 +5562,7 @@ function exportForJavaScript() {
             }
 
             try {
-                const fps = parseInt(document.getElementById('export_fps').value, 10) || 24;
+                const fps = parseInt(document.getElementById('export_fps').value, 10) || 30;
                 const totalFrames = Math.max(1, Math.round(getTimelineTotalDuration() * fps));
                 const zip = new JSZip();
 
@@ -5229,8 +5579,8 @@ function exportForJavaScript() {
                     await waitForPaint();
 
                     const canvas = await captureFigureToCanvas(exportFrame, {
-                        backgroundColor: null,
-                        scale: 3
+                        backgroundColor: getExportBackgroundColor(),
+                        scale: EXPORT_CAPTURE_SCALE,
                     });
 
                     const dataUrl = canvas.toDataURL('image/png');
@@ -5246,9 +5596,7 @@ function exportForJavaScript() {
                 link.click();
                 URL.revokeObjectURL(link.href);
             } finally {
-                hiddenElements.forEach(({ el, display }) => {
-                    el.style.display = display;
-                });
+                restoreFigureUiAfterExport(hiddenUi);
                 restoreObjektAfterExport(savedObjektEnabled);
                 applyPoseSilently(savedPose);
                 exportBtn.textContent = originalBtnText;
