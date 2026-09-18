@@ -265,7 +265,20 @@
         .figure-workspace {
             position: relative;
             width: 760px;
-            height: 540px;
+            height: 560px;
+            overflow: visible;
+            --figure-layout-inset-top: 120px;
+            --figure-layout-inset-bottom: 12px;
+        }
+
+        /** Editor-only inset: more room above figure, less below — does not change export crop content. */
+        .figure-workspace-layout {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: var(--figure-layout-inset-top);
+            bottom: var(--figure-layout-inset-bottom);
+            overflow: visible;
         }
 
         .figure-export-grid {
@@ -358,8 +371,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
-            transform: translate(-50%, -100%);
-            margin-top: -6px;
+            transform: translate(-50%, 0);
             pointer-events: auto;
         }
 
@@ -403,6 +415,20 @@
 
         .figure-export-nudge-btn:active {
             background: #d1fae5;
+        }
+
+        .figure-export-nudge-col {
+            position: absolute;
+            z-index: 25;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            pointer-events: auto;
+        }
+
+        .figure-export-nudge-col.hidden {
+            display: none;
         }
 
         .figure-viewbox-guide {
@@ -503,6 +529,69 @@
         .mini-checkbox input[type="checkbox"] {
             width: 12px;
             height: 12px;
+        }
+
+        /* Tighter mini-panels around figure — full content, no inner scroll */
+        .figure-workspace-layout .mini-controls {
+            padding: 5px 6px;
+            border-radius: 6px;
+        }
+
+        .figure-workspace-layout .mini-controls h4 {
+            font-size: 10px;
+            margin-bottom: 3px;
+        }
+
+        .figure-workspace-layout .mini-slider {
+            margin-bottom: 2px;
+        }
+
+        .figure-workspace-layout .mini-slider label {
+            font-size: 8px;
+            margin-bottom: 1px;
+            line-height: 1.15;
+        }
+
+        .figure-workspace-layout .mini-slider input[type="range"] {
+            width: 108px;
+            margin-bottom: 1px;
+        }
+
+        .figure-workspace-layout .mini-value {
+            font-size: 7px;
+            line-height: 1.1;
+        }
+
+        .figure-workspace-layout .mini-checkbox {
+            margin-bottom: 2px;
+            font-size: 7px;
+            gap: 3px;
+        }
+
+        .figure-workspace-layout .mini-checkbox input[type="checkbox"] {
+            width: 10px;
+            height: 10px;
+        }
+
+        .figure-workspace-layout .left-arm-controls,
+        .figure-workspace-layout .right-arm-controls,
+        .figure-workspace-layout .left-leg-controls,
+        .figure-workspace-layout .right-leg-controls {
+            width: 138px;
+        }
+
+        .figure-workspace-layout .objekt-controls,
+        .figure-workspace-layout .mave-head-controls {
+            width: 142px;
+        }
+
+        .figure-workspace-layout .mave-head-controls h5 {
+            font-size: 9px;
+            margin: 5px 0 2px;
+        }
+
+        .figure-workspace-layout .mave-head-controls h5:first-child {
+            margin-top: 0;
         }
 
         .ik-end-effector-right {
@@ -627,44 +716,50 @@
             display: none !important;
         }
 
-        /* Control positions around figure */
+        /* Limb mini-panels (full content visible; figure handles unchanged) */
         .left-arm-controls {
-            top: 20px;
-            left: 50px;
+            top: 8px;
+            left: 12px;
             width: 150px;
         }
 
         .right-arm-controls {
-            top: 20px;
+            top: 8px;
             right: -70px;
             width: 150px;
         }
 
         .left-leg-controls {
-            bottom: -30px;
-            left: 50px;
+            bottom: 8px;
+            left: 12px;
             width: 150px;
         }
 
         .right-leg-controls {
-            bottom: -30px;
+            bottom: 8px;
             right: -70px;
             width: 150px;
         }
 
-        .objekt-controls {
+        .figure-left-tool-column {
+            position: absolute;
+            left: -158px;
             top: 50%;
-            left: -300px;
             transform: translateY(-50%);
-            width: 155px;
+            z-index: 15;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 142px;
         }
 
-        /* 20px gap after Objekt (same as gap before Venstre arm) */
-        .mave-head-controls {
-            top: 50%;
-            left: -125px;
-            transform: translateY(-50%);
-            width: 155px;
+        .figure-left-tool-column .objekt-controls,
+        .figure-left-tool-column .mave-head-controls {
+            position: relative;
+            top: auto;
+            left: auto;
+            transform: none;
+            width: 100%;
         }
 
         .mave-head-controls h5 {
@@ -1576,6 +1671,7 @@
                     <label for="export_bg" style="font-size:12px;">BG:</label>
                     <select id="export_bg" style="font-size:12px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px;">
                         <option value="#ffffff">White</option>
+                        <option value="#f4f0e2">Beige</option>
                         <option value="#573920">Brown</option>
                     </select>
                 </div>
@@ -1586,6 +1682,11 @@
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                     <input type="checkbox" id="show_export_frame" checked>
                     <label for="show_export_frame" style="font-size:12px;">Vis eksport-ramme</label>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+                    <label for="export_quality" style="font-size:12px;">Quality:</label>
+                    <input type="range" id="export_quality" min="1" max="5" step="1" value="3" style="width:120px;">
+                    <span id="export_quality_val" style="font-size:12px; font-weight:600; color:#b45309; min-width:24px;">3×</span>
                 </div>
                 <button class="btn btn-primary" onclick="exportFigurePNG()">Gem PNG</button>
                 <div style="display:flex; align-items:center; gap:8px; margin-top:10px; margin-bottom:10px;">
@@ -1627,6 +1728,8 @@
         
         <div class="workspace">
             <div class="figure-workspace">
+                <div id="figure_export_grid" class="figure-export-grid" aria-hidden="true"></div>
+                <div class="figure-workspace-layout">
                 <!-- Venstre Arm Controls -->
                 <div class="mini-controls left-arm-controls">
                     <h4>Venstre Arm</h4>
@@ -1767,6 +1870,7 @@
                     </div>
                 </div>
 
+                <div class="figure-left-tool-column">
                 <!-- Objekt Controls -->
                 <div class="mini-controls objekt-controls">
                     <h4>Objekt</h4>
@@ -1829,7 +1933,7 @@
                     </div>
                 </div>
 
-                <!-- Mave & Hoved Controls (right of Objekt panel) -->
+                <!-- Mave & Hoved Controls (under Objekt) -->
                 <div class="mini-controls mave-head-controls">
                     <h4>Mave &amp; Hoved</h4>
                     <h5>Mave</h5>
@@ -1860,9 +1964,13 @@
                         <div class="mini-value" id="hoved_translate_y_val">0</div>
                     </div>
                 </div>
+                </div>
 
                 <!-- Figure -->
-                <div id="figure_export_grid" class="figure-export-grid" aria-hidden="true"></div>
+                <div id="figure_export_nudge_col" class="figure-export-nudge-col" aria-hidden="true">
+                    <button type="button" class="figure-export-nudge-btn" id="figure_export_nudge_up" title="Flyt ramme 20 px op" aria-label="Flyt ramme 20 px op">↑</button>
+                    <button type="button" class="figure-export-nudge-btn" id="figure_export_nudge_down" title="Flyt ramme 20 px ned" aria-label="Flyt ramme 20 px ned">↓</button>
+                </div>
                 <div id="figure_export_dim_row" class="figure-export-dim-row" aria-hidden="true">
                     <button type="button" class="figure-export-nudge-btn" id="figure_export_nudge_left" title="Flyt ramme 20 px venstre" aria-label="Flyt ramme 20 px venstre">‹</button>
                     <div id="figure_export_dims" class="figure-export-dim-label"></div>
@@ -1886,6 +1994,7 @@
                         <div id="ik_end_effector_left" class="ik-end-effector-left"></div>
                         <div id="ik_end_effector_right" class="ik-end-effector-right"></div>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -2003,9 +2112,44 @@
 
         const EXPORT_CROP_MIN = 200;
         const EXPORT_CROP_MAX = 1000;
-        const EXPORT_CROP_DEFAULT = 400;
-        const EXPORT_CAPTURE_SCALE = 3;
+        const EXPORT_CROP_DEFAULT_WIDTH = 360;
+        const EXPORT_CROP_DEFAULT_HEIGHT = 640;
         const EXPORT_CROP_NUDGE = 20;
+        /** Shift figure down inside crop (px); SVG viewBox unchanged — framing only. */
+        const EXPORT_FIGURE_IN_FRAME_OFFSET_Y = 120;
+        const EXPORT_QUALITY_DEFAULT = 3;
+
+        function isPoseRangeSlider(slider) {
+            return slider?.id !== 'export_quality';
+        }
+
+        function getExportCaptureScale() {
+            const input = document.getElementById('export_quality');
+            let v = parseInt(input?.value, 10);
+            if (!Number.isFinite(v) || v < 1 || v > 5) {
+                v = EXPORT_QUALITY_DEFAULT;
+            }
+            return v;
+        }
+
+        function syncExportQualityDisplay() {
+            const input = document.getElementById('export_quality');
+            const scale = getExportCaptureScale();
+            if (input) input.value = String(scale);
+            const valEl = document.getElementById('export_quality_val');
+            if (valEl) valEl.textContent = `${scale}×`;
+            if (exportCropRect) {
+                layoutExportFrame();
+            }
+        }
+        const EXPORT_FRAME_UI_INSET = 8;
+        function getFigureWorkspaceLayoutInsetTop() {
+            const ws = document.querySelector('.figure-workspace');
+            if (!ws) return 120;
+            const raw = getComputedStyle(ws).getPropertyValue('--figure-layout-inset-top').trim();
+            const px = parseFloat(raw);
+            return Number.isFinite(px) ? px : 120;
+        }
 
         /** Full SVG/content size — viewBox stays on this; independent of crop. */
         let exportContentBounds = null;
@@ -2013,22 +2157,42 @@
         let exportContentAnchor = null;
         /** User-adjustable export crop in workspace coordinates. */
         let exportCropRect = null;
+        /** Grid origin in workspace — only updated on frame nudge, not edge resize. */
+        let exportGridAlignLeft = null;
+        let exportGridAlignTop = null;
 
-        function getFigureWorkspaceCenter() {
-            const ws = document.querySelector('.figure-workspace');
-            if (!ws) return { x: 380, y: 270 };
-            return { x: ws.clientWidth / 2, y: ws.clientHeight / 2 };
+        function getFigureWorkspaceLayoutEl() {
+            return document.querySelector('.figure-workspace-layout')
+                || document.querySelector('.figure-workspace');
         }
 
-        /** Align 100px grid to default 400×400 export box (top-left of crop on grid lines). */
+        function getFigureWorkspaceCenter() {
+            const layout = getFigureWorkspaceLayoutEl();
+            if (!layout) return { x: 380, y: 232 };
+            return { x: layout.clientWidth / 2, y: layout.clientHeight / 2 };
+        }
+
+        /** Apply grid position from exportGridAlign* (moves only via frame nudge). */
         function syncExportGridAlignment() {
             const grid = document.getElementById('figure_export_grid');
-            if (!grid) return;
-            const center = getFigureWorkspaceCenter();
-            const cropLeft = center.x - EXPORT_CROP_DEFAULT / 2;
-            const cropTop = center.y - EXPORT_CROP_DEFAULT / 2;
+            if (!grid || exportGridAlignLeft == null || exportGridAlignTop == null) return;
             const mod100 = (v) => ((v % 100) + 100) % 100;
-            grid.style.backgroundPosition = `${mod100(cropLeft)}px ${mod100(cropTop)}px`;
+            const gridY = exportGridAlignTop + getFigureWorkspaceLayoutInsetTop();
+            grid.style.backgroundPosition = `${mod100(exportGridAlignLeft)}px ${mod100(gridY)}px`;
+        }
+
+        function getExportCropMoveLimits() {
+            const layout = getFigureWorkspaceLayoutEl();
+            if (!layout || !exportCropRect) {
+                return { minLeft: 0, maxLeft: 0, minTop: -getFigureWorkspaceLayoutInsetTop(), maxTop: 0 };
+            }
+            const insetTop = getFigureWorkspaceLayoutInsetTop();
+            return {
+                minLeft: 0,
+                maxLeft: layout.clientWidth - exportCropRect.width,
+                minTop: -insetTop,
+                maxTop: layout.clientHeight - exportCropRect.height,
+            };
         }
 
         function clampExportCropSize(width, height) {
@@ -2055,26 +2219,34 @@
             container.style.width = `${exportContentBounds.width}px`;
             container.style.height = `${exportContentBounds.height}px`;
             container.style.left = `${exportContentAnchor.left - left}px`;
-            container.style.top = `${exportContentAnchor.top - top}px`;
+            container.style.top = `${exportContentAnchor.top - top + EXPORT_FIGURE_IN_FRAME_OFFSET_Y}px`;
 
-            const wOut = Math.round(width) * EXPORT_CAPTURE_SCALE;
-            const hOut = Math.round(height) * EXPORT_CAPTURE_SCALE;
+            const exportScale = getExportCaptureScale();
+            const wOut = Math.round(width) * exportScale;
+            const hOut = Math.round(height) * exportScale;
             const dimRow = document.getElementById('figure_export_dim_row');
             const dimLabel = document.getElementById('figure_export_dims');
             if (dimRow) {
                 dimRow.style.left = `${left + width / 2}px`;
-                dimRow.style.top = `${top}px`;
+                dimRow.style.top = `${top + EXPORT_FRAME_UI_INSET}px`;
             }
             if (dimLabel) {
                 dimLabel.textContent = `B: ${wOut}px   H: ${hOut}px`;
             }
             if (guide) {
                 const contentOffsetX = exportContentAnchor.left - left;
-                const contentOffsetY = exportContentAnchor.top - top;
+                const contentOffsetY = exportContentAnchor.top - top + EXPORT_FIGURE_IN_FRAME_OFFSET_Y;
                 guide.style.width = `${exportContentBounds.legacyViewBoxWidth}px`;
                 guide.style.height = `${exportContentBounds.legacyViewBoxHeight}px`;
                 guide.style.left = `${contentOffsetX + exportContentBounds.offsetX}px`;
                 guide.style.top = `${contentOffsetY + exportContentBounds.offsetY}px`;
+            }
+
+            const nudgeCol = document.getElementById('figure_export_nudge_col');
+            if (nudgeCol) {
+                nudgeCol.style.left = `${left + width - EXPORT_FRAME_UI_INSET}px`;
+                nudgeCol.style.top = `${top + height / 2}px`;
+                nudgeCol.style.transform = 'translate(-100%, -50%)';
             }
         }
 
@@ -2090,11 +2262,13 @@
                 top: center.y - exportContentBounds.height / 2,
             };
             exportCropRect = {
-                left: center.x - EXPORT_CROP_DEFAULT / 2,
-                top: center.y - EXPORT_CROP_DEFAULT / 2,
-                width: EXPORT_CROP_DEFAULT,
-                height: EXPORT_CROP_DEFAULT,
+                left: center.x - EXPORT_CROP_DEFAULT_WIDTH / 2,
+                top: center.y - EXPORT_CROP_DEFAULT_HEIGHT / 2,
+                width: EXPORT_CROP_DEFAULT_WIDTH,
+                height: EXPORT_CROP_DEFAULT_HEIGHT,
             };
+            exportGridAlignLeft = exportCropRect.left;
+            exportGridAlignTop = exportCropRect.top;
 
             const mainSvg = container.querySelector('.figure-svg');
             if (mainSvg) {
@@ -2132,35 +2306,50 @@
             layoutExportFrame();
         }
 
-        function nudgeExportCropHorizontal(deltaX) {
+        function nudgeExportCropTranslate(deltaX, deltaY) {
             if (!exportCropRect) return;
-            const ws = document.querySelector('.figure-workspace');
-            let left = exportCropRect.left + deltaX;
-            if (ws) {
-                const maxLeft = ws.clientWidth - exportCropRect.width;
-                left = Math.max(0, Math.min(maxLeft, left));
+            const prevLeft = exportCropRect.left;
+            const prevTop = exportCropRect.top;
+            let left = exportCropRect.left;
+            let top = exportCropRect.top;
+            const limits = getExportCropMoveLimits();
+            if (deltaX !== 0) {
+                left = exportCropRect.left + deltaX;
+                left = Math.max(limits.minLeft, Math.min(limits.maxLeft, left));
             }
-            exportCropRect = { ...exportCropRect, left };
+            if (deltaY !== 0) {
+                top = exportCropRect.top + deltaY;
+                top = Math.max(limits.minTop, Math.min(limits.maxTop, top));
+            }
+            exportCropRect = { ...exportCropRect, left, top };
+            if (exportGridAlignLeft != null && exportGridAlignTop != null) {
+                exportGridAlignLeft += left - prevLeft;
+                exportGridAlignTop += top - prevTop;
+            }
             layoutExportFrame();
+            syncExportGridAlignment();
             if (typeof syncAllDragHandles === 'function') {
                 syncAllDragHandles();
             }
         }
 
         function initExportFrameNudgeButtons() {
-            const leftBtn = document.getElementById('figure_export_nudge_left');
-            const rightBtn = document.getElementById('figure_export_nudge_right');
-            if (!leftBtn || !rightBtn || leftBtn.dataset.nudgeInit === '1') return;
-            leftBtn.dataset.nudgeInit = '1';
-            rightBtn.dataset.nudgeInit = '1';
-            leftBtn.addEventListener('click', (event) => {
-                event.preventDefault();
-                nudgeExportCropHorizontal(-EXPORT_CROP_NUDGE);
-            });
-            rightBtn.addEventListener('click', (event) => {
-                event.preventDefault();
-                nudgeExportCropHorizontal(EXPORT_CROP_NUDGE);
-            });
+            const col = document.getElementById('figure_export_nudge_col');
+            if (!col || col.dataset.nudgeInit === '1') return;
+            col.dataset.nudgeInit = '1';
+
+            const bind = (id, dx, dy) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                btn.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    nudgeExportCropTranslate(dx, dy);
+                });
+            };
+            bind('figure_export_nudge_up', 0, -EXPORT_CROP_NUDGE);
+            bind('figure_export_nudge_down', 0, EXPORT_CROP_NUDGE);
+            bind('figure_export_nudge_left', -EXPORT_CROP_NUDGE, 0);
+            bind('figure_export_nudge_right', EXPORT_CROP_NUDGE, 0);
         }
 
         function initExportFrameEdgeDrag() {
@@ -2214,6 +2403,7 @@
             document.getElementById('figure_export_grid')?.classList.toggle('hidden', !visible);
             document.getElementById('figure_export_outline')?.classList.toggle('hidden', !visible);
             document.getElementById('figure_export_dim_row')?.classList.toggle('hidden', !visible);
+            document.getElementById('figure_export_nudge_col')?.classList.toggle('hidden', !visible);
             document.getElementById('figure_viewbox_guide')?.classList.toggle('hidden', !visible);
             document.querySelectorAll('.figure-export-edge').forEach((el) => {
                 el.classList.toggle('hidden', !visible);
@@ -3100,7 +3290,7 @@
 			}
 			const pose = normalizePoseData(rawPose);
 			// Temporarily remove event listeners to avoid triggering updateTransforms
-			const sliders = document.querySelectorAll('input[type="range"]');
+			const sliders = Array.from(document.querySelectorAll('input[type="range"]')).filter(isPoseRangeSlider);
 			sliders.forEach(slider => {
 				slider.removeEventListener('input', updateTransforms);
 			});
@@ -3204,6 +3394,7 @@ function testSlideData() {
 			const sliders = document.querySelectorAll('input[type="range"]');
 			
 			sliders.forEach(slider => {
+				if (!isPoseRangeSlider(slider)) return;
 				// objekt_scale uses parseFloat (not parseInt) because step="0.1" allows decimals
 				if (slider.id === 'objekt_scale') {
 					currentPose[slider.id] = parseFloat(slider.value);
@@ -5218,6 +5409,7 @@ function exportForJavaScript() {
         populateObjektSelect(OBJEKT_KNOWN_FILES);
 
         document.querySelectorAll('input[type="range"]').forEach(slider => {
+            if (!isPoseRangeSlider(slider)) return;
             slider.addEventListener('input', updateTransforms);
         });
         
@@ -5236,6 +5428,8 @@ function exportForJavaScript() {
         document.getElementById('show_export_frame').addEventListener('change', syncExportFrameVisibility);
         document.getElementById('transparent_bg').addEventListener('change', syncExportBgControl);
         syncExportBgControl();
+        document.getElementById('export_quality').addEventListener('input', syncExportQualityDisplay);
+        syncExportQualityDisplay();
         initLeftArmIK();
         initRightArmIK();
         initLeftLegIK();
@@ -5418,6 +5612,7 @@ function exportForJavaScript() {
             'dingle_pivot_marker',
             'figure_export_outline',
             'figure_export_dim_row',
+            'figure_export_nudge_col',
             'figure_viewbox_guide',
         ];
 
@@ -5497,11 +5692,31 @@ function exportForJavaScript() {
             }
         }
 
+        function promptExportDownloadBasename(defaultName = 'figure') {
+            const raw = window.prompt('Filnavn (uden endelse):', defaultName);
+            if (raw === null) {
+                return null;
+            }
+            const trimmed = raw.trim() || defaultName;
+            const cleaned = trimmed
+                .replace(/[^a-zA-Z0-9æøåÆØÅ._-]/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^\.+|\.+$/g, '');
+            if (!cleaned) {
+                alert('Filnavnet skal indeholde mindst ét gyldigt tegn.');
+                return null;
+            }
+            return cleaned;
+        }
+
         async function exportFigurePNG() {
             if (typeof html2canvas === 'undefined') {
                 alert('Eksport-biblioteket html2canvas er ikke indlæst.');
                 return;
             }
+
+            const baseName = promptExportDownloadBasename('figure');
+            if (baseName === null) return;
 
             const exportFrame = getExportFigureContainer();
             const hiddenUi = hideFigureUiForExport();
@@ -5519,11 +5734,11 @@ function exportForJavaScript() {
 
                 const canvas = await captureFigureToCanvas(exportFrame, {
                     backgroundColor: getExportBackgroundColor(),
-                    scale: EXPORT_CAPTURE_SCALE,
+                    scale: getExportCaptureScale(),
                 });
 
                 const link = document.createElement('a');
-                link.download = 'figure.png';
+                link.download = `${baseName}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             } finally {
@@ -5545,6 +5760,9 @@ function exportForJavaScript() {
                 alert('Ingen timeline slides at eksportere!');
                 return;
             }
+
+            const baseName = promptExportDownloadBasename('figure');
+            if (baseName === null) return;
 
             const exportBtn = document.getElementById('export_sequence_btn');
             const originalBtnText = exportBtn.textContent;
@@ -5580,7 +5798,7 @@ function exportForJavaScript() {
 
                     const canvas = await captureFigureToCanvas(exportFrame, {
                         backgroundColor: getExportBackgroundColor(),
-                        scale: EXPORT_CAPTURE_SCALE,
+                        scale: getExportCaptureScale(),
                     });
 
                     const dataUrl = canvas.toDataURL('image/png');
@@ -5592,7 +5810,7 @@ function exportForJavaScript() {
                 const blob = await zip.generateAsync({ type: 'blob' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = 'figure_sequence.zip';
+                link.download = `${baseName}.zip`;
                 link.click();
                 URL.revokeObjectURL(link.href);
             } finally {
