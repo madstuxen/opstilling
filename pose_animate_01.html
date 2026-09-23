@@ -2207,7 +2207,13 @@
             const container = frame?.querySelector('.figure-container');
             const outline = document.getElementById('figure_export_outline');
             const guide = document.getElementById('figure_viewbox_guide');
-            if (!frame || !container || !exportContentBounds || !exportContentAnchor || !exportCropRect) return;
+            if (!frame || !container || !exportContentBounds || !exportCropRect) return;
+
+            const center = getFigureWorkspaceCenter();
+            exportContentAnchor = {
+                left: center.x - exportContentBounds.width / 2,
+                top: center.y - exportContentBounds.height / 2,
+            };
 
             const { left, top, width, height } = exportCropRect;
             frame.style.transform = 'none';
@@ -5582,15 +5588,70 @@ function exportForJavaScript() {
             };
         }
 
-        async function captureFigureToCanvas(figureContainer, options = {}) {
-            const restoreSvg = await inlineObjektSvgForCapture(figureContainer);
+        function prepareFigureExportCapture() {
+            clearFigureTransitions();
+            layoutExportFrame();
+        }
+
+        /** Rasterize export crop via native SVG (matches on-screen pose; html2canvas mis-draws nested SVG transforms). */
+        async function captureFigureToCanvas(exportRoot, options = {}) {
+            const frame = exportRoot?.id === 'figure_export_frame'
+                ? exportRoot
+                : (exportRoot?.closest?.('#figure_export_frame') || exportRoot);
+            if (!frame) {
+                throw new Error('Export frame missing');
+            }
+
+            const scaleRaw = options.scale;
+            const scale = Number.isFinite(scaleRaw) && scaleRaw > 0 ? scaleRaw : 1;
+            const backgroundColor = options.backgroundColor;
+
+            const restoreSvg = await inlineObjektSvgForCapture(frame);
             try {
-                return await html2canvas(figureContainer, {
-                    useCORS: true,
-                    allowTaint: true,
-                    logging: false,
-                    ...options
-                });
+                const width = frame.clientWidth;
+                const height = frame.clientHeight;
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(width * scale));
+                canvas.height = Math.max(1, Math.round(height * scale));
+                const ctx = canvas.getContext('2d');
+
+                if (backgroundColor) {
+                    ctx.fillStyle = backgroundColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                const container = frame.querySelector('.figure-container');
+                const svg = container?.querySelector('.figure-svg');
+                if (!svg || !container) {
+                    return canvas;
+                }
+
+                const frameRect = frame.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                const dx = (containerRect.left - frameRect.left) * scale;
+                const dy = (containerRect.top - frameRect.top) * scale;
+                const dw = containerRect.width * scale;
+                const dh = containerRect.height * scale;
+
+                let svgString = new XMLSerializer().serializeToString(svg);
+                if (!/xmlns=/.test(svgString)) {
+                    svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+                }
+
+                const url = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' }));
+                try {
+                    const img = new Image();
+                    await new Promise((resolve, reject) => {
+                        img.onload = () => resolve();
+                        img.onerror = () => reject(new Error('SVG rasterization failed'));
+                        img.src = url;
+                    });
+                    ctx.drawImage(img, dx, dy, dw, dh);
+                } finally {
+                    URL.revokeObjectURL(url);
+                }
+
+                return canvas;
             } finally {
                 restoreSvg();
             }
@@ -5710,15 +5771,11 @@ function exportForJavaScript() {
         }
 
         async function exportFigurePNG() {
-            if (typeof html2canvas === 'undefined') {
-                alert('Eksport-biblioteket html2canvas er ikke indlæst.');
-                return;
-            }
-
             const baseName = promptExportDownloadBasename('figure');
             if (baseName === null) return;
 
             const exportFrame = getExportFigureContainer();
+            prepareFigureExportCapture();
             const hiddenUi = hideFigureUiForExport();
 
             let savedObjektEnabled = objektEnabled;
@@ -5748,10 +5805,6 @@ function exportForJavaScript() {
         }
 
         async function exportPNGSequence() {
-            if (typeof html2canvas === 'undefined') {
-                alert('Eksport-biblioteket html2canvas er ikke indlæst.');
-                return;
-            }
             if (typeof JSZip === 'undefined') {
                 alert('Eksport-biblioteket JSZip er ikke indlæst.');
                 return;
@@ -5771,6 +5824,7 @@ function exportForJavaScript() {
             const savedPose = {...currentPose};
             const savedObjektEnabled = objektEnabled;
             const exportFrame = getExportFigureContainer();
+            prepareFigureExportCapture();
             const hiddenUi = hideFigureUiForExport();
 
             function waitForPaint() {
