@@ -4302,11 +4302,8 @@ function moveTimelineSlide(fromIndex, direction) {
 
         function applyInterpolatedPose(rawPose) {
             const pose = normalizePoseData(rawPose);
-            const hasObjekt = slideHasObjektData(pose);
-            if (hasObjekt !== objektEnabled) {
-                objektEnabled = hasObjekt;
-                document.getElementById('objekt_enabled').checked = hasObjekt;
-            }
+            const masterObjekt = document.getElementById('objekt_enabled').checked;
+            objektEnabled = masterObjekt && slideHasObjektData(pose);
             currentPose = buildCurrentPoseFromNormalized(pose);
             GuideFigureRenderer.applyPoseToFigure(mainFigureRefs, pose);
             setHeadTextDisplay(pose.head_text != null ? pose.head_text : '');
@@ -5593,6 +5590,24 @@ function exportForJavaScript() {
             layoutExportFrame();
         }
 
+        function isObjektContainerVisible(container) {
+            if (!container) return false;
+            if (container.style.display === 'none') return false;
+            const cs = getComputedStyle(container);
+            return cs.display !== 'none' && cs.visibility !== 'hidden';
+        }
+
+        /** SVG-as-image rasterization may ignore display:none on groups — drop hidden objekt from export clone. */
+        function getFigureSvgForRasterExport(sourceSvg) {
+            const objektContainer = sourceSvg.querySelector('#main_objekt_container');
+            if (isObjektContainerVisible(objektContainer)) {
+                return sourceSvg;
+            }
+            const clone = sourceSvg.cloneNode(true);
+            clone.querySelector('#main_objekt_container')?.remove();
+            return clone;
+        }
+
         /** Rasterize export crop via native SVG (matches on-screen pose; html2canvas mis-draws nested SVG transforms). */
         async function captureFigureToCanvas(exportRoot, options = {}) {
             const frame = exportRoot?.id === 'figure_export_frame'
@@ -5633,7 +5648,8 @@ function exportForJavaScript() {
                 const dw = containerRect.width * scale;
                 const dh = containerRect.height * scale;
 
-                let svgString = new XMLSerializer().serializeToString(svg);
+                const svgForExport = getFigureSvgForRasterExport(svg);
+                let svgString = new XMLSerializer().serializeToString(svgForExport);
                 if (!/xmlns=/.test(svgString)) {
                     svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
                 }
@@ -5843,9 +5859,10 @@ function exportForJavaScript() {
 
                     const time = frame / fps;
                     const pose = getPoseAtTimelineTime(time);
-                    objektEnabled = slideHasObjektData(pose);
+                    const masterObjekt = document.getElementById('objekt_enabled').checked;
+                    objektEnabled = masterObjekt && slideHasObjektData(pose);
                     applyPoseSilently(pose);
-                    if (objektEnabled) {
+                    if (objektEnabled && pose.objekt_visible !== false) {
                         await waitForObjektImageReady(exportFrame);
                     }
                     await waitForPaint();
