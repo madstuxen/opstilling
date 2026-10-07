@@ -1970,10 +1970,13 @@
                     <button type="button" class="btn btn-secondary" onclick="exportForJavaScript()">Export JS</button>
                 </div>
                 <div class="button-group">
-                    <button type="button" class="btn btn-secondary" id="btnImportObjektSvgsFile" disabled>Importér SVG-filer → bibliotek</button>
-                    <button type="button" class="btn btn-secondary" id="btnExportAllObjektSvgs" disabled>Eksportér alle SVG-objekter</button>
+                    <button type="button" class="btn btn-secondary" id="btnUploadObjektSvg" disabled>Upload objekt</button>
+                    <button type="button" class="btn btn-danger" id="btnDeleteObjekt" disabled>Slet objekt</button>
                 </div>
                 <input type="file" id="objektLibraryFileInput" class="file-input" accept=".svg" multiple style="display:none">
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" id="btnExportAllObjektSvgs" disabled>Eksportér alle SVG-objekter</button>
+                </div>
             </details>
 
             <div class="export-section panel-section" style="background:#fef3c7; border:2px solid #f59e0b; border-radius:10px; padding:15px; margin-bottom:20px;">
@@ -2171,11 +2174,6 @@
                             <select id="objekt_select"></select>
                         </div>
                         <p id="objektSelectHint" class="file-hint" style="font-size:10px; margin:4px 0 8px;"></p>
-                        <div class="button-group" style="margin-bottom:8px;">
-                            <button type="button" class="btn btn-secondary" id="btnUploadObjektSvg" disabled>Upload SVG…</button>
-                            <button type="button" class="btn btn-danger" id="btnDeleteObjekt" disabled>Slet objekt</button>
-                        </div>
-                        <input type="file" id="objektSvgFileInput" class="file-input" accept=".svg" multiple style="display:none">
                         <div class="mini-checkbox">
                             <input type="checkbox" id="objekt_visible" checked>
                             <label for="objekt_visible">Vis</label>
@@ -5063,7 +5061,7 @@ function moveTimelineSlide(fromIndex, direction) {
                 'btnSavePose', 'btnSavePoseAs', 'btnDeletePose',
                 'btnSaveAnimation', 'btnSaveAnimationAs', 'btnDeleteAnimation',
                 'btnImportPosesFile', 'btnImportAnimationsFile', 'btnExportAllPosesFile',
-                'btnImportObjektSvgsFile', 'btnExportAllObjektSvgs',
+                'btnExportAllObjektSvgs',
                 'btnUploadObjektSvg', 'btnDeleteObjekt',
             ];
             ids.forEach(id => {
@@ -5705,12 +5703,8 @@ function moveTimelineSlide(fromIndex, direction) {
             document.getElementById('btnImportAnimationsFile')?.addEventListener('click', () => document.getElementById('timelineFileInput').click());
             document.getElementById('timelineFileInput')?.addEventListener('change', importTimelineSlidesToLibrary);
             document.getElementById('btnExportAllPosesFile')?.addEventListener('click', () => exportAllPoses());
-            document.getElementById('btnUploadObjektSvg')?.addEventListener('click', () => document.getElementById('objektSvgFileInput')?.click());
-            document.getElementById('objektSvgFileInput')?.addEventListener('change', (e) => {
-                uploadObjektSvgFiles(e.target.files).finally(() => { e.target.value = ''; });
-            });
+            document.getElementById('btnUploadObjektSvg')?.addEventListener('click', () => document.getElementById('objektLibraryFileInput')?.click());
             document.getElementById('btnDeleteObjekt')?.addEventListener('click', () => handleDeleteLibraryObject());
-            document.getElementById('btnImportObjektSvgsFile')?.addEventListener('click', () => document.getElementById('objektLibraryFileInput')?.click());
             document.getElementById('objektLibraryFileInput')?.addEventListener('change', (e) => {
                 uploadObjektSvgFiles(e.target.files).finally(() => { e.target.value = ''; });
             });
