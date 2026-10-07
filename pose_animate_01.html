@@ -1807,6 +1807,88 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        .panel-section {
+            margin-bottom: 18px;
+        }
+
+        .panel-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 10px;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .library-select-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .library-select-row label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            min-width: 64px;
+        }
+
+        .library-select-row select {
+            flex: 1;
+            min-width: 120px;
+            font-size: 12px;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        .dirty-indicator {
+            font-size: 11px;
+            color: #b45309;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .dirty-indicator.hidden {
+            display: none;
+        }
+
+        .library-toolbar-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .files-details {
+            margin-bottom: 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0 12px 12px;
+            background: #f8fafc;
+        }
+
+        .files-details summary {
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            color: #475569;
+            padding: 10px 0;
+            list-style-position: inside;
+        }
+
+        .files-details .button-group {
+            margin-top: 8px;
+        }
+
+        .files-details .file-hint {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 4px;
+        }
 		
 		
 		
@@ -1818,52 +1900,79 @@
         <div class="left-panel">
             <h1>Pose Editor</h1>
 
-            <div class="library-toolbar" id="libraryToolbar">
-                <div class="library-toolbar__status">
-                    <span id="libraryStatusText">Bibliotek: indlæser…</span>
-                    <span class="library-toolbar__hint" id="libraryStatusHint"></span>
-                </div>
-                <button type="button" class="btn btn-secondary" id="libraryAuthBtn" style="font-size:12px; padding:6px 10px;">Log ind</button>
-            </div>
-            
-            <!-- Session Management -->
-            <div class="session-management">
-                <h3>Session Håndtering</h3>
-                
-                <div class="button-group">
-                    <button class="btn btn-primary" onclick="exportAllPoses()">Gem Alle</button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">Indlæs</button>
-                </div>
-                
-                <div class="file-input-wrapper">
-                    <input type="file" id="fileInput" class="file-input" accept=".json" onchange="importPoses(event)">
-                    <div class="file-input-display">Vælg JSON fil...</div>
-                </div>
-				
-				<div class="button-group" style="margin-top: 8px;">
-					<button class="btn btn-primary" onclick="exportTimelineSlides()">Gem Timeline</button>
-					<button class="btn btn-secondary" onclick="document.getElementById('timelineFileInput').click()">Indlæs Timeline</button>
-					<button class="btn btn-primary" onclick="exportForJavaScript()">Export JS</button>
-
-				</div>
-
-				<div class="file-input-wrapper">
-					<input type="file" id="timelineFileInput" class="file-input" accept=".json" onchange="importTimelineSlides(event)">
-					<div class="file-input-display">Vælg Timeline JSON fil...</div>
-				</div>
-
-                <div class="library-firestore-actions">
-                    <h4>Firestore-bibliotek (animationer)</h4>
-                    <div class="button-group">
-                        <button type="button" class="btn btn-primary" id="btnSaveAnimationToLibrary" disabled>Gem i bibliotek</button>
-                        <button type="button" class="btn btn-secondary" id="btnOpenAnimationLibrary" disabled>Åbn fra bibliotek</button>
+            <div class="panel-section">
+                <h3 class="panel-section-title">Bibliotek</h3>
+                <div class="library-toolbar" id="libraryToolbar">
+                    <div class="library-toolbar__status">
+                        <span id="libraryStatusText">Bibliotek: indlæser…</span>
+                        <span class="library-toolbar__hint" id="libraryStatusHint"></span>
+                    </div>
+                    <div class="library-toolbar-actions">
+                        <button type="button" class="btn btn-secondary" id="libraryRefreshBtn" style="font-size:12px; padding:6px 10px;" disabled>Opdatér</button>
+                        <button type="button" class="btn btn-secondary" id="libraryAuthBtn" style="font-size:12px; padding:6px 10px;">Log ind</button>
                     </div>
                 </div>
-				
             </div>
 
-            <div class="export-section" style="background:#fef3c7; border:2px solid #f59e0b; border-radius:10px; padding:15px; margin-bottom:20px;">
-                <h3 style="color:#b45309; margin-bottom:10px; font-size:16px;">Eksport</h3>
+            <div class="panel-section">
+                <h3 class="panel-section-title">Pose</h3>
+                <div class="library-select-row">
+                    <label for="poseLibrarySelect">Pose</label>
+                    <select id="poseLibrarySelect" disabled>
+                        <option value="">— Vælg pose —</option>
+                    </select>
+                    <span id="poseDirtyIndicator" class="dirty-indicator hidden" aria-live="polite">● Ikke gemt</span>
+                </div>
+                <input type="text" class="pose-input" id="poseName" placeholder="Pose navn...">
+                <label for="head_text" style="display:block; font-size:12px; color:#0284c7; margin-bottom:4px;">Hoved tekst:</label>
+                <input type="text" class="pose-input" id="head_text" value="" maxlength="24" placeholder="Hoved">
+                <div class="button-group" style="margin-top: 8px;">
+                    <button type="button" class="btn btn-secondary" id="btnNewPose">Ny pose</button>
+                    <button type="button" class="btn btn-success" id="btnSavePose" disabled>Gem</button>
+                    <button type="button" class="btn btn-primary" id="btnSavePoseAs" disabled>Gem som…</button>
+                </div>
+                <div class="button-group" style="margin-top: 8px;">
+                    <button type="button" class="btn btn-danger" id="btnDeletePose" disabled>Slet</button>
+                    <button type="button" class="btn btn-secondary" onclick="flipPose()">Flip Pose</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3 class="panel-section-title">Animation</h3>
+                <div class="library-select-row">
+                    <label for="animationLibrarySelect">Animation</label>
+                    <select id="animationLibrarySelect" disabled>
+                        <option value="">— Vælg animation —</option>
+                    </select>
+                    <span id="animationDirtyIndicator" class="dirty-indicator hidden" aria-live="polite">● Ikke gemt</span>
+                </div>
+                <div class="button-group">
+                    <button type="button" class="btn btn-success" id="btnSaveAnimation" disabled>Gem</button>
+                    <button type="button" class="btn btn-primary" id="btnSaveAnimationAs" disabled>Gem som…</button>
+                    <button type="button" class="btn btn-danger" id="btnDeleteAnimation" disabled>Slet</button>
+                </div>
+            </div>
+
+            <details class="files-details" id="filesSection">
+                <summary>Filer</summary>
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" id="btnImportPosesFile" disabled>Importér poses fra fil → bibliotek</button>
+                </div>
+                <input type="file" id="fileInput" class="file-input" accept=".json" style="display:none">
+                <p class="file-hint">Understøtter poses.json og enkelt-pose formater.</p>
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" id="btnImportAnimationsFile" disabled>Importér animationer fra filer → bibliotek</button>
+                </div>
+                <input type="file" id="timelineFileInput" class="file-input" accept=".json" multiple style="display:none">
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" id="btnExportAllPosesFile" disabled>Eksportér alle poses (poses.json)</button>
+                    <button type="button" class="btn btn-secondary" onclick="exportTimelineSlides()">Eksportér animation (JSON)</button>
+                    <button type="button" class="btn btn-secondary" onclick="exportForJavaScript()">Export JS</button>
+                </div>
+            </details>
+
+            <div class="export-section panel-section" style="background:#fef3c7; border:2px solid #f59e0b; border-radius:10px; padding:15px; margin-bottom:20px;">
+                <h3 class="panel-section-title" style="color:#b45309; border-bottom-color:#f59e0b;">Eksport</h3>
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
                     <label style="font-size:12px;">Figur farve:</label>
                     <div class="color-picker-full" id="guideFigureColorPicker">
@@ -1897,34 +2006,6 @@
                 <button class="btn btn-primary" id="export_sequence_btn" onclick="exportPNGSequence()">Eksporter sekvens (ZIP)</button>
             </div>
 
-            <!-- Current Pose -->
-            <div class="current-pose">
-                <h3>Aktuel Pose</h3>
-                
-                <input type="text" class="pose-input" id="poseName" placeholder="Pose navn...">
-
-                <label for="head_text" style="display:block; font-size:12px; color:#0284c7; margin-bottom:4px;">Hoved tekst:</label>
-                <input type="text" class="pose-input" id="head_text" value="" maxlength="24" placeholder="Hoved">
-                
-                <div class="button-group">
-    			<button class="btn btn-success" onclick="savePoseToLibrary()">Gem Pose</button>
-    			<button class="btn btn-secondary" onclick="newPose()">Ny Pose</button>
-    			</div>
-    			<div class="button-group" style="margin-top: 8px;">
-    			<button class="btn btn-secondary" onclick="flipPose()">Flip Pose</button>
-    			</div>
-    			<div class="button-group" style="margin-top: 8px;">
-    				<button class="btn btn-primary" onclick="saveAsNewPose()">Gem som Ny</button>
-    			</div>
-            </div>
-
-            <!-- Pose Library -->
-            <div class="pose-library">
-                <h3>Pose Bibliotek</h3>
-                <div class="pose-buttons" id="poseButtons">
-                    <div class="no-poses">Ingen poses endnu...<br>Opret din første pose!</div>
-                </div>
-            </div>
         </div>
         
         <div class="workspace">
@@ -2203,7 +2284,7 @@
 
     <!-- Animation Timeline -->
     <div class="timeline-panel">
-        <h2>Animation Timeline</h2>
+        <h2 class="panel-section-title" style="border:none; margin-bottom:12px;">Timeline</h2>
         <div class="timeline-controls">
 			<button class="btn btn-success" onclick="playAnimation()">▶ Play</button>
 			<button class="btn btn-secondary" onclick="stopAnimation()">⏹ Stop</button>
@@ -2261,26 +2342,10 @@
         <div class="library-auth-modal" role="dialog" aria-modal="true" aria-labelledby="libraryAuthTitle">
             <h3 id="libraryAuthTitle">Log ind på bibliotek</h3>
             <p class="library-auth-error" id="libraryAuthError"></p>
-            <form id="libraryAuthForm">
-                <label for="libraryAuthEmail">E-mail</label>
-                <input type="email" id="libraryAuthEmail" autocomplete="username" required>
-                <label for="libraryAuthPassword">Adgangskode</label>
-                <input type="password" id="libraryAuthPassword" autocomplete="current-password" required>
-                <div class="library-auth-actions">
-                    <button type="submit" class="btn btn-primary">Log ind</button>
-                    <button type="button" class="btn btn-secondary" id="libraryAuthGoogleBtn">Log ind med Google</button>
-                    <button type="button" class="btn btn-secondary" id="libraryAuthCancelBtn">Annuller</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="library-picker-backdrop" id="libraryPickerBackdrop" aria-hidden="true">
-        <div class="library-picker-modal" role="dialog" aria-modal="true" aria-labelledby="libraryPickerTitle">
-            <h3 id="libraryPickerTitle">Åbn animation fra bibliotek</h3>
-            <input type="search" class="library-picker-search" id="libraryPickerSearch" placeholder="Søg efter navn…" autocomplete="off">
-            <div class="library-picker-list" id="libraryPickerList"></div>
-            <button type="button" class="btn btn-secondary" id="libraryPickerCloseBtn">Luk</button>
+            <div class="library-auth-actions">
+                <button type="button" class="btn btn-primary" id="libraryAuthGoogleBtn">Log ind med Google</button>
+                <button type="button" class="btn btn-secondary" id="libraryAuthCancelBtn">Annuller</button>
+            </div>
         </div>
     </div>
 
@@ -2837,10 +2902,63 @@
             };
         }
 
-        // Session pose library
-        let poseLibrary = [];
-        let currentPoseId = null;
         let currentPose = {};
+        let openedPoseDocId = null;
+        let openedAnimationDocId = null;
+        let poseDirty = false;
+        let animationDirty = false;
+        let suppressDirtyDepth = 0;
+
+        function runWithoutDirtyTracking(fn) {
+            suppressDirtyDepth++;
+            try {
+                fn();
+            } finally {
+                suppressDirtyDepth--;
+            }
+        }
+
+        function isDirtyTrackingSuppressed() {
+            return suppressDirtyDepth > 0;
+        }
+
+        function markPoseDirty() {
+            if (isDirtyTrackingSuppressed()) return;
+            poseDirty = true;
+            updateDirtyIndicators();
+        }
+
+        function markAnimationDirty() {
+            if (isDirtyTrackingSuppressed()) return;
+            animationDirty = true;
+            updateDirtyIndicators();
+        }
+
+        function clearPoseDirty() {
+            poseDirty = false;
+            updateDirtyIndicators();
+        }
+
+        function clearAnimationDirty() {
+            animationDirty = false;
+            updateDirtyIndicators();
+        }
+
+        function updateDirtyIndicators() {
+            const poseEl = document.getElementById('poseDirtyIndicator');
+            const animEl = document.getElementById('animationDirtyIndicator');
+            if (poseEl) poseEl.classList.toggle('hidden', !poseDirty);
+            if (animEl) animEl.classList.toggle('hidden', !animationDirty);
+        }
+
+        function hasAnyDirtyState() {
+            return poseDirty || animationDirty;
+        }
+
+        function confirmDiscardUnsavedChanges() {
+            if (!hasAnyDirtyState()) return true;
+            return confirm('Du har ugemte ændringer. Fortsæt?');
+        }
 
         // Animation timeline
         let timelineSlides = [ensureSlideTweenMeta(getDefaultPose())];
@@ -3522,6 +3640,7 @@
 		
 		
 		function applyPoseSilently(rawPose) {
+            runWithoutDirtyTracking(() => {
 			if (!isPlaying) {
 				clearFigureTransitions();
 			}
@@ -3597,6 +3716,7 @@
 			syncMaveHandle();
 			syncHovedHandle();
 			syncObjektHandle();
+            });
 		}
 		
 		function updateSingleSlideDisplay(index) {
@@ -3610,21 +3730,10 @@
 }
 
 
-function testSlideData() {
-    console.log("=== SLIDE DATA TEST ===");
-    timelineSlides.forEach((slide, index) => {
-        console.log(`Slide ${index}:`, slide.translate_x_left, slide.translate_x, slide.skulder_rot_left);
-    });
-    console.log("Current slide index:", currentSlideIndex);
-    console.log("======================");
-}
-
-		
 		function updateTransforms() {
     if (!isPlaying) {
         clearFigureTransitions();
     }
-    console.log("updateTransforms called, currentSlideIndex:", currentSlideIndex);
     
     // resten af funktionen...
 			// Get all slider values
@@ -3653,7 +3762,6 @@ function testSlideData() {
 
 			// Update timeline slide with current pose
 		if (currentSlideIndex >= 0 && currentSlideIndex < timelineSlides.length) {
-    console.log("updateTransforms updating slide:", currentSlideIndex, "with pose data");
     const meta = preserveTimelineMetaFromSlide(timelineSlides[currentSlideIndex]);
     let slideData = ensureSlideTweenMeta({
         ...currentPose,
@@ -3670,7 +3778,10 @@ function testSlideData() {
     timelineSlides[currentSlideIndex] = slideData;
 			
 			updateSingleSlideDisplay(currentSlideIndex);
+            markAnimationDirty();
 		}
+
+            markPoseDirty();
 
 			// Update main figure transforms
 			GuideFigureRenderer.applyPoseToFigure(mainFigureRefs, currentPose);
@@ -3732,42 +3843,41 @@ function testSlideData() {
         }
 
         function applyPose(rawPose) {
-            const pose = normalizePoseData(rawPose);
+            runWithoutDirtyTracking(() => {
+                const pose = normalizePoseData(rawPose);
 
-            // Apply pose values to sliders
-            Object.keys(pose).forEach(key => {
-                const slider = document.getElementById(key);
-                if (slider && slider.type === 'range') {
-                    slider.value = pose[key];
+                Object.keys(pose).forEach(key => {
+                    const slider = document.getElementById(key);
+                    if (slider && slider.type === 'range') {
+                        slider.value = pose[key];
+                    }
+                });
+
+                if (pose.left_arm_front !== undefined) {
+                    document.getElementById('left_arm_front').checked = pose.left_arm_front;
+                    toggleArmLayer('left');
                 }
+                if (pose.right_arm_front !== undefined) {
+                    document.getElementById('right_arm_front').checked = pose.right_arm_front;
+                    toggleArmLayer('right');
+                }
+
+                syncObjektControlsFromPose(pose);
+                syncHeadTextInput(pose);
+
+                currentPose = buildCurrentPoseFromNormalized(pose);
+                updateTransforms();
+                syncRightArmIKEndEffector();
+                syncLeftArmIKEndEffector();
+                syncShoulderHandleRight();
+                syncShoulderHandleLeft();
+                syncLeftLegIKEndEffector();
+                syncRightLegIKEndEffector();
+                syncHipHandleLeft();
+                syncHipHandleRight();
+                syncMaveHandle();
+                syncHovedHandle();
             });
-            
-            // Apply checkbox states
-            if (pose.left_arm_front !== undefined) {
-                document.getElementById('left_arm_front').checked = pose.left_arm_front;
-                toggleArmLayer('left');
-            }
-            if (pose.right_arm_front !== undefined) {
-                document.getElementById('right_arm_front').checked = pose.right_arm_front;
-                toggleArmLayer('right');
-            }
-
-            syncObjektControlsFromPose(pose);
-
-            syncHeadTextInput(pose);
-            
-            currentPose = buildCurrentPoseFromNormalized(pose);
-            updateTransforms();
-            syncRightArmIKEndEffector();
-            syncLeftArmIKEndEffector();
-            syncShoulderHandleRight();
-            syncShoulderHandleLeft();
-            syncLeftLegIKEndEffector();
-            syncRightLegIKEndEffector();
-            syncHipHandleLeft();
-            syncHipHandleRight();
-            syncMaveHandle();
-            syncHovedHandle();
         }
         
         function flipPose() {
@@ -3832,234 +3942,139 @@ function testSlideData() {
             
             // Apply the flipped pose
             applyPose(currentPose);
+            markPoseDirty();
         }
 
-        function newPose() {
-            currentPoseId = null;
+        function newPose({ skipConfirm = false } = {}) {
+            if (!skipConfirm && !confirmDiscardUnsavedChanges()) return;
+            openedPoseDocId = null;
             document.getElementById('poseName').value = '';
+            const select = document.getElementById('poseLibrarySelect');
+            if (select) select.value = '';
+            clearPoseDirty();
             resetSliders();
-            updatePoseLibraryDisplay();
+            refreshLibraryControlsEnabled();
         }
 
-        function savePoseToLibrary() {
-            const name = document.getElementById('poseName').value.trim();
-            
-            if (!name) {
-                alert('Indtast venligst et navn for posen!');
-                return;
-            }
-            
-            const poseData = buildStoredPoseData(currentPose);
-            
-            if (currentPoseId !== null) {
-                // Update existing pose
-                poseLibrary[currentPoseId] = {
-                    name: name,
-                    pose: poseData
-                };
-                alert(`Pose "${name}" opdateret!`);
+        function buildPoseJsonObjectForStorage(fromPose) {
+            const normalized = normalizePoseData(fromPose);
+            return buildExportPoseData(normalized, slideHasObjektData(normalized));
+        }
+
+        function parsePosesImportData(data) {
+            let importedPoses = [];
+            if (data.poses && Array.isArray(data.poses)) {
+                importedPoses = data.poses;
+            } else if (Array.isArray(data)) {
+                importedPoses = data;
             } else {
-                // Add new pose
-                poseLibrary.push({
-                    name: name,
-                    pose: poseData
-                });
-                currentPoseId = poseLibrary.length - 1;
-                alert(`Pose "${name}" gemt!`);
+                importedPoses = [data];
             }
-            
-            updatePoseLibraryDisplay();
+            const result = [];
+            importedPoses.forEach(entry => {
+                const poseEntry = entry.pose ? entry : { name: entry.name, pose: entry };
+                if (poseEntry.name && poseEntry.pose) {
+                    result.push({
+                        name: String(poseEntry.name).trim(),
+                        pose: normalizePoseData(poseEntry.pose),
+                    });
+                }
+            });
+            return result;
         }
-        
-        function saveAsNewPose() {
-            const name = document.getElementById('poseName').value.trim();
-            
-            if (!name) {
-                alert('Indtast venligst et navn for den nye pose!');
+
+        function loadOpenedPoseIntoEditor(entry) {
+            if (!entry) return;
+            let parsedPose;
+            try {
+                parsedPose = typeof entry.json === 'string'
+                    ? normalizePoseData(JSON.parse(entry.json))
+                    : normalizePoseData(entry.pose || entry);
+            } catch (e) {
+                alert('Kunne ikke læse posens JSON.');
                 return;
             }
-            
-            // Check if name already exists
-            const existingPose = poseLibrary.find(pose => pose.name === name);
-            if (existingPose) {
-                if (!confirm(`En pose med navnet "${name}" findes allerede. Vil du overskrive den?`)) {
-                    return;
-                }
-            }
-        
-            const poseData = buildStoredPoseData(currentPose);
-            
-            // Always add as new pose (don't update existing)
-            poseLibrary.push({
-                name: name,
-                pose: poseData
-            });
-            
-            // Set current selection to the new pose
-            currentPoseId = poseLibrary.length - 1;
-            
-            updatePoseLibraryDisplay();
-            alert(`Ny pose "${name}" gemt!`);
-        }
+            openedPoseDocId = entry.id;
+            document.getElementById('poseName').value = entry.name || entry.id;
+            const select = document.getElementById('poseLibrarySelect');
+            if (select) select.value = entry.id;
 
-        function loadPoseFromLibrary(index) {
-            if (index >= 0 && index < poseLibrary.length) {
-                const entry = poseLibrary[index];
-                const normalized = normalizePoseData(entry.pose);
-                currentPoseId = index;
-                document.getElementById('poseName').value = entry.name;
+            objektEnabled = slideHasObjektData(parsedPose);
+            document.getElementById('objekt_enabled').checked = objektEnabled;
+            toggleObjektControlsEnabled(objektEnabled);
 
-                objektEnabled = slideHasObjektData(normalized);
-                document.getElementById('objekt_enabled').checked = objektEnabled;
-                toggleObjektControlsEnabled(objektEnabled);
-
-                applyPose(normalized);
-                updatePoseLibraryDisplay();
-            }
-        }
-
-        function deletePoseFromLibrary(index) {
-            if (index >= 0 && index < poseLibrary.length) {
-                const poseName = poseLibrary[index].name;
-                
-                if (confirm(`Er du sikker på at du vil slette "${poseName}"?`)) {
-                    poseLibrary.splice(index, 1);
-                    
-                    // Adjust currentPoseId if necessary
-                    if (currentPoseId === index) {
-                        currentPoseId = null;
-                        newPose();
-                    } else if (currentPoseId > index) {
-                        currentPoseId--;
-                    }
-                    
-                    updatePoseLibraryDisplay();
-                    alert(`Pose "${poseName}" slettet!`);
-                }
-            }
-        }
-
-        function updatePoseLibraryDisplay() {
-            const container = document.getElementById('poseButtons');
-            
-            if (poseLibrary.length === 0) {
-                container.innerHTML = '<div class="no-poses">Ingen poses endnu...<br>Opret din første pose!</div>';
-                return;
-            }
-            
-            container.innerHTML = '';
-            
-            poseLibrary.forEach((pose, index) => {
-                const button = document.createElement('div');
-                button.className = 'pose-button' + (index === currentPoseId ? ' active' : '');
-                
-                button.innerHTML = `
-                    <div class="pose-button-text">${pose.name}</div>
-                    <button class="delete-pose-btn" onclick="deletePoseFromLibrary(${index}); event.stopPropagation();">×</button>
-                `;
-                
-                button.onclick = () => loadPoseFromLibrary(index);
-                container.appendChild(button);
-            });
+            applyPose(parsedPose);
+            clearPoseDirty();
+            refreshLibraryControlsEnabled();
         }
 
         function exportAllPoses() {
-            if (poseLibrary.length === 0) {
+            if (!libraryPoseCache.length) {
                 alert('Ingen poses at eksportere!');
                 return;
             }
-            
+
+            const sorted = libraryPoseCache.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
             const exportData = {
                 version: "1.0",
                 created: new Date().toISOString(),
-                poses: poseLibrary.map(entry => ({
-                    name: entry.name,
-                    pose: buildExportPoseData(entry.pose, slideHasObjektData(entry.pose))
-                }))
+                poses: sorted.map(entry => {
+                    let poseObj;
+                    try {
+                        poseObj = JSON.parse(entry.json);
+                    } catch (e) {
+                        poseObj = {};
+                    }
+                    return { name: entry.name, pose: poseObj };
+                }),
             };
-            
+
             const dataStr = JSON.stringify(exportData, null, 2);
             const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            
             const link = document.createElement('a');
             link.href = URL.createObjectURL(dataBlob);
             link.download = 'poses.json';
             link.click();
-            
-            alert(`${poseLibrary.length} poses eksporteret!`);
+            alert(`${sorted.length} poses eksporteret!`);
         }
 
         function importPoses(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
-                    
-                    // Handle different formats
-                    let importedPoses = [];
-                    
-                    if (data.poses && Array.isArray(data.poses)) {
-                        // New format
-                        importedPoses = data.poses;
-                    } else if (Array.isArray(data)) {
-                        // Simple array format
-                        importedPoses = data;
-                    } else {
-                        // Single pose format
-                        importedPoses = [data];
+                    const parsed = parsePosesImportData(data);
+                    if (!parsed.length) {
+                        alert('Ingen gyldige poses fundet i filen.');
+                        return;
                     }
-                    
-                    // Validate and import
-                    let validPoses = 0;
-                    importedPoses.forEach(entry => {
-                        const poseEntry = entry.pose ? entry : { name: entry.name, pose: entry };
-                        if (poseEntry.name && poseEntry.pose) {
-                            poseLibrary.push({
-                                name: poseEntry.name,
-                                pose: normalizePoseData(poseEntry.pose)
-                            });
-                            validPoses++;
-                        }
-                    });
-
-                    objektEnabled = poseLibrary.some(entry => slideHasObjektData(entry.pose));
-                    document.getElementById('objekt_enabled').checked = objektEnabled;
-                    toggleObjektControlsEnabled(objektEnabled);
-                    
-                    updatePoseLibraryDisplay();
-                    alert(`${validPoses} poses indlæst succesfuldt!`);
-                    
+                    await importParsedPosesToLibrary(parsed);
                 } catch (error) {
                     alert('Fejl ved indlæsning af fil. Tjek at det er en gyldig JSON fil.');
                     console.error('Import error:', error);
                 }
             };
-            
             reader.readAsText(file);
-            // Reset file input
             event.target.value = '';
         }
 
 //////////// Timeline Functions
 
     
-function selectTimelineSlide(index) {
-    console.log("NEW selectTimelineSlide called with index:", index);
-    
+function selectTimelineSlide(index, { skipDirtyConfirm = false } = {}) {
     if (index >= 0 && index < timelineSlides.length) {
         currentSlideIndex = index;
-        console.log("About to apply pose silently for slide:", index);
         applyPoseSilently(timelineSlides[index]);
-        console.log("Finished applying pose silently");
-        
-        currentPoseId = null;
+
+        openedPoseDocId = null;
         document.getElementById('poseName').value = '';
-        updatePoseLibraryDisplay();
-        
-        updateTimelineHighlight(); // <-- TILFØJ DENNE LINJE
+        const poseSelect = document.getElementById('poseLibrarySelect');
+        if (poseSelect) poseSelect.value = '';
+        clearPoseDirty();
+
+        updateTimelineHighlight();
     }
 }
 
@@ -4074,6 +4089,7 @@ function selectTimelineSlide(index) {
 			currentSlideIndex = timelineSlides.length - 1;
 			updateTimelineDisplay();
 			selectTimelineSlide(currentSlideIndex);
+            markAnimationDirty();
 		}
 		
 		function updateTimelineHighlight() {
@@ -4101,6 +4117,7 @@ function moveTimelineSlide(fromIndex, direction) {
     }
     
     updateTimelineDisplay();
+    markAnimationDirty();
 }
 
 
@@ -4177,6 +4194,7 @@ function moveTimelineSlide(fromIndex, direction) {
 				
 				updateTimelineDisplay();
 				selectTimelineSlide(currentSlideIndex);
+                markAnimationDirty();
 			}
 		}
 		
@@ -4186,6 +4204,7 @@ function moveTimelineSlide(fromIndex, direction) {
         function updateSlideDuration(index, duration) {
             if (timelineSlides[index]) {
                 timelineSlides[index].duration = parseFloat(duration);
+                markAnimationDirty();
             }
         }
 
@@ -4325,6 +4344,7 @@ function moveTimelineSlide(fromIndex, direction) {
                     x2: Math.max(0, Math.min(1, v.x2)),
                     y2: v.y2,
                 });
+                markAnimationDirty();
             }
             bezierEditorSlideIndex = -1;
             document.getElementById('bezierEditorBackdrop').classList.remove('is-open');
@@ -4608,12 +4628,16 @@ function moveTimelineSlide(fromIndex, direction) {
             if (confirm('Er du sikker på du vil ryde hele timeline?')) {
                 timelineSlides = [ensureSlideTweenMeta(getDefaultPose())];
                 currentSlideIndex = 0;
+                openedAnimationDocId = null;
+                const animSelect = document.getElementById('animationLibrarySelect');
+                if (animSelect) animSelect.value = '';
                 updateTimelineDisplay();
                 applyPose(timelineSlides[0]);
+                markAnimationDirty();
             }
         }
 
-        // --- Firestore animations library (Etape 1) ---
+        // --- Firestore bibliotek (lib_poses + lib_animations) ---
         const firebaseConfig = {
             apiKey: "AIzaSyCl6ZYtkfYx3kFF9329eGpeazsmJAPMKzA",
             authDomain: "relationer-fe5fe.firebaseapp.com",
@@ -4625,14 +4649,15 @@ function moveTimelineSlide(fromIndex, direction) {
         };
 
         const LIB_ANIMATIONS_COLLECTION = 'lib_animations';
+        const LIB_POSES_COLLECTION = 'lib_poses';
         let libraryAuth = null;
         let libraryDb = null;
         let libraryFirebaseReady = false;
         let libraryFirebaseDisabledReason = '';
         let libraryCurrentUser = null;
-        let loadedLibraryAnimationDocId = null;
-        let loadedLibraryAnimationName = null;
-        let libraryPickerEntries = [];
+        let libraryPoseCache = [];
+        let libraryAnimationCache = [];
+        let libraryFetchInFlight = null;
 
         function isLibraryHttpContext() {
             return window.location.protocol === 'http:' || window.location.protocol === 'https:';
@@ -4677,7 +4702,7 @@ function moveTimelineSlide(fromIndex, direction) {
         /**
          * @returns {{ ok: boolean, count?: number, reason?: string }}
          */
-        function applyTimelineImportFromData(data, { showSuccessAlert = true } = {}) {
+        function applyTimelineImportFromData(data, { showSuccessAlert = true, animationDocId = null, animationName = null } = {}) {
             const importedSlides = extractTimelineSlidesFromImportData(data);
             if (!importedSlides) {
                 return { ok: false, reason: 'invalid_format' };
@@ -4694,15 +4719,28 @@ function moveTimelineSlide(fromIndex, direction) {
                 return { ok: false, reason: 'no_slides' };
             }
 
-            timelineSlides = validSlides.map(ensureSlideTweenMeta);
-            currentSlideIndex = 0;
-            objektEnabled = validSlides.some(slideHasObjektData);
-            document.getElementById('objekt_enabled').checked = objektEnabled;
-            toggleObjektControlsEnabled(objektEnabled);
-            updateTimelineDisplay();
-            if (timelineSlides.length > 0) {
-                selectTimelineSlide(0);
+            runWithoutDirtyTracking(() => {
+                timelineSlides = validSlides.map(ensureSlideTweenMeta);
+                currentSlideIndex = 0;
+                objektEnabled = validSlides.some(slideHasObjektData);
+                document.getElementById('objekt_enabled').checked = objektEnabled;
+                toggleObjektControlsEnabled(objektEnabled);
+                updateTimelineDisplay();
+                if (timelineSlides.length > 0) {
+                    selectTimelineSlide(0, { skipDirtyConfirm: true });
+                }
+            });
+
+            if (animationDocId) {
+                openedAnimationDocId = animationDocId;
+                const animSelect = document.getElementById('animationLibrarySelect');
+                if (animSelect) animSelect.value = animationDocId;
+            } else if (animationName) {
+                openedAnimationDocId = sanitizeAnimationDocId(animationName);
             }
+            clearAnimationDirty();
+            refreshLibraryControlsEnabled();
+
             if (showSuccessAlert) {
                 alert(`${validSlides.length} slides indlæst succesfuldt!`);
             }
@@ -4765,20 +4803,153 @@ function moveTimelineSlide(fromIndex, direction) {
             return msg ? `Biblioteksfejl: ${msg}` : 'Der opstod en fejl i biblioteket. Prøv igen.';
         }
 
-        function formatLibraryTimestamp(ts) {
-            if (!ts) return '—';
-            try {
-                const date = typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts);
-                if (Number.isNaN(date.getTime())) return '—';
-                return date.toLocaleString('da-DK', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
+        function getMaxPoseOrder() {
+            if (!libraryPoseCache.length) return -1;
+            return Math.max(...libraryPoseCache.map(p => (typeof p.order === 'number' ? p.order : 0)));
+        }
+
+        function findPoseCacheEntry(docId) {
+            return libraryPoseCache.find(p => p.id === docId) || null;
+        }
+
+        function findAnimationCacheEntry(docId) {
+            return libraryAnimationCache.find(a => a.id === docId) || null;
+        }
+
+        function sortPosesAlphabetically(entries) {
+            return entries.slice().sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, 'da'));
+        }
+
+        function sortAnimationsAlphabetically(entries) {
+            return entries.slice().sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, 'da'));
+        }
+
+        function populatePoseSelectDropdown() {
+            const select = document.getElementById('poseLibrarySelect');
+            if (!select) return;
+            const prev = select.value;
+            select.innerHTML = '<option value="">— Vælg pose —</option>';
+            sortPosesAlphabetically(libraryPoseCache).forEach(entry => {
+                const opt = document.createElement('option');
+                opt.value = entry.id;
+                opt.textContent = entry.name || entry.id;
+                select.appendChild(opt);
+            });
+            if (prev && findPoseCacheEntry(prev)) {
+                select.value = prev;
+            } else if (openedPoseDocId && findPoseCacheEntry(openedPoseDocId)) {
+                select.value = openedPoseDocId;
+            }
+        }
+
+        function populateAnimationSelectDropdown() {
+            const select = document.getElementById('animationLibrarySelect');
+            if (!select) return;
+            const prev = select.value;
+            select.innerHTML = '<option value="">— Vælg animation —</option>';
+            sortAnimationsAlphabetically(libraryAnimationCache).forEach(entry => {
+                const opt = document.createElement('option');
+                opt.value = entry.id;
+                opt.textContent = entry.name || entry.id;
+                select.appendChild(opt);
+            });
+            if (prev && findAnimationCacheEntry(prev)) {
+                select.value = prev;
+            } else if (openedAnimationDocId && findAnimationCacheEntry(openedAnimationDocId)) {
+                select.value = openedAnimationDocId;
+            }
+        }
+
+        function refreshLibraryControlsEnabled() {
+            const loggedIn = libraryFirebaseReady && libraryCurrentUser;
+            const ids = [
+                'libraryRefreshBtn', 'poseLibrarySelect', 'animationLibrarySelect',
+                'btnSavePose', 'btnSavePoseAs', 'btnDeletePose',
+                'btnSaveAnimation', 'btnSaveAnimationAs', 'btnDeleteAnimation',
+                'btnImportPosesFile', 'btnImportAnimationsFile', 'btnExportAllPosesFile',
+            ];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = !loggedIn;
+            });
+            const delPose = document.getElementById('btnDeletePose');
+            if (delPose) delPose.disabled = !loggedIn || !openedPoseDocId;
+            const delAnim = document.getElementById('btnDeleteAnimation');
+            if (delAnim) delAnim.disabled = !loggedIn || !openedAnimationDocId;
+            updateLibraryToolbarUi();
+        }
+
+        function clearLibraryCaches() {
+            libraryPoseCache = [];
+            libraryAnimationCache = [];
+            openedPoseDocId = null;
+            openedAnimationDocId = null;
+            populatePoseSelectDropdown();
+            populateAnimationSelectDropdown();
+            refreshLibraryControlsEnabled();
+        }
+
+        async function fetchLibraryCachesFromFirestore() {
+            if (!libraryDb || !libraryCurrentUser) return;
+            const [posesSnap, animsSnap] = await Promise.all([
+                libraryDb.collection(LIB_POSES_COLLECTION).get(),
+                libraryDb.collection(LIB_ANIMATIONS_COLLECTION).get(),
+            ]);
+            libraryPoseCache = [];
+            posesSnap.forEach(doc => {
+                const data = doc.data() || {};
+                libraryPoseCache.push({
+                    id: doc.id,
+                    name: data.name || doc.id,
+                    json: data.json || '',
+                    order: typeof data.order === 'number' ? data.order : 0,
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt,
                 });
-            } catch (e) {
-                return '—';
+            });
+            libraryAnimationCache = [];
+            animsSnap.forEach(doc => {
+                const data = doc.data() || {};
+                libraryAnimationCache.push({
+                    id: doc.id,
+                    name: data.name || doc.id,
+                    json: data.json || '',
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt,
+                });
+            });
+            populatePoseSelectDropdown();
+            populateAnimationSelectDropdown();
+            refreshLibraryControlsEnabled();
+        }
+
+        async function refreshLibraryFromServer() {
+            if (!libraryFirebaseReady || !libraryDb || !libraryCurrentUser) return;
+            if (!confirmDiscardUnsavedChanges()) return;
+            const hintEl = document.getElementById('libraryStatusHint');
+            if (hintEl) hintEl.textContent = 'Henter bibliotek…';
+            try {
+                await fetchLibraryCachesFromFirestore();
+                clearPoseDirty();
+                clearAnimationDirty();
+                if (hintEl) hintEl.textContent = '';
+            } catch (error) {
+                console.error('refreshLibraryFromServer:', error);
+                if (hintEl) hintEl.textContent = formatLibraryFirestoreError(error);
+                alert(formatLibraryFirestoreError(error));
+            }
+        }
+
+        async function loadLibraryOnAuth(user) {
+            const hintEl = document.getElementById('libraryStatusHint');
+            if (hintEl) hintEl.textContent = 'Henter bibliotek…';
+            try {
+                await fetchLibraryCachesFromFirestore();
+                if (hintEl) hintEl.textContent = '';
+            } catch (error) {
+                console.error('loadLibraryOnAuth:', error);
+                if (hintEl) hintEl.textContent = formatLibraryFirestoreError(error);
+                alert(formatLibraryFirestoreError(error));
             }
         }
 
@@ -4786,29 +4957,17 @@ function moveTimelineSlide(fromIndex, direction) {
             const statusEl = document.getElementById('libraryStatusText');
             const hintEl = document.getElementById('libraryStatusHint');
             const authBtn = document.getElementById('libraryAuthBtn');
-            const saveBtn = document.getElementById('btnSaveAnimationToLibrary');
-            const openBtn = document.getElementById('btnOpenAnimationLibrary');
+            const refreshBtn = document.getElementById('libraryRefreshBtn');
 
             if (!statusEl) return;
 
             if (!libraryFirebaseReady) {
                 statusEl.textContent = 'Bibliotek: ikke tilgængelig';
-                if (hintEl) hintEl.textContent = libraryFirebaseDisabledReason || '';
-                if (authBtn) {
-                    authBtn.style.display = 'none';
-                }
-                if (saveBtn) {
-                    saveBtn.disabled = true;
-                    saveBtn.title = libraryFirebaseDisabledReason || 'Bibliotek utilgængeligt';
-                }
-                if (openBtn) {
-                    openBtn.disabled = true;
-                    openBtn.title = libraryFirebaseDisabledReason || 'Bibliotek utilgængeligt';
-                }
+                if (hintEl && !hintEl.textContent) hintEl.textContent = libraryFirebaseDisabledReason || '';
+                if (authBtn) authBtn.style.display = 'none';
+                if (refreshBtn) refreshBtn.disabled = true;
                 return;
             }
-
-            if (hintEl) hintEl.textContent = '';
 
             if (libraryCurrentUser) {
                 const email = libraryCurrentUser.email || libraryCurrentUser.displayName || libraryCurrentUser.uid;
@@ -4817,28 +4976,14 @@ function moveTimelineSlide(fromIndex, direction) {
                     authBtn.textContent = 'Log ud';
                     authBtn.style.display = '';
                 }
-                if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.title = '';
-                }
-                if (openBtn) {
-                    openBtn.disabled = false;
-                    openBtn.title = '';
-                }
+                if (refreshBtn) refreshBtn.disabled = false;
             } else {
                 statusEl.textContent = 'Bibliotek: ikke logget ind';
                 if (authBtn) {
                     authBtn.textContent = 'Log ind';
                     authBtn.style.display = '';
                 }
-                if (saveBtn) {
-                    saveBtn.disabled = true;
-                    saveBtn.title = 'Log ind for at gemme i biblioteket';
-                }
-                if (openBtn) {
-                    openBtn.disabled = true;
-                    openBtn.title = 'Log ind for at åbne fra biblioteket';
-                }
+                if (refreshBtn) refreshBtn.disabled = true;
             }
         }
 
@@ -4870,219 +5015,297 @@ function moveTimelineSlide(fromIndex, direction) {
             err.classList.add('show');
         }
 
-        async function saveAnimationToLibrary() {
-            if (!libraryFirebaseReady || !libraryDb || !libraryCurrentUser) {
-                alert('Log ind for at gemme i biblioteket.');
+        async function writePoseDocument(docId, name, jsonStr, existingEntry) {
+            const docRef = libraryDb.collection(LIB_POSES_COLLECTION).doc(docId);
+            const payload = {
+                name,
+                json: jsonStr,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            };
+            if (existingEntry) {
+                await docRef.update(payload);
+                existingEntry.name = name;
+                existingEntry.json = jsonStr;
+            } else {
+                const order = getMaxPoseOrder() + 1;
+                await docRef.set({
+                    ...payload,
+                    order,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+                libraryPoseCache.push({ id: docId, name, json: jsonStr, order });
+            }
+            populatePoseSelectDropdown();
+        }
+
+        async function savePoseDocumentById(docId, name) {
+            const jsonStr = JSON.stringify(buildPoseJsonObjectForStorage(currentPose));
+            const existing = findPoseCacheEntry(docId);
+            await writePoseDocument(docId, name, jsonStr, existing);
+            openedPoseDocId = docId;
+            document.getElementById('poseName').value = name;
+            const select = document.getElementById('poseLibrarySelect');
+            if (select) select.value = docId;
+            clearPoseDirty();
+            refreshLibraryControlsEnabled();
+        }
+
+        async function handleSavePose() {
+            if (!libraryCurrentUser || !libraryDb) {
+                alert('Log ind for at gemme poser.');
                 return;
             }
-            if (timelineSlides.length === 0) {
-                alert('Ingen timeline slides at gemme!');
-                return;
-            }
+            let name = document.getElementById('poseName').value.trim();
+            let docId = openedPoseDocId;
 
-            const defaultName = loadedLibraryAnimationName || 'myAnimation';
-            const animationName = prompt('Hvad skal animationen hedde i biblioteket?', defaultName);
-            if (!animationName || !animationName.trim()) return;
-
-            const name = animationName.trim();
-            const docId = sanitizeAnimationDocId(name);
             if (!docId) {
-                alert('Navnet er ugyldigt. Vælg et andet navn.');
-                return;
+                const defaultName = name || 'myPose';
+                name = prompt('Hvad skal posen hedde?', defaultName);
+                if (!name || !name.trim()) return;
+                name = name.trim();
+                docId = sanitizeAnimationDocId(name);
+                if (!docId) {
+                    alert('Navnet er ugyldigt.');
+                    return;
+                }
+                const existing = findPoseCacheEntry(docId);
+                if (existing) {
+                    if (!confirm(`Posen "${name}" findes allerede. Overskriv?`)) return;
+                }
+            } else {
+                const entry = findPoseCacheEntry(docId);
+                name = name || (entry && entry.name) || docId;
             }
-
-            const docRef = libraryDb.collection(LIB_ANIMATIONS_COLLECTION).doc(docId);
 
             try {
-                const existingSnap = await docRef.get();
-                if (existingSnap.exists) {
-                    const overwrite = confirm(`Animationen "${name}" findes allerede i biblioteket. Overskriv?`);
-                    if (!overwrite) return;
-                }
-
-                const exportData = buildTimelineExportData();
-                const payload = {
-                    name: name,
-                    json: JSON.stringify(exportData),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-
-                if (existingSnap.exists) {
-                    await docRef.update(payload);
-                } else {
-                    await docRef.set({
-                        ...payload,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                }
-
-                loadedLibraryAnimationDocId = docId;
-                loadedLibraryAnimationName = name;
-                alert(`Animationen "${name}" er gemt i biblioteket (${timelineSlides.length} slides).`);
+                await savePoseDocumentById(docId, name);
+                alert(`Pose "${name}" er gemt.`);
             } catch (error) {
-                console.error('saveAnimationToLibrary:', error);
+                console.error('handleSavePose:', error);
                 alert(formatLibraryFirestoreError(error));
             }
         }
 
-        function renderLibraryPickerList(filterText) {
-            const listEl = document.getElementById('libraryPickerList');
-            if (!listEl) return;
-
-            const q = (filterText || '').trim().toLowerCase();
-            const filtered = libraryPickerEntries.filter(entry => {
-                if (!q) return true;
-                return (entry.name || '').toLowerCase().includes(q) ||
-                    (entry.id || '').toLowerCase().includes(q);
-            });
-
-            listEl.innerHTML = '';
-
-            if (filtered.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'library-picker-empty';
-                empty.textContent = q ? 'Ingen animationer matcher søgningen.' : 'Biblioteket er tomt.';
-                listEl.appendChild(empty);
+        async function handleSavePoseAs() {
+            if (!libraryCurrentUser || !libraryDb) {
+                alert('Log ind for at gemme poser.');
                 return;
             }
-
-            filtered.forEach(entry => {
-                const row = document.createElement('div');
-                row.className = 'library-picker-item';
-
-                const main = document.createElement('button');
-                main.type = 'button';
-                main.className = 'library-picker-item__main';
-                main.style.background = 'none';
-                main.style.border = 'none';
-                main.style.textAlign = 'left';
-                main.style.padding = '0';
-                main.innerHTML =
-                    `<div class="library-picker-item__name">${escapeHtmlLibrary(entry.name || entry.id)}</div>` +
-                    `<div class="library-picker-item__meta">Opdateret: ${escapeHtmlLibrary(entry.updatedLabel)}</div>`;
-
-                main.addEventListener('click', () => {
-                    loadAnimationFromLibraryDoc(entry.id, entry.name);
-                });
-
-                const delBtn = document.createElement('button');
-                delBtn.type = 'button';
-                delBtn.className = 'btn-library-delete';
-                delBtn.textContent = 'Slet';
-                delBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    deleteAnimationFromLibrary(entry.id, entry.name);
-                });
-
-                row.appendChild(main);
-                row.appendChild(delBtn);
-                listEl.appendChild(row);
-            });
-        }
-
-        function escapeHtmlLibrary(text) {
-            return String(text)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        }
-
-        async function fetchLibraryAnimationEntries() {
-            const snap = await libraryDb.collection(LIB_ANIMATIONS_COLLECTION).get();
-            const entries = [];
-            snap.forEach(doc => {
-                const data = doc.data() || {};
-                entries.push({
-                    id: doc.id,
-                    name: data.name || doc.id,
-                    updatedAt: data.updatedAt,
-                    updatedLabel: formatLibraryTimestamp(data.updatedAt)
-                });
-            });
-            entries.sort((a, b) => {
-                const ta = a.updatedAt && typeof a.updatedAt.toMillis === 'function' ? a.updatedAt.toMillis() : 0;
-                const tb = b.updatedAt && typeof b.updatedAt.toMillis === 'function' ? b.updatedAt.toMillis() : 0;
-                return tb - ta;
-            });
-            return entries;
-        }
-
-        function closeLibraryPickerModal() {
-            const backdrop = document.getElementById('libraryPickerBackdrop');
-            if (backdrop) {
-                backdrop.classList.remove('is-open');
-                backdrop.setAttribute('aria-hidden', 'true');
-            }
-        }
-
-        async function openAnimationLibraryPicker() {
-            if (!libraryFirebaseReady || !libraryDb || !libraryCurrentUser) {
-                alert('Log ind for at åbne biblioteket.');
+            const defaultName = document.getElementById('poseName').value.trim() || 'myPose';
+            let name = prompt('Hvad skal posen hedde?', defaultName);
+            if (!name || !name.trim()) return;
+            name = name.trim();
+            const docId = sanitizeAnimationDocId(name);
+            if (!docId) {
+                alert('Navnet er ugyldigt.');
                 return;
             }
-
-            const listEl = document.getElementById('libraryPickerList');
-            const searchEl = document.getElementById('libraryPickerSearch');
-            const backdrop = document.getElementById('libraryPickerBackdrop');
-
-            if (listEl) {
-                listEl.innerHTML = '<div class="library-picker-empty">Henter animationer…</div>';
+            const existing = findPoseCacheEntry(docId);
+            if (existing && docId !== openedPoseDocId) {
+                if (!confirm(`Posen "${name}" findes allerede. Overskriv?`)) return;
             }
-            if (searchEl) searchEl.value = '';
-            if (backdrop) {
-                backdrop.classList.add('is-open');
-                backdrop.setAttribute('aria-hidden', 'false');
-            }
-
             try {
-                libraryPickerEntries = await fetchLibraryAnimationEntries();
-                renderLibraryPickerList('');
+                await savePoseDocumentById(docId, name);
+                alert(`Pose "${name}" er gemt.`);
             } catch (error) {
-                console.error('openAnimationLibraryPicker:', error);
-                if (listEl) {
-                    listEl.innerHTML = `<div class="library-picker-empty">${escapeHtmlLibrary(formatLibraryFirestoreError(error))}</div>`;
-                }
+                console.error('handleSavePoseAs:', error);
+                alert(formatLibraryFirestoreError(error));
             }
         }
 
-        async function loadAnimationFromLibraryDoc(docId, displayName) {
-            if (!libraryDb) return;
+        async function handleDeletePose() {
+            if (!libraryCurrentUser || !libraryDb || !openedPoseDocId) return;
+            const entry = findPoseCacheEntry(openedPoseDocId);
+            const label = entry ? entry.name : openedPoseDocId;
+            const msg = `Slet posen "${label}" fra biblioteket?\n\nPosens plads i poses.json forsvinder, og senere poses rykker en plads i den eksporterede fil.`;
+            if (!confirm(msg)) return;
             try {
-                const snap = await libraryDb.collection(LIB_ANIMATIONS_COLLECTION).doc(docId).get();
-                if (!snap.exists) {
-                    alert('Animationen findes ikke længere i biblioteket.');
+                await libraryDb.collection(LIB_POSES_COLLECTION).doc(openedPoseDocId).delete();
+                libraryPoseCache = libraryPoseCache.filter(p => p.id !== openedPoseDocId);
+                openedPoseDocId = null;
+                populatePoseSelectDropdown();
+                newPose({ skipConfirm: true });
+                alert(`Pose "${label}" er slettet.`);
+            } catch (error) {
+                console.error('handleDeletePose:', error);
+                alert(formatLibraryFirestoreError(error));
+            }
+        }
+
+        function onPoseSelectChanged(docId) {
+            if (!docId) {
+                if (!confirmDiscardUnsavedChanges()) {
+                    const select = document.getElementById('poseLibrarySelect');
+                    if (select) select.value = openedPoseDocId || '';
                     return;
                 }
-                const data = snap.data() || {};
-                if (!data.json || typeof data.json !== 'string') {
-                    alert('Biblioteks-posten mangler gyldigt JSON-indhold.');
-                    return;
-                }
-                let parsed;
+                openedPoseDocId = null;
+                document.getElementById('poseName').value = '';
+                clearPoseDirty();
+                resetSliders();
+                refreshLibraryControlsEnabled();
+                return;
+            }
+            if (!confirmDiscardUnsavedChanges()) {
+                const select = document.getElementById('poseLibrarySelect');
+                if (select) select.value = openedPoseDocId || '';
+                return;
+            }
+            const entry = findPoseCacheEntry(docId);
+            if (entry) loadOpenedPoseIntoEditor(entry);
+        }
+
+        async function importParsedPosesToLibrary(parsedPoses) {
+            if (!libraryCurrentUser || !libraryDb) {
+                alert('Log ind for at importere til biblioteket.');
+                return;
+            }
+            let newCount = 0;
+            let existingCount = 0;
+            parsedPoses.forEach(p => {
+                const docId = sanitizeAnimationDocId(p.name);
+                if (docId && findPoseCacheEntry(docId)) existingCount++;
+                else if (docId) newCount++;
+            });
+            const summary = `${newCount} nye, ${existingCount} findes allerede`;
+            let overwriteExisting = false;
+            if (existingCount > 0) {
+                overwriteExisting = confirm(`${summary}.\n\nOverskriv eksisterende poses?`);
+            } else {
+                alert(summary);
+            }
+
+            let orderCursor = getMaxPoseOrder();
+            for (const item of parsedPoses) {
+                const docId = sanitizeAnimationDocId(item.name);
+                if (!docId) continue;
+                const existing = findPoseCacheEntry(docId);
+                if (existing && !overwriteExisting) continue;
+
+                const jsonStr = JSON.stringify(buildExportPoseData(item.pose, slideHasObjektData(item.pose)));
                 try {
-                    parsed = JSON.parse(data.json);
-                } catch (parseErr) {
-                    alert('Kunne ikke læse animationens JSON fra biblioteket.');
-                    console.error(parseErr);
-                    return;
-                }
-
-                const result = applyTimelineImportFromData(parsed, { showSuccessAlert: true });
-                if (!result.ok) {
-                    if (result.reason === 'invalid_format') {
-                        alert('Ugyldig timeline fil format.');
+                    if (existing) {
+                        await writePoseDocument(docId, item.name, jsonStr, existing);
                     } else {
-                        alert('Ingen gyldige slides fundet i biblioteket.');
+                        orderCursor += 1;
+                        const docRef = libraryDb.collection(LIB_POSES_COLLECTION).doc(docId);
+                        await docRef.set({
+                            name: item.name,
+                            json: jsonStr,
+                            order: orderCursor,
+                            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        });
+                        libraryPoseCache.push({ id: docId, name: item.name, json: jsonStr, order: orderCursor });
                     }
+                } catch (error) {
+                    console.error('importParsedPosesToLibrary item:', error);
+                    alert(formatLibraryFirestoreError(error));
+                    break;
+                }
+            }
+            populatePoseSelectDropdown();
+            alert(`Import færdig (${summary}).`);
+        }
+
+        async function writeAnimationDocument(docId, name, jsonStr, existingEntry) {
+            const docRef = libraryDb.collection(LIB_ANIMATIONS_COLLECTION).doc(docId);
+            const payload = {
+                name,
+                json: jsonStr,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            };
+            if (existingEntry) {
+                await docRef.update(payload);
+                existingEntry.name = name;
+                existingEntry.json = jsonStr;
+            } else {
+                await docRef.set({
+                    ...payload,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+                libraryAnimationCache.push({ id: docId, name, json: jsonStr });
+            }
+            populateAnimationSelectDropdown();
+        }
+
+        async function saveAnimationToLibrary(docId, name) {
+            if (!libraryFirebaseReady || !libraryDb || !libraryCurrentUser) {
+                alert('Log ind for at gemme i biblioteket.');
+                return false;
+            }
+            if (timelineSlides.length === 0) {
+                alert('Ingen timeline slides at gemme!');
+                return false;
+            }
+            const exportData = buildTimelineExportData();
+            const jsonStr = JSON.stringify(exportData);
+            const existing = findAnimationCacheEntry(docId);
+            await writeAnimationDocument(docId, name, jsonStr, existing);
+            openedAnimationDocId = docId;
+            const animSelect = document.getElementById('animationLibrarySelect');
+            if (animSelect) animSelect.value = docId;
+            clearAnimationDirty();
+            refreshLibraryControlsEnabled();
+            return true;
+        }
+
+        async function handleSaveAnimation() {
+            if (!libraryCurrentUser || !libraryDb) {
+                alert('Log ind for at gemme animationer.');
+                return;
+            }
+            let docId = openedAnimationDocId;
+            let name = '';
+            if (docId) {
+                const entry = findAnimationCacheEntry(docId);
+                name = (entry && entry.name) || docId;
+            } else {
+                const defaultName = 'myAnimation';
+                const animationName = prompt('Hvad skal animationen hedde?', defaultName);
+                if (!animationName || !animationName.trim()) return;
+                name = animationName.trim();
+                docId = sanitizeAnimationDocId(name);
+                if (!docId) {
+                    alert('Navnet er ugyldigt.');
                     return;
                 }
-
-                loadedLibraryAnimationDocId = docId;
-                loadedLibraryAnimationName = data.name || displayName || docId;
-                closeLibraryPickerModal();
+                if (findAnimationCacheEntry(docId)) {
+                    if (!confirm(`Animationen "${name}" findes allerede. Overskriv?`)) return;
+                }
+            }
+            try {
+                const ok = await saveAnimationToLibrary(docId, name);
+                if (ok) alert(`Animation "${name}" er gemt (${timelineSlides.length} slides).`);
             } catch (error) {
-                console.error('loadAnimationFromLibraryDoc:', error);
+                console.error('handleSaveAnimation:', error);
+                alert(formatLibraryFirestoreError(error));
+            }
+        }
+
+        async function handleSaveAnimationAs() {
+            if (!libraryCurrentUser || !libraryDb) {
+                alert('Log ind for at gemme animationer.');
+                return;
+            }
+            const entry = openedAnimationDocId ? findAnimationCacheEntry(openedAnimationDocId) : null;
+            const defaultName = (entry && entry.name) || 'myAnimation';
+            const animationName = prompt('Hvad skal animationen hedde?', defaultName);
+            if (!animationName || !animationName.trim()) return;
+            const name = animationName.trim();
+            const docId = sanitizeAnimationDocId(name);
+            if (!docId) {
+                alert('Navnet er ugyldigt.');
+                return;
+            }
+            if (findAnimationCacheEntry(docId) && docId !== openedAnimationDocId) {
+                if (!confirm(`Animationen "${name}" findes allerede. Overskriv?`)) return;
+            }
+            try {
+                const ok = await saveAnimationToLibrary(docId, name);
+                if (ok) alert(`Animation "${name}" er gemt.`);
+            } catch (error) {
+                console.error('handleSaveAnimationAs:', error);
                 alert(formatLibraryFirestoreError(error));
             }
         }
@@ -5095,37 +5318,131 @@ function moveTimelineSlide(fromIndex, direction) {
             }
             try {
                 await libraryDb.collection(LIB_ANIMATIONS_COLLECTION).doc(docId).delete();
-                if (loadedLibraryAnimationDocId === docId) {
-                    loadedLibraryAnimationDocId = null;
-                    loadedLibraryAnimationName = null;
+                libraryAnimationCache = libraryAnimationCache.filter(e => e.id !== docId);
+                if (openedAnimationDocId === docId) {
+                    openedAnimationDocId = null;
+                    const animSelect = document.getElementById('animationLibrarySelect');
+                    if (animSelect) animSelect.value = '';
                 }
-                libraryPickerEntries = libraryPickerEntries.filter(e => e.id !== docId);
-                const searchEl = document.getElementById('libraryPickerSearch');
-                renderLibraryPickerList(searchEl ? searchEl.value : '');
+                populateAnimationSelectDropdown();
+                refreshLibraryControlsEnabled();
             } catch (error) {
                 console.error('deleteAnimationFromLibrary:', error);
                 alert(formatLibraryFirestoreError(error));
             }
         }
 
+        async function handleDeleteAnimation() {
+            if (!openedAnimationDocId) return;
+            const entry = findAnimationCacheEntry(openedAnimationDocId);
+            await deleteAnimationFromLibrary(openedAnimationDocId, entry ? entry.name : openedAnimationDocId);
+        }
+
+        function onAnimationSelectChanged(docId) {
+            if (!docId) return;
+            if (!confirmDiscardUnsavedChanges()) {
+                const select = document.getElementById('animationLibrarySelect');
+                if (select) select.value = openedAnimationDocId || '';
+                return;
+            }
+            const entry = findAnimationCacheEntry(docId);
+            if (!entry || !entry.json) {
+                alert('Animationen mangler data.');
+                return;
+            }
+            let parsed;
+            try {
+                parsed = JSON.parse(entry.json);
+            } catch (e) {
+                alert('Kunne ikke læse animationens JSON.');
+                return;
+            }
+            const result = applyTimelineImportFromData(parsed, {
+                showSuccessAlert: false,
+                animationDocId: docId,
+                animationName: entry.name,
+            });
+            if (!result.ok) {
+                alert(result.reason === 'invalid_format'
+                    ? 'Ugyldig timeline fil format.'
+                    : 'Ingen gyldige slides fundet.');
+                return;
+            }
+        }
+
+        async function importAnimationsFilesToLibrary(fileList) {
+            if (!libraryCurrentUser || !libraryDb) {
+                alert('Log ind for at importere til biblioteket.');
+                return;
+            }
+            const files = Array.from(fileList || []);
+            if (!files.length) return;
+
+            let newCount = 0;
+            let existingCount = 0;
+            const planned = [];
+            for (const file of files) {
+                const baseName = file.name.replace(/\.json$/i, '');
+                const docId = sanitizeAnimationDocId(baseName);
+                if (!docId) continue;
+                if (findAnimationCacheEntry(docId)) existingCount++;
+                else newCount++;
+                planned.push({ file, docId, name: baseName });
+            }
+            const summary = `${newCount} nye, ${existingCount} findes allerede`;
+            let overwriteExisting = false;
+            if (existingCount > 0) {
+                overwriteExisting = confirm(`${summary}.\n\nOverskriv eksisterende animationer?`);
+            } else {
+                alert(summary);
+            }
+
+            for (const item of planned) {
+                const existing = findAnimationCacheEntry(item.docId);
+                if (existing && !overwriteExisting) continue;
+                try {
+                    const text = await item.file.text();
+                    const data = JSON.parse(text);
+                    if (!extractTimelineSlidesFromImportData(data)) {
+                        throw new Error('invalid_format');
+                    }
+                    const jsonStr = JSON.stringify(data);
+                    await writeAnimationDocument(item.docId, item.name, jsonStr, existing);
+                } catch (error) {
+                    console.error('importAnimationsFilesToLibrary:', error);
+                    alert(`Fejl ved import af ${item.file.name}: ${formatLibraryFirestoreError(error)}`);
+                }
+            }
+            alert(`Import færdig (${summary}).`);
+        }
+
+        function importTimelineSlidesToLibrary(event) {
+            const files = event.target.files;
+            if (!files || !files.length) return;
+            importAnimationsFilesToLibrary(files).finally(() => {
+                event.target.value = '';
+            });
+        }
+
         function initPoseAnimationLibraryUi() {
             updateLibraryToolbarUi();
+            refreshLibraryControlsEnabled();
 
             const authBtn = document.getElementById('libraryAuthBtn');
-            const authForm = document.getElementById('libraryAuthForm');
+            const refreshBtn = document.getElementById('libraryRefreshBtn');
             const authCancel = document.getElementById('libraryAuthCancelBtn');
             const authGoogle = document.getElementById('libraryAuthGoogleBtn');
             const authBackdrop = document.getElementById('libraryAuthBackdrop');
-            const saveBtn = document.getElementById('btnSaveAnimationToLibrary');
-            const openBtn = document.getElementById('btnOpenAnimationLibrary');
-            const pickerClose = document.getElementById('libraryPickerCloseBtn');
-            const pickerBackdrop = document.getElementById('libraryPickerBackdrop');
-            const pickerSearch = document.getElementById('libraryPickerSearch');
+
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => refreshLibraryFromServer());
+            }
 
             if (authBtn) {
                 authBtn.addEventListener('click', () => {
                     if (!libraryFirebaseReady || !libraryAuth) return;
                     if (libraryCurrentUser) {
+                        if (!confirmDiscardUnsavedChanges()) return;
                         libraryAuth.signOut().catch(err => {
                             console.error(err);
                             alert(formatLibraryAuthError(err));
@@ -5136,25 +5453,10 @@ function moveTimelineSlide(fromIndex, direction) {
                 });
             }
 
-            if (authCancel) {
-                authCancel.addEventListener('click', closeLibraryAuthModal);
-            }
+            if (authCancel) authCancel.addEventListener('click', closeLibraryAuthModal);
             if (authBackdrop) {
                 authBackdrop.addEventListener('click', (e) => {
                     if (e.target === authBackdrop) closeLibraryAuthModal();
-                });
-            }
-
-            if (authForm && libraryAuth) {
-                authForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const email = document.getElementById('libraryAuthEmail').value;
-                    const password = document.getElementById('libraryAuthPassword').value;
-                    const err = document.getElementById('libraryAuthError');
-                    if (err) err.classList.remove('show');
-                    libraryAuth.signInWithEmailAndPassword(email, password)
-                        .then(() => closeLibraryAuthModal())
-                        .catch(showLibraryAuthError);
                 });
             }
 
@@ -5169,38 +5471,53 @@ function moveTimelineSlide(fromIndex, direction) {
                 });
             }
 
-            if (saveBtn) {
-                saveBtn.addEventListener('click', () => {
-                    saveAnimationToLibrary();
-                });
-            }
-            if (openBtn) {
-                openBtn.addEventListener('click', () => {
-                    openAnimationLibraryPicker();
-                });
-            }
-            if (pickerClose) {
-                pickerClose.addEventListener('click', closeLibraryPickerModal);
-            }
-            if (pickerBackdrop) {
-                pickerBackdrop.addEventListener('click', (e) => {
-                    if (e.target === pickerBackdrop) closeLibraryPickerModal();
-                });
-            }
-            if (pickerSearch) {
-                pickerSearch.addEventListener('input', () => {
-                    renderLibraryPickerList(pickerSearch.value);
-                });
-            }
+            document.getElementById('btnNewPose')?.addEventListener('click', () => newPose());
+            document.getElementById('btnSavePose')?.addEventListener('click', () => handleSavePose());
+            document.getElementById('btnSavePoseAs')?.addEventListener('click', () => handleSavePoseAs());
+            document.getElementById('btnDeletePose')?.addEventListener('click', () => handleDeletePose());
+            document.getElementById('poseLibrarySelect')?.addEventListener('change', (e) => onPoseSelectChanged(e.target.value));
+            document.getElementById('poseName')?.addEventListener('input', markPoseDirty);
+            document.getElementById('head_text')?.addEventListener('input', markPoseDirty);
+
+            document.getElementById('btnSaveAnimation')?.addEventListener('click', () => handleSaveAnimation());
+            document.getElementById('btnSaveAnimationAs')?.addEventListener('click', () => handleSaveAnimationAs());
+            document.getElementById('btnDeleteAnimation')?.addEventListener('click', () => handleDeleteAnimation());
+            document.getElementById('animationLibrarySelect')?.addEventListener('change', (e) => onAnimationSelectChanged(e.target.value));
+
+            document.getElementById('btnImportPosesFile')?.addEventListener('click', () => document.getElementById('fileInput').click());
+            document.getElementById('fileInput')?.addEventListener('change', importPoses);
+            document.getElementById('btnImportAnimationsFile')?.addEventListener('click', () => document.getElementById('timelineFileInput').click());
+            document.getElementById('timelineFileInput')?.addEventListener('change', importTimelineSlidesToLibrary);
+            document.getElementById('btnExportAllPosesFile')?.addEventListener('click', () => exportAllPoses());
+
+            window.addEventListener('beforeunload', (e) => {
+                if (hasAnyDirtyState()) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
 
             if (libraryAuth) {
-                libraryAuth.onAuthStateChanged(user => {
+                libraryAuth.onAuthStateChanged(async user => {
                     libraryCurrentUser = user;
+                    if (user) {
+                        if (libraryFetchInFlight) await libraryFetchInFlight;
+                        libraryFetchInFlight = loadLibraryOnAuth(user);
+                        try {
+                            await libraryFetchInFlight;
+                        } finally {
+                            libraryFetchInFlight = null;
+                        }
+                    } else {
+                        clearLibraryCaches();
+                        clearPoseDirty();
+                        clearAnimationDirty();
+                    }
                     updateLibraryToolbarUi();
+                    refreshLibraryControlsEnabled();
                 });
             }
         }
-		
 		function exportTimelineSlides() {
     if (timelineSlides.length === 0) {
         alert('Ingen timeline slides at eksportere!');
@@ -5244,8 +5561,9 @@ function importTimelineSlides(event) {
                     alert('Ingen gyldige slides fundet i filen.');
                 }
             } else {
-                loadedLibraryAnimationDocId = null;
-                loadedLibraryAnimationName = null;
+                openedAnimationDocId = null;
+                const animSelect = document.getElementById('animationLibrarySelect');
+                if (animSelect) animSelect.value = '';
             }
         } catch (error) {
             alert('Fejl ved indlæsning af fil. Tjek at det er en gyldig JSON fil.');
