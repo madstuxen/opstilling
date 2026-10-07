@@ -1969,6 +1969,11 @@
                     <button type="button" class="btn btn-secondary" onclick="exportTimelineSlides()">Eksportér animation (JSON)</button>
                     <button type="button" class="btn btn-secondary" onclick="exportForJavaScript()">Export JS</button>
                 </div>
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" id="btnImportObjektSvgsFile" disabled>Importér SVG-filer → bibliotek</button>
+                    <button type="button" class="btn btn-secondary" id="btnExportAllObjektSvgs" disabled>Eksportér alle SVG-objekter</button>
+                </div>
+                <input type="file" id="objektLibraryFileInput" class="file-input" accept=".svg" multiple style="display:none">
             </details>
 
             <div class="export-section panel-section" style="background:#fef3c7; border:2px solid #f59e0b; border-radius:10px; padding:15px; margin-bottom:20px;">
@@ -2165,6 +2170,12 @@
                             <label>Fil:</label>
                             <select id="objekt_select"></select>
                         </div>
+                        <p id="objektSelectHint" class="file-hint" style="font-size:10px; margin:4px 0 8px;"></p>
+                        <div class="button-group" style="margin-bottom:8px;">
+                            <button type="button" class="btn btn-secondary" id="btnUploadObjektSvg" disabled>Upload SVG…</button>
+                            <button type="button" class="btn btn-danger" id="btnDeleteObjekt" disabled>Slet objekt</button>
+                        </div>
+                        <input type="file" id="objektSvgFileInput" class="file-input" accept=".svg" multiple style="display:none">
                         <div class="mini-checkbox">
                             <input type="checkbox" id="objekt_visible" checked>
                             <label for="objekt_visible">Vis</label>
@@ -3148,19 +3159,6 @@
             return normalizeImportedSlide({ ...pose, duration: pose.duration ?? 0.1 });
         }
 
-        const OBJEKT_BASE = 'animations/objekt';
-        /** Embedded list — bruges med det samme (file:// kan ikke fetche manifest). */
-        const OBJEKT_KNOWN_FILES = [
-            'app_logo.svg',
-            'book.svg',
-            'cloud.svg',
-            'Hammer.svg',
-            'heart.svg',
-            'pen.svg',
-            'sun.svg',
-            'Tree.svg',
-            'weight.svg',
-        ];
         const TORSO_CENTER_X = GuideFigureRenderer.GEO.torsoCenterX;
         const TORSO_CENTER_Y = GuideFigureRenderer.GEO.torsoCenterY;
         /** Matches GuideFigure OBJEKT_CONTAINER_BASE — 60×60 contain box, pivot at objekt_x/y. */
@@ -3225,7 +3223,12 @@
 
         function populateObjektSelect(files) {
             const select = document.getElementById('objekt_select');
-            if (!select || !files?.length) return;
+            if (!select) return;
+            if (!files?.length) {
+                select.innerHTML = '<option value="">— Ingen objekter —</option>';
+                select.value = '';
+                return;
+            }
 
             const previous = select.value;
             select.innerHTML = '';
@@ -3250,30 +3253,25 @@
             img.setAttribute('data-objekt-file', fileName);
 
             const svgText = getObjektSvgText(fileName);
-            let url;
-            if (svgText) {
-                const blob = new Blob([svgText], { type: 'image/svg+xml' });
-                objektImageBlobUrl = URL.createObjectURL(blob);
-                url = objektImageBlobUrl;
-            } else {
-                url = `${OBJEKT_BASE}/${fileName}`;
+            if (!svgText) {
+                img.removeAttribute('href');
+                img.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
+                return;
             }
+            const blob = new Blob([svgText], { type: 'image/svg+xml' });
+            objektImageBlobUrl = URL.createObjectURL(blob);
+            const url = objektImageBlobUrl;
             img.setAttribute('href', url);
             img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', url);
         }
 
-        async function preloadObjektSvgs(files) {
-            await Promise.all(files.map(async (fileName) => {
-                if (objektSvgCache.has(fileName)) return;
-                try {
-                    const response = await fetch(`${OBJEKT_BASE}/${fileName}`);
-                    if (response.ok) {
-                        objektSvgCache.set(fileName, await response.text());
-                    }
-                } catch (e) {
-                    /* file:// or network error */
-                }
-            }));
+        const missingObjektWarningsShown = new Set();
+
+        function warnMissingLibraryObjekt(fileName) {
+            if (!fileName || missingObjektWarningsShown.has(fileName)) return;
+            if (objektSvgCache.has(fileName)) return;
+            missingObjektWarningsShown.add(fileName);
+            alert(`Objektet ${fileName} findes ikke i biblioteket`);
         }
 
         function readObjektFieldsFromUI() {
@@ -3341,8 +3339,8 @@
             toggleObjektControlsEnabled(objektEnabled);
             if (objektEnabled) {
                 const select = document.getElementById('objekt_select');
-                if (select.options.length === 0) {
-                    populateObjektSelect(OBJEKT_KNOWN_FILES);
+                if (select.options.length === 0 || !select.value) {
+                    refreshObjektSelectUi();
                 }
                 let objektName = select.value || '';
                 if (!objektName && select.options.length > 0) {
@@ -3414,6 +3412,12 @@
 
             let layout = null;
             if (pose.objekt_name) {
+                if (!getObjektSvgText(pose.objekt_name)) {
+                    warnMissingLibraryObjekt(pose.objekt_name);
+                    objektSvgGroup.style.display = 'none';
+                    syncObjektHandle();
+                    return;
+                }
                 setObjektImageSrc(objektSvgImage, pose.objekt_name);
                 layout = applyObjektSvgLayout(objektSvgImage, pose.objekt_name);
             }
@@ -3511,33 +3515,6 @@
             document.getElementById('objekt_scale_val').textContent = formatDisplayScale(currentPose.objekt_scale);
         }
 
-        async function loadObjektManifest() {
-            let files = OBJEKT_KNOWN_FILES.slice();
-
-            try {
-                const manifestResponse = await fetch(`${OBJEKT_BASE}/manifest.json`);
-                if (manifestResponse.ok) {
-                    const manifest = await manifestResponse.json();
-                    if (manifest.files && Array.isArray(manifest.files) && manifest.files.length > 0) {
-                        files = manifest.files;
-                    }
-                }
-            } catch (e) {
-                /* file:// or offline — keep embedded list */
-            }
-
-            populateObjektSelect(files);
-
-            try {
-                await preloadObjektSvgs(files);
-            } catch (e) {
-                console.warn('Objekt SVG preload fejlede:', e);
-            }
-
-            if (currentPose.objekt_name && files.includes(currentPose.objekt_name)) {
-                document.getElementById('objekt_select').value = currentPose.objekt_name;
-            }
-        }
 
         function buildBodySlideFields(slide) {
             return {
@@ -4650,6 +4627,7 @@ function moveTimelineSlide(fromIndex, direction) {
 
         const LIB_ANIMATIONS_COLLECTION = 'lib_animations';
         const LIB_POSES_COLLECTION = 'lib_poses';
+        const LIB_OBJECTS_COLLECTION = 'lib_objects';
         let libraryAuth = null;
         let libraryDb = null;
         let libraryFirebaseReady = false;
@@ -4657,6 +4635,7 @@ function moveTimelineSlide(fromIndex, direction) {
         let libraryCurrentUser = null;
         let libraryPoseCache = [];
         let libraryAnimationCache = [];
+        let libraryObjectCache = [];
         let libraryFetchInFlight = null;
 
         function isLibraryHttpContext() {
@@ -4815,6 +4794,223 @@ function moveTimelineSlide(fromIndex, direction) {
         function findAnimationCacheEntry(docId) {
             return libraryAnimationCache.find(a => a.id === docId) || null;
         }
+        function findObjectCacheEntry(docId) {
+            return libraryObjectCache.find(o => o.id === docId) || null;
+        }
+
+        function validateObjektDocumentId(fileName) {
+            const name = (fileName || '').trim();
+            if (!name) {
+                return { ok: false, error: 'Filnavn mangler.' };
+            }
+            if (name.includes('/')) {
+                return { ok: false, error: 'Filnavn må ikke indeholde /.' };
+            }
+            if (name === '.' || name === '..') {
+                return { ok: false, error: 'Ugyldigt filnavn.' };
+            }
+            if (!name.toLowerCase().endsWith('.svg')) {
+                return { ok: false, error: 'Filen skal have endelsen .svg.' };
+            }
+            return { ok: true, id: name };
+        }
+
+        function validateSvgUploadContent(svgText) {
+            if (!/<svg[\s>]/i.test(svgText)) {
+                return { ok: false, error: 'Filen skal indeholde et <svg>-element.' };
+            }
+            const warnings = [];
+            if (/<image[\s>]/i.test(svgText)) {
+                warnings.push('SVG indeholder <image> (indlejret billede).');
+            }
+            if (/<script[\s>]/i.test(svgText)) {
+                warnings.push('SVG indeholder <script>.');
+            }
+            if (/\b(?:href|xlink:href)\s*=\s*["'](?:https?:|\/\/)/i.test(svgText)) {
+                warnings.push('SVG indeholder eksterne href/xlink:href.');
+            }
+            return { ok: true, warnings };
+        }
+
+        function rebuildObjektSvgCacheFromLibrary() {
+            objektSvgCache.clear();
+            libraryObjectCache.forEach(entry => {
+                if (entry.id && entry.svg) {
+                    objektSvgCache.set(entry.id, entry.svg);
+                }
+            });
+        }
+
+        function getLibraryObjectFileNames() {
+            return libraryObjectCache
+                .map(entry => entry.id)
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b, 'da'));
+        }
+
+        function refreshObjektSelectUi() {
+            const select = document.getElementById('objekt_select');
+            const hint = document.getElementById('objektSelectHint');
+            const uploadBtn = document.getElementById('btnUploadObjektSvg');
+            const deleteBtn = document.getElementById('btnDeleteObjekt');
+            const loggedIn = libraryFirebaseReady && libraryCurrentUser;
+            if (!select) return;
+
+            if (!loggedIn) {
+                select.innerHTML = '<option value="">— Log ind for objekter —</option>';
+                select.value = '';
+                select.disabled = true;
+                if (hint) hint.textContent = 'Log ind på biblioteket for at vælge SVG-objekter.';
+                if (uploadBtn) uploadBtn.disabled = true;
+                if (deleteBtn) deleteBtn.disabled = true;
+                return;
+            }
+
+            select.disabled = false;
+            if (hint) hint.textContent = '';
+            if (uploadBtn) uploadBtn.disabled = false;
+            const files = getLibraryObjectFileNames();
+            populateObjektSelect(files);
+            const delDisabled = !select.value || !findObjectCacheEntry(select.value);
+            if (deleteBtn) deleteBtn.disabled = delDisabled;
+        }
+
+        async function writeObjectDocument(docId, svgStr, existingEntry) {
+            const docRef = libraryDb.collection(LIB_OBJECTS_COLLECTION).doc(docId);
+            const payload = {
+                name: docId,
+                svg: svgStr,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            };
+            if (existingEntry) {
+                await docRef.update(payload);
+                existingEntry.name = docId;
+                existingEntry.svg = svgStr;
+            } else {
+                await docRef.set({
+                    ...payload,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+                libraryObjectCache.push({
+                    id: docId,
+                    name: docId,
+                    svg: svgStr,
+                });
+            }
+            rebuildObjektSvgCacheFromLibrary();
+            refreshObjektSelectUi();
+        }
+
+        async function deleteObjectDocument(docId) {
+            await libraryDb.collection(LIB_OBJECTS_COLLECTION).doc(docId).delete();
+            libraryObjectCache = libraryObjectCache.filter(o => o.id !== docId);
+            rebuildObjektSvgCacheFromLibrary();
+            refreshObjektSelectUi();
+        }
+
+        async function uploadObjektSvgFiles(fileList) {
+            if (!libraryCurrentUser || !libraryDb) {
+                alert('Log ind for at uploade objekter til biblioteket.');
+                return;
+            }
+            const files = Array.from(fileList || []).filter(f => f && f.name);
+            if (!files.length) return;
+
+            const planned = [];
+            for (const file of files) {
+                const idCheck = validateObjektDocumentId(file.name);
+                if (!idCheck.ok) {
+                    alert(`${file.name}: ${idCheck.error}`);
+                    continue;
+                }
+                planned.push({ file, docId: idCheck.id });
+            }
+            if (!planned.length) return;
+
+            let newCount = 0;
+            let existingCount = 0;
+            planned.forEach(item => {
+                if (findObjectCacheEntry(item.docId)) existingCount++;
+                else newCount++;
+            });
+            const summary = `${newCount} nye, ${existingCount} findes allerede`;
+            let overwriteExisting = false;
+            if (existingCount > 0) {
+                overwriteExisting = confirm(`${summary}.\n\nOverskriv eksisterende objekter?`);
+            } else {
+                alert(summary);
+            }
+
+            for (const item of planned) {
+                const existing = findObjectCacheEntry(item.docId);
+                if (existing && !overwriteExisting) continue;
+                try {
+                    const svgText = await item.file.text();
+                    const validation = validateSvgUploadContent(svgText);
+                    if (!validation.ok) {
+                        alert(`${item.file.name}: ${validation.error}`);
+                        continue;
+                    }
+                    if (validation.warnings.length) {
+                        alert(`${item.file.name}:\n\n${validation.warnings.join('\n')}`);
+                    }
+                    await writeObjectDocument(item.docId, svgText, existing);
+                } catch (error) {
+                    console.error('uploadObjektSvgFiles:', error);
+                    alert(`Fejl ved upload af ${item.file.name}: ${formatLibraryFirestoreError(error)}`);
+                }
+            }
+        }
+
+        async function handleDeleteLibraryObject() {
+            if (!libraryCurrentUser || !libraryDb) {
+                alert('Log ind for at slette objekter.');
+                return;
+            }
+            const select = document.getElementById('objekt_select');
+            const docId = select?.value || '';
+            if (!docId || !findObjectCacheEntry(docId)) {
+                alert('Vælg et objekt at slette.');
+                return;
+            }
+            const msg = `Slet objektet "${docId}" fra biblioteket?\n\nPoser og animationer, der refererer til det, vises uden objekt, indtil et andet vælges.`;
+            if (!confirm(msg)) return;
+            try {
+                await deleteObjectDocument(docId);
+                updateObjektFromPose(getPoseWithObjektDefaults(currentPose));
+            } catch (error) {
+                console.error('handleDeleteLibraryObject:', error);
+                alert(formatLibraryFirestoreError(error));
+            }
+        }
+
+        async function exportAllObjektSvgsZip() {
+            if (!libraryCurrentUser || !libraryDb) {
+                alert('Log ind for at eksportere objekter.');
+                return;
+            }
+            if (typeof JSZip === 'undefined') {
+                alert('Eksport-biblioteket JSZip er ikke indlæst.');
+                return;
+            }
+            if (!libraryObjectCache.length) {
+                alert('Biblioteket har ingen SVG-objekter at eksportere.');
+                return;
+            }
+            const zip = new JSZip();
+            libraryObjectCache.forEach(entry => {
+                if (entry.id && entry.svg) {
+                    zip.file(entry.id, entry.svg);
+                }
+            });
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'objekt-bibliotek.zip';
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
 
         function sortPosesAlphabetically(entries) {
             return entries.slice().sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, 'da'));
@@ -4867,6 +5063,8 @@ function moveTimelineSlide(fromIndex, direction) {
                 'btnSavePose', 'btnSavePoseAs', 'btnDeletePose',
                 'btnSaveAnimation', 'btnSaveAnimationAs', 'btnDeleteAnimation',
                 'btnImportPosesFile', 'btnImportAnimationsFile', 'btnExportAllPosesFile',
+                'btnImportObjektSvgsFile', 'btnExportAllObjektSvgs',
+                'btnUploadObjektSvg', 'btnDeleteObjekt',
             ];
             ids.forEach(id => {
                 const el = document.getElementById(id);
@@ -4882,18 +5080,23 @@ function moveTimelineSlide(fromIndex, direction) {
         function clearLibraryCaches() {
             libraryPoseCache = [];
             libraryAnimationCache = [];
+            libraryObjectCache = [];
+            objektSvgCache.clear();
+            missingObjektWarningsShown.clear();
             openedPoseDocId = null;
             openedAnimationDocId = null;
             populatePoseSelectDropdown();
             populateAnimationSelectDropdown();
+            refreshObjektSelectUi();
             refreshLibraryControlsEnabled();
         }
 
         async function fetchLibraryCachesFromFirestore() {
             if (!libraryDb || !libraryCurrentUser) return;
-            const [posesSnap, animsSnap] = await Promise.all([
+            const [posesSnap, animsSnap, objectsSnap] = await Promise.all([
                 libraryDb.collection(LIB_POSES_COLLECTION).get(),
                 libraryDb.collection(LIB_ANIMATIONS_COLLECTION).get(),
+                libraryDb.collection(LIB_OBJECTS_COLLECTION).get(),
             ]);
             libraryPoseCache = [];
             posesSnap.forEach(doc => {
@@ -4918,8 +5121,21 @@ function moveTimelineSlide(fromIndex, direction) {
                     updatedAt: data.updatedAt,
                 });
             });
+            libraryObjectCache = [];
+            objectsSnap.forEach(doc => {
+                const data = doc.data() || {};
+                libraryObjectCache.push({
+                    id: doc.id,
+                    name: data.name || doc.id,
+                    svg: data.svg || '',
+                    createdAt: data.createdAt,
+                    updatedAt: data.updatedAt,
+                });
+            });
+            rebuildObjektSvgCacheFromLibrary();
             populatePoseSelectDropdown();
             populateAnimationSelectDropdown();
+            refreshObjektSelectUi();
             refreshLibraryControlsEnabled();
         }
 
@@ -5489,6 +5705,23 @@ function moveTimelineSlide(fromIndex, direction) {
             document.getElementById('btnImportAnimationsFile')?.addEventListener('click', () => document.getElementById('timelineFileInput').click());
             document.getElementById('timelineFileInput')?.addEventListener('change', importTimelineSlidesToLibrary);
             document.getElementById('btnExportAllPosesFile')?.addEventListener('click', () => exportAllPoses());
+            document.getElementById('btnUploadObjektSvg')?.addEventListener('click', () => document.getElementById('objektSvgFileInput')?.click());
+            document.getElementById('objektSvgFileInput')?.addEventListener('change', (e) => {
+                uploadObjektSvgFiles(e.target.files).finally(() => { e.target.value = ''; });
+            });
+            document.getElementById('btnDeleteObjekt')?.addEventListener('click', () => handleDeleteLibraryObject());
+            document.getElementById('btnImportObjektSvgsFile')?.addEventListener('click', () => document.getElementById('objektLibraryFileInput')?.click());
+            document.getElementById('objektLibraryFileInput')?.addEventListener('change', (e) => {
+                uploadObjektSvgFiles(e.target.files).finally(() => { e.target.value = ''; });
+            });
+            document.getElementById('btnExportAllObjektSvgs')?.addEventListener('click', () => exportAllObjektSvgsZip());
+            document.getElementById('objekt_select')?.addEventListener('change', () => {
+                const deleteBtn = document.getElementById('btnDeleteObjekt');
+                const select = document.getElementById('objekt_select');
+                if (deleteBtn && select) {
+                    deleteBtn.disabled = !libraryCurrentUser || !select.value || !findObjectCacheEntry(select.value);
+                }
+            });
 
             window.addEventListener('beforeunload', (e) => {
                 if (hasAnyDirtyState()) {
@@ -6514,7 +6747,7 @@ function exportForJavaScript() {
         initExportFrameEdgeDrag();
         initExportFrameNudgeButtons();
         currentPose = buildCurrentPoseFromNormalized(getDefaultPose());
-        populateObjektSelect(OBJEKT_KNOWN_FILES);
+        refreshObjektSelectUi();
 
         document.querySelectorAll('input[type="range"]').forEach(slider => {
             if (!isPoseRangeSlider(slider)) return;
@@ -7042,19 +7275,9 @@ function exportForJavaScript() {
         applyFigureColor(FIGURE_COLOR_DEFAULT);
         updateObjektAxisLabels();
 
-        loadObjektManifest()
-            .then(() => {
-                newPose();
-                updateTimelineDisplay();
-                selectTimelineSlide(0);
-            })
-            .catch((err) => {
-                console.warn('loadObjektManifest fejlede:', err);
-                populateObjektSelect(OBJEKT_KNOWN_FILES);
-                newPose();
-                updateTimelineDisplay();
-                selectTimelineSlide(0);
-            });
+        newPose();
+        updateTimelineDisplay();
+        selectTimelineSlide(0);
     </script>
 </body>
 </html>
