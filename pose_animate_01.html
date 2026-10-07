@@ -1622,6 +1622,191 @@
             stroke: #0284c7;
             stroke-width: 3;
         }
+
+        .library-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 10px 12px;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #334155;
+        }
+
+        .library-toolbar__status {
+            flex: 1;
+            min-width: 120px;
+            line-height: 1.35;
+        }
+
+        .library-toolbar__hint {
+            display: block;
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .library-firestore-actions {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #0284c7;
+        }
+
+        .library-firestore-actions h4 {
+            font-size: 13px;
+            color: #0369a1;
+            margin-bottom: 8px;
+        }
+
+        .library-auth-backdrop,
+        .library-picker-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: rgba(15, 23, 42, 0.45);
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .library-auth-backdrop.is-open,
+        .library-picker-backdrop.is-open {
+            display: flex;
+        }
+
+        .library-auth-modal,
+        .library-picker-modal {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 380px;
+            padding: 20px;
+        }
+
+        .library-picker-modal {
+            max-width: 480px;
+            max-height: min(80vh, 560px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .library-auth-modal h3,
+        .library-picker-modal h3 {
+            font-size: 16px;
+            color: #1e293b;
+            margin-bottom: 12px;
+        }
+
+        .library-auth-modal label {
+            display: block;
+            font-size: 12px;
+            color: #475569;
+            margin-bottom: 4px;
+        }
+
+        .library-auth-modal input[type="email"],
+        .library-auth-modal input[type="password"],
+        .library-picker-search {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        .library-auth-error {
+            display: none;
+            font-size: 12px;
+            color: #b91c1c;
+            margin-bottom: 10px;
+        }
+
+        .library-auth-error.show {
+            display: block;
+        }
+
+        .library-auth-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .library-picker-list {
+            overflow-y: auto;
+            flex: 1;
+            min-height: 120px;
+            margin: 8px 0 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .library-picker-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .library-picker-item:last-child {
+            border-bottom: none;
+        }
+
+        .library-picker-item__main {
+            flex: 1;
+            min-width: 0;
+            cursor: pointer;
+        }
+
+        .library-picker-item__main:hover {
+            color: #0284c7;
+        }
+
+        .library-picker-item__name {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .library-picker-item__meta {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .library-picker-empty {
+            padding: 16px;
+            text-align: center;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .btn-library-delete {
+            flex-shrink: 0;
+            padding: 4px 8px;
+            font-size: 11px;
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-library-delete:hover {
+            background: #fecaca;
+        }
+
+        .btn-library-delete:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 		
 		
 		
@@ -1632,6 +1817,14 @@
     <div class="main-content">
         <div class="left-panel">
             <h1>Pose Editor</h1>
+
+            <div class="library-toolbar" id="libraryToolbar">
+                <div class="library-toolbar__status">
+                    <span id="libraryStatusText">Bibliotek: indlæser…</span>
+                    <span class="library-toolbar__hint" id="libraryStatusHint"></span>
+                </div>
+                <button type="button" class="btn btn-secondary" id="libraryAuthBtn" style="font-size:12px; padding:6px 10px;">Log ind</button>
+            </div>
             
             <!-- Session Management -->
             <div class="session-management">
@@ -1658,6 +1851,14 @@
 					<input type="file" id="timelineFileInput" class="file-input" accept=".json" onchange="importTimelineSlides(event)">
 					<div class="file-input-display">Vælg Timeline JSON fil...</div>
 				</div>
+
+                <div class="library-firestore-actions">
+                    <h4>Firestore-bibliotek (animationer)</h4>
+                    <div class="button-group">
+                        <button type="button" class="btn btn-primary" id="btnSaveAnimationToLibrary" disabled>Gem i bibliotek</button>
+                        <button type="button" class="btn btn-secondary" id="btnOpenAnimationLibrary" disabled>Åbn fra bibliotek</button>
+                    </div>
+                </div>
 				
             </div>
 
@@ -2056,6 +2257,36 @@
         </div>
     </div>
 
+    <div class="library-auth-backdrop" id="libraryAuthBackdrop" aria-hidden="true">
+        <div class="library-auth-modal" role="dialog" aria-modal="true" aria-labelledby="libraryAuthTitle">
+            <h3 id="libraryAuthTitle">Log ind på bibliotek</h3>
+            <p class="library-auth-error" id="libraryAuthError"></p>
+            <form id="libraryAuthForm">
+                <label for="libraryAuthEmail">E-mail</label>
+                <input type="email" id="libraryAuthEmail" autocomplete="username" required>
+                <label for="libraryAuthPassword">Adgangskode</label>
+                <input type="password" id="libraryAuthPassword" autocomplete="current-password" required>
+                <div class="library-auth-actions">
+                    <button type="submit" class="btn btn-primary">Log ind</button>
+                    <button type="button" class="btn btn-secondary" id="libraryAuthGoogleBtn">Log ind med Google</button>
+                    <button type="button" class="btn btn-secondary" id="libraryAuthCancelBtn">Annuller</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="library-picker-backdrop" id="libraryPickerBackdrop" aria-hidden="true">
+        <div class="library-picker-modal" role="dialog" aria-modal="true" aria-labelledby="libraryPickerTitle">
+            <h3 id="libraryPickerTitle">Åbn animation fra bibliotek</h3>
+            <input type="search" class="library-picker-search" id="libraryPickerSearch" placeholder="Søg efter navn…" autocomplete="off">
+            <div class="library-picker-list" id="libraryPickerList"></div>
+            <button type="button" class="btn btn-secondary" id="libraryPickerCloseBtn">Luk</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="guideFigureRenderer.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -4381,6 +4612,594 @@ function moveTimelineSlide(fromIndex, direction) {
                 applyPose(timelineSlides[0]);
             }
         }
+
+        // --- Firestore animations library (Etape 1) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCl6ZYtkfYx3kFF9329eGpeazsmJAPMKzA",
+            authDomain: "relationer-fe5fe.firebaseapp.com",
+            projectId: "relationer-fe5fe",
+            storageBucket: "relationer-fe5fe.firebasestorage.app",
+            messagingSenderId: "156720560629",
+            appId: "1:156720560629:web:1a138e4e89f02a131f88bc",
+            measurementId: "G-K5W7J8JHZG"
+        };
+
+        const LIB_ANIMATIONS_COLLECTION = 'lib_animations';
+        let libraryAuth = null;
+        let libraryDb = null;
+        let libraryFirebaseReady = false;
+        let libraryFirebaseDisabledReason = '';
+        let libraryCurrentUser = null;
+        let loadedLibraryAnimationDocId = null;
+        let loadedLibraryAnimationName = null;
+        let libraryPickerEntries = [];
+
+        function isLibraryHttpContext() {
+            return window.location.protocol === 'http:' || window.location.protocol === 'https:';
+        }
+
+        try {
+            if (typeof firebase !== 'undefined' && isLibraryHttpContext()) {
+                firebase.initializeApp(firebaseConfig);
+                libraryAuth = firebase.auth();
+                libraryDb = firebase.firestore();
+                libraryFirebaseReady = true;
+            } else if (!isLibraryHttpContext()) {
+                libraryFirebaseDisabledReason = 'Bibliotek kræver http/https (ikke file://). Fil-eksport virker stadig.';
+            } else {
+                libraryFirebaseDisabledReason = 'Firebase SDK kunne ikke indlæses. Fil-eksport virker stadig.';
+            }
+        } catch (libraryFirebaseInitError) {
+            console.error('Firebase initialization error:', libraryFirebaseInitError);
+            libraryFirebaseReady = false;
+            libraryFirebaseDisabledReason = 'Firebase kunne ikke startes. Fil-eksport virker stadig.';
+        }
+
+        function buildTimelineExportData() {
+            return {
+                version: "1.0",
+                type: "timeline",
+                created: new Date().toISOString(),
+                slides: timelineSlides.map(slide => buildExportSlide(slide))
+            };
+        }
+
+        function extractTimelineSlidesFromImportData(data) {
+            if (data.slides && Array.isArray(data.slides)) {
+                return data.slides;
+            }
+            if (Array.isArray(data)) {
+                return data;
+            }
+            return null;
+        }
+
+        /**
+         * @returns {{ ok: boolean, count?: number, reason?: string }}
+         */
+        function applyTimelineImportFromData(data, { showSuccessAlert = true } = {}) {
+            const importedSlides = extractTimelineSlidesFromImportData(data);
+            if (!importedSlides) {
+                return { ok: false, reason: 'invalid_format' };
+            }
+
+            const validSlides = [];
+            importedSlides.forEach(slide => {
+                if (slide.duration !== undefined) {
+                    validSlides.push(normalizeImportedSlide(slide));
+                }
+            });
+
+            if (validSlides.length === 0) {
+                return { ok: false, reason: 'no_slides' };
+            }
+
+            timelineSlides = validSlides.map(ensureSlideTweenMeta);
+            currentSlideIndex = 0;
+            objektEnabled = validSlides.some(slideHasObjektData);
+            document.getElementById('objekt_enabled').checked = objektEnabled;
+            toggleObjektControlsEnabled(objektEnabled);
+            updateTimelineDisplay();
+            if (timelineSlides.length > 0) {
+                selectTimelineSlide(0);
+            }
+            if (showSuccessAlert) {
+                alert(`${validSlides.length} slides indlæst succesfuldt!`);
+            }
+            return { ok: true, count: validSlides.length };
+        }
+
+        function sanitizeAnimationDocId(name) {
+            const trimmed = (name || '').trim();
+            if (!trimmed) return '';
+            let id = trimmed.replace(/\//g, '_');
+            if (id === '.' || id === '..') {
+                id = id + '_';
+            }
+            return id;
+        }
+
+        function formatLibraryAuthError(error) {
+            const errorCode = error && error.code ? error.code : '';
+            let errorMsgText = error && error.message ? error.message : '';
+            if (errorCode === 'auth/user-not-found' ||
+                errorCode === 'auth/wrong-password' ||
+                errorCode === 'auth/invalid-credential' ||
+                errorCode === 'auth/invalid-login-credentials' ||
+                (errorMsgText && errorMsgText.includes('INVALID_LOGIN_CREDENTIALS'))) {
+                return 'Forkert e-mail eller adgangskode.';
+            }
+            if (errorCode === 'auth/invalid-email') {
+                return 'Ugyldig e-mailadresse.';
+            }
+            if (errorCode === 'auth/too-many-requests') {
+                return 'For mange forsøg. Prøv igen senere.';
+            }
+            if (errorCode === 'auth/network-request-failed') {
+                return 'Netværksfejl. Tjek din forbindelse.';
+            }
+            if (errorCode === 'auth/popup-closed-by-user' || errorCode === 'auth/cancelled-popup-request') {
+                return 'Login blev annulleret.';
+            }
+            if (errorCode === 'auth/popup-blocked') {
+                return 'Popup blev blokeret. Tillad popups for denne side.';
+            }
+            return 'Login mislykkedes. Prøv igen.';
+        }
+
+        function formatLibraryFirestoreError(error) {
+            const code = error && error.code ? error.code : '';
+            if (code === 'permission-denied') {
+                return 'Du har ikke adgang til biblioteket. Tjek Firestore-regler og login.';
+            }
+            if (code === 'unavailable') {
+                return 'Firestore er midlertidigt utilgængelig. Prøv igen om lidt.';
+            }
+            if (code === 'unauthenticated') {
+                return 'Du skal være logget ind for at bruge biblioteket.';
+            }
+            if (code === 'failed-precondition') {
+                return 'Forespørgslen kunne ikke gennemføres (manglende indeks eller ugyldig tilstand).';
+            }
+            const msg = error && error.message ? error.message : '';
+            return msg ? `Biblioteksfejl: ${msg}` : 'Der opstod en fejl i biblioteket. Prøv igen.';
+        }
+
+        function formatLibraryTimestamp(ts) {
+            if (!ts) return '—';
+            try {
+                const date = typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts);
+                if (Number.isNaN(date.getTime())) return '—';
+                return date.toLocaleString('da-DK', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return '—';
+            }
+        }
+
+        function updateLibraryToolbarUi() {
+            const statusEl = document.getElementById('libraryStatusText');
+            const hintEl = document.getElementById('libraryStatusHint');
+            const authBtn = document.getElementById('libraryAuthBtn');
+            const saveBtn = document.getElementById('btnSaveAnimationToLibrary');
+            const openBtn = document.getElementById('btnOpenAnimationLibrary');
+
+            if (!statusEl) return;
+
+            if (!libraryFirebaseReady) {
+                statusEl.textContent = 'Bibliotek: ikke tilgængelig';
+                if (hintEl) hintEl.textContent = libraryFirebaseDisabledReason || '';
+                if (authBtn) {
+                    authBtn.style.display = 'none';
+                }
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.title = libraryFirebaseDisabledReason || 'Bibliotek utilgængeligt';
+                }
+                if (openBtn) {
+                    openBtn.disabled = true;
+                    openBtn.title = libraryFirebaseDisabledReason || 'Bibliotek utilgængeligt';
+                }
+                return;
+            }
+
+            if (hintEl) hintEl.textContent = '';
+
+            if (libraryCurrentUser) {
+                const email = libraryCurrentUser.email || libraryCurrentUser.displayName || libraryCurrentUser.uid;
+                statusEl.textContent = `Bibliotek: ${email}`;
+                if (authBtn) {
+                    authBtn.textContent = 'Log ud';
+                    authBtn.style.display = '';
+                }
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.title = '';
+                }
+                if (openBtn) {
+                    openBtn.disabled = false;
+                    openBtn.title = '';
+                }
+            } else {
+                statusEl.textContent = 'Bibliotek: ikke logget ind';
+                if (authBtn) {
+                    authBtn.textContent = 'Log ind';
+                    authBtn.style.display = '';
+                }
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.title = 'Log ind for at gemme i biblioteket';
+                }
+                if (openBtn) {
+                    openBtn.disabled = true;
+                    openBtn.title = 'Log ind for at åbne fra biblioteket';
+                }
+            }
+        }
+
+        function openLibraryAuthModal() {
+            const backdrop = document.getElementById('libraryAuthBackdrop');
+            const err = document.getElementById('libraryAuthError');
+            if (err) {
+                err.textContent = '';
+                err.classList.remove('show');
+            }
+            if (backdrop) {
+                backdrop.classList.add('is-open');
+                backdrop.setAttribute('aria-hidden', 'false');
+            }
+        }
+
+        function closeLibraryAuthModal() {
+            const backdrop = document.getElementById('libraryAuthBackdrop');
+            if (backdrop) {
+                backdrop.classList.remove('is-open');
+                backdrop.setAttribute('aria-hidden', 'true');
+            }
+        }
+
+        function showLibraryAuthError(error) {
+            const err = document.getElementById('libraryAuthError');
+            if (!err) return;
+            err.textContent = formatLibraryAuthError(error);
+            err.classList.add('show');
+        }
+
+        async function saveAnimationToLibrary() {
+            if (!libraryFirebaseReady || !libraryDb || !libraryCurrentUser) {
+                alert('Log ind for at gemme i biblioteket.');
+                return;
+            }
+            if (timelineSlides.length === 0) {
+                alert('Ingen timeline slides at gemme!');
+                return;
+            }
+
+            const defaultName = loadedLibraryAnimationName || 'myAnimation';
+            const animationName = prompt('Hvad skal animationen hedde i biblioteket?', defaultName);
+            if (!animationName || !animationName.trim()) return;
+
+            const name = animationName.trim();
+            const docId = sanitizeAnimationDocId(name);
+            if (!docId) {
+                alert('Navnet er ugyldigt. Vælg et andet navn.');
+                return;
+            }
+
+            const docRef = libraryDb.collection(LIB_ANIMATIONS_COLLECTION).doc(docId);
+
+            try {
+                const existingSnap = await docRef.get();
+                if (existingSnap.exists) {
+                    const overwrite = confirm(`Animationen "${name}" findes allerede i biblioteket. Overskriv?`);
+                    if (!overwrite) return;
+                }
+
+                const exportData = buildTimelineExportData();
+                const payload = {
+                    name: name,
+                    json: JSON.stringify(exportData),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (existingSnap.exists) {
+                    await docRef.update(payload);
+                } else {
+                    await docRef.set({
+                        ...payload,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+
+                loadedLibraryAnimationDocId = docId;
+                loadedLibraryAnimationName = name;
+                alert(`Animationen "${name}" er gemt i biblioteket (${timelineSlides.length} slides).`);
+            } catch (error) {
+                console.error('saveAnimationToLibrary:', error);
+                alert(formatLibraryFirestoreError(error));
+            }
+        }
+
+        function renderLibraryPickerList(filterText) {
+            const listEl = document.getElementById('libraryPickerList');
+            if (!listEl) return;
+
+            const q = (filterText || '').trim().toLowerCase();
+            const filtered = libraryPickerEntries.filter(entry => {
+                if (!q) return true;
+                return (entry.name || '').toLowerCase().includes(q) ||
+                    (entry.id || '').toLowerCase().includes(q);
+            });
+
+            listEl.innerHTML = '';
+
+            if (filtered.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'library-picker-empty';
+                empty.textContent = q ? 'Ingen animationer matcher søgningen.' : 'Biblioteket er tomt.';
+                listEl.appendChild(empty);
+                return;
+            }
+
+            filtered.forEach(entry => {
+                const row = document.createElement('div');
+                row.className = 'library-picker-item';
+
+                const main = document.createElement('button');
+                main.type = 'button';
+                main.className = 'library-picker-item__main';
+                main.style.background = 'none';
+                main.style.border = 'none';
+                main.style.textAlign = 'left';
+                main.style.padding = '0';
+                main.innerHTML =
+                    `<div class="library-picker-item__name">${escapeHtmlLibrary(entry.name || entry.id)}</div>` +
+                    `<div class="library-picker-item__meta">Opdateret: ${escapeHtmlLibrary(entry.updatedLabel)}</div>`;
+
+                main.addEventListener('click', () => {
+                    loadAnimationFromLibraryDoc(entry.id, entry.name);
+                });
+
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'btn-library-delete';
+                delBtn.textContent = 'Slet';
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteAnimationFromLibrary(entry.id, entry.name);
+                });
+
+                row.appendChild(main);
+                row.appendChild(delBtn);
+                listEl.appendChild(row);
+            });
+        }
+
+        function escapeHtmlLibrary(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        async function fetchLibraryAnimationEntries() {
+            const snap = await libraryDb.collection(LIB_ANIMATIONS_COLLECTION).get();
+            const entries = [];
+            snap.forEach(doc => {
+                const data = doc.data() || {};
+                entries.push({
+                    id: doc.id,
+                    name: data.name || doc.id,
+                    updatedAt: data.updatedAt,
+                    updatedLabel: formatLibraryTimestamp(data.updatedAt)
+                });
+            });
+            entries.sort((a, b) => {
+                const ta = a.updatedAt && typeof a.updatedAt.toMillis === 'function' ? a.updatedAt.toMillis() : 0;
+                const tb = b.updatedAt && typeof b.updatedAt.toMillis === 'function' ? b.updatedAt.toMillis() : 0;
+                return tb - ta;
+            });
+            return entries;
+        }
+
+        function closeLibraryPickerModal() {
+            const backdrop = document.getElementById('libraryPickerBackdrop');
+            if (backdrop) {
+                backdrop.classList.remove('is-open');
+                backdrop.setAttribute('aria-hidden', 'true');
+            }
+        }
+
+        async function openAnimationLibraryPicker() {
+            if (!libraryFirebaseReady || !libraryDb || !libraryCurrentUser) {
+                alert('Log ind for at åbne biblioteket.');
+                return;
+            }
+
+            const listEl = document.getElementById('libraryPickerList');
+            const searchEl = document.getElementById('libraryPickerSearch');
+            const backdrop = document.getElementById('libraryPickerBackdrop');
+
+            if (listEl) {
+                listEl.innerHTML = '<div class="library-picker-empty">Henter animationer…</div>';
+            }
+            if (searchEl) searchEl.value = '';
+            if (backdrop) {
+                backdrop.classList.add('is-open');
+                backdrop.setAttribute('aria-hidden', 'false');
+            }
+
+            try {
+                libraryPickerEntries = await fetchLibraryAnimationEntries();
+                renderLibraryPickerList('');
+            } catch (error) {
+                console.error('openAnimationLibraryPicker:', error);
+                if (listEl) {
+                    listEl.innerHTML = `<div class="library-picker-empty">${escapeHtmlLibrary(formatLibraryFirestoreError(error))}</div>`;
+                }
+            }
+        }
+
+        async function loadAnimationFromLibraryDoc(docId, displayName) {
+            if (!libraryDb) return;
+            try {
+                const snap = await libraryDb.collection(LIB_ANIMATIONS_COLLECTION).doc(docId).get();
+                if (!snap.exists) {
+                    alert('Animationen findes ikke længere i biblioteket.');
+                    return;
+                }
+                const data = snap.data() || {};
+                if (!data.json || typeof data.json !== 'string') {
+                    alert('Biblioteks-posten mangler gyldigt JSON-indhold.');
+                    return;
+                }
+                let parsed;
+                try {
+                    parsed = JSON.parse(data.json);
+                } catch (parseErr) {
+                    alert('Kunne ikke læse animationens JSON fra biblioteket.');
+                    console.error(parseErr);
+                    return;
+                }
+
+                const result = applyTimelineImportFromData(parsed, { showSuccessAlert: true });
+                if (!result.ok) {
+                    if (result.reason === 'invalid_format') {
+                        alert('Ugyldig timeline fil format.');
+                    } else {
+                        alert('Ingen gyldige slides fundet i biblioteket.');
+                    }
+                    return;
+                }
+
+                loadedLibraryAnimationDocId = docId;
+                loadedLibraryAnimationName = data.name || displayName || docId;
+                closeLibraryPickerModal();
+            } catch (error) {
+                console.error('loadAnimationFromLibraryDoc:', error);
+                alert(formatLibraryFirestoreError(error));
+            }
+        }
+
+        async function deleteAnimationFromLibrary(docId, displayName) {
+            if (!libraryDb || !libraryCurrentUser) return;
+            const label = displayName || docId;
+            if (!confirm(`Slet animationen "${label}" fra biblioteket? Dette kan ikke fortrydes.`)) {
+                return;
+            }
+            try {
+                await libraryDb.collection(LIB_ANIMATIONS_COLLECTION).doc(docId).delete();
+                if (loadedLibraryAnimationDocId === docId) {
+                    loadedLibraryAnimationDocId = null;
+                    loadedLibraryAnimationName = null;
+                }
+                libraryPickerEntries = libraryPickerEntries.filter(e => e.id !== docId);
+                const searchEl = document.getElementById('libraryPickerSearch');
+                renderLibraryPickerList(searchEl ? searchEl.value : '');
+            } catch (error) {
+                console.error('deleteAnimationFromLibrary:', error);
+                alert(formatLibraryFirestoreError(error));
+            }
+        }
+
+        function initPoseAnimationLibraryUi() {
+            updateLibraryToolbarUi();
+
+            const authBtn = document.getElementById('libraryAuthBtn');
+            const authForm = document.getElementById('libraryAuthForm');
+            const authCancel = document.getElementById('libraryAuthCancelBtn');
+            const authGoogle = document.getElementById('libraryAuthGoogleBtn');
+            const authBackdrop = document.getElementById('libraryAuthBackdrop');
+            const saveBtn = document.getElementById('btnSaveAnimationToLibrary');
+            const openBtn = document.getElementById('btnOpenAnimationLibrary');
+            const pickerClose = document.getElementById('libraryPickerCloseBtn');
+            const pickerBackdrop = document.getElementById('libraryPickerBackdrop');
+            const pickerSearch = document.getElementById('libraryPickerSearch');
+
+            if (authBtn) {
+                authBtn.addEventListener('click', () => {
+                    if (!libraryFirebaseReady || !libraryAuth) return;
+                    if (libraryCurrentUser) {
+                        libraryAuth.signOut().catch(err => {
+                            console.error(err);
+                            alert(formatLibraryAuthError(err));
+                        });
+                    } else {
+                        openLibraryAuthModal();
+                    }
+                });
+            }
+
+            if (authCancel) {
+                authCancel.addEventListener('click', closeLibraryAuthModal);
+            }
+            if (authBackdrop) {
+                authBackdrop.addEventListener('click', (e) => {
+                    if (e.target === authBackdrop) closeLibraryAuthModal();
+                });
+            }
+
+            if (authForm && libraryAuth) {
+                authForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('libraryAuthEmail').value;
+                    const password = document.getElementById('libraryAuthPassword').value;
+                    const err = document.getElementById('libraryAuthError');
+                    if (err) err.classList.remove('show');
+                    libraryAuth.signInWithEmailAndPassword(email, password)
+                        .then(() => closeLibraryAuthModal())
+                        .catch(showLibraryAuthError);
+                });
+            }
+
+            if (authGoogle && libraryAuth) {
+                authGoogle.addEventListener('click', () => {
+                    const err = document.getElementById('libraryAuthError');
+                    if (err) err.classList.remove('show');
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    libraryAuth.signInWithPopup(provider)
+                        .then(() => closeLibraryAuthModal())
+                        .catch(showLibraryAuthError);
+                });
+            }
+
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => {
+                    saveAnimationToLibrary();
+                });
+            }
+            if (openBtn) {
+                openBtn.addEventListener('click', () => {
+                    openAnimationLibraryPicker();
+                });
+            }
+            if (pickerClose) {
+                pickerClose.addEventListener('click', closeLibraryPickerModal);
+            }
+            if (pickerBackdrop) {
+                pickerBackdrop.addEventListener('click', (e) => {
+                    if (e.target === pickerBackdrop) closeLibraryPickerModal();
+                });
+            }
+            if (pickerSearch) {
+                pickerSearch.addEventListener('input', () => {
+                    renderLibraryPickerList(pickerSearch.value);
+                });
+            }
+
+            if (libraryAuth) {
+                libraryAuth.onAuthStateChanged(user => {
+                    libraryCurrentUser = user;
+                    updateLibraryToolbarUi();
+                });
+            }
+        }
 		
 		function exportTimelineSlides() {
     if (timelineSlides.length === 0) {
@@ -4394,12 +5213,7 @@ function moveTimelineSlide(fromIndex, direction) {
     // Clean name for filename
     const cleanName = animationName.replace(/[^a-zA-Z0-9æøåÆØÅ]/g, '_').toLowerCase();
     
-    const exportData = {
-        version: "1.0",
-        type: "timeline",
-        created: new Date().toISOString(),
-        slides: timelineSlides.map(slide => buildExportSlide(slide))
-    };
+    const exportData = buildTimelineExportData();
     
     // Format JSON to match Animations folder style
     const dataStr = JSON.stringify(exportData, null, 2);
@@ -4422,44 +5236,17 @@ function importTimelineSlides(event) {
     reader.onload = function(e) {
         try {
             const data = JSON.parse(e.target.result);
-            
-            // Handle different formats
-            let importedSlides = [];
-            
-            if (data.slides && Array.isArray(data.slides)) {
-                // Timeline format (matches Animations folder format)
-                importedSlides = data.slides;
-            } else if (Array.isArray(data)) {
-                // Simple array format
-                importedSlides = data;
-            } else {
-                alert('Ugyldig timeline fil format.');
-                return;
-            }
-            
-            // Normalize and validate slides - ensure all properties are present
-            let validSlides = [];
-            importedSlides.forEach(slide => {
-                if (slide.duration !== undefined) {
-                    validSlides.push(normalizeImportedSlide(slide));
+            const result = applyTimelineImportFromData(data, { showSuccessAlert: true });
+            if (!result.ok) {
+                if (result.reason === 'invalid_format') {
+                    alert('Ugyldig timeline fil format.');
+                } else {
+                    alert('Ingen gyldige slides fundet i filen.');
                 }
-            });
-            
-            if (validSlides.length > 0) {
-                timelineSlides = validSlides.map(ensureSlideTweenMeta);
-                currentSlideIndex = 0;
-                objektEnabled = validSlides.some(slideHasObjektData);
-                document.getElementById('objekt_enabled').checked = objektEnabled;
-                toggleObjektControlsEnabled(objektEnabled);
-                updateTimelineDisplay();
-                if (timelineSlides.length > 0) {
-                    selectTimelineSlide(0);
-                }
-                alert(`${validSlides.length} slides indlæst succesfuldt!`);
             } else {
-                alert('Ingen gyldige slides fundet i filen.');
+                loadedLibraryAnimationDocId = null;
+                loadedLibraryAnimationName = null;
             }
-            
         } catch (error) {
             alert('Fejl ved indlæsning af fil. Tjek at det er en gyldig JSON fil.');
             console.error('Timeline import error:', error);
@@ -5924,6 +6711,7 @@ function exportForJavaScript() {
         }
 
         initBezierEditor();
+        initPoseAnimationLibraryUi();
         if (new URLSearchParams(window.location.search).get('timelineTest') === '1') {
             runTimelineReorderSelfTest();
         }
