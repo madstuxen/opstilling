@@ -1953,6 +1953,30 @@
                 </div>
             </div>
 
+            <div class="panel-section">
+                <h3 class="panel-section-title">Objekt</h3>
+                <div class="library-select-row">
+                    <label for="objekt_select">Fil</label>
+                    <select id="objekt_select"></select>
+                </div>
+                <p id="objektSelectHint" class="file-hint"></p>
+                <div class="library-select-row">
+                    <label for="objekt_parent">Parent</label>
+                    <select id="objekt_parent">
+                        <option value="">Ingen (fri)</option>
+                        <option value="mave">Mave</option>
+                        <option value="skulder_left">Venstre skulder</option>
+                        <option value="skulder_right">Højre skulder</option>
+                        <option value="albue_left">Venstre albue</option>
+                        <option value="albue_right">Højre albue</option>
+                        <option value="hofte_left">Venstre hofte</option>
+                        <option value="hofte_right">Højre hofte</option>
+                        <option value="knae_left">Venstre knæ</option>
+                        <option value="knae_right">Højre knæ</option>
+                    </select>
+                </div>
+            </div>
+
             <details class="files-details" id="filesSection">
                 <summary>Filer</summary>
                 <div class="button-group">
@@ -2161,19 +2185,14 @@
                 </div>
 
                 <div class="figure-left-tool-column">
-                <!-- Objekt Controls -->
+                <!-- Objekt Controls (vis/placering; fil vælges i venstre panel) -->
                 <div class="mini-controls objekt-controls">
                     <h4>Objekt</h4>
                     <div class="mini-checkbox">
                         <input type="checkbox" id="objekt_enabled" onchange="onObjektEnabledChange()">
-                        <label for="objekt_enabled">Objekt</label>
+                        <label for="objekt_enabled">Vis objekt på figuren</label>
                     </div>
                     <div id="objekt_controls_inner" class="disabled">
-                        <div class="mini-slider">
-                            <label>Fil:</label>
-                            <select id="objekt_select"></select>
-                        </div>
-                        <p id="objektSelectHint" class="file-hint" style="font-size:10px; margin:4px 0 8px;"></p>
                         <div class="mini-checkbox">
                             <input type="checkbox" id="objekt_visible" checked>
                             <label for="objekt_visible">Vis</label>
@@ -2205,21 +2224,6 @@
                             <label>Skala:</label>
                             <input type="range" id="objekt_scale" min="0" max="3" step="0.1" value="1">
                             <div class="mini-value" id="objekt_scale_val">1</div>
-                        </div>
-                        <div class="mini-slider">
-                            <label>Parent:</label>
-                            <select id="objekt_parent">
-                                <option value="">Ingen (fri)</option>
-                                <option value="mave">Mave</option>
-                                <option value="skulder_left">Venstre skulder</option>
-                                <option value="skulder_right">Højre skulder</option>
-                                <option value="albue_left">Venstre albue</option>
-                                <option value="albue_right">Højre albue</option>
-                                <option value="hofte_left">Venstre hofte</option>
-                                <option value="hofte_right">Højre hofte</option>
-                                <option value="knae_left">Venstre knæ</option>
-                                <option value="knae_right">Højre knæ</option>
-                            </select>
                         </div>
                     </div>
                 </div>
