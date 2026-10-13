@@ -881,6 +881,30 @@
             align-items: flex-start;
             min-width: max-content;
             padding: 10px;
+            position: relative;
+        }
+
+        .timeline-drop-indicator {
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            width: 4px;
+            margin-left: -2px;
+            background: #0284c7;
+            border-radius: 2px;
+            box-shadow: 0 0 0 2px rgba(224, 242, 254, 0.9);
+            pointer-events: none;
+            z-index: 25;
+            display: none;
+        }
+
+        .timeline-drop-indicator.is-visible {
+            display: block;
+        }
+
+        .timeline-pose-group.is-dragging {
+            opacity: 0.42;
+            cursor: grabbing;
         }
 
         .timeline-slide {
@@ -903,10 +927,82 @@
             transform: translateY(-2px);
         }
 
-        .timeline-slide.active {
+        .timeline-pose-group {
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            flex-shrink: 0;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+            transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            padding: 6px 0;
+        }
+
+        .timeline-pose-group:hover {
+            border-color: #0ea5e9;
+        }
+
+        .timeline-pose-group.active {
             border-color: #0284c7;
             background: #e0f2fe;
+            box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.2);
+        }
+
+        .timeline-pose-group.active .timeline-pose-card .slide-info label {
             font-weight: bold;
+        }
+
+        .timeline-pose-group .timeline-slide {
+            border: none;
+            background: transparent;
+            box-shadow: none;
+            min-width: 72px;
+            width: auto;
+            padding: 10px 7px;
+            gap: 7px;
+            cursor: grab;
+        }
+
+        .timeline-pose-group.is-dragging .timeline-slide {
+            cursor: grabbing;
+        }
+
+        .timeline-pose-group .timeline-slide .mini-figure {
+            margin-bottom: 4px;
+        }
+
+        .timeline-pose-group .slide-info {
+            width: 100%;
+            text-align: center;
+            line-height: 1.1;
+        }
+
+        .timeline-pose-group .slide-info label {
+            margin-bottom: 0;
+        }
+
+        .timeline-pose-group .timeline-slide:hover {
+            border-color: transparent;
+            transform: none;
+        }
+
+        .timeline-pose-group .timeline-tween-card {
+            border: none;
+            border-left: 1px solid #e2e8f0;
+            border-radius: 0;
+            background: transparent;
+            align-self: stretch;
+            justify-content: center;
+            min-height: 100%;
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+
+        .timeline-pose-group.active .timeline-tween-card {
+            border-left-color: #7dd3fc;
+            background: rgba(255, 255, 255, 0.35);
         }
 
         .mini-figure {
@@ -1408,44 +1504,6 @@
     transform: scale(1.1);
 }
 
-.move-slide-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    background: #10b981;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: all 0.2s ease;
-    z-index: 10;
-}
-
-.move-slide-left {
-    left: 5px;
-}
-
-.move-slide-right {
-    right: 5px;
-}
-
-.timeline-slide:hover .move-slide-btn {
-    opacity: 0.6;
-}
-
-.move-slide-btn:hover {
-    opacity: 1 !important;
-    background: #059669;
-    transform: translateY(-50%) scale(1.1);
-}
-
         .timeline-pose-card .slide-info label {
             font-size: 10px;
             color: #0284c7;
@@ -1609,6 +1667,16 @@
             gap: 8px;
             margin-top: 12px;
             flex-wrap: wrap;
+        }
+
+        .bezier-editor-nav {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .bezier-editor-nav .btn {
+            flex: 1;
         }
 
         .bezier-preview-dot {
@@ -2356,6 +2424,10 @@
                         <button type="button" class="btn btn-success" id="bezierPreviewPlayBtn">▶ Afspil preview</button>
                         <button type="button" class="btn btn-primary" id="bezierEditorCloseBtn">Gem &amp; luk</button>
                     </div>
+                    <div class="bezier-editor-nav">
+                        <button type="button" class="btn btn-secondary" id="bezierEditorPrevBtn" disabled>← Prev</button>
+                        <button type="button" class="btn btn-secondary" id="bezierEditorNextBtn" disabled>Next →</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2447,6 +2519,22 @@
 
         function isPoseRangeSlider(slider) {
             return slider?.id !== 'export_quality';
+        }
+
+        function getPoseSliderResetValue(slider) {
+            if (slider.id === 'objekt_scale') return 1;
+            return 0;
+        }
+
+        function initPoseSliderDoubleClickReset() {
+            document.addEventListener('dblclick', (e) => {
+                const slider = e.target.closest('input[type="range"]');
+                if (!slider || !isPoseRangeSlider(slider)) return;
+                const resetVal = getPoseSliderResetValue(slider);
+                if (Number(slider.value) === resetVal) return;
+                slider.value = String(resetVal);
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+            });
         }
 
         function getExportCaptureScale() {
@@ -4089,31 +4177,175 @@ function selectTimelineSlide(index, { skipDirtyConfirm = false } = {}) {
 		}
 		
 		function updateTimelineHighlight() {
-    document.querySelectorAll('.timeline-pose-card').forEach((slide) => {
-        const poseIndex = parseInt(slide.dataset.poseIndex, 10);
-        slide.classList.toggle('active', poseIndex === currentSlideIndex);
+    document.querySelectorAll('.timeline-pose-group').forEach((group) => {
+        const poseIndex = parseInt(group.dataset.poseIndex, 10);
+        group.classList.toggle('active', poseIndex === currentSlideIndex);
     });
 }
 
-function moveTimelineSlide(fromIndex, direction) {
-    const toIndex = fromIndex + direction;
-    
-    if (toIndex < 0 || toIndex >= timelineSlides.length) return;
-    
-    // Swap slides
-    const temp = timelineSlides[fromIndex];
-    timelineSlides[fromIndex] = timelineSlides[toIndex];
-    timelineSlides[toIndex] = temp;
-    
-    // Update currentSlideIndex if necessary
+function reorderTimelineSlide(fromIndex, insertBefore) {
+    const n = timelineSlides.length;
+    if (fromIndex < 0 || fromIndex >= n) return;
+    insertBefore = Math.max(0, Math.min(n, insertBefore));
+
+    let toIndex = insertBefore;
+    if (toIndex > fromIndex) toIndex--;
+    if (toIndex === fromIndex) return;
+
+    const [item] = timelineSlides.splice(fromIndex, 1);
+    timelineSlides.splice(toIndex, 0, item);
+
     if (currentSlideIndex === fromIndex) {
         currentSlideIndex = toIndex;
-    } else if (currentSlideIndex === toIndex) {
-        currentSlideIndex = fromIndex;
+    } else if (fromIndex < currentSlideIndex && toIndex >= currentSlideIndex) {
+        currentSlideIndex--;
+    } else if (fromIndex > currentSlideIndex && toIndex <= currentSlideIndex) {
+        currentSlideIndex++;
     }
-    
+
     updateTimelineDisplay();
     markAnimationDirty();
+}
+
+function initTimelineDragDrop() {
+    const track = document.getElementById('timelineTrack');
+    if (!track || track.dataset.dragInit === '1') return;
+    track.dataset.dragInit = '1';
+
+    const indicator = document.createElement('div');
+    indicator.className = 'timeline-drop-indicator';
+    indicator.setAttribute('aria-hidden', 'true');
+    track.appendChild(indicator);
+
+    let drag = null;
+    const DRAG_THRESHOLD_PX = 6;
+
+    function hideIndicator() {
+        indicator.classList.remove('is-visible');
+    }
+
+    function positionDropIndicator(insertBefore) {
+        const trackRect = track.getBoundingClientRect();
+        const groups = [...track.querySelectorAll('.timeline-pose-group')].filter(
+            (g) => !g.classList.contains('is-dragging')
+        );
+        let x;
+        if (insertBefore >= groups.length) {
+            if (groups.length === 0) {
+                x = 10;
+            } else {
+                x = groups[groups.length - 1].getBoundingClientRect().right - trackRect.left;
+            }
+        } else {
+            x = groups[insertBefore].getBoundingClientRect().left - trackRect.left;
+        }
+        indicator.style.left = `${x}px`;
+        indicator.classList.add('is-visible');
+    }
+
+    /** Plads i den filtrerede gruppe-liste (til drop-streg). */
+    function getInsertSlotForIndicator(clientX) {
+        const groups = [...track.querySelectorAll('.timeline-pose-group')].filter(
+            (g) => !g.classList.contains('is-dragging')
+        );
+        for (let i = 0; i < groups.length; i++) {
+            const rect = groups[i].getBoundingClientRect();
+            if (clientX < rect.left + rect.width / 2) return i;
+        }
+        return groups.length;
+    }
+
+    /** Indeks i timelineSlides (0 … n), n = efter sidste slide. */
+    function getInsertBeforeArrayIndex(clientX) {
+        const groups = [...track.querySelectorAll('.timeline-pose-group')].filter(
+            (g) => !g.classList.contains('is-dragging')
+        );
+        for (let i = 0; i < groups.length; i++) {
+            const rect = groups[i].getBoundingClientRect();
+            if (clientX < rect.left + rect.width / 2) {
+                const idx = parseInt(groups[i].dataset.poseIndex, 10);
+                return Number.isNaN(idx) ? i : idx;
+            }
+        }
+        return timelineSlides.length;
+    }
+
+    function detachWindowDragListeners() {
+        window.removeEventListener('pointermove', onWindowPointerMove);
+        window.removeEventListener('pointerup', onWindowPointerUp);
+        window.removeEventListener('pointercancel', onWindowPointerCancel);
+    }
+
+    function finishDrag(pointerId, applyReorder) {
+        if (!drag || drag.pointerId !== pointerId) return;
+        const { fromIndex, dragging, insertBeforeArray, group } = drag;
+        if (dragging && applyReorder) {
+            reorderTimelineSlide(fromIndex, insertBeforeArray);
+        }
+        group.classList.remove('is-dragging');
+        hideIndicator();
+        document.body.style.userSelect = '';
+        try {
+            group.releasePointerCapture(pointerId);
+        } catch (_) { /* group may be recreated after reorder */ }
+        detachWindowDragListeners();
+        drag = null;
+    }
+
+    function onWindowPointerMove(e) {
+        if (!drag || e.pointerId !== drag.pointerId) return;
+        const dx = e.clientX - drag.startX;
+        const dy = e.clientY - drag.startY;
+        if (!drag.dragging && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+
+        if (!drag.dragging) {
+            drag.dragging = true;
+            drag.group.classList.add('is-dragging');
+            document.body.style.userSelect = 'none';
+            try {
+                drag.group.setPointerCapture(e.pointerId);
+            } catch (_) { /* ignore */ }
+        }
+
+        drag.insertBeforeArray = getInsertBeforeArrayIndex(e.clientX);
+        positionDropIndicator(getInsertSlotForIndicator(e.clientX));
+    }
+
+    function onWindowPointerUp(e) {
+        finishDrag(e.pointerId, true);
+    }
+
+    function onWindowPointerCancel(e) {
+        finishDrag(e.pointerId, false);
+    }
+
+    track.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        const group = e.target.closest('.timeline-pose-group');
+        if (!group || !track.contains(group)) return;
+        if (e.target.closest('button, input, textarea, select, .bezier-thumb-btn, .tween-duration-input')) return;
+
+        const fromIndex = parseInt(group.dataset.poseIndex, 10);
+        if (Number.isNaN(fromIndex)) return;
+
+        if (drag) detachWindowDragListeners();
+
+        drag = {
+            fromIndex,
+            group,
+            pointerId: e.pointerId,
+            startX: e.clientX,
+            startY: e.clientY,
+            dragging: false,
+            insertBeforeArray: fromIndex,
+        };
+
+        selectTimelineSlide(fromIndex);
+
+        window.addEventListener('pointermove', onWindowPointerMove);
+        window.addEventListener('pointerup', onWindowPointerUp);
+        window.addEventListener('pointercancel', onWindowPointerCancel);
+    });
 }
 
 
@@ -4139,17 +4371,19 @@ function moveTimelineSlide(fromIndex, direction) {
 			const track = document.getElementById('timelineTrack');
 			const addBtn = track.querySelector('.add-slide-btn');
 			
-			track.querySelectorAll('.timeline-slide, .timeline-tween-card').forEach(el => el.remove());
+			track.querySelectorAll('.timeline-pose-group').forEach(el => el.remove());
 			
 			timelineSlides.forEach((slide, index) => {
+				const group = document.createElement('div');
+				group.className = 'timeline-pose-group' + (index === currentSlideIndex ? ' active' : '');
+				group.dataset.poseIndex = String(index);
+
 				const slideElement = document.createElement('div');
-				slideElement.className = 'timeline-slide timeline-pose-card' + (index === currentSlideIndex ? ' active' : '');
+				slideElement.className = 'timeline-slide timeline-pose-card';
                 slideElement.dataset.poseIndex = String(index);
 				
 				slideElement.innerHTML = `
 					 <button class="delete-slide-btn" onclick="deleteTimelineSlide(${index}); event.stopPropagation();">×</button>
-					${index > 0 ? `<button class="move-slide-btn move-slide-left" onclick="moveTimelineSlide(${index}, -1); event.stopPropagation();">‹</button>` : ''}
-					${index < timelineSlides.length - 1 ? `<button class="move-slide-btn move-slide-right" onclick="moveTimelineSlide(${index}, 1); event.stopPropagation();">›</button>` : ''}
 					<div class="mini-figure"></div>
 					<div class="slide-info">
 						<label>Pose ${index + 1}</label>
@@ -4157,9 +4391,9 @@ function moveTimelineSlide(fromIndex, direction) {
 				`;
 
 				updateMiniPoseTransforms(slideElement.querySelector('.mini-figure'), slide);
-				slideElement.addEventListener('click', () => selectTimelineSlide(index));
-				track.insertBefore(slideElement, addBtn);
-                track.insertBefore(createTimelineTweenElement(index), addBtn);
+				group.appendChild(slideElement);
+				group.appendChild(createTimelineTweenElement(index));
+				track.insertBefore(group, addBtn);
 			});
 
 			requestAnimationFrame(() => {
@@ -4330,17 +4564,52 @@ function moveTimelineSlide(fromIndex, direction) {
             bezierEditorPreviewRaf = requestAnimationFrame(tick);
         }
 
+        /** Easing på slide i (0 … n−1), inkl. sidste slides tween-kort. */
+        function getBezierEditorTangentBounds() {
+            const n = timelineSlides.length;
+            const max = n > 0 ? n - 1 : 0;
+            return { min: 0, max };
+        }
+
+        function saveBezierEditorToSlide() {
+            if (bezierEditorSlideIndex < 0) return;
+            const v = readBezierEditorValues();
+            updateSlideEasing(bezierEditorSlideIndex, {
+                x1: Math.max(0, Math.min(1, v.x1)),
+                y1: v.y1,
+                x2: Math.max(0, Math.min(1, v.x2)),
+                y2: v.y2,
+            });
+            markAnimationDirty();
+        }
+
+        function updateBezierEditorNavButtons() {
+            const prevBtn = document.getElementById('bezierEditorPrevBtn');
+            const nextBtn = document.getElementById('bezierEditorNextBtn');
+            if (!prevBtn || !nextBtn) return;
+            const { min, max } = getBezierEditorTangentBounds();
+            const idx = bezierEditorSlideIndex;
+            prevBtn.disabled = idx <= min;
+            nextBtn.disabled = idx < 0 || idx >= max;
+        }
+
+        function navigateBezierEditor(direction) {
+            if (bezierEditorSlideIndex < 0) return;
+            const { min, max } = getBezierEditorTangentBounds();
+            const nextIndex = bezierEditorSlideIndex + direction;
+            if (nextIndex < min || nextIndex > max) return;
+            saveBezierEditorToSlide();
+            stopBezierPreview();
+            bezierEditorSlideIndex = nextIndex;
+            writeBezierEditorValues(resolveSlideEasing(timelineSlides[nextIndex]));
+            selectTimelineSlide(nextIndex);
+            updateBezierEditorNavButtons();
+        }
+
         function closeBezierEditor(save) {
             stopBezierPreview();
-            if (save && bezierEditorSlideIndex >= 0) {
-                const v = readBezierEditorValues();
-                updateSlideEasing(bezierEditorSlideIndex, {
-                    x1: Math.max(0, Math.min(1, v.x1)),
-                    y1: v.y1,
-                    x2: Math.max(0, Math.min(1, v.x2)),
-                    y2: v.y2,
-                });
-                markAnimationDirty();
+            if (save) {
+                saveBezierEditorToSlide();
             }
             bezierEditorSlideIndex = -1;
             document.getElementById('bezierEditorBackdrop').classList.remove('is-open');
@@ -4349,8 +4618,9 @@ function moveTimelineSlide(fromIndex, direction) {
         function openBezierEditor(slideIndex) {
             if (!timelineSlides[slideIndex]) return;
             bezierEditorSlideIndex = slideIndex;
-            const e = resolveSlideEasing(timelineSlides[slideIndex]);
-            writeBezierEditorValues(e);
+            writeBezierEditorValues(resolveSlideEasing(timelineSlides[slideIndex]));
+            selectTimelineSlide(slideIndex);
+            updateBezierEditorNavButtons();
             document.getElementById('bezierEditorBackdrop').classList.add('is-open');
         }
 
@@ -4378,6 +4648,8 @@ function moveTimelineSlide(fromIndex, direction) {
 
             document.getElementById('bezierPreviewPlayBtn').addEventListener('click', playBezierPreview);
             document.getElementById('bezierEditorCloseBtn').addEventListener('click', () => closeBezierEditor(true));
+            document.getElementById('bezierEditorPrevBtn').addEventListener('click', () => navigateBezierEditor(-1));
+            document.getElementById('bezierEditorNextBtn').addEventListener('click', () => navigateBezierEditor(1));
             backdrop.addEventListener('click', (e) => {
                 if (e.target === backdrop) closeBezierEditor(true);
             });
@@ -6764,6 +7036,7 @@ function exportForJavaScript() {
         currentPose = buildCurrentPoseFromNormalized(getDefaultPose());
         refreshObjektSelectUi();
 
+        initPoseSliderDoubleClickReset();
         document.querySelectorAll('input[type="range"]').forEach(slider => {
             if (!isPoseRangeSlider(slider)) return;
             slider.addEventListener('input', updateTransforms);
@@ -7277,6 +7550,7 @@ function exportForJavaScript() {
         }
 
         initBezierEditor();
+        initTimelineDragDrop();
         initPoseAnimationLibraryUi();
         if (new URLSearchParams(window.location.search).get('timelineTest') === '1') {
             runTimelineReorderSelfTest();
