@@ -2612,16 +2612,46 @@
             return false;
         }
 
+        /** App/Firestore feltnavn: drømme (legacy web brugte dreams — læses kun ved indlæsning). */
+        function readAppDrømmeField(day) {
+            if (!day || typeof day !== 'object') return '';
+            if (typeof day.drømme === 'string') return day.drømme;
+            if (day.drømme != null) return String(day.drømme);
+            if (typeof day.dreams === 'string') return day.dreams;
+            if (day.dreams != null) return String(day.dreams);
+            return '';
+        }
+
+        /** App/Firestore feltnavn: taknemmeligheder (legacy web brugte taknem). */
+        function readAppTaknemmelighederField(day) {
+            if (!day || typeof day !== 'object') return '';
+            if (typeof day.taknemmeligheder === 'string') return day.taknemmeligheder;
+            if (day.taknemmeligheder != null) return String(day.taknemmeligheder);
+            if (typeof day.taknem === 'string') return day.taknem;
+            if (day.taknem != null) return String(day.taknem);
+            return '';
+        }
+
+        /** Normaliser logbog-post til app-felter (dagbog, drømme, taknemmeligheder). */
+        function normalizeLogbogEntryForUi(entry) {
+            if (!entry || typeof entry !== 'object') return entry;
+            const next = { ...entry };
+            delete next.dreams;
+            delete next.taknem;
+            next.drømme = readAppDrømmeField(entry);
+            next.taknemmeligheder = readAppTaknemmelighederField(entry);
+            return next;
+        }
+
         /**
-         * Firestore month.logbog as array (web legacy) or object keyed by YYYY-MM-DD (Expo).
-         * Maps drømme -> dreams, taknemmeligheder -> taknem for UI.
+         * Firestore month.logbog as array (web legacy) or object keyed by YYYY-MM-DD (Expo app).
          */
         function normalizeLogbogFieldToEntries(logbog) {
             if (logbog == null) return [];
             if (Array.isArray(logbog)) {
                 return logbog
                     .filter(e => e && typeof e === 'object')
-                    .map(e => ({ ...e }));
+                    .map(e => normalizeLogbogEntryForUi(e));
             }
             if (typeof logbog !== 'object') return [];
             const dateKeyRe = /^\d{4}-\d{2}-\d{2}$/;
@@ -2638,16 +2668,11 @@
                     timestamp = Number.isNaN(derived.getTime()) ? new Date().toISOString() : derived.toISOString();
                 }
                 const dagbogStr = typeof day.dagbog === 'string' ? day.dagbog : (day.dagbog != null ? String(day.dagbog) : '');
-                const dromme = typeof day.drømme === 'string' ? day.drømme : (day.drømme != null ? String(day.drømme) : '');
-                const taknemmel = typeof day.taknemmeligheder === 'string' ? day.taknemmeligheder
-                    : (day.taknemmeligheder != null ? String(day.taknemmeligheder) : '');
-                const dreams = dromme !== '' ? dromme : (typeof day.dreams === 'string' ? day.dreams : '');
-                const taknem = taknemmel !== '' ? taknemmel : (typeof day.taknem === 'string' ? day.taknem : '');
                 const entry = {
                     date: normalizedDate,
                     dagbog: dagbogStr,
-                    dreams,
-                    taknem,
+                    drømme: readAppDrømmeField(day),
+                    taknemmeligheder: readAppTaknemmelighederField(day),
                     checkins: Array.isArray(day.checkins) ? day.checkins : [],
                     timestamp,
                     color: day.color || DEFAULT_HISTORY_COLOR
@@ -2768,7 +2793,7 @@
                 
                 // Merge logbog (array = web legacy; object by date = Expo app)
                 if (Array.isArray(monthData.logbog)) {
-                    merged.logbogData.push(...monthData.logbog);
+                    merged.logbogData.push(...monthData.logbog.map(e => normalizeLogbogEntryForUi(e)));
                 } else if (monthData.logbog && typeof monthData.logbog === 'object') {
                     merged.logbogData.push(...normalizeLogbogFieldToEntries(monthData.logbog));
                 }
@@ -2825,7 +2850,7 @@
 
                         let logbogData = merged.logbogData.length > 0 ? merged.logbogData : null;
                         if (!logbogData && Array.isArray(raw.logbogData) && raw.logbogData.length > 0) {
-                            logbogData = raw.logbogData;
+                            logbogData = raw.logbogData.map(e => normalizeLogbogEntryForUi(e));
                         }
 
                         const data = {
@@ -2850,7 +2875,9 @@
                             dialogData: raw.dialogData || null,
                             opstillingData: raw.opstillingData || null,
                             compareData: raw.compareData || null,
-                            logbogData: Array.isArray(raw.logbogData) ? raw.logbogData : null,
+                            logbogData: Array.isArray(raw.logbogData)
+                                ? raw.logbogData.map(e => normalizeLogbogEntryForUi(e))
+                                : null,
                             // forside_checkin_data is deprecated - kept for migration compatibility only
                             forside_checkin_data: Array.isArray(raw.forside_checkin_data) ? raw.forside_checkin_data : null,
                             monthsIndex: Object.keys(legacyMonthsIndex).length > 0 ? legacyMonthsIndex : undefined
@@ -2948,7 +2975,10 @@
         function deepMergeDayPatchFields(day, patch) {
             const d = day && typeof day === 'object' ? { ...day } : {};
             if (Object.prototype.hasOwnProperty.call(patch, 'dagbog')) d.dagbog = patch.dagbog;
-            if (Object.prototype.hasOwnProperty.call(patch, 'dreams')) d.dreams = patch.dreams;
+            if (Object.prototype.hasOwnProperty.call(patch, 'drømme')) {
+                d.drømme = patch.drømme;
+                delete d.dreams;
+            }
             if (Object.prototype.hasOwnProperty.call(patch, 'color')) {
                 if (patch.color === null) delete d.color;
                 else d.color = patch.color;
@@ -3016,7 +3046,10 @@
             if (idx === -1) return;
             const ent = { ...window.allUserData.logbogData[idx] };
             if (Object.prototype.hasOwnProperty.call(patch, 'dagbog')) ent.dagbog = patch.dagbog;
-            if (Object.prototype.hasOwnProperty.call(patch, 'dreams')) ent.dreams = patch.dreams;
+            if (Object.prototype.hasOwnProperty.call(patch, 'drømme')) {
+                ent.drømme = patch.drømme;
+                delete ent.dreams;
+            }
             if (Object.prototype.hasOwnProperty.call(patch, 'color')) {
                 if (patch.color === null) delete ent.color;
                 else ent.color = patch.color;
@@ -3073,7 +3106,7 @@
             if (!currentUser || !db) return false;
             const dk = normalizeDateKey(dateKey) || dateKey;
             if (!dk || !/^\d{4}-\d{2}-\d{2}$/.test(dk)) return false;
-            const hasPatch = ['dagbog', 'dreams', 'color'].some(k => Object.prototype.hasOwnProperty.call(patch, k));
+            const hasPatch = ['dagbog', 'drømme', 'color'].some(k => Object.prototype.hasOwnProperty.call(patch, k));
             if (!hasPatch) return false;
 
             const userDocRef = db.collection('users').doc(currentUser.uid);
@@ -3257,7 +3290,7 @@
                                 mutated = true;
                             }
                         }
-                        return nextEntry;
+                        return normalizeLogbogEntryForUi(nextEntry);
                     });
                     
                     // Don't save during normalization - cleaned data will be saved on next user action
@@ -3854,12 +3887,12 @@
                         : parsedWeekdayDate.toLocaleDateString(getLogbogIntlLocale(), { weekday: 'long' });
                 weekdayText =
                     weekdayText.charAt(0).toUpperCase() + weekdayText.slice(1);
-                const totalChars = (entry.dagbog || '').length + (entry.dreams || '').length;
+                const totalChars = (entry.dagbog || '').length + (entry.drømme || '').length;
                 subEl.textContent = formatHistorySubtitleWeekdayChars(weekdayText, totalChars);
 
                 const snippetEl = document.createElement('div');
                 snippetEl.className = 'log-history-item-snippet';
-                const snippetSource = (entry.dagbog || entry.dreams || '').trim();
+                const snippetSource = (entry.dagbog || entry.drømme || '').trim();
                 if (snippetSource.length === 0) {
                     snippetEl.textContent = getLogbogStrings().historyNoNotesYet;
                 } else {
@@ -3985,9 +4018,8 @@
                 // Find entry for this date
                 const entry = logbogData.find(item => item.date === dateStr);
                 
-                // Return taknem if it exists and is not empty
-                if (entry && entry.taknem && entry.taknem !== '' && entry.taknem !== null && entry.taknem !== undefined) {
-                    return entry.taknem;
+                if (entry && entry.taknemmeligheder && entry.taknemmeligheder !== '') {
+                    return entry.taknemmeligheder;
                 }
                 
                 return '';
@@ -4043,7 +4075,7 @@
                 autoResizeTextarea(logbookEntryEl);
             }
             if (dreamEntryEl) {
-                dreamEntryEl.value = entry ? (entry.dreams || '') : '';
+                dreamEntryEl.value = entry ? (entry.drømme || '') : '';
                 autoResizeTextarea(dreamEntryEl);
             }
 
@@ -4163,7 +4195,7 @@
                 updateJournalSaveButtonAppearance();
             }
             if (document.activeElement !== dreamEntryEl) {
-                dreamEntryEl.value = entry.dreams || '';
+                dreamEntryEl.value = entry.drømme || '';
                 autoResizeTextarea(dreamEntryEl);
                 lastSavedDreamsSnapshot = normalizeLogFieldText(dreamEntryEl.value);
                 updateDreamsSaveButtonAppearance();
@@ -4290,12 +4322,14 @@
             if (!isDreamsFieldDirty()) return;
             if (sessionStorage.getItem('is_encrypted') === 'true' && !(await getEncKeyOrPrompt())) return false;
             if (dreamsSaveBtn) dreamsSaveBtn.textContent = s.saving || 'Gemmer...';
-            const ok = await saveLogbogDayPatchToFirestore(activeLogDate, { dreams: dreamEntryEl.value });
+            const ok = await saveLogbogDayPatchToFirestore(activeLogDate, { drømme: dreamEntryEl.value });
             if (ok) {
                 lastSavedDreamsSnapshot = normalizeLogFieldText(dreamEntryEl.value);
                 updateDreamsSaveButtonAppearance();
                 const sortedEntries = await getSortedLogEntries();
                 await renderLogHistory(sortedEntries);
+            } else if (dreamsSaveBtn) {
+                updateDreamsSaveButtonAppearance();
             }
         }
 
@@ -5761,7 +5795,7 @@
                         return {
                             date,
                             dagbog: entry.dagbog || '',
-                            dreams: entry.dreams || ''
+                            drømme: entry.drømme || ''
                         };
                     });
 
@@ -5770,7 +5804,7 @@
                     for (const e of normalizedEntries) {
                         const ok = await saveLogbogDayPatchToFirestore(e.date, {
                             dagbog: e.dagbog,
-                            dreams: e.dreams
+                            drømme: e.drømme
                         });
                         if (ok) applied++;
                     }
