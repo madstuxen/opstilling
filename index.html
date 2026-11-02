@@ -773,9 +773,16 @@
             transform-origin: center;
             border-radius: 4px;
         }
+        .play-reviews-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+            gap: 12px;
+            margin-top: 10px;
+        }
         .play-review {
-            flex: 1 1 144px;
-            max-width: 220px;
+            flex: 1 1 200px;
+            max-width: 320px;
             min-width: 0;
             padding: 10px 12px;
             border: 2px solid rgba(0, 0, 0, 0.45);
@@ -1044,26 +1051,35 @@
                         <img class="store-badge-img" src="imagefiles/googlePlayblack.svg" alt="" width="144" height="48" decoding="async">
                     </a>
                 </div>
-                <div class="qr-row" aria-label="App store QR codes and Google Play review">
+                <div class="qr-row" aria-label="App store QR codes">
                     <span class="qr-wrap" aria-label="App Store QR code">
                         <img src="imagefiles/qr-code_appstore.jpg" alt="QR code to Me & Them on App Store" decoding="async">
                     </span>
                     <span class="qr-wrap" aria-label="Google Play QR code">
                         <img src="imagefiles/qr-code_google_play.jpg" alt="QR code to Me & Them on Google Play" decoding="async">
                     </span>
-                    <aside class="play-review" aria-label="5-star Google Play review">
-                        <p class="play-review-stars" aria-label="5 out of 5 stars">⭐⭐⭐⭐⭐</p>
-                        <blockquote class="play-review-quote">
-                            <p>“This app is gonna go far”</p>
-                        </blockquote>
-                        <p class="play-review-cite">Morgan Mackay<br>Google Play</p>
-                    </aside>
                 </div>
                 <div class="insta-row">
                     <a class="insta-link" href="https://www.instagram.com/me_and_them_coach/" target="_blank" rel="noopener noreferrer">
                         <img class="insta-link-icon" src="imagefiles/insta.png" alt="" width="48" height="48" decoding="async">
                         <span class="insta-link-label">Follow Coach on Instagram</span>
                     </a>
+                </div>
+                <div class="play-reviews-row" aria-label="Google Play reviews">
+                    <aside class="play-review" aria-label="5-star Google Play review from Morgan Mackay">
+                        <p class="play-review-stars" aria-label="5 out of 5 stars">⭐⭐⭐⭐⭐</p>
+                        <blockquote class="play-review-quote">
+                            <p>“This app is gonna go far”</p>
+                        </blockquote>
+                        <p class="play-review-cite">Morgan Mackay<br>Google Play</p>
+                    </aside>
+                    <aside class="play-review" aria-label="5-star Google Play review from Camila Cordero">
+                        <p class="play-review-stars" aria-label="5 out of 5 stars">⭐⭐⭐⭐⭐</p>
+                        <blockquote class="play-review-quote">
+                            <p>“Really underrated app. I don't even have the full features but the free stuff is pretty great alone. a journalling app where you write down your day by answering questions is a great idea that im surprised I haven't seen before. its great for those who dont know what to say when journalling. i also love the positive affirmations &lt;3”</p>
+                        </blockquote>
+                        <p class="play-review-cite">Camila Cordero<br>Google Play</p>
+                    </aside>
                 </div>
             </div>
             <a class="card-hand" href="feature-list.html" aria-label="Feature list">
