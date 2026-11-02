@@ -2033,6 +2033,7 @@
                 <div class="button-group">
                     <button type="button" class="btn btn-success" id="btnSaveAnimation" disabled>Gem</button>
                     <button type="button" class="btn btn-primary" id="btnSaveAnimationAs" disabled>Gem som…</button>
+                    <button type="button" class="btn btn-secondary" id="btnExportAnimation" disabled title="Download animation som JSON-fil (lokal)">Eksportér JSON</button>
                     <button type="button" class="btn btn-danger" id="btnDeleteAnimation" disabled>Slet</button>
                 </div>
             </div>
@@ -3050,6 +3051,8 @@
             if (isDirtyTrackingSuppressed()) return;
             animationDirty = true;
             updateDirtyIndicators();
+            const exportAnim = document.getElementById('btnExportAnimation');
+            if (exportAnim) exportAnim.disabled = timelineSlides.length === 0;
         }
 
         function clearPoseDirty() {
@@ -5365,6 +5368,8 @@ function initTimelineDragDrop() {
             if (delPose) delPose.disabled = !loggedIn || !openedPoseDocId;
             const delAnim = document.getElementById('btnDeleteAnimation');
             if (delAnim) delAnim.disabled = !loggedIn || !openedAnimationDocId;
+            const exportAnim = document.getElementById('btnExportAnimation');
+            if (exportAnim) exportAnim.disabled = timelineSlides.length === 0;
             updateLibraryToolbarUi();
         }
 
@@ -5988,6 +5993,7 @@ function initTimelineDragDrop() {
 
             document.getElementById('btnSaveAnimation')?.addEventListener('click', () => handleSaveAnimation());
             document.getElementById('btnSaveAnimationAs')?.addEventListener('click', () => handleSaveAnimationAs());
+            document.getElementById('btnExportAnimation')?.addEventListener('click', () => exportCurrentAnimationAsJsonFile());
             document.getElementById('btnDeleteAnimation')?.addEventListener('click', () => handleDeleteAnimation());
             document.getElementById('animationLibrarySelect')?.addEventListener('change', (e) => onAnimationSelectChanged(e.target.value));
 
@@ -6038,32 +6044,36 @@ function initTimelineDragDrop() {
                 });
             }
         }
-		function exportTimelineSlides() {
-    if (timelineSlides.length === 0) {
-        alert('Ingen timeline slides at eksportere!');
-        return;
-    }
-    
-    const animationName = prompt('Hvad skal animationen hedde?', 'myAnimation');
-    if (!animationName) return;
-    
-    // Clean name for filename
-    const cleanName = animationName.replace(/[^a-zA-Z0-9æøåÆØÅ]/g, '_').toLowerCase();
-    
-    const exportData = buildTimelineExportData();
-    
-    // Format JSON to match Animations folder style
-    const dataStr = JSON.stringify(exportData, null, 2);
-    
-    const dataBlob = new Blob([dataStr], {type: 'application/json'});
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = `${cleanName}.json`;
-    link.click();
-    
-    alert(`${timelineSlides.length} slides eksporteret som "${cleanName}.json"!\n\nDu kan nu flytte filen til Animations mappen.`);
-}
+        function getDefaultAnimationExportName() {
+            if (openedAnimationDocId) {
+                const entry = findAnimationCacheEntry(openedAnimationDocId);
+                if (entry && entry.name) return entry.name;
+            }
+            return 'myAnimation';
+        }
+
+        function exportCurrentAnimationAsJsonFile() {
+            if (timelineSlides.length === 0) {
+                alert('Ingen timeline slides at eksportere!');
+                return;
+            }
+            const animationName = prompt('Filnavn for eksport (gemmes lokalt som JSON)?', getDefaultAnimationExportName());
+            if (!animationName || !animationName.trim()) return;
+            const cleanName = animationName.trim().replace(/[^a-zA-Z0-9æøåÆØÅ_-]/g, '_');
+            const fileName = cleanName.toLowerCase().endsWith('.json') ? cleanName : `${cleanName}.json`;
+            const exportData = buildTimelineExportData();
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = fileName;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function exportTimelineSlides() {
+            exportCurrentAnimationAsJsonFile();
+        }
 
 function importTimelineSlides(event) {
     const file = event.target.files[0];
