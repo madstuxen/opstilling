@@ -57,6 +57,27 @@ function stripTags(raw) {
   return String(raw ?? "").replace(/<[^>]*>/g, "");
 }
 
+/** Afkod HTML-entiteter (inkl. gamle dobbelt-&amp;) før tekst vises i editoren / gemmes igen. */
+function decodeHtmlEntities(raw) {
+  let s = String(raw ?? "");
+  for (let i = 0; i < 8; i++) {
+    const next = s
+      .replace(/&amp;/gi, "&")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/gi, "'");
+    if (next === s) break;
+    s = next;
+  }
+  return s;
+}
+
+function plainTextFromHtmlFragment(raw) {
+  return decodeHtmlEntities(stripTags(raw)).trim();
+}
+
 function normalizeTags(raw) {
   const BLOG_TAGS = getBlogTags();
   const allowed = new Set(BLOG_TAGS);
@@ -341,19 +362,19 @@ function parsePostFromArticle(articleHtml, fallbackIndex) {
   const linkAnchorMatch = articleHtml.match(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i);
   const linkNameMatch = articleHtml.match(/<p class="blog-post-link-line">Link:\s*([\s\S]*?)<\/p>/i);
 
-  const textA = pMatches[0] ? stripTags(pMatches[0][1]).trim() : "";
-  const textB = pMatches[1] ? stripTags(pMatches[1][1]).trim() : "";
-  const textC = pMatches[2] ? stripTags(pMatches[2][1]).trim() : "";
+  const textA = pMatches[0] ? plainTextFromHtmlFragment(pMatches[0][1]) : "";
+  const textB = pMatches[1] ? plainTextFromHtmlFragment(pMatches[1][1]) : "";
+  const textC = pMatches[2] ? plainTextFromHtmlFragment(pMatches[2][1]) : "";
   const imageAName = imgMatches[0] ? (imgMatches[0][0].match(/src="blog\/images_blog\/([^"]+)"/i) || [])[1] : null;
   const imageBName = imgMatches[1] ? (imgMatches[1][0].match(/src="blog\/images_blog\/([^"]+)"/i) || [])[1] : null;
   const imageAScale = imgMatches[0] ? parseScaleFromImgTag(imgMatches[0][0]) : 1;
   const imageBScale = imgMatches[1] ? parseScaleFromImgTag(imgMatches[1][0]) : 1;
 
-  const dato = (dateChipMatch ? stripTags(dateChipMatch[1]) : dateAttr || "").trim();
+  const dato = (dateChipMatch ? plainTextFromHtmlFragment(dateChipMatch[1]) : decodeHtmlEntities(dateAttr || "")).trim();
   const tags = parseTagsFromArticle(openTag, articleHtml);
   const post = {
     id,
-    titel: (titleMatch ? stripTags(titleMatch[1]) : "").trim(),
+    titel: titleMatch ? plainTextFromHtmlFragment(titleMatch[1]) : "",
     dato,
     tags,
     sektioner: [{ Atekst: textA }]
@@ -364,7 +385,7 @@ function parsePostFromArticle(articleHtml, fallbackIndex) {
   post.sektioner.push({ Ctekst: textC });
   const linkInfo = parseLinkFromArticle(articleHtml);
   if (linkNameMatch && linkNameMatch[1]) {
-    post.linkNavn = stripTags(linkNameMatch[1]).trim();
+    post.linkNavn = plainTextFromHtmlFragment(linkNameMatch[1]);
   }
   if (linkInfo) {
     if (linkInfo.linkType === "internal") {
